@@ -1,0 +1,49 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+license = "EUPL-1.2"
+repository = "https://github.com/magnetite-browser/magnetite"
+rust-version = "1.88"
+
+[workspace.dependencies]
+magnetite-core = { path = "crates/core" }
+magnetite-engine = { path = "crates/engine" }
+magnetite-importer = { path = "crates/importer" }
+# The sync protocol lives with the server in magnetite-sync and is taken from
+# one of its releases (docs/development/release.md).
+magnetite-sync-proto = { git = "https://github.com/magnetite-browser/magnetite-sync", tag = "v0.1.0" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+clap = { version = "4", features = ["derive", "env"] }
+ed25519-dalek = "3"
+sha2 = "0.11"
+base64 = "0.22"
+# Safe (no unsafe) LZ4 block decoding for Firefox's mozlz4 files; no frame format.
+lz4_flex = { version = "0.14", default-features = false, features = ["std", "safe-decode", "safe-encode"] }
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+# Command dispatch and settings are long matches and flag structs by nature.
+too_many_lines = "allow"
+struct_excessive_bools = "allow"
+# Small helper fns next to the code that uses them.
+items_after_statements = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

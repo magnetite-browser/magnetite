@@ -1,0 +1,2 @@
+# Product names that read as code to the doc_markdown lint.
+doc-valid-idents = ["YouTrack", "DevTools", "AppKit", ".."]

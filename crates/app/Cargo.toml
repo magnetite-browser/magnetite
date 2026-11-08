@@ -1,0 +1,51 @@
+[package]
+name = "magnetite"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "magnetite"
+path = "src/main.rs"
+
+[[bin]]
+name = "magnetite-helper"
+path = "src/bin/helper.rs"
+
+[package.metadata.cef.bundle]
+helper_name = "magnetite-helper"
+resources_path = "resources"
+
+[features]
+# Type-check without CEF (see magnetite-engine).
+dox = ["magnetite-engine/dox"]
+
+[dependencies]
+magnetite-core.workspace = true
+magnetite-engine.workspace = true
+magnetite-importer.workspace = true
+magnetite-sync-proto.workspace = true
+ureq = { version = "3", features = ["json"] }
+semver = "1"
+url = "2"
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+png = "0.18"
+base64.workspace = true
+ed25519-dalek.workspace = true
+sha2.workspace = true
+libc = "0.2"
+
+[dev-dependencies]
+magnetite-sync = { git = "https://github.com/magnetite-browser/magnetite-sync", tag = "v0.1.0" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+# Compressed answers in the sync tests (already in the build through ureq).
+flate2 = "1"
+
+[lints]
+workspace = true
