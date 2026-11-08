@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512" role="img" aria-label="Magnetite icon: a flat iron ring tightly wound with copper wire, softly glowing">
+<defs>
+<radialGradient id="fGlow" gradientUnits="userSpaceOnUse" cx="150" cy="256" r="210">
+<stop offset="0" stop-color="#E2622B" stop-opacity="0.32"></stop>
+<stop offset="1" stop-color="#E2622B" stop-opacity="0"></stop>
+</radialGradient>
+<filter id="fBlur" x="-60%" y="-60%" width="220%" height="220%">
+<feGaussianBlur stdDeviation="9"></feGaussianBlur>
+</filter>
+</defs>
+<clipPath id="sq"><rect width="512" height="512" rx="112"></rect></clipPath><g clip-path="url(#sq)"><rect width="512" height="512" fill="#16171B"></rect>
+<circle cx="150" cy="256" r="210" fill="url(#fGlow)"></circle>
+<g fill="none" stroke="#E2622B" stroke-linecap="round">
+<path d="M 330 46 A 230 230 0 0 1 330 466" stroke-width="3" opacity="0.16"></path>
+</g>
+<circle cx="256" cy="256" r="150" fill="none" stroke="#3B3E47" stroke-width="64"></circle>
+<path d="M 256 106 A 150 150 0 0 1 406 256" fill="none" stroke="#5C616D" stroke-width="10" stroke-linecap="round"></path>
+<g fill="#E2622B">
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(188 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(197 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(206 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(215 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(224 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(233 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(242 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(251 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(260 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(269 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(278 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(287 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(296 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(305 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(314 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(323 256 256)"></rect>
+<rect x="251" y="62" width="10" height="88" rx="5" transform="rotate(332 256 256)"></rect>
+</g>
+<circle cx="406" cy="256" r="22" fill="#E2622B" filter="url(#fBlur)" opacity="0.85"></circle>
+<circle cx="406" cy="256" r="14" fill="#E2622B"></circle>
+</g></svg>

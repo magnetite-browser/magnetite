@@ -1,0 +1,1556 @@
+{
+ "version": 1,
+ "sidebar": {
+  "containers": [
+   {
+    "global": {}
+   },
+   {
+    "items": [
+     "00000001-0000-4000-8000-000000000000",
+     {
+      "originatingDevice": "DEVICE-0000",
+      "createdAt": 813488735,
+      "title": null,
+      "data": {
+       "tab": {
+        "timeLastActiveAt": 814397807.458873,
+        "savedMuteStatus": "allowAudio",
+        "savedTitle": "Example title 1",
+        "savedURL": "https://example.org/page-2",
+        "liveItemID": {
+         "url": {
+          "_0": "https://example.org/page-3"
+         }
+        }
+       }
+      },
+      "childrenIds": [],
+      "isUnread": false,
+      "id": "00000001-0000-4000-8000-000000000000",
+      "parentID": "00000002-0000-4000-8000-000000000000"
+     },
+     "00000003-0000-4000-8000-000000000000",
+     {
+      "originatingDevice": "DEVICE-0000",
+      "createdAt": 815577655.265742,
+      "title": null,
+      "data": {
+       "tab": {
+        "activeTabBeforeCreationID": "00000004-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815647378.438393,
+        "savedURL": "https://example.org/page-4",
+        "savedTitle": "Example title 5"
+       }
+      },
+      "childrenIds": [],
+      "isUnread": false,
+      "id": "00000003-0000-4000-8000-000000000000",
+      "parentID": "00000005-0000-4000-8000-000000000000"
+     },
+     "00000006-0000-4000-8000-000000000000",
+     {
+      "originatingDevice": "DEVICE-0000",
+      "createdAt": 814524764.359203,
+      "title": null,
+      "data": {
+       "tab": {
+        "referrerID": "00000007-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815179185.746567,
+        "activeTabBeforeCreationID": "00000007-0000-4000-8000-000000000000",
+        "savedURL": "https://example.org/page-6",
+        "savedTitle": "Example title 7",
+        "savedMuteStatus": "allowAudio"
+       }
+      },
+      "childrenIds": [],
+      "isUnread": false,
+      "id": "00000006-0000-4000-8000-000000000000",
+      "parentID": "00000008-0000-4000-8000-000000000000"
+     },
+     "00000009-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000009-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 815300457.389348,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 8",
+        "savedMuteStatus": "allowAudio",
+        "activeTabBeforeCreationID": "00000004-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815497272.73975,
+        "savedURL": "https://example.org/page-9"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000000A-0000-4000-8000-000000000000",
+     {
+      "originatingDevice": "DEVICE-0000",
+      "createdAt": 813659461.540792,
+      "title": null,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 10",
+        "savedMuteStatus": "allowAudio",
+        "savedURL": "https://example.org/page-11",
+        "activeTabBeforeCreationID": "0000000B-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815305646.90191,
+        "referrerID": "0000000B-0000-4000-8000-000000000000"
+       }
+      },
+      "childrenIds": [],
+      "isUnread": false,
+      "id": "0000000A-0000-4000-8000-000000000000",
+      "parentID": "0000000C-0000-4000-8000-000000000000"
+     },
+     "0000000D-0000-4000-8000-000000000000",
+     {
+      "originatingDevice": "DEVICE-0000",
+      "createdAt": 814995575.222539,
+      "title": null,
+      "data": {
+       "tab": {
+        "savedURL": "https://example.org/page-12",
+        "timeLastActiveAt": 815179225.315316,
+        "savedTitle": "Example title 13",
+        "activeTabBeforeCreationID": "0000000E-0000-4000-8000-000000000000",
+        "savedMuteStatus": "allowAudio",
+        "referrerID": "0000000E-0000-4000-8000-000000000000"
+       }
+      },
+      "childrenIds": [],
+      "isUnread": false,
+      "id": "0000000D-0000-4000-8000-000000000000",
+      "parentID": "00000008-0000-4000-8000-000000000000"
+     },
+     "0000000F-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000000F-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000008-0000-4000-8000-000000000000",
+      "createdAt": 814995554.453686,
+      "data": {
+       "tab": {
+        "savedURL": "https://example.org/page-14",
+        "activeTabBeforeCreationID": "0000000E-0000-4000-8000-000000000000",
+        "referrerID": "0000000E-0000-4000-8000-000000000000",
+        "savedTitle": "Example title 15",
+        "timeLastActiveAt": 815179256.930072,
+        "savedMuteStatus": "allowAudio"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000005-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000005-0000-4000-8000-000000000000",
+      "childrenIds": [
+       "00000010-0000-4000-8000-000000000000",
+       "00000011-0000-4000-8000-000000000000",
+       "00000003-0000-4000-8000-000000000000",
+       "00000012-0000-4000-8000-000000000000",
+       "00000013-0000-4000-8000-000000000000",
+       "00000014-0000-4000-8000-000000000000",
+       "00000015-0000-4000-8000-000000000000",
+       "00000009-0000-4000-8000-000000000000",
+       "00000016-0000-4000-8000-000000000000",
+       "00000017-0000-4000-8000-000000000000",
+       "00000018-0000-4000-8000-000000000000",
+       "00000019-0000-4000-8000-000000000000"
+      ],
+      "parentID": null,
+      "createdAt": 753049469.848484,
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "spaceItems": {
+          "_0": "0000001A-0000-4000-8000-000000000000"
+         }
+        }
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000001B-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000001B-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000001C-0000-4000-8000-000000000000",
+      "createdAt": 807359683.249782,
+      "data": {
+       "tab": {
+        "activeTabBeforeCreationID": "0000001D-0000-4000-8000-000000000000",
+        "savedTitle": "Example title 16",
+        "timeLastActiveAt": 815176481.280886,
+        "savedMuteStatus": "allowAudio",
+        "savedURL": "https://example.org/page-17"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000001E-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000001E-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000001C-0000-4000-8000-000000000000",
+      "createdAt": 797431736.032984,
+      "data": {
+       "tab": {
+        "activeTabBeforeCreationID": "0000001F-0000-4000-8000-000000000000",
+        "savedMuteStatus": "allowAudio",
+        "timeLastActiveAt": 815135009.200976,
+        "savedURL": "https://example.org/page-18",
+        "savedTitle": "Example title 19"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000020-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000020-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000002-0000-4000-8000-000000000000",
+      "createdAt": 813481366,
+      "data": {
+       "tab": {
+        "savedURL": "https://example.org/page-20",
+        "savedTitle": "Example title 21",
+        "timeLastActiveAt": 814399103.892581,
+        "savedMuteStatus": "allowAudio",
+        "liveItemID": {
+         "url": {
+          "_0": "https://example.org/page-22"
+         }
+        }
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000021-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000021-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000008-0000-4000-8000-000000000000",
+      "createdAt": 814995568.925393,
+      "data": {
+       "tab": {
+        "savedURL": "https://example.org/page-23",
+        "savedMuteStatus": "allowAudio",
+        "timeLastActiveAt": 815179231.515242,
+        "savedTitle": "Example title 24",
+        "activeTabBeforeCreationID": "0000000E-0000-4000-8000-000000000000",
+        "referrerID": "0000000E-0000-4000-8000-000000000000"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000022-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000022-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000000C-0000-4000-8000-000000000000",
+      "createdAt": 800306926.880306,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 25",
+        "savedMuteStatus": "allowAudio",
+        "savedURL": "https://example.org/page-26",
+        "activeTabBeforeCreationID": "00000023-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815647103.101236
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000015-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000015-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 815437867.351658,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 27",
+        "timeLastActiveAt": 815485208.52632,
+        "savedURL": "https://example.org/page-28",
+        "activeTabBeforeCreationID": "00000024-0000-4000-8000-000000000000"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000025-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000025-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000008-0000-4000-8000-000000000000",
+      "createdAt": 814995530.324107,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 29",
+        "timeLastActiveAt": 815179264.671488,
+        "savedMuteStatus": "allowAudio",
+        "savedURL": "https://example.org/page-30",
+        "referrerID": "0000000E-0000-4000-8000-000000000000",
+        "activeTabBeforeCreationID": "0000000E-0000-4000-8000-000000000000"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000026-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000026-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000008-0000-4000-8000-000000000000",
+      "createdAt": 815138685.175248,
+      "data": {
+       "tab": {
+        "savedMuteStatus": "allowAudio",
+        "timeLastActiveAt": 815179181.847744,
+        "activeTabBeforeCreationID": "00000027-0000-4000-8000-000000000000",
+        "savedURL": "https://example.org/page-31",
+        "savedTitle": "Example title 32"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000000C-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000000C-0000-4000-8000-000000000000",
+      "childrenIds": [
+       "00000027-0000-4000-8000-000000000000",
+       "00000028-0000-4000-8000-000000000000",
+       "0000000A-0000-4000-8000-000000000000",
+       "00000022-0000-4000-8000-000000000000",
+       "00000029-0000-4000-8000-000000000000"
+      ],
+      "parentID": null,
+      "createdAt": 753048658.135964,
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "topApps": {
+          "_0": {
+           "default": true
+          }
+         }
+        }
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000002A-0000-4000-8000-000000000000",
+     {
+      "title": "Example title 33",
+      "id": "0000002A-0000-4000-8000-000000000000",
+      "childrenIds": [
+       "0000002B-0000-4000-8000-000000000000",
+       "0000002C-0000-4000-8000-000000000000"
+      ],
+      "parentID": "0000002D-0000-4000-8000-000000000000",
+      "createdAt": 813482927.873363,
+      "data": {
+       "list": {
+        "automaticLiveFolderData": {
+         "lastFetch": {
+          "timestamp": 815648366.709765,
+          "status": {
+           "success": {
+            "_0": 815648366.709765
+           }
+          }
+         },
+         "dataSource": {
+          "github": {}
+         },
+         "hiddenItems": []
+        },
+        "customInfo": {
+         "iconType": {
+          "icon": "github"
+         }
+        }
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000004-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000004-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000002D-0000-4000-8000-000000000000",
+      "createdAt": 814877656.389566,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 34",
+        "savedURL": "https://example.org/page-35",
+        "activeTabBeforeCreationID": "0000002E-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815646854.839221,
+        "savedMuteStatus": "allowAudio"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000018-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000018-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 814953326.504383,
+      "data": {
+       "tab": {
+        "timeLastActiveAt": 815488739.755075,
+        "savedURL": "https://example.org/page-36",
+        "savedTitle": "Example title 37",
+        "activeTabBeforeCreationID": "0000002F-0000-4000-8000-000000000000",
+        "savedMuteStatus": "allowAudio"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000029-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000029-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000000C-0000-4000-8000-000000000000",
+      "createdAt": 801255091.707156,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 38",
+        "savedMuteStatus": "allowAudio",
+        "savedURL": "https://example.org/page-39",
+        "timeLastActiveAt": 815583552.798424,
+        "activeTabBeforeCreationID": "00000030-0000-4000-8000-000000000000"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000016-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000016-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 815319122.082041,
+      "data": {
+       "tab": {
+        "activeTabBeforeCreationID": "00000009-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815497452.582034,
+        "referrerID": "00000009-0000-4000-8000-000000000000",
+        "savedTitle": "Example title 40",
+        "savedURL": "https://example.org/page-41"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000012-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000012-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 815566918.750302,
+      "data": {
+       "tab": {
+        "activeTabBeforeCreationID": "00000027-0000-4000-8000-000000000000",
+        "savedTitle": "Example title 42",
+        "timeLastActiveAt": 815575843.946703,
+        "savedURL": "https://example.org/page-43"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000002D-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000002D-0000-4000-8000-000000000000",
+      "childrenIds": [
+       "00000031-0000-4000-8000-000000000000",
+       "00000032-0000-4000-8000-000000000000",
+       "00000033-0000-4000-8000-000000000000",
+       "00000004-0000-4000-8000-000000000000",
+       "0000002A-0000-4000-8000-000000000000"
+      ],
+      "parentID": null,
+      "createdAt": 753049469.848479,
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "spaceItems": {
+          "_0": "0000001A-0000-4000-8000-000000000000"
+         }
+        }
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000034-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000034-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000001C-0000-4000-8000-000000000000",
+      "createdAt": 797380167.198345,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 44",
+        "activeTabBeforeCreationID": "00000035-0000-4000-8000-000000000000",
+        "savedURL": "https://example.org/page-45",
+        "timeLastActiveAt": 815176605.297962,
+        "savedMuteStatus": "allowAudio"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000036-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000036-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000008-0000-4000-8000-000000000000",
+      "createdAt": 815211207.083185,
+      "data": {
+       "tab": {
+        "activeTabBeforeCreationID": "00000027-0000-4000-8000-000000000000",
+        "savedTitle": "Example title 46",
+        "savedMuteStatus": "allowAudio",
+        "timeLastActiveAt": 815475867.606574,
+        "savedURL": "https://example.org/page-47"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000019-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000019-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 815504625.640582,
+      "data": {
+       "tab": {
+        "savedURL": "https://example.org/page-48",
+        "timeLastActiveAt": 815578667.848931,
+        "savedTitle": "Example title 49",
+        "activeTabBeforeCreationID": "00000027-0000-4000-8000-000000000000",
+        "savedMuteStatus": "allowAudio"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000031-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000031-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000002D-0000-4000-8000-000000000000",
+      "createdAt": 812371085.332195,
+      "data": {
+       "tab": {
+        "timeLastActiveAt": 815646912.652191,
+        "referrerID": "00000037-0000-4000-8000-000000000000",
+        "savedURL": "https://example.org/page-50",
+        "activeTabBeforeCreationID": "00000037-0000-4000-8000-000000000000",
+        "savedMuteStatus": "allowAudio",
+        "savedTitle": "Example title 51"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000002-0000-4000-8000-000000000000",
+     {
+      "title": "Example title 52",
+      "id": "00000002-0000-4000-8000-000000000000",
+      "childrenIds": [
+       "00000020-0000-4000-8000-000000000000",
+       "00000001-0000-4000-8000-000000000000"
+      ],
+      "parentID": "0000001C-0000-4000-8000-000000000000",
+      "createdAt": 797590238.86658,
+      "data": {
+       "list": {
+        "customInfo": {
+         "iconType": {
+          "icon": "github"
+         }
+        },
+        "automaticLiveFolderData": {
+         "hiddenItems": [],
+         "lastFetch": {
+          "timestamp": 815476083.635655,
+          "status": {
+           "success": {
+            "_0": 815476083.635655
+           }
+          }
+         },
+         "dataSource": {
+          "github": {}
+         }
+        }
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000038-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000038-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000001C-0000-4000-8000-000000000000",
+      "createdAt": 804497494.091411,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 53",
+        "timeLastActiveAt": 815318747.653588,
+        "savedMuteStatus": "allowAudio",
+        "savedURL": "https://example.org/page-54",
+        "activeTabBeforeCreationID": "00000039-0000-4000-8000-000000000000"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000003A-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000003A-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000008-0000-4000-8000-000000000000",
+      "createdAt": 814995563.202011,
+      "data": {
+       "tab": {
+        "savedURL": "https://example.org/page-55",
+        "activeTabBeforeCreationID": "0000000E-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815179241.267469,
+        "savedMuteStatus": "allowAudio",
+        "savedTitle": "Example title 56",
+        "referrerID": "0000000E-0000-4000-8000-000000000000"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000014-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000014-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 815471823.077766,
+      "data": {
+       "tab": {
+        "timeLastActiveAt": 815489187.64624,
+        "activeTabBeforeCreationID": "00000017-0000-4000-8000-000000000000",
+        "savedURL": "https://example.org/page-57",
+        "savedTitle": "Example title 58"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000001C-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000001C-0000-4000-8000-000000000000",
+      "childrenIds": [
+       "0000001B-0000-4000-8000-000000000000",
+       "0000001E-0000-4000-8000-000000000000",
+       "00000034-0000-4000-8000-000000000000",
+       "00000038-0000-4000-8000-000000000000",
+       "00000002-0000-4000-8000-000000000000"
+      ],
+      "parentID": null,
+      "createdAt": 797373469.254816,
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "spaceItems": {
+          "_0": "0000003B-0000-4000-8000-000000000000"
+         }
+        }
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000010-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000010-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 815582723.300121,
+      "data": {
+       "tab": {
+        "timeLastActiveAt": 815648415.891139,
+        "savedTitle": "Example title 59",
+        "savedURL": "https://example.org/page-60",
+        "activeTabBeforeCreationID": "00000027-0000-4000-8000-000000000000"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000017-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000017-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 814976668.147593,
+      "data": {
+       "tab": {
+        "activeTabBeforeCreationID": "00000032-0000-4000-8000-000000000000",
+        "savedURL": "https://example.org/page-61",
+        "savedTitle": "Example title 62",
+        "savedMuteStatus": "allowAudio",
+        "timeLastActiveAt": 815488785.368308
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000002B-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000002B-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000002A-0000-4000-8000-000000000000",
+      "createdAt": 813488735,
+      "data": {
+       "tab": {
+        "savedMuteStatus": "allowAudio",
+        "liveItemID": {
+         "url": {
+          "_0": "https://example.org/page-63"
+         }
+        },
+        "savedTitle": "Example title 64",
+        "timeLastActiveAt": 815575088.879815,
+        "savedURL": "https://example.org/page-65"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000003C-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000003C-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000008-0000-4000-8000-000000000000",
+      "createdAt": 815260681.503055,
+      "data": {
+       "tab": {
+        "savedMuteStatus": "allowAudio",
+        "activeTabBeforeCreationID": "00000027-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815270019.369303,
+        "savedTitle": "Example title 66",
+        "savedURL": "https://example.org/page-67"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000032-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000032-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000002D-0000-4000-8000-000000000000",
+      "createdAt": 807783795.694603,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 68",
+        "activeTabBeforeCreationID": "0000003D-0000-4000-8000-000000000000",
+        "savedURL": "https://example.org/page-69",
+        "savedMuteStatus": "allowAudio",
+        "timeLastActiveAt": 815582714.895985
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000013-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000013-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 815574948.733212,
+      "data": {
+       "tab": {
+        "savedURL": "https://example.org/page-70",
+        "savedTitle": "Example title 71",
+        "timeLastActiveAt": 815645001.891262,
+        "activeTabBeforeCreationID": "0000003E-0000-4000-8000-000000000000",
+        "referrerID": "0000003E-0000-4000-8000-000000000000"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000000E-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000000E-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000008-0000-4000-8000-000000000000",
+      "createdAt": 814492503.088502,
+      "data": {
+       "tab": {
+        "savedMuteStatus": "allowAudio",
+        "activeTabBeforeCreationID": "00000028-0000-4000-8000-000000000000",
+        "savedTitle": "Example title 72",
+        "timeLastActiveAt": 815181347.412426,
+        "savedURL": "https://example.org/page-73"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000033-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000033-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000002D-0000-4000-8000-000000000000",
+      "createdAt": 812470084.529914,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 74",
+        "activeTabBeforeCreationID": "0000003F-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815646825.390137,
+        "savedURL": "https://example.org/page-75",
+        "savedMuteStatus": "allowAudio"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "0000002C-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "0000002C-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000002A-0000-4000-8000-000000000000",
+      "createdAt": 813481366,
+      "data": {
+       "tab": {
+        "timeLastActiveAt": 815577570.133601,
+        "savedTitle": "Example title 76",
+        "savedMuteStatus": "allowAudio",
+        "savedURL": "https://example.org/page-77",
+        "liveItemID": {
+         "url": {
+          "_0": "https://example.org/page-78"
+         }
+        }
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000028-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000028-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000000C-0000-4000-8000-000000000000",
+      "createdAt": 797344939.223122,
+      "data": {
+       "tab": {
+        "activeTabBeforeCreationID": "00000040-0000-4000-8000-000000000000",
+        "savedTitle": "Example title 79",
+        "savedMuteStatus": "allowAudio",
+        "savedURL": "https://example.org/page-80",
+        "timeLastActiveAt": 815647566.140652
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000027-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000027-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "0000000C-0000-4000-8000-000000000000",
+      "createdAt": 813493681.852138,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 81",
+        "timeLastActiveAt": 815648408.633258,
+        "activeTabBeforeCreationID": "00000041-0000-4000-8000-000000000000",
+        "savedMuteStatus": "allowAudio",
+        "savedURL": "https://example.org/page-82"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000008-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000008-0000-4000-8000-000000000000",
+      "childrenIds": [
+       "0000003C-0000-4000-8000-000000000000",
+       "00000036-0000-4000-8000-000000000000",
+       "00000026-0000-4000-8000-000000000000",
+       "00000007-0000-4000-8000-000000000000",
+       "00000006-0000-4000-8000-000000000000",
+       "0000000E-0000-4000-8000-000000000000",
+       "00000025-0000-4000-8000-000000000000",
+       "0000000F-0000-4000-8000-000000000000",
+       "0000003A-0000-4000-8000-000000000000",
+       "00000021-0000-4000-8000-000000000000",
+       "0000000D-0000-4000-8000-000000000000"
+      ],
+      "parentID": null,
+      "createdAt": 797373469.25482,
+      "data": {
+       "itemContainer": {
+        "containerType": {
+         "spaceItems": {
+          "_0": "0000003B-0000-4000-8000-000000000000"
+         }
+        }
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000007-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000007-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000008-0000-4000-8000-000000000000",
+      "createdAt": 814492624.189115,
+      "data": {
+       "tab": {
+        "savedURL": "https://example.org/page-83",
+        "savedTitle": "Example title 84",
+        "timeLastActiveAt": 815179184.168258,
+        "activeTabBeforeCreationID": "0000000E-0000-4000-8000-000000000000",
+        "savedMuteStatus": "allowAudio"
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     },
+     "00000011-0000-4000-8000-000000000000",
+     {
+      "title": null,
+      "id": "00000011-0000-4000-8000-000000000000",
+      "childrenIds": [],
+      "parentID": "00000005-0000-4000-8000-000000000000",
+      "createdAt": 815577709.348004,
+      "data": {
+       "tab": {
+        "savedTitle": "Example title 85",
+        "savedURL": "https://example.org/page-86",
+        "activeTabBeforeCreationID": "00000003-0000-4000-8000-000000000000",
+        "timeLastActiveAt": 815647340.081656
+       }
+      },
+      "isUnread": false,
+      "originatingDevice": "DEVICE-0000"
+     }
+    ],
+    "spaces": [
+     "0000003B-0000-4000-8000-000000000000",
+     {
+      "title": "Space 89",
+      "containerIDs": [
+       "unpinned",
+       "00000008-0000-4000-8000-000000000000",
+       "pinned",
+       "0000001C-0000-4000-8000-000000000000"
+      ],
+      "customInfo": {
+       "windowTheme": {
+        "background": {
+         "single": {
+          "_0": {
+           "isVibrant": true,
+           "contentOverBackgroundAppearance": "light",
+           "style": {
+            "color": {
+             "_0": {
+              "blendedSingleColor": {
+               "_0": {
+                "modifiers": {
+                 "noiseFactor": 0,
+                 "overlay": "grain",
+                 "intensityFactor": 0
+                },
+                "color": {
+                 "colorSpace": "extendedSRGB",
+                 "red": 1.0000001192092896,
+                 "blue": 0.3440929055213928,
+                 "alpha": 1,
+                 "green": 0.5220285058021545
+                },
+                "translucencyStyle": "light"
+               }
+              }
+             }
+            }
+           }
+          }
+         }
+        },
+        "semanticColorPalette": {
+         "appearanceBased": {
+          "dark": {
+           "focus": {
+            "red": 0.7204353213310242,
+            "green": 0.341609925031662,
+            "colorSpace": "extendedSRGB",
+            "alpha": 0.8075,
+            "blue": 0.1548992395401001
+           },
+           "subtitle": {
+            "red": 0.5018073916435242,
+            "green": 0.4592255651950836,
+            "colorSpace": "extendedSRGB",
+            "alpha": 1,
+            "blue": 0.4444770812988281
+           },
+           "title": {
+            "red": 0.9479042291641235,
+            "green": 0.8773115277290344,
+            "colorSpace": "extendedSRGB",
+            "alpha": 1,
+            "blue": 0.8425187468528748
+           },
+           "hover": {
+            "red": 0.7467564940452576,
+            "green": 0.40359780192375183,
+            "colorSpace": "extendedSRGB",
+            "alpha": 0.48,
+            "blue": 0.23446601629257202
+           },
+           "foregroundPrimary": {
+            "alpha": 1,
+            "green": 0.9184511303901672,
+            "blue": 0.8889541029930115,
+            "red": 1.0036147832870483,
+            "colorSpace": "extendedSRGB"
+           },
+           "cutoutColor": {
+            "red": 0.6526946425437927,
+            "green": 0.18207696080207825,
+            "colorSpace": "extendedSRGB",
+            "alpha": 1,
+            "blue": -0.049875177443027496
+           },
+           "maxContrastColor": {
+            "alpha": 1,
+            "green": 0.9184511303901672,
+            "blue": 0.8889541029930115,
+            "red": 1.0036147832870483,
+            "colorSpace": "extendedSRGB"
+           },
+           "foregroundTertiary": {
+            "alpha": 1,
+            "green": 0.5220285058021545,
+            "blue": 0.3440929055213928,
+            "red": 1.0000001192092896,
+            "colorSpace": "extendedSRGB"
+           },
+           "minContrastColor": {
+            "alpha": 1,
+            "green": 0.18207696080207825,
+            "blue": -0.049875177443027496,
+            "red": 0.6526946425437927,
+            "colorSpace": "extendedSRGB"
+           },
+           "foregroundSecondary": {
+            "alpha": 1,
+            "green": 0.5220285058021545,
+            "blue": 0.3440929055213928,
+            "red": 1.0000001192092896,
+            "colorSpace": "extendedSRGB"
+           },
+           "background": {
+            "alpha": 1,
+            "green": 0.05462308824062347,
+            "blue": -0.014962553232908248,
+            "red": 0.1958083927631378,
+            "colorSpace": "extendedSRGB"
+           },
+           "backgroundExtra": {
+            "alpha": 1,
+            "green": 0.027311544120311736,
+            "blue": -0.007481276616454124,
+            "red": 0.0979041963815689,
+            "colorSpace": "extendedSRGB"
+           }
+          },
+          "light": {
+           "focus": {
+            "red": 0.8263473510742188,
+            "green": 0.5910384654998779,
+            "colorSpace": "extendedSRGB",
+            "alpha": 1,
+            "blue": 0.47506242990493774
+           },
+           "subtitle": {
+            "red": 0.8610778450965881,
+            "green": 0.6728307604789734,
+            "colorSpace": "extendedSRGB",
+            "alpha": 1,
+            "blue": 0.5800499320030212
+           },
+           "title": {
+            "red": 0.1958083927631378,
+            "green": 0.05462308824062347,
+            "colorSpace": "extendedSRGB",
+            "alpha": 1,
+            "blue": -0.014962553232908248
+           },
+           "hover": {
+            "red": 0.9305389523506165,
+            "green": 0.8364154100418091,
+            "colorSpace": "extendedSRGB",
+            "alpha": 1,
+            "blue": 0.7900249361991882
+           },
+           "foregroundPrimary": {
+            "blue": 0.3440929055213928,
+            "green": 0.5220285058021545,
+            "colorSpace": "extendedSRGB",
+            "red": 1.0000001192092896,
+            "alpha": 1
+           },
+           "cutoutColor": {
+            "red": 1.0036147832870483,
+            "green": 0.9184511303901672,
+            "colorSpace": "extendedSRGB",
+            "alpha": 1,
+            "blue": 0.8889541029930115
+           },
+           "maxContrastColor": {
+            "blue": -0.049875177443027496,
+            "green": 0.18207696080207825,
+            "colorSpace": "extendedSRGB",
+            "red": 0.6526946425437927,
+            "alpha": 1
+           },
+           "foregroundTertiary": {
+            "blue": 0.8889541029930115,
+            "green": 0.9184511303901672,
+            "colorSpace": "extendedSRGB",
+            "red": 1.0036147832870483,
+            "alpha": 1
+           },
+           "minContrastColor": {
+            "blue": 0.8889541029930115,
+            "green": 0.9184511303901672,
+            "colorSpace": "extendedSRGB",
+            "red": 1.0036147832870483,
+            "alpha": 1
+           },
+           "foregroundSecondary": {
+            "blue": 0.3440929055213928,
+            "green": 0.5220285058021545,
+            "colorSpace": "extendedSRGB",
+            "red": 1.0000001192092896,
+            "alpha": 1
+           },
+           "background": {
+            "blue": 0.8950124979019165,
+            "green": 0.9182077050209045,
+            "colorSpace": "extendedSRGB",
+            "red": 0.9652694463729858,
+            "alpha": 1
+           },
+           "backgroundExtra": {
+            "blue": 0.9895012378692627,
+            "green": 0.991820752620697,
+            "colorSpace": "extendedSRGB",
+            "red": 0.9965269565582275,
+            "alpha": 1
+           }
+          }
+         }
+        },
+        "primaryColorPalette": {
+         "tintedLight": {
+          "alpha": 1,
+          "green": 0.9184511303901672,
+          "colorSpace": "extendedSRGB",
+          "blue": 0.8889541029930115,
+          "red": 1.0036147832870483
+         },
+         "midTone": {
+          "alpha": 1,
+          "green": 0.5220285058021545,
+          "colorSpace": "extendedSRGB",
+          "blue": 0.3440929055213928,
+          "red": 1.0000001192092896
+         },
+         "shaded": {
+          "alpha": 1,
+          "green": 0.5220285058021545,
+          "colorSpace": "extendedSRGB",
+          "blue": 0.3440929055213928,
+          "red": 1.0000001192092896
+         },
+         "shadedDark": {
+          "alpha": 1,
+          "green": 0.18207696080207825,
+          "colorSpace": "extendedSRGB",
+          "blue": -0.049875177443027496,
+          "red": 0.6526946425437927
+         }
+        }
+       },
+       "iconType": {
+        "icon": "flash"
+       }
+      },
+      "id": "0000003B-0000-4000-8000-000000000000",
+      "profile": {
+       "default": true
+      },
+      "newContainerIDs": [
+       {
+        "unpinned": {
+         "_0": {
+          "shared": {}
+         }
+        }
+       },
+       "00000008-0000-4000-8000-000000000000",
+       {
+        "pinned": {}
+       },
+       "0000001C-0000-4000-8000-000000000000"
+      ]
+     },
+     "0000001A-0000-4000-8000-000000000000",
+     {
+      "title": "Space 90",
+      "containerIDs": [
+       "unpinned",
+       "00000005-0000-4000-8000-000000000000",
+       "pinned",
+       "0000002D-0000-4000-8000-000000000000"
+      ],
+      "customInfo": {
+       "windowTheme": {
+        "primaryColorPalette": {
+         "tintedLight": {
+          "colorSpace": "extendedSRGB",
+          "blue": 0.9197736382484436,
+          "alpha": 1,
+          "red": 0.8851341605186462,
+          "green": 0.9456523060798645
+         },
+         "shaded": {
+          "colorSpace": "extendedSRGB",
+          "blue": 0.2878447473049164,
+          "alpha": 1,
+          "red": 0.13260549306869507,
+          "green": 0.3812854290008545
+         },
+         "shadedDark": {
+          "colorSpace": "extendedSRGB",
+          "blue": 0.2878447473049164,
+          "alpha": 1,
+          "red": 0.13260549306869507,
+          "green": 0.3812854290008545
+         },
+         "midTone": {
+          "colorSpace": "extendedSRGB",
+          "blue": 0.49609625339508057,
+          "alpha": 1,
+          "red": 0.21901935338974,
+          "green": 0.6572140455245972
+         }
+        },
+        "semanticColorPalette": {
+         "appearanceBased": {
+          "dark": {
+           "focus": {
+            "green": 0.5019634962081909,
+            "colorSpace": "extendedSRGB",
+            "blue": 0.4267480969429016,
+            "red": 0.30178770422935486,
+            "alpha": 0.8075
+           },
+           "subtitle": {
+            "green": 0.47282618284225464,
+            "colorSpace": "extendedSRGB",
+            "blue": 0.4598868489265442,
+            "red": 0.4425670802593231,
+            "alpha": 1
+           },
+           "title": {
+            "green": 0.9071928262710571,
+            "colorSpace": "extendedSRGB",
+            "blue": 0.8931767344474792,
+            "red": 0.8698908090591431,
+            "alpha": 1
+           },
+           "hover": {
+            "green": 0.5488539338111877,
+            "colorSpace": "extendedSRGB",
+            "blue": 0.4807201623916626,
+            "red": 0.3675248622894287,
+            "alpha": 0.48
+           },
+           "foregroundPrimary": {
+            "alpha": 1,
+            "blue": 0.9197736382484436,
+            "red": 0.8851341605186462,
+            "green": 0.9456523060798645,
+            "colorSpace": "extendedSRGB"
+           },
+           "cutoutColor": {
+            "green": 0.3812854290008545,
+            "colorSpace": "extendedSRGB",
+            "blue": 0.2878447473049164,
+            "red": 0.13260549306869507,
+            "alpha": 1
+           },
+           "maxContrastColor": {
+            "alpha": 1,
+            "blue": 0.9197736382484436,
+            "red": 0.8851341605186462,
+            "green": 0.9456523060798645,
+            "colorSpace": "extendedSRGB"
+           },
+           "foregroundTertiary": {
+            "alpha": 1,
+            "blue": 0.2878447473049164,
+            "red": 0.13260549306869507,
+            "green": 0.3812854290008545,
+            "colorSpace": "extendedSRGB"
+           },
+           "minContrastColor": {
+            "alpha": 1,
+            "blue": 0.2878447473049164,
+            "red": 0.13260549306869507,
+            "green": 0.3812854290008545,
+            "colorSpace": "extendedSRGB"
+           },
+           "foregroundSecondary": {
+            "alpha": 1,
+            "blue": 0.49609625339508057,
+            "red": 0.21901935338974,
+            "green": 0.6572140455245972,
+            "colorSpace": "extendedSRGB"
+           },
+           "background": {
+            "alpha": 1,
+            "blue": 0.08635342866182327,
+            "red": 0.03978165239095688,
+            "green": 0.11438563466072083,
+            "colorSpace": "extendedSRGB"
+           },
+           "backgroundExtra": {
+            "alpha": 1,
+            "blue": 0.043176714330911636,
+            "red": 0.01989082619547844,
+            "green": 0.05719281733036041,
+            "colorSpace": "extendedSRGB"
+           }
+          },
+          "light": {
+           "focus": {
+            "green": 0.6906427145004272,
+            "colorSpace": "extendedSRGB",
+            "blue": 0.6439223885536194,
+            "red": 0.5663027763366699,
+            "alpha": 1
+           },
+           "subtitle": {
+            "green": 0.7525141835212708,
+            "colorSpace": "extendedSRGB",
+            "blue": 0.7151379585266113,
+            "red": 0.653042197227478,
+            "alpha": 1
+           },
+           "title": {
+            "green": 0.11438563466072083,
+            "colorSpace": "extendedSRGB",
+            "blue": 0.08635342866182327,
+            "red": 0.03978165239095688,
+            "alpha": 1
+           },
+           "hover": {
+            "green": 0.876257061958313,
+            "colorSpace": "extendedSRGB",
+            "blue": 0.8575689792633057,
+            "red": 0.8265210390090942,
+            "alpha": 1
+           },
+           "foregroundPrimary": {
+            "green": 0.3812854290008545,
+            "blue": 0.2878447473049164,
+            "red": 0.13260549306869507,
+            "alpha": 1,
+            "colorSpace": "extendedSRGB"
+           },
+           "cutoutColor": {
+            "green": 0.9456523060798645,
+            "colorSpace": "extendedSRGB",
+            "blue": 0.9197736382484436,
+            "red": 0.8851341605186462,
+            "alpha": 1
+           },
+           "maxContrastColor": {
+            "green": 0.3812854290008545,
+            "blue": 0.2878447473049164,
+            "red": 0.13260549306869507,
+            "alpha": 1,
+            "colorSpace": "extendedSRGB"
+           },
+           "foregroundTertiary": {
+            "green": 0.9456523060798645,
+            "blue": 0.9197736382484436,
+            "red": 0.8851341605186462,
+            "alpha": 1,
+            "colorSpace": "extendedSRGB"
+           },
+           "minContrastColor": {
+            "green": 0.9456523060798645,
+            "blue": 0.9197736382484436,
+            "red": 0.8851341605186462,
+            "alpha": 1,
+            "colorSpace": "extendedSRGB"
+           },
+           "foregroundSecondary": {
+            "green": 0.6572140455245972,
+            "blue": 0.49609625339508057,
+            "red": 0.21901935338974,
+            "alpha": 1,
+            "colorSpace": "extendedSRGB"
+           },
+           "background": {
+            "green": 0.9381285309791565,
+            "blue": 0.9287844896316528,
+            "red": 0.9132605791091919,
+            "alpha": 1,
+            "colorSpace": "extendedSRGB"
+           },
+           "backgroundExtra": {
+            "green": 0.9938128590583801,
+            "blue": 0.9928784370422363,
+            "red": 0.9913260340690613,
+            "alpha": 1,
+            "colorSpace": "extendedSRGB"
+           }
+          }
+         }
+        },
+        "background": {
+         "single": {
+          "_0": {
+           "contentOverBackgroundAppearance": "dark",
+           "style": {
+            "color": {
+             "_0": {
+              "blendedSingleColor": {
+               "_0": {
+                "translucencyStyle": "light",
+                "color": {
+                 "colorSpace": "extendedSRGB",
+                 "blue": 0.2878447473049164,
+                 "alpha": 1,
+                 "red": 0.13260549306869507,
+                 "green": 0.3812854290008545
+                },
+                "modifiers": {
+                 "noiseFactor": 0,
+                 "overlay": "grain",
+                 "intensityFactor": 1
+                }
+               }
+              }
+             }
+            }
+           },
+           "isVibrant": true
+          }
+         }
+        }
+       },
+       "iconType": {
+        "icon": "medical"
+       }
+      },
+      "id": "0000001A-0000-4000-8000-000000000000",
+      "profile": {
+       "default": true
+      },
+      "newContainerIDs": [
+       {
+        "pinned": {}
+       },
+       "0000002D-0000-4000-8000-000000000000",
+       {
+        "unpinned": {
+         "_0": {
+          "shared": {}
+         }
+        }
+       },
+       "00000005-0000-4000-8000-000000000000"
+      ]
+     }
+    ],
+    "topAppsContainerIDs": [
+     {
+      "default": true
+     },
+     "0000000C-0000-4000-8000-000000000000"
+    ]
+   }
+  ]
+ }
+}

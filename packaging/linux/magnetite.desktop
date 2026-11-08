@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Magnetite
+GenericName=Web Browser
+Comment=Browse the web with sidebar tabs and spaces
+Exec=magnetite %U
+Icon=magnetite
+Terminal=false
+Categories=Network;WebBrowser;
+MimeType=text/html;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true
+StartupWMClass=magnetite

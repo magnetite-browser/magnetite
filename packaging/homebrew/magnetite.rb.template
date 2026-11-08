@@ -1,0 +1,39 @@
+# Homebrew cask for the tap @REPO_OWNER@/homebrew-magnetite (Casks/magnetite.rb).
+# scripts/release/render-cask.sh fills in the @…@ values for each release.
+cask "magnetite" do
+  version "@VERSION@"
+
+  on_arm do
+    sha256 "@SHA256_ARM@"
+
+    url "https://github.com/@REPO@/releases/download/v#{version}/Magnetite-#{version}-macos-aarch64.zip"
+  end
+  on_intel do
+    sha256 "@SHA256_INTEL@"
+
+    url "https://github.com/@REPO@/releases/download/v#{version}/Magnetite-#{version}-macos-x86_64.zip"
+  end
+
+  name "Magnetite"
+  desc "Web browser with sidebar tabs, spaces and a command bar"
+  homepage "https://magnetitebrowser.org"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  # The app updates itself; brew upgrade leaves it alone.
+  auto_updates true
+  depends_on macos: ">= :ventura"
+
+  app "Magnetite.app"
+
+  zap trash: [
+    "~/Library/Application Support/Magnetite",
+    "~/Library/Caches/@BUNDLE_ID@",
+    "~/Library/Caches/Magnetite",
+    "~/Library/Preferences/@BUNDLE_ID@.plist",
+    "~/Library/Saved Application State/@BUNDLE_ID@.savedState",
+  ]
+end

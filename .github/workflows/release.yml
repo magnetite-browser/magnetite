@@ -1,0 +1,147 @@
+# Builds the packages for a v* tag and creates a draft GitHub release with
+# them, the signed update manifest and the Homebrew cask. Publishing the draft
+# is a manual step: docs/development/release.md. The sync server is released
+# from its own repository (magnetite-browser/magnetite-sync).
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Check the tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: check
+        run: scripts/release/check-release.sh "$GITHUB_REF_NAME" >>"$GITHUB_OUTPUT"
+
+  build:
+    name: Package (${{ matrix.target }})
+    needs: check
+    strategy:
+      matrix:
+        include:
+          - { os: macos-15, target: macos-aarch64 }
+          - { os: macos-15-intel, target: macos-x86_64 }
+          - { os: ubuntu-24.04, target: linux-x86_64 }
+          - { os: ubuntu-24.04-arm, target: linux-aarch64 }
+          # Windows is not built yet (never tried). Its steps stay for the
+          # day it joins: add `{ os: windows-latest, target: windows-x86_64 }`.
+    runs-on: ${{ matrix.os }}
+    # Notarization can take a while; a stuck build must not run for hours.
+    timeout-minutes: 120
+    # Release secrets live in this environment, limited to v* tags.
+    environment: release
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 != '' }}
+      HAS_APPLE_NOTARY: ${{ secrets.APPLE_NOTARY_KEY != '' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+
+      # Everything that runs other people's code (crate build scripts and
+      # macros, npm's build tools) runs before the Developer ID certificate
+      # is in the keychain; after it, build.sh only packages and signs (its
+      # cargo build finds nothing left to do).
+      - name: Build
+        run: |
+          (cd crates/ui/web && pnpm install --frozen-lockfile && pnpm build)
+          cargo build --locked --profile release -p magnetite --bins
+
+      - name: Developer ID certificate
+        if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true'
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: scripts/release/import-macos-cert.sh
+
+      - name: Package and sign
+        run: scripts/build.sh --release --skip-ui
+
+      - name: Notarize
+        if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true' && env.HAS_APPLE_NOTARY == 'true'
+        env:
+          APPLE_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+        run: scripts/release/notarize-macos.sh dist/Magnetite.app "dist/Magnetite-$VERSION-${{ matrix.target }}.zip"
+
+      - name: Warn about an unnotarized app
+        if: runner.os == 'macOS' && (env.HAS_APPLE_CERT != 'true' || env.HAS_APPLE_NOTARY != 'true')
+        run: echo "::warning::${{ matrix.target }} is ad hoc signed, not notarized; Gatekeeper will block it after download"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-${{ matrix.target }}
+          path: dist/*-${{ matrix.target }}.*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  publish:
+    name: Draft release
+    needs: [check, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: package-*
+          path: dist
+          merge-multiple: true
+
+      - name: Update manifest
+        env:
+          MAGNETITE_UPDATE_KEY: ${{ secrets.MAGNETITE_UPDATE_KEY }}
+          MAGNETITE_UPDATE_PUBLIC_KEY: ${{ vars.MAGNETITE_UPDATE_PUBLIC_KEY }}
+        run: |
+          scripts/release/make-manifest.sh "$VERSION" dist >dist/latest.json
+          scripts/release/sign-manifest.sh dist/latest.json
+          cat dist/latest.json
+
+      - name: Homebrew cask
+        run: scripts/release/render-cask.sh "$VERSION" dist >dist/magnetite.rb
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- *.zip *.tar.gz >SHA256SUMS
+
+      - name: Create the draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+            --title "Magnetite $VERSION" --generate-notes \
+            dist/*.zip dist/*.tar.gz dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS

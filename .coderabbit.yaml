@@ -1,0 +1,129 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit reviews for Magnetite: useful, low noise, nothing kept or shared
+# beyond the review itself.
+language: en-US
+tone_instructions: >-
+  Be brief and concrete. Plain English. Only comment when something is wrong,
+  risky or clearly simpler another way.
+early_access: false
+
+reviews:
+  profile: chill
+  # No automatic approvals or change requests; humans decide.
+  auto_approvals:
+    enabled: false
+  high_level_summary: true
+  poem: false
+  in_progress_fortune: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches: ["^main$"]
+  path_filters:
+    - "!**/pnpm-lock.yaml"
+    - "!Cargo.lock"
+    - "!THIRD_PARTY_NOTICES.md"
+    - "!crates/ui/web/dist/**"
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    title:
+      mode: warning
+      requirements: >-
+        Conventional Commits with a short subject, e.g. "fix(engine): keep
+        popups in the opener's profile". Types: feat, fix, docs, refactor,
+        test, build, ci, chore, perf.
+  tools:
+    # CI runs clippy with CEF and the pinned toolchain; CodeRabbit's sandbox
+    # has neither.
+    clippy:
+      enabled: false
+  path_instructions:
+    - path: "crates/{engine,app}/**"
+      instructions: |
+        Check the security rules in docs/design/security.md; flag any change that breaks one:
+        - Addresses are allowed by where they come from (crates/app/src/url_policy.rs). Web
+          pages may open only web, about:blank and blob:. javascript: and data: never open.
+          Only typed input becomes a search. Tabs from sync or import that fail the policy
+          are dropped.
+        - magnetite://ui/ is a privileged origin: only it may call the app (magnetiteQuery),
+          only as a top-level page. Web pages must not frame, link to or load magnetite://.
+          Responses keep the CSP (own scripts, frame-ancestors 'none') and nosniff. The
+          sidebar and overlays navigate only to our UI; state goes only to frames showing it.
+        - New tabs or peeks opened by a page or extension stay in the opener's profile.
+        - Private profiles leave nothing on disk: no Today tabs in state.json, no sync, no
+          archive, no cached favicons. The sidebar never loads a remote favicon for a page in
+          another profile.
+        - Files in the data folder are created through files.rs: folder 0700, state.json,
+          sync.key and smart-accounts.json 0600 from the start, written whole.
+        - Logs (MAGNETITE_LOG) carry command and event names only: never tokens, sync words,
+          invites, addresses, titles or file names.
+        - Page and extension input is untrusted: keep size caps, reject prototype tricks,
+          read extension files only below the extension's real folder.
+        - Network: https only (plain http only to localhost), no credentials in URLs; sync has
+          no redirects and keeps its timeouts; a stored sync version never goes down.
+        - Development-only switches (MAGNETITE_DEVTOOLS_PORT) stay off in release builds.
+        Rust style: no unwrap/expect on paths that can fail at run time outside tests (startup
+        invariants are fine); typed errors (thiserror) in libraries; no needless clones or
+        allocations; comments short and in step with the code.
+    - path: "crates/**/*.rs"
+      instructions: |
+        No unwrap/expect where failure is possible at run time outside tests. Typed errors
+        over strings. No needless clones. Keep clippy::pedantic clean without blanket allows.
+        Comments: concise, above functions and types, updated with the code.
+    - path: "crates/ui/web/**/*.{ts,tsx}"
+      instructions: |
+        TypeScript strict: no `any`, prefer inferred types, no one-line functions that only
+        cast. No third-party CDNs, remote fonts or trackers; everything ships with the app.
+    - path: "**/*.md"
+      instructions: |
+        Plain, short English. Facts must match the code. No marketing language.
+    - path: "**/*test*"
+      instructions: |
+        Tests should be focused on behaviour. Flag smoke tests that check nothing specific,
+        tests for deleted features, and fixtures with real user data (Arc exports, URLs,
+        names); fixtures must be anonymised.
+    - path: "{scripts,.github}/**"
+      instructions: |
+        Scripts must keep working on macOS (bash 3.2), Linux and Git Bash on Windows. Never
+        print secrets. Release steps must fail loudly instead of publishing unsigned files.
+
+chat:
+  art: false
+  auto_reply: false
+  integrations:
+    jira:
+      usage: disabled
+    linear:
+      usage: disabled
+
+knowledge_base:
+  # No data kept between reviews (learnings, indexed issues and PRs).
+  opt_out: true
+  web_search:
+    enabled: false
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - docs/design/security.md
+      - CONTRIBUTING.md
+  jira:
+    usage: disabled
+  linear:
+    usage: disabled
+  mcp:
+    usage: disabled
+  automatic_linking_mode: disabled
+
+issue_enrichment:
+  auto_enrich:
+    enabled: false
+  planning:
+    enabled: false

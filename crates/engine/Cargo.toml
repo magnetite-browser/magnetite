@@ -1,0 +1,38 @@
+[package]
+name = "magnetite-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[features]
+default = ["sandbox"]
+sandbox = ["cef/sandbox"]
+# Type-check without downloading or building CEF (CI checks other OSes).
+dox = ["cef/dox"]
+
+[dependencies]
+magnetite-core.workspace = true
+cef = { version = "156.4.0", default-features = false }
+serde.workspace = true
+serde_json.workspace = true
+base64.workspace = true
+libc = "0.2"
+psl = "2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+block2 = "0.6"
+objc2-foundation = { version = "0.3", features = ["NSArray", "NSBundle", "NSURL", "NSString", "NSEnumerator", "NSGeometry", "NSData", "NSNotification", "NSOperation", "block2"] }
+objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "objc2", "CGColor"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = [
+    "block2", "objc2-core-foundation", "NSScreen", "NSGraphics", "NSImage", "NSSavePanel", "NSPanel", "NSColor",
+    "NSBox", "NSTextField", "NSControl", "NSFont", "NSParagraphStyle", "NSAnimation", "NSAnimationContext",
+    "NSButton", "NSCell", "NSFontDescriptor", "NSTrackingArea", "NSCursor",
+    "NSApplication", "NSEvent", "NSMenu", "NSMenuItem", "NSPasteboard", "NSResponder", "NSSharingService", "NSView", "NSWindow", "NSWorkspace",
+] }
+
+[lints]
+workspace = true

@@ -1,0 +1,25 @@
+[package]
+name = "magnetite-importer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+description = "Imports Arc, Chromium-based, Firefox and Zen data into the magnetite-sidebar format or bookmarks HTML"
+
+[[bin]]
+name = "magnetite-import"
+path = "src/main.rs"
+
+[dependencies]
+magnetite-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+lz4_flex.workspace = true
+
+[lints]
+workspace = true

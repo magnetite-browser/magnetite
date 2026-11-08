@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows is not built yet. Its steps here and in actions/setup stay
+        # for the day it joins: add `windows-latest`.
+        os: [macos-15, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    # A stuck build must not run for GitHub's six hours.
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # Shell scripts must keep LF line endings on Windows.
+      - if: runner.os == 'Windows'
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      # The real build, CEF included (see scripts/test.sh).
+      - run: scripts/test.sh fmt clippy test
+      # Two devices syncing through the real server, which keeps its data in
+      # Postgres (the image magnetite-sync's compose.yml pins).
+      - if: runner.os == 'Linux'
+        name: Sync through a real server
+        run: |
+          docker run --detach --rm --name postgres --publish 127.0.0.1:5432:5432 \
+            --env POSTGRES_HOST_AUTH_METHOD=trust \
+            docker.io/library/postgres:18.6-alpine@sha256:123b17998ccaf47e53b502e8c6a1e79afd8f579c6f3eec83c563da026f957395
+          for _ in $(seq 60); do
+            docker exec postgres pg_isready --host=127.0.0.1 --username=postgres && break
+            sleep 1
+          done
+          DATABASE_URL=postgres://postgres@127.0.0.1:5432/postgres \
+            cargo test --locked -p magnetite --bin magnetite two_devices -- --ignored
+      # One platform is enough: the notices list no per-platform build
+      # packages.
+      - if: runner.os == 'macOS'
+        run: scripts/test.sh notices
+
+  ui:
+    name: Sidebar UI
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: crates/ui/web/pnpm-lock.yaml
+      - run: scripts/test.sh ui
+
+  deny:
+    name: cargo deny
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1

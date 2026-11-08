@@ -1,0 +1,30 @@
+# Weekly dependency updates, one grouped pull request per ecosystem.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # CEF brings a new Chromium (and its security fixes): its own pull
+      # request, tested on its own (docs/adr/0001-cef-bindings.md).
+      cef:
+        patterns: ["cef", "cef-dll-sys"]
+      cargo:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /crates/ui/web
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

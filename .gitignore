@@ -1,0 +1,8 @@
+/target
+/dist
+*.app
+.DS_Store
+# never commit real sidebar exports; use anonymized fixtures in tests/fixtures
+StorableSidebar*.json
+# TypeScript build cache
+*.tsbuildinfo

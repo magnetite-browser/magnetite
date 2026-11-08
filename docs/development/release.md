@@ -1,0 +1,200 @@
+# Releases
+
+A release is a `v*` tag. `.github/workflows/release.yml` builds the packages
+for every system, writes and signs the update manifest, renders the Homebrew
+cask and creates a **draft** GitHub release. A maintainer checks the draft and
+publishes it by hand. Publishing is what makes installed apps update.
+
+## Versions
+
+- Semantic versioning. The one source of truth is `version` in
+  `[workspace.package]` of the root `Cargo.toml`; the tag is `v` plus that
+  version. The workflow stops if they differ.
+- A version with a suffix (`0.3.0-beta.1`) is a pre-release: publish it with
+  "Set as a pre-release". GitHub's `releases/latest` skips pre-releases, so
+  installed apps do not update to them.
+- macOS shows the same version (`CFBundleShortVersionString`).
+
+## One-time setup
+
+1. **Repository URL.** `repository` in `Cargo.toml` is
+   `https://github.com/magnetite-browser/magnetite`. The app's updater fetches
+   `<repository>/releases/latest/download/latest.json`, and the workflow stops
+   if the URL is not the repository it runs in (a fork must change it, and
+   the link in `.github/ISSUE_TEMPLATE/config.yml`).
+2. **Environment.** Settings > Environments > New environment `release`.
+   Under "Deployment branches and tags", allow only tags matching `v*`.
+   Add required reviewers: every release job then waits for an approval, so
+   a pushed tag (or a stolen push token) alone cannot sign and publish. Put
+   the secrets below into this environment, not the repository, so only
+   approved tag builds can read them.
+3. **Runners.** The workflow uses `ubuntu-24.04-arm` (free for public
+   repositories; check your plan for a private one) and `macos-15-intel`, the
+   last Intel image GitHub offers. Drop the `macos-x86_64` entry when it goes
+   away.
+
+| Secret (environment `release`) | Needed | What |
+|---|---|---|
+| `MAGNETITE_UPDATE_KEY` | yes | Ed25519 private key (PEM) that signs `latest.json` |
+| `APPLE_CERTIFICATE_P12_BASE64` | macOS signing | base64 of the Developer ID Application certificate and key (`.p12`) |
+| `APPLE_CERTIFICATE_PASSWORD` | macOS signing | password of that `.p12` |
+| `APPLE_NOTARY_KEY` | notarization | contents of the App Store Connect API key (`AuthKey_<id>.p8`) |
+| `APPLE_NOTARY_KEY_ID` | notarization | that key's id |
+| `APPLE_NOTARY_ISSUER_ID` | notarization | the issuer id shown above the key list |
+
+| Variable (repository) | What |
+|---|---|
+| `MAGNETITE_UPDATE_PUBLIC_KEY` | the public key the app embeds; the workflow refuses to sign with any other key |
+
+Without the Apple secrets the macOS apps are signed ad hoc and the workflow
+warns. Without `MAGNETITE_UPDATE_KEY` the last job fails: an unsigned manifest
+is never published.
+
+## The update key
+
+The updater trusts only manifests signed with the key whose public half is
+built into the app. Make the pair once, on a trusted computer:
+
+```sh
+scripts/release/new-update-key.sh            # writes ~/magnetite-update-key.pem
+gh secret set MAGNETITE_UPDATE_KEY --env release < ~/magnetite-update-key.pem
+gh variable set MAGNETITE_UPDATE_PUBLIC_KEY --body "<public key it printed>"
+```
+
+Put the printed public key into the updater in `crates/app`. Keep an offline
+copy of the private key (a password manager), then delete the file. The script
+refuses to write it inside the repository.
+
+- **Lost key:** installed apps can no longer update; users must download the
+  next version by hand.
+- **Leaked key:** together with write access to the releases, someone could
+  ship a malicious update. Rotate at once.
+- **Rotating:** release a version that embeds the new public key, still signed
+  with the old key. Once users have it, switch the secret and the variable to
+  the new pair.
+
+Files in the release: `latest.json` (the manifest, format in
+`scripts/release/make-manifest.sh`) and `latest.json.sig` (base64 of the raw
+64-byte Ed25519 signature over the exact bytes of `latest.json`, one line).
+
+## macOS signing and notarization
+
+Needs a paid Apple Developer Program membership.
+
+1. Create a "Developer ID Application" certificate (Xcode > Settings >
+   Accounts, or developer.apple.com). Export it with its private key from
+   Keychain Access as `.p12` with a password, then
+   `base64 -i cert.p12 | pbcopy` into `APPLE_CERTIFICATE_P12_BASE64`.
+2. In App Store Connect > Users and Access > Integrations > App Store Connect
+   API, create a team key with the Developer role. Download the `.p8` once and
+   store its contents, its key id and the issuer id as the notary secrets.
+
+The build signs inside out (CEF's libraries, the framework, each helper, the
+app) with the hardened runtime and a timestamp
+(`scripts/build.sh`, `sign_macos`). Entitlements in `packaging/macos/`:
+
+| File | Signs | Allows |
+|---|---|---|
+| `app.entitlements` | `Magnetite.app` | camera, microphone, location (pages ask through Chromium) |
+| `helper-renderer.entitlements` | `magnetite Helper (Renderer)` | JIT for V8 |
+| `helper-gpu.entitlements` | `magnetite Helper (GPU)` | JIT for SwiftShader (software WebGL) |
+| `helper-plugin.entitlements` | `magnetite Helper (Plugin)` | unsigned executable memory, other libraries (as Chromium) |
+
+`magnetite Helper` and `magnetite Helper (Alerts)` get the hardened runtime
+without exceptions. The bundle id is `org.magnetitebrowser.magnetite`
+(`BUNDLE_ID` in `scripts/lib.sh`); the helpers add `.helper`, `.helper.gpu`
+and so on. Never change it after a release: the keychain entry for cookie
+encryption, macOS preferences and Homebrew's zap list depend on it.
+
+`scripts/release/notarize-macos.sh` submits the zip, waits, staples the
+ticket to the app, checks it with `spctl` and zips the stapled app again.
+
+Not yet tried with a real certificate, so check on the first signed build:
+
+- pages run JavaScript (renderer JIT) and WebGL works (GPU helper);
+- camera, microphone and location prompts appear and work;
+- passkeys and security keys (WebAuthn);
+- extensions, their popups and DevTools;
+- the keychain prompt for "Chromium Safe Storage" appears once, not on
+  every start;
+- if a helper crashes at start, it probably needs
+  `com.apple.security.cs.allow-unsigned-executable-memory` as well.
+
+## Homebrew
+
+Homebrew casks for our own tap live in a separate repository named
+`magnetite-browser/homebrew-magnetite`:
+
+1. Create the public repository `homebrew-magnetite` in the magnetite-browser organisation,
+   with a `Casks/` folder and a short README.
+2. After publishing a release, download its `magnetite.rb` (rendered from
+   `packaging/homebrew/magnetite.rb.template`) to `Casks/magnetite.rb`, check
+   and commit it:
+
+   ```sh
+   brew style Casks/magnetite.rb
+   brew install --cask ./Casks/magnetite.rb
+   git commit -am "magnetite 0.2.0" && git push
+   ```
+
+3. Users install with `brew install --cask magnetite-browser/magnetite/magnetite`.
+
+Publish casks for notarized releases only. Gatekeeper blocks an app that is
+not notarized after Homebrew downloads it, and Homebrew has deprecated its
+`--no-quarantine` way around that. The cask says `auto_updates true`: the app updates
+itself, so `brew upgrade` leaves it alone.
+
+## Cutting a release
+
+1. On a branch, set the new `version` in `Cargo.toml`, run `cargo check` so
+   `Cargo.lock` follows, and merge it to `main` (`chore: release 0.2.0`).
+2. Tag the merged commit and push the tag:
+
+   ```sh
+   git switch main && git pull
+   git tag -s v0.2.0 -m "Magnetite 0.2.0"    # -s signs the tag; -a if you have no key
+   git push origin v0.2.0
+   ```
+
+3. Watch the Release workflow. It ends with a draft release.
+
+## Before publishing the draft
+
+- The draft has five packages, `latest.json`, `latest.json.sig`,
+  `magnetite.rb` and `SHA256SUMS`.
+- The signature checks out with the app's key:
+
+  ```sh
+  gh release download v0.2.0 --pattern 'latest.json*' --dir /tmp/check
+  scripts/release/verify-manifest.sh /tmp/check/latest.json "<public key>"
+  ```
+
+- Every URL in `latest.json` points at this release, and every package is
+  listed.
+- macOS (Apple silicon and Intel): download the zip in a browser so it gets
+  quarantined, unzip, open. `spctl -a -vv Magnetite.app` says "Notarized
+  Developer ID". `Contents/Resources` holds `LICENSE`,
+  `THIRD_PARTY_NOTICES.md` and `CREDITS.html`.
+- Linux: unpack, set up the sandbox as its `README.md` says, start it, open a
+  page.
+- Windows: no build is made yet. `scripts/build.sh` and `packaging/windows/`
+  are prepared for one; CI and the release workflow get their Windows entry
+  back once a build has been tried.
+- An installed older version offers the update once the release is public.
+- The release notes say what changed in words a user understands.
+
+Then publish (not as a pre-release, unless it is one) and update the tap.
+
+## Sync server
+
+The server and the sync protocol crate live in their own repository,
+[magnetite-sync](https://github.com/magnetite-browser/magnetite-sync), with
+their own releases and container images (its `docs/release.md`). This
+repository takes both from one of its release tags, as git dependencies: the
+protocol crate in `Cargo.toml`, and the server in `crates/app/Cargo.toml`,
+where a test syncs two devices through it. `deny.toml` allows that repository
+as a source.
+
+To move to a newer release, change the tag in both files to the same one, run
+`cargo update -p magnetite-sync-proto -p magnetite-sync`, and check that
+`scripts/test.sh` passes.
