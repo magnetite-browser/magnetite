@@ -13,8 +13,10 @@ This is an engineering review, not legal advice.
 
 Nothing found is incompatible with publishing Magnetite's source and binaries
 under the EUPL-1.2. Everything compiled into our own binaries is permissive.
-The copyleft code we ship (LGPL, MPL, APSL) lives inside the unmodified CEF
-library, which keeps its own licences.
+The copyleft code we ship (LGPL, MPL, APSL) lives inside the CEF library,
+which keeps its own licences. We ship it unmodified, except on macOS with
+Apple silicon, where we build it ourselves with public changes ("CEF and
+Chromium").
 
 Compatible does not mean free of duties. Two things must be done before the
 first binary release:
@@ -55,7 +57,9 @@ first binary release:
   says "linking two independent works for ensuring their interoperability is
   authorised regardless of their licence". The FAQ also says "the simple action
   of 'linking' does not merge functional codes". The CEF library is loaded at
-  run time, ships unmodified and keeps its own licences.
+  run time and keeps its own licences. That also holds where we build it
+  ourselves (macOS with Apple silicon): the library stays a separate work,
+  and our changes to it are public in magnetite-cef.
 - **Source and notices** (Art. 3, 5 and 11): with every copy we include the
   EUPL text and the notices. With binaries we give the source or "indicate
   a repository where the Source Code is easily and freely accessible", in a

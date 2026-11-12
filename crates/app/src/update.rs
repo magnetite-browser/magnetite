@@ -224,6 +224,13 @@ pub fn install(asset: &Asset, bundle: &Path) -> Result<PathBuf, String> {
     let parent = bundle.parent().ok_or("No folder for the update.")?;
     // Next to the app, so the swap is a rename on the same volume.
     let staging = parent.join(format!(".magnetite-update-{}", std::process::id()));
+    // An earlier try left the old app in there: never delete that.
+    if staging.join(OLD_APP).exists() {
+        return Err(format!(
+            "Your Magnetite is still at {}; move it back by hand before updating.",
+            staging.join(OLD_APP).display()
+        ));
+    }
     let _ = std::fs::remove_dir_all(&staging);
     std::fs::create_dir(&staging).map_err(|e| format!("Cannot prepare the update: {e}"))?;
     let result = stage_and_swap(asset, bundle, &staging);
