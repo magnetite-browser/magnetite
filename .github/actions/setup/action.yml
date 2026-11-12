@@ -63,4 +63,11 @@ runs:
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ runner.temp }}/cef/*/*.tar.bz2
-        key: cef-${{ runner.os }}-${{ runner.arch }}-${{ steps.cef.outputs.version }}
+        key: cef-${{ runner.os }}-${{ runner.arch }}-${{ steps.cef.outputs.version }}-${{ hashFiles('scripts/cef.sh') }}
+
+    # Macs with Apple silicon build with Magnetite's own CEF build (codecs,
+    # patches); the others download the official one while building.
+    - name: Magnetite's CEF build
+      if: runner.os == 'macOS' && runner.arch == 'ARM64'
+      shell: bash
+      run: scripts/cef.sh "$CEF_PATH"
