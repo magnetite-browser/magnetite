@@ -16,7 +16,7 @@ cask "magnetite" do
 
   name "Magnetite"
   desc "Web browser with sidebar tabs, spaces and a command bar"
-  homepage "https://magnetitebrowser.org"
+  homepage "https://magnetitebrowser.org/"
 
   livecheck do
     url :url
@@ -25,14 +25,14 @@ cask "magnetite" do
 
   # The app updates itself; brew upgrade leaves it alone.
   auto_updates true
-  depends_on macos: ">= :ventura"
+  depends_on macos: :ventura
 
   app "Magnetite.app"
 
   zap trash: [
     "~/Library/Application Support/Magnetite",
-    "~/Library/Caches/@BUNDLE_ID@",
     "~/Library/Caches/Magnetite",
+    "~/Library/Caches/@BUNDLE_ID@",
     "~/Library/Preferences/@BUNDLE_ID@.plist",
     "~/Library/Saved Application State/@BUNDLE_ID@.savedState",
   ]

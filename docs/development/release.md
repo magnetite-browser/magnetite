@@ -109,7 +109,9 @@ encryption, macOS preferences and Homebrew's zap list depend on it.
 `scripts/release/notarize-macos.sh` submits the zip, waits, staples the
 ticket to the app, checks it with `spctl` and zips the stapled app again.
 
-Not yet tried with a real certificate, so check on the first signed build:
+A build signed with the Developer ID on a developer's Mac starts, opens its
+window and keeps its GPU, network and renderer processes running. Not
+checked with a signed build yet:
 
 - pages run JavaScript (renderer JIT) and WebGL works (GPU helper);
 - camera, microphone and location prompts appear and work;
@@ -122,27 +124,84 @@ Not yet tried with a real certificate, so check on the first signed build:
 
 ## Homebrew
 
-Homebrew casks for our own tap live in a separate repository named
+Magnetite is installed through Homebrew from a tap of our own,
 `magnetite-browser/homebrew-magnetite`:
 
-1. Create the public repository `homebrew-magnetite` in the magnetite-browser organisation,
-   with a `Casks/` folder and a short README.
-2. After publishing a release, download its `magnetite.rb` (rendered from
-   `packaging/homebrew/magnetite.rb.template`) to `Casks/magnetite.rb`, check
-   and commit it:
+```sh
+brew install --cask magnetite-browser/magnetite/magnetite
+```
+
+### Once
+
+1. Make the repository `homebrew-magnetite` public. It holds a README, the
+   licence, the folder `Casks/` and the workflow "Update cask".
+2. In its settings under Actions → General, allow workflows to write
+   ("Read and write permissions"): the workflow commits the cask. If `main`
+   is protected there, let GitHub Actions bypass the rule.
+
+### For every release
+
+The release workflow renders `magnetite.rb` from
+`packaging/homebrew/magnetite.rb.template` with the checksums of the two
+macOS packages and adds it to the draft. After **publishing** the release:
+
+1. In `homebrew-magnetite`: Actions → Update cask → Run workflow. Leave the
+   version empty for the latest release.
+2. The workflow downloads the release's `magnetite.rb` and `SHA256SUMS`,
+   checks that the cask names this version and these checksums, runs
+   `brew style` and `brew audit`, installs the cask on a Mac, asks
+   Gatekeeper (`spctl`) whether it would open the app, uninstalls it and
+   commits `Casks/magnetite.rb`.
+
+It refuses drafts and pre-releases, and a release that is not notarized
+fails at the Gatekeeper step: Homebrew quarantines what it downloads, and
+its `--no-quarantine` way around that is deprecated. The cask says
+`auto_updates true`: the app updates itself, so `brew upgrade` leaves it
+alone.
+
+To do it by hand instead: download `magnetite.rb` from the release to
+`Casks/magnetite.rb` in a checkout of the tap, run `brew style` on it,
+commit ("magnetite 0.2.0") and push.
+
+### Homebrew's own list
+
+`brew install --cask magnetite` without the tap's name needs the cask in
+Homebrew's repository `Homebrew/homebrew-cask`. Homebrew decides that, by
+its rules (<https://docs.brew.sh/Acceptable-Casks>,
+<https://docs.brew.sh/Package-Acceptance-Policy>). When this was written
+they asked for:
+
+- A repository at least 30 days old with at least 30 forks, 30 watchers or
+  75 stars. Proposed by ourselves (the owner of the repository, or someone
+  whose commit address is at the app's domain) it takes 90 forks, 90
+  watchers or 225 stars.
+- An app Gatekeeper accepts: signed and notarized.
+- A version Homebrew can look up by itself (`livecheck`; the cask has it).
+
+A proposal from a user of Magnetite who is not one of us falls under the
+lower numbers. To propose it:
+
+1. Read both pages again and look through the closed pull requests of
+   `Homebrew/homebrew-cask` for an earlier refusal.
+2. Fork `Homebrew/homebrew-cask`, tap the fork and make a branch
+   (<https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request>).
+3. Copy the tap's `Casks/magnetite.rb` to `Casks/m/magnetite.rb` there and
+   remove the comment lines at its top.
+4. Check it as Homebrew will:
 
    ```sh
-   brew style Casks/magnetite.rb
-   brew install --cask ./Casks/magnetite.rb
-   git commit -am "magnetite 0.2.0" && git push
+   HOMEBREW_NO_INSTALL_FROM_API=1 brew install --cask magnetite
+   brew uninstall --cask magnetite
+   brew audit --new --cask magnetite
+   brew style --fix --cask magnetite
    ```
 
-3. Users install with `brew install --cask magnetite-browser/magnetite/magnetite`.
+5. Commit as `magnetite 0.2.0 (new cask)`, open the pull request, fill in
+   its template, and say that the proposal comes from the project itself
+   and whether an AI tool helped.
 
-Publish casks for notarized releases only. Gatekeeper blocks an app that is
-not notarized after Homebrew downloads it, and Homebrew has deprecated its
-`--no-quarantine` way around that. The cask says `auto_updates true`: the app updates
-itself, so `brew upgrade` leaves it alone.
+Once Homebrew carries the cask, its bot follows new releases by itself; the
+tap stays for those who installed from it.
 
 ## Cutting a release
 
@@ -160,7 +219,7 @@ itself, so `brew upgrade` leaves it alone.
 
 ## Before publishing the draft
 
-- The draft has five packages, `latest.json`, `latest.json.sig`,
+- The draft has four packages, `latest.json`, `latest.json.sig`,
   `magnetite.rb` and `SHA256SUMS`.
 - The signature checks out with the app's key:
 
@@ -183,7 +242,8 @@ itself, so `brew upgrade` leaves it alone.
 - An installed older version offers the update once the release is public.
 - The release notes say what changed in words a user understands.
 
-Then publish (not as a pre-release, unless it is one) and update the tap.
+Then publish (not as a pre-release, unless it is one) and run "Update cask"
+in the tap (above).
 
 ## Sync server
 
