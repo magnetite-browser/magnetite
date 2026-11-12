@@ -185,6 +185,7 @@ pub struct AppState {
     /// the next start (`deleted_profile_data`).
     pub deleted_profiles: Vec<Id>,
     path: PathBuf,
+    saver: persist::Saver,
 }
 
 pub fn now() -> UnixSeconds {

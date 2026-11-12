@@ -542,7 +542,7 @@ impl MagnetiteApp {
         if changed {
             self.push_state(engine);
         } else {
-            self.with_state(|s| s.persist());
+            self.save_soon();
         }
     }
 }

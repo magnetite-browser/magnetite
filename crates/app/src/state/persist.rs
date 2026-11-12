@@ -2,7 +2,9 @@
 //! directory, and what a first start begins with.
 
 use std::collections::{BTreeSet, HashMap};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Condvar, Mutex, OnceLock, PoisonError};
 
 use magnetite_core::split::SplitNode;
 use magnetite_core::{Id, Profile, SidebarSnapshot, Space};
@@ -189,6 +191,7 @@ impl AppState {
             unsynced_spaces,
             first_start,
             synced_sidebar: None,
+            saver: Saver::new(path.clone()),
             path,
         };
         // Only a space that exists can be kept on this device.
@@ -260,13 +263,29 @@ impl AppState {
         None
     }
 
+    /// Save the state now. For changes that must not be lost and for the
+    /// last save before the app ends; everything else uses `persist_later`.
     pub fn persist(&self) {
+        if let Some(bytes) = self.saved_form().bytes() {
+            self.saver.write_now(&bytes);
+        }
+    }
+
+    /// Save the state as it is now on the saver's own thread: writing it
+    /// waits for the disk, which the caller's thread must not do for every
+    /// change a page reports. Only the copy is made here.
+    pub fn persist_later(&self) {
+        self.saver.write_later(self.saved_form());
+    }
+
+    /// What `state.json` holds for the state as it is now.
+    fn saved_form(&self) -> Persisted {
         let favicons = self
             .runtime
             .iter()
             .filter_map(|(id, r)| r.favicon.clone().map(|f| (id.clone(), f)))
             .collect();
-        let p = Persisted {
+        Persisted {
             sidebar: self.lasting_sidebar(),
             active_space: self.active_space.clone(),
             active_tab: self.active_tab.clone(),
@@ -277,15 +296,129 @@ impl AppState {
             downloads: self.downloads.lasting(),
             deleted_profiles: self.deleted_profiles.clone(),
             unsynced_spaces: self.unsynced_spaces.clone(),
-        };
+        }
+    }
+}
+
+impl Persisted {
+    /// The file's content.
+    fn bytes(&self) -> Option<Vec<u8>> {
+        serde_json::to_vec_pretty(self)
+            .inspect_err(|e| eprintln!("magnetite: cannot save state: {e}"))
+            .ok()
+    }
+}
+
+/// Writes `state.json`, at once or on a thread of its own. Each state handed
+/// over gets a number in the order it was taken, and the file never goes
+/// back to an older one: a save made at once passes the one still waiting.
+pub(super) struct Saver {
+    file: Arc<StateFile>,
+    taken: AtomicU64,
+    /// What the writing thread takes its work from; the thread starts with
+    /// the first use and ends when the saver is dropped.
+    later: OnceLock<Arc<Waiting>>,
+}
+
+struct StateFile {
+    path: PathBuf,
+    /// The number of the newest state written. Held while writing.
+    written: Mutex<u64>,
+}
+
+/// The one state waiting for the writing thread. A newer one takes its
+/// place, so a slow disk never makes them pile up.
+#[derive(Default)]
+struct Waiting {
+    slot: Mutex<Slot>,
+    changed: Condvar,
+}
+
+#[derive(Default)]
+struct Slot {
+    state: Option<(u64, Persisted)>,
+    /// The saver is gone: write what waits, then end.
+    closed: bool,
+}
+
+impl StateFile {
+    fn write(&self, number: u64, bytes: &[u8]) {
+        let mut written = crate::lock(&self.written);
+        if number <= *written {
+            return;
+        }
         let write = || -> std::io::Result<()> {
             if let Some(dir) = self.path.parent() {
                 std::fs::create_dir_all(dir)?;
             }
-            crate::files::write_private(&self.path, &serde_json::to_vec_pretty(&p)?)
+            crate::files::write_private(&self.path, bytes)
         };
-        if let Err(e) = write() {
-            eprintln!("magnetite: cannot save state: {e}");
+        match write() {
+            Ok(()) => *written = number,
+            Err(e) => eprintln!("magnetite: cannot save state: {e}"),
+        }
+    }
+
+    /// The writing thread: turns each waiting state into the file's content
+    /// and writes it, until the saver is dropped.
+    fn write_waiting(&self, waiting: &Waiting) {
+        loop {
+            let (number, state) = {
+                let mut slot = crate::lock(&waiting.slot);
+                loop {
+                    if let Some(state) = slot.state.take() {
+                        break state;
+                    }
+                    if slot.closed {
+                        return;
+                    }
+                    slot = (waiting.changed.wait(slot)).unwrap_or_else(PoisonError::into_inner);
+                }
+            };
+            if let Some(bytes) = state.bytes() {
+                self.write(number, &bytes);
+            }
+        }
+    }
+}
+
+impl Saver {
+    pub(super) fn new(path: PathBuf) -> Self {
+        Self {
+            file: Arc::new(StateFile {
+                path,
+                written: Mutex::new(0),
+            }),
+            taken: AtomicU64::new(0),
+            later: OnceLock::new(),
+        }
+    }
+
+    fn next_number(&self) -> u64 {
+        self.taken.fetch_add(1, Ordering::Relaxed) + 1
+    }
+
+    fn write_now(&self, bytes: &[u8]) {
+        self.file.write(self.next_number(), bytes);
+    }
+
+    fn write_later(&self, state: Persisted) {
+        let waiting = self.later.get_or_init(|| {
+            let waiting = Arc::new(Waiting::default());
+            let (file, theirs) = (self.file.clone(), waiting.clone());
+            std::thread::spawn(move || file.write_waiting(&theirs));
+            waiting
+        });
+        crate::lock(&waiting.slot).state = Some((self.next_number(), state));
+        waiting.changed.notify_one();
+    }
+}
+
+impl Drop for Saver {
+    fn drop(&mut self) {
+        if let Some(waiting) = self.later.get() {
+            crate::lock(&waiting.slot).closed = true;
+            waiting.changed.notify_one();
         }
     }
 }
@@ -425,5 +558,30 @@ mod tests {
         assert_eq!(loaded.sidebar, s.sidebar);
         assert_eq!(loaded.active_tab_id(), Some("b"));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_save_on_the_other_thread_never_replaces_a_newer_one() {
+        let mut s = state();
+        let file = s.data_dir().join("state.json");
+        let saved_hours = || {
+            let saved: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(&file).unwrap()).unwrap();
+            saved["settings"]["auto_archive_hours"].as_u64().unwrap()
+        };
+        // Held up as if the disk were busy: the first state waits.
+        let busy = crate::lock(&s.saver.file.written);
+        s.settings.auto_archive_hours = 1;
+        s.persist_later();
+        s.settings.auto_archive_hours = 2;
+        let (number, newer) = (s.saver.next_number(), s.saved_form().bytes().unwrap());
+        drop(busy);
+        s.saver.file.write(number, &newer);
+        // Whichever of the two got to the file first, the newer one stays.
+        assert_eq!(saved_hours(), 2);
+        let dir = s.data_dir().to_path_buf();
+        drop(s);
+        assert_eq!(saved_hours(), 2);
+        let _ = std::fs::remove_dir_all(dir);
     }
 }
