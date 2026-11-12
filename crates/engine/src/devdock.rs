@@ -299,7 +299,7 @@ fn tell_dock(view: &BrowserView, dock: DevToolsDock) {
     if let Some(frame) = view.browser().and_then(|b| b.main_frame()) {
         frame.execute_java_script(
             Some(&CefString::from(
-                format!("window.__magnetiteDock = '{key}';").as_str(),
+                format!("window.__magnetiteDock = '{key}'; window.__magnetiteScan?.();").as_str(),
             )),
             None,
             0,
