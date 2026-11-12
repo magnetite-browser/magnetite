@@ -146,7 +146,8 @@ silicon (below): the CEF library and its files next to it. On Windows these are 
 `vulkan-1.dll`. On Linux they are `libcef.so`, `libvk_swiftshader.so` and
 `libvulkan.so.1`. On macOS they are inside
 `Chromium Embedded Framework.framework`. Every platform also ships the `.pak`
-files, `icudtl.dat` and the V8 snapshot. Proprietary codecs are off.
+files, `icudtl.dat` and the V8 snapshot. Proprietary codecs are off, except
+on macOS with Apple silicon (next paragraph).
 
 **macOS on Apple silicon** ships a CEF we build ourselves from the same
 sources, in [magnetite-cef](https://github.com/magnetite-browser/magnetite-cef).
@@ -237,7 +238,10 @@ Options, simplest first:
 - **A. Written offer plus a private archive.** Already in
   `THIRD_PARTY_NOTICES.md`. For each CEF version we ship, keep the Chromium
   tarball and a CEF source archive (`git archive 8ea0c73`) for at least
-  three years after we last ship that version.
+  three years after we last ship that version. For the CEF we build
+  ourselves, keep with them what turns that source into the shipped library:
+  the magnetite-cef commit the release was built from (its `patches/` and
+  build script).
 - **B. Host the source next to the downloads.** Put the same files on the
   download host. Use EU object storage, or split them into GitHub release
   assets under 2 GiB. This meets §6(d) and FFmpeg's checklist. The offer can
