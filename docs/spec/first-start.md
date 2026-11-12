@@ -7,7 +7,7 @@ the sidebar holds one space, "Personal", and no tab.
 
 ## The welcome page
 
-`magnetite://ui/welcome` opens as a tab, once. It has four steps; "Back"
+`magnetite://ui/welcome` opens as a tab, once. It has five steps; "Back"
 returns to the one before, and the bar at the bottom left shows the place.
 
 | Step | What it offers | To go on |
@@ -15,6 +15,7 @@ returns to the one before, and the bar at the bottom left shows the place.
 | Welcome | what Magnetite is, in two sentences | "Get started", or "Skip" to leave at once |
 | Sync | the controls of Settings → Sync: start a chain, or join one with its 24 words (`sync.md`) | "Not now", or "Continue" once the device syncs |
 | Import | every browser found on this computer, to choose from (`import.md`) | "Continue", or "Not now" with none chosen |
+| Search | the search engines of Settings → Search, the current one (DuckDuckGo at first) marked; a choice takes effect at once | "Continue" |
 | Done | which browsers will be imported, five keys for the first day, and "Make Magnetite the default browser" (off) | "Start browsing" |
 
 - Sync comes before the import because a device that joins a chain takes
