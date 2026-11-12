@@ -7,7 +7,7 @@ export type MenuItem =
   | {
       separator?: false;
       label: string;
-      /** Shown on hover: what the label leaves out. */
+      /** Shown on hover in place of the label (which may end in "…"). */
       title?: string;
       onClick: () => void;
       danger?: boolean;
@@ -45,7 +45,7 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
         ) : (
           <button
             key={i}
-            title={it.title}
+            title={it.title ?? it.label}
             data-danger={it.danger || undefined}
             onClick={() => {
               if (it.confirm && armed !== i) {
