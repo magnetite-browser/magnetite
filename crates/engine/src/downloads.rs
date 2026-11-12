@@ -182,8 +182,12 @@ mod tests {
         assert!(is_extension_install(
             "https://clients2.google.com/service/update2/crx?response=redirect&x=id%3Dabc%26installsource%3Dondemand%26uc"
         ));
-        assert!(!is_extension_install("https://clients2.google.com/service/update2/crxfile.zip"));
-        assert!(!is_extension_install("https://example.org/service/update2/crx?x=1"));
+        assert!(!is_extension_install(
+            "https://clients2.google.com/service/update2/crxfile.zip"
+        ));
+        assert!(!is_extension_install(
+            "https://example.org/service/update2/crx?x=1"
+        ));
         assert!(!is_extension_install("https://example.org/tool.crx"));
     }
 

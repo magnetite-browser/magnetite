@@ -166,7 +166,9 @@ from a context Magnetite did not make is not opened.
 
 Chromium saves files as usual. Magnetite tells about each download's start,
 end or failure in the notification panel at the top right of the page area
-(`notifications.rs`) and lists them behind the sidebar's Downloads button;
+(`notifications.rs`) and lists them behind the sidebar's Downloads button,
+except the package of an extension being installed from the Chrome Web
+Store, which is part of the install and is deleted once it is in;
 Chromium's own bubble, which lives in the hidden toolbar, is turned off
 (`prepare_context`).
 
