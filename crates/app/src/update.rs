@@ -27,7 +27,7 @@ use sha2::{Digest, Sha256};
 
 /// The release key's public half (base64 of the raw 32 bytes, printed by
 /// `scripts/release/new-update-key.sh`). Empty: this build has no updates.
-const PUBLIC_KEY: &str = "";
+const PUBLIC_KEY: &str = "d51FsDQ59WN1P85cj0UOGVCZuhCEPSJtSyUlV7DcwZg=";
 
 /// Where releases are published (the workspace `repository`); the manifest
 /// is a fixed asset of the latest release.
