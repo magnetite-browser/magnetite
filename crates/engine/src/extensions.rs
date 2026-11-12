@@ -20,8 +20,10 @@ use std::time::SystemTime;
 use serde::Serialize;
 use serde_json::{Value, json};
 
+use cef::*;
+
 use crate::engine::{ContextProfile, Engine};
-use crate::events::ContentId;
+use crate::events::{ContentId, EngineEvent};
 
 /// An installed extension with a toolbar action.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -36,6 +38,39 @@ pub struct ExtensionInfo {
     pub options_url: Option<String>,
     /// Pinned in Chromium's own UI ("Pin to toolbar" on its extensions page).
     pub chromium_pinned: bool,
+}
+
+/// Chromium's preference with the ids pinned in its own UI.
+const PINS: &str = "extensions.pinned_extensions";
+
+wrap_preference_observer! {
+    struct PinWatch {}
+    impl PreferenceObserver {
+        fn on_preference_changed(&self, _name: Option<&CefString>) {
+            Engine::global().emit(EngineEvent::ExtensionPinsChanged);
+        }
+    }
+}
+
+/// Tell the app whenever Chromium's pins of `ctx` change. Chromium writes
+/// them to its preference file only seconds later, so the file alone
+/// would show a pin late (`Engine::extensions` reads them live instead).
+pub(crate) fn watch_pins(ctx: &RequestContext) {
+    let name = CefString::from(PINS);
+    match ctx.add_preference_observer(Some(&name), Some(&mut PinWatch::new())) {
+        Some(watch) => Engine::global().lock().pin_watches.push(watch),
+        None => crate::trace("cannot watch Chromium's extension pins"),
+    }
+}
+
+/// Chromium's pins of `ctx` as they are now, not as last written to disk.
+fn live_pins(ctx: &RequestContext) -> Option<Vec<String>> {
+    let list = ctx.preference(Some(&CefString::from(PINS)))?.list()?;
+    Some(
+        (0..list.size())
+            .map(|i| CefString::from(&list.string(i)).to_string())
+            .collect(),
+    )
 }
 
 /// Locations Chromium uses for its own built-in extensions (PDF viewer, …).
@@ -232,16 +267,23 @@ impl Engine {
                     .ok()
             })
             .max();
-        if let Some((seen, list)) = self.lock().extensions.by_profile.get(&dir)
-            && *seen == stamp
-        {
-            return list.clone();
+        let cached = (self.lock().extensions.by_profile.get(&dir))
+            .filter(|(seen, _)| *seen == stamp)
+            .map(|(_, list)| list.clone());
+        let mut list = cached.unwrap_or_else(|| {
+            let list = installed(&dir);
+            (self.lock().extensions.by_profile).insert(dir, (stamp, list.clone()));
+            list
+        });
+        let context = match profile.map(|p| p.id.as_str()).unwrap_or_default() {
+            "" => request_context_get_global_context(),
+            id => self.lock().contexts.get(id).cloned(),
+        };
+        if let Some(pins) = context.as_ref().and_then(live_pins) {
+            for e in &mut list {
+                e.chromium_pinned = pins.contains(&e.id);
+            }
         }
-        let list = installed(&dir);
-        self.lock()
-            .extensions
-            .by_profile
-            .insert(dir, (stamp, list.clone()));
         list
     }
 

@@ -184,6 +184,9 @@ pub enum EngineEvent {
     },
     /// A choice from the menu bar's Extensions menu.
     ExtensionMenu(ExtensionMenuAction),
+    /// Chromium's own extension pins changed ("Pin to toolbar"): read
+    /// [`crate::Engine::extensions`] again.
+    ExtensionPinsChanged,
     /// A download started, moved on (about every percent), finished or failed.
     Download(DownloadReport),
     /// A page asks for a permission; answer with
@@ -270,6 +273,7 @@ impl EngineEvent {
             Self::ContentFocused { .. } => "ContentFocused",
             Self::MediaChanged { .. } => "MediaChanged",
             Self::ExtensionMenu(..) => "ExtensionMenu",
+            Self::ExtensionPinsChanged => "ExtensionPinsChanged",
             Self::Download(_) => "Download",
             Self::PermissionPrompt(_) => "PermissionPrompt",
             Self::PermissionPromptClosed { .. } => "PermissionPromptClosed",

@@ -142,6 +142,7 @@ impl EngineDelegate for MagnetiteApp {
                 self.with_prompts(|p| p.open.retain(|q| q.id != id));
                 self.show_prompts(engine);
             }
+            EngineEvent::ExtensionPinsChanged => self.show_state(engine),
             EngineEvent::ExtensionMenu(action) => match action {
                 ExtensionMenuAction::Open(id) => self.open_extension(engine, &id),
                 ExtensionMenuAction::TogglePin(id) => {

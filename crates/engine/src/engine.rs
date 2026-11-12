@@ -57,6 +57,9 @@ pub(crate) struct Inner {
     pub peek: Option<ContentId>,
     /// One CEF request context (cookies, storage, extensions) per profile id.
     pub contexts: HashMap<String, RequestContext>,
+    /// Keeps the watch on each profile's extension pins alive
+    /// (`extensions::watch_pins`).
+    pub pin_watches: Vec<Registration>,
     /// Profile ids whose context Chromium has finished making: only then
     /// can a browser be made in it (`context_ready`).
     pub ready_contexts: HashSet<String>,
@@ -140,6 +143,7 @@ impl Engine {
                 split: None,
                 peek: None,
                 contexts: HashMap::new(),
+                pin_watches: Vec::new(),
                 ready_contexts: HashSet::new(),
                 queued: Vec::new(),
                 shown: None,
@@ -548,6 +552,7 @@ pub(crate) fn prepare_context(ctx: &RequestContext) -> bool {
     if !crate::autofill::set_bool_pref(ctx, "safebrowsing.enabled", false) {
         crate::trace("cannot turn off Chromium's Safe Browsing");
     }
+    crate::extensions::watch_pins(ctx);
     // Password manager and autofill as the user's settings have them.
     let autofill = Engine::global().lock().autofill;
     if !autofill.apply(ctx) {
