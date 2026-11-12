@@ -41,7 +41,7 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   if (section === "today") items.push({ label: "Pin tab", onClick: () => send({ cmd: "pin", id: tab.id }) });
   if (section === "pinned") {
     items.push({ label: "Unpin tab", onClick: () => send({ cmd: "unpin", id: tab.id }) });
-    if (tab.home_url && tab.home_url !== tab.url) items.push({ label: `Back to pinned page (${hostOf(tab.home_url)})`, onClick: () => send({ cmd: "reset_tab", id: tab.id }) });
+    if (tab.home_url && tab.home_url !== tab.url) items.push({ label: "Back to pinned page", title: tab.home_url, onClick: () => send({ cmd: "reset_tab", id: tab.id }) });
   }
   if (section !== "favorites") items.push({ label: "Add to favorites", onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "favorites", index: 999 }) });
   else items.push({ label: "Remove from favorites", onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "today", index: 0 }) });

@@ -7,6 +7,8 @@ export type MenuItem =
   | {
       separator?: false;
       label: string;
+      /** Shown on hover: what the label leaves out. */
+      title?: string;
       onClick: () => void;
       danger?: boolean;
       /** Ask first: the first click shows this label in place, the second runs `onClick`. */
@@ -43,6 +45,7 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
         ) : (
           <button
             key={i}
+            title={it.title}
             data-danger={it.danger || undefined}
             onClick={() => {
               if (it.confirm && armed !== i) {
@@ -53,7 +56,7 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
               onClose();
             }}
           >
-            {armed === i ? it.confirm : it.label}
+            <span>{armed === i ? it.confirm : it.label}</span>
           </button>
         ),
       )}
