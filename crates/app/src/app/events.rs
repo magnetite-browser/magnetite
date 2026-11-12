@@ -115,7 +115,7 @@ impl EngineDelegate for MagnetiteApp {
                         rt.media = media;
                     }
                 });
-                self.push_state(engine);
+                self.show_state_paced(engine);
             }
             EngineEvent::Download(report) => {
                 let changed = self.with_state(|s| {
@@ -176,7 +176,7 @@ impl EngineDelegate for MagnetiteApp {
                         rt.can_go_forward = can_go_forward;
                     }
                 });
-                self.push_state(engine);
+                self.show_state_paced(engine);
             }
             EngineEvent::OpenUrlRequested {
                 url,
@@ -266,7 +266,7 @@ impl EngineDelegate for MagnetiteApp {
                         rt.site = Some(state);
                     }
                 });
-                self.push_state(engine);
+                self.show_state_paced(engine);
             }
             EngineEvent::DevToolsMenu { id, action } => match action {
                 DevToolsAction::Close => engine.content_close_devtools(id),
@@ -312,7 +312,7 @@ impl EngineDelegate for MagnetiteApp {
                         rt.microphone = microphone;
                     }
                 });
-                self.push_state(engine);
+                self.show_state_paced(engine);
             }
             EngineEvent::QuitRequested => {
                 self.with_state(|s| {

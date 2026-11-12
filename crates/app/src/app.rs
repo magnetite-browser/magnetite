@@ -2,6 +2,7 @@
 //! `AppState` consistent, and drives content windows.
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock, Weak};
 
 use magnetite_engine::{ContentId, Engine};
@@ -53,7 +54,7 @@ pub struct MagnetiteApp {
     sync: OnceLock<SyncClient>,
     /// A sync chain is being started or joined: a second request would make
     /// a second chain and replace the stored sync code.
-    sync_connecting: std::sync::atomic::AtomicBool,
+    sync_connecting: AtomicBool,
     /// Content windows shown by the last `present`, to detect tab switches.
     visible: Mutex<Vec<ContentId>>,
     capture: Mutex<CaptureState>,
@@ -62,7 +63,25 @@ pub struct MagnetiteApp {
     split_drag: Mutex<SplitDrag>,
     updater: Mutex<updates::Updater>,
     prompts: Mutex<Prompts>,
+    /// A save is on its way (`save_soon`).
+    save_queued: AtomicBool,
+    show_pace: Mutex<ShowPace>,
 }
+
+/// When the sidebar was last sent the state, and whether another sending
+/// is on its way (`show_state_paced`).
+#[derive(Default)]
+struct ShowPace {
+    shown: Option<std::time::Instant>,
+    queued: bool,
+}
+
+/// The longest a change waits to be saved.
+const SAVE_EVERY_MS: i64 = 1000;
+
+/// The shortest time between two sendings of the state that follow page
+/// events: short enough to look immediate.
+const SHOW_EVERY: std::time::Duration = std::time::Duration::from_millis(100);
 
 /// Permission prompts waiting for an answer. The notification panel shows
 /// those of the pages on screen; the others wait until their page is.
@@ -174,13 +193,15 @@ impl MagnetiteApp {
             import,
             open_on_start,
             sync: OnceLock::new(),
-            sync_connecting: std::sync::atomic::AtomicBool::new(false),
+            sync_connecting: AtomicBool::new(false),
             visible: Mutex::new(Vec::new()),
             capture: Mutex::new(CaptureState::default()),
             shown_extensions: Mutex::new(Vec::new()),
             split_drag: Mutex::new(SplitDrag::default()),
             updater: Mutex::new(updates::Updater::new()),
             prompts: Mutex::new(Prompts::default()),
+            save_queued: AtomicBool::new(false),
+            show_pace: Mutex::new(ShowPace::default()),
         }
     }
 
@@ -194,10 +215,55 @@ impl MagnetiteApp {
         f(&mut guard)
     }
 
-    /// Serialise state to the sidebar and persist it.
+    /// The state changed: show it in the sidebar and save it, both soon
+    /// rather than at once. A loading page reports a dozen changes within
+    /// a second, and each save waits for the disk.
     fn push_state(&self, engine: &Engine) {
-        self.with_state(|s| s.persist());
-        self.show_state(engine);
+        self.save_soon();
+        self.show_state_paced(engine);
+    }
+
+    /// Save the state within `SAVE_EVERY`, on the saver's thread. Quitting
+    /// saves at once (`EngineEvent::QuitRequested`).
+    fn save_soon(&self) {
+        if self.save_queued.swap(true, Ordering::Relaxed) {
+            return;
+        }
+        Engine::post_delayed(
+            Box::new(|| {
+                let Some(app) = global() else { return };
+                app.save_queued.store(false, Ordering::Relaxed);
+                app.with_state(|s| s.persist_later());
+            }),
+            SAVE_EVERY_MS,
+        );
+    }
+
+    /// `show_state`, but at most once per `SHOW_EVERY`: the first change
+    /// shows at once, those that follow closely show together.
+    fn show_state_paced(&self, engine: &Engine) {
+        let wait = {
+            let mut pace = lock(&self.show_pace);
+            if pace.queued {
+                return;
+            }
+            let wait = (pace.shown)
+                .and_then(|at| SHOW_EVERY.checked_sub(at.elapsed()))
+                .filter(|wait| !wait.is_zero());
+            pace.queued = wait.is_some();
+            wait
+        };
+        match wait {
+            None => self.show_state(engine),
+            Some(wait) => Engine::post_delayed(
+                Box::new(|| {
+                    if let Some(app) = global() {
+                        app.show_state(Engine::global());
+                    }
+                }),
+                i64::try_from(wait.as_millis()).unwrap_or(0).max(1),
+            ),
+        }
     }
 
     /// Send the state to the sidebar without saving it (status only, such as
@@ -205,6 +271,10 @@ impl MagnetiteApp {
     /// it follows extensions newly pinned or unpinned in Chromium's own UI
     /// (`AppState::follow_chromium_pins`).
     fn show_state(&self, engine: &Engine) {
+        *lock(&self.show_pace) = ShowPace {
+            shown: Some(std::time::Instant::now()),
+            queued: false,
+        };
         let context = self.with_state(|s| s.front_context());
         let extensions = engine.extensions(context.as_ref());
         let chromium: Vec<String> = extensions

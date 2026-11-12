@@ -49,6 +49,7 @@ pub(super) fn state() -> AppState {
         accounts: crate::smart::Accounts::load(&dir),
         smart_status: HashMap::new(),
         downloads: crate::downloads::Downloads::default(),
+        saver: super::persist::Saver::new(dir.join("state.json")),
         path: dir.join("state.json"),
     }
 }
