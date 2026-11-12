@@ -464,6 +464,37 @@ pub fn show_window_of(handle: cef::sys::cef_window_handle_t, shown: bool) {
     }
 }
 
+/// Whether the view `handle` sits in a window without a tab strip: the
+/// pop-up window an extension opens with `chrome.windows.create({type:
+/// "popup"})`. Chromium puts the tab strip of its other windows (a normal
+/// window, the one a new tab lands in) into the title bar, which needs a
+/// full-size content view; a pop-up window keeps a plain title bar.
+pub fn is_popup_window(handle: cef::sys::cef_window_handle_t) -> bool {
+    use objc2_app_kit::{NSView, NSWindowStyleMask};
+    if handle.is_null() || MainThreadMarker::new().is_none() {
+        return false;
+    }
+    // SAFETY: CEF hands us a live NSView; we are on the main thread.
+    let view: &NSView = unsafe { &*handle.cast::<NSView>() };
+    view.window().is_some_and(|w| {
+        !w.styleMask()
+            .contains(NSWindowStyleMask::FullSizeContentView)
+    })
+}
+
+/// Bring the window holding the view `handle` to the front with the keyboard.
+pub fn focus_window_of(handle: cef::sys::cef_window_handle_t) {
+    use objc2_app_kit::NSView;
+    if handle.is_null() || MainThreadMarker::new().is_none() {
+        return;
+    }
+    // SAFETY: CEF hands us a live NSView; we are on the main thread.
+    let view: &NSView = unsafe { &*handle.cast::<NSView>() };
+    if let Some(window) = view.window() {
+        window.makeKeyAndOrderFront(None);
+    }
+}
+
 /// Run `f` (which shows a window) without moving keyboard focus: whatever
 /// window was key before stays key, so typing keeps going to the page.
 pub fn without_taking_focus(f: impl FnOnce()) {
