@@ -56,6 +56,9 @@ the row turns the icon into a back arrow that takes the page back.
   2 hours or never), unless it has media, is the tab its space returns
   to, is a favorite, or is kept active.
 - **Favorites stay loaded** once opened, until they are closed.
+- Closing a favorite or a pinned tab unloads it and takes it back to its
+  pinned page, which it opens at next time. Its title stays the last page's
+  until then.
 - **Keep active** in the menu of a pinned or Today tab spares that tab:
   its page is never unloaded for being off screen, and a Today tab is not
   auto-archived. A check mark shows it in the menu and a small flash on the

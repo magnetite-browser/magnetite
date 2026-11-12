@@ -408,9 +408,15 @@ impl MagnetiteApp {
                 space.is_none_or(|sp| !sp.today.iter().any(|t| t.id == tab_id))
             });
             let content = if is_pinned {
-                // Pinned items and favorites stay; closing unloads them and
-                // takes them out of a split.
+                // Pinned items and favorites stay; closing unloads them,
+                // takes them out of a split and sends them back to their
+                // pinned page, which they open at next time.
                 s.split_remove(tab_id);
+                if let Some(t) = s.find_tab_mut(tab_id)
+                    && let Some(home) = t.home_url.clone()
+                {
+                    t.url = home;
+                }
                 s.detach_content(tab_id)
             } else {
                 s.archive_tab(tab_id)
