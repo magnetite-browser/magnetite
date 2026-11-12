@@ -1,6 +1,7 @@
 // Injected into the DevTools frontend (devdock.rs): adds "Dock side" and
-// "Close DevTools" to its main menu (⋮). We dock DevTools ourselves, so
-// Chromium hides its own dock controls. A choice goes back to the browser as
+// "Close DevTools" to its main menu (⋮), and shows the toolbar's close
+// button (×) while docked. We dock DevTools ourselves, so Chromium takes
+// them for a separate window and hides its own dock controls and ×. A choice goes back to the browser as
 // a marked console message, which only this page can produce in this browser.
 // The main menu is found by the stable `jslog` ids of its items, not labels.
 (() => {
@@ -71,11 +72,36 @@
     menu.prepend(row, close, separator);
   }
 
+  // Chromium's own × at the end of the toolbar, hidden for a separate
+  // window: shown while docked, and a click closes through us.
+  const styled = new WeakSet();
+  function closeButton(button) {
+    const root = button.getRootNode();
+    if (!styled.has(root)) {
+      styled.add(root);
+      const style = document.createElement("style");
+      style.textContent = "devtools-button.close-devtools.hidden[data-magnetite-docked] { display: flex !important; }";
+      (root === document ? document.head : root).append(style);
+    }
+    if (!button.dataset.magnetite) {
+      button.dataset.magnetite = "1";
+      button.addEventListener("click", (e) => {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        send("close");
+      }, true);
+    }
+    button.toggleAttribute("data-magnetite-docked", (window.__magnetiteDock || "right") !== "window");
+  }
+
   function scan(root) {
     for (const el of root.querySelectorAll("*")) {
       if (el.classList && el.classList.contains("soft-context-menu")) decorate(el);
+      if (el.tagName === "DEVTOOLS-BUTTON" && el.classList.contains("close-devtools")) closeButton(el);
       if (el.shadowRoot) scan(el.shadowRoot);
     }
   }
+  // Also run when the browser tells the dock (devdock.rs, `tell_dock`).
+  window.__magnetiteScan = () => scan(document);
   new MutationObserver(() => requestAnimationFrame(() => scan(document))).observe(document.body, { childList: true, subtree: true });
 })();

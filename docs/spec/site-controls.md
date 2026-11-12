@@ -97,7 +97,9 @@ close them. "Inspect" in a page's context menu opens them at that element.
 
 Docked DevTools take their room from the page they inspect and hide and show
 with it. The DevTools main menu (⋮) has "Dock side" with the same three
-choices and "Close DevTools"; a choice there changes the setting.
+choices and "Close DevTools"; a choice there changes the setting. Docked
+DevTools also have the close button (×) at the end of their toolbar, as in
+Chrome.
 
 `Cmd+W` in DevTools that have a window of their own, or in a window an
 extension opened itself, closes that window and no tab.
