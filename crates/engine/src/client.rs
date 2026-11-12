@@ -225,6 +225,13 @@ wrap_life_span_handler! {
             _extra_info: Option<&mut Option<DictionaryValue>>,
             _no_javascript_access: Option<&mut ::std::os::raw::c_int>,
         ) -> ::std::os::raw::c_int {
+            // A page's popup window (`window.open` with window features)
+            // opens as a real window, as in other browsers: sign-in popups
+            // ("Sign in with Google") talk back to their opener and fail
+            // when they get no window. `ContentViewDelegate` gives it one.
+            if self.kind == Kind::Content && target_disposition == WindowOpenDisposition::NEW_POPUP {
+                return 0;
+            }
             // Never let Chromium open its own windows: route to the app as a tab.
             let url = target_url.map(CefString::to_string).unwrap_or_default();
             if !url.is_empty() {
@@ -532,6 +539,8 @@ wrap_command_handler! {
             // Keys in DevTools act on their page.
             let owner = engine.devtools_owner(browser.as_deref());
             let from = engine.content_id_for(browser.as_deref()).or(owner);
+            // A page's popup window is no tab of ours: Cmd+W closes it.
+            if self.kind == Kind::Content && from.is_none() { return 0; }
             engine.emit(EngineEvent::Shortcut { from, shortcut });
             1
         }
@@ -584,6 +593,8 @@ wrap_keyboard_handler! {
                 if !peek && !mini { return 0; }
                 (shortcut, from)
             };
+            // A page's popup window is no tab of ours: its keys are its own.
+            if from.is_none() { return 0; }
             engine.emit(EngineEvent::Shortcut { from, shortcut });
             1
         }
@@ -599,6 +610,7 @@ wrap_keyboard_handler! {
             let Some(shortcut) = event.and_then(keys::yieldable_shortcut) else { return 0 };
             let engine = Engine::global();
             let from = engine.content_id_for(browser.as_deref());
+            if from.is_none() { return 0; }
             engine.emit(EngineEvent::Shortcut { from, shortcut });
             1
         }
@@ -637,6 +649,26 @@ impl Engine {
         let owner = self.devtools_owner(browser);
         let from = self.content_id_for(browser);
         let locked = from.is_some_and(|id| self.content_lock(id).is_some());
+        let context = match from.or(owner) {
+            Some(id) => self.content_context(id),
+            // Our own pages: the app picks the profile.
+            None if source == UrlSource::Ui => None,
+            // A page that is none of ours: a page's popup window (a link in
+            // a sign-in popup). Its own profile, found from its browser;
+            // another profile would get its address and lose its session,
+            // so a profile we do not know opens nothing.
+            None => {
+                let context = browser
+                    .and_then(ImplBrowser::host)
+                    .and_then(|h| h.request_context())
+                    .and_then(|c| self.context_id_of(&c));
+                if context.is_none() {
+                    crate::trace("link from a window of an unknown profile: not opened");
+                    return;
+                }
+                context
+            }
+        };
         self.emit(EngineEvent::OpenUrlRequested {
             from,
             url,
@@ -645,7 +677,7 @@ impl Engine {
             own_window,
             locked,
             source,
-            context: from.or(owner).and_then(|id| self.content_context(id)),
+            context,
         });
     }
 }

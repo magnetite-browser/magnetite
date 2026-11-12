@@ -40,12 +40,16 @@ name.
 | Source | Opens |
 |---|---|
 | Typed, or Magnetite's UI | web, `about:blank`, `blob:`, `magnetite://ui/`, `chrome://`, `chrome-extension://`, `file://`, `view-source:` |
-| Web pages (popups, new-tab links) | web, `about:blank`, `blob:` |
+| Web pages (new-tab links, links that leave a pinned tab's site) | web, `about:blank`, `blob:` |
 | Windows Chromium opens itself (extensions) | web, `about:blank`, `chrome://`, `chrome-extension://` |
 | Other apps (default browser) | web, `about:blank`, `file://` |
 | Sync, imports, smart-folder results | web, `about:blank` |
 
-`javascript:` and `data:` never open. Only typed input is turned into a
+A page's popup window (`window.open` with window features) is not routed
+through this policy: Chromium opens it as its own window in the page's
+profile, with the opener connection sign-in flows need, under Chromium's
+own rules for popups (as in Chrome: no top-level `data:`, popups need a
+click). `javascript:` and `data:` never open in a tab. Only typed input is turned into a
 search; search and site search addresses are `https://` with `%s` only
 (`Settings::sanitised`). Tabs from sync and the import that fail the policy
 are dropped (`state::drop_unsafe_tabs`).
