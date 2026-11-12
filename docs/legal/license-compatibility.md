@@ -140,13 +140,31 @@ are not enough on their own. The full texts ship in `THIRD_PARTY_NOTICES.md`.
 
 ## CEF and Chromium
 
-We ship the CEF binary distribution unmodified: the CEF library and its files
-next to it. On Windows these are `libcef.dll`, `chrome_elf.dll`,
+We ship the CEF binary distribution unmodified, except on macOS with Apple
+silicon (below): the CEF library and its files next to it. On Windows these are `libcef.dll`, `chrome_elf.dll`,
 `d3dcompiler_47.dll`, `dxcompiler.dll`, `vk_swiftshader.dll` and
 `vulkan-1.dll`. On Linux they are `libcef.so`, `libvk_swiftshader.so` and
 `libvulkan.so.1`. On macOS they are inside
 `Chromium Embedded Framework.framework`. Every platform also ships the `.pak`
 files, `icudtl.dat` and the V8 snapshot. Proprietary codecs are off.
+
+**macOS on Apple silicon** ships a CEF we build ourselves from the same
+sources, in [magnetite-cef](https://github.com/magnetite-browser/magnetite-cef).
+It differs from the official build in two ways, both public there with the
+build script: the H.264, AAC and HEVC decoders are on (`proprietary_codecs`,
+`ffmpeg_branding=Chrome`), and CEF carries our patches (`patches/`). For the
+licences this changes two things:
+
+- The CEF library is no longer "unmodified": we are the ones who built and
+  changed it. What follows about corresponding source still holds, with
+  magnetite-cef as the place that says how to build it again (the exact CEF
+  and Chromium versions, build arguments and patches).
+- FFmpeg is built with more decoders. Its licence stays LGPL-2.1-or-later:
+  Chromium's FFmpeg configuration has no GPL parts with either branding.
+  **Open: patents.** H.264, AAC and HEVC are covered by patent pools whose
+  terms are separate from any copyright licence. Whether Magnetite needs
+  licences from them is not decided here and has to be before the first
+  release with this build.
 
 - **CEF**: BSD-3-Clause. CEF's licence is not in `CREDITS.html`, and
   `export-cef-dir` does not copy `LICENSE.txt`. Our notices file carries it,
@@ -290,7 +308,9 @@ Source files for packaging:
 - [ ] `Contents/Resources/THIRD_PARTY_NOTICES.md`
 - [ ] `Contents/Resources/CREDITS.html`
 - [ ] `Contents/Resources/COPYRIGHT-library.html`
-- [ ] CEF framework unmodified (re-signing is fine)
+- [ ] CEF framework unmodified (re-signing is fine); on Apple silicon the
+      one from the magnetite-cef release pinned in `scripts/cef.sh`
+- [ ] Patent question for H.264, AAC and HEVC decided ("CEF and Chromium")
 - [ ] `NSHumanReadableCopyright` (`English.lproj/InfoPlist.strings`):
       "© 2026 the Magnetite contributors. Licensed under the EUPL-1.2."
 - [ ] An About or licences page in the app. It shows the copyright line,

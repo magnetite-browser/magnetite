@@ -19,6 +19,19 @@ one copy for all builds and checkouts:
 export CEF_PATH="$HOME/.local/share/cef"
 ```
 
+The official CEF builds come without the H.264, AAC and HEVC decoders. On
+macOS with Apple silicon, releases and CI use
+[Magnetite's own CEF build](https://github.com/magnetite-browser/magnetite-cef)
+instead, which has them and one patch. `scripts/cef.sh` fetches it (135 MB),
+checks its hash and unpacks it:
+
+```sh
+export CEF_PATH="$(scripts/cef.sh "$HOME/.local/share/magnetite-cef")"
+```
+
+Without that, the build uses the official CEF and everything but those
+formats works the same.
+
 All systems need [Rust](https://rustup.rs) (`rust-toolchain.toml` picks the
 version), CMake, Ninja, Node 22 and pnpm 10 (`corepack enable`, or
 `npm install -g pnpm@10`).
