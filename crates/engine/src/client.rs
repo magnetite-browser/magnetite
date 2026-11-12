@@ -649,6 +649,26 @@ impl Engine {
         let owner = self.devtools_owner(browser);
         let from = self.content_id_for(browser);
         let locked = from.is_some_and(|id| self.content_lock(id).is_some());
+        let context = match from.or(owner) {
+            Some(id) => self.content_context(id),
+            // Our own pages: the app picks the profile.
+            None if source == UrlSource::Ui => None,
+            // A page that is none of ours: a page's popup window (a link in
+            // a sign-in popup). Its own profile, found from its browser;
+            // another profile would get its address and lose its session,
+            // so a profile we do not know opens nothing.
+            None => {
+                let context = browser
+                    .and_then(ImplBrowser::host)
+                    .and_then(|h| h.request_context())
+                    .and_then(|c| self.context_id_of(&c));
+                if context.is_none() {
+                    crate::trace("link from a window of an unknown profile: not opened");
+                    return;
+                }
+                context
+            }
+        };
         self.emit(EngineEvent::OpenUrlRequested {
             from,
             url,
@@ -657,7 +677,7 @@ impl Engine {
             own_window,
             locked,
             source,
-            context: from.or(owner).and_then(|id| self.content_context(id)),
+            context,
         });
     }
 }
