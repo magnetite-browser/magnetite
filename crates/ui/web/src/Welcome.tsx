@@ -1,6 +1,7 @@
 // The welcome page (magnetite://ui/welcome): the app opens it once, as a tab,
 // at the first start. It asks what to bring along: sync with other devices,
-// tabs from another browser, whether Magnetite should be the default browser.
+// tabs from another browser, which search engine to use, whether Magnetite
+// should be the default browser.
 // Nothing is read, sent or changed before the user chooses; the chosen
 // browsers are read and the system asked about the default browser at the
 // end, with "Start browsing". Everything here is in Settings too.
@@ -9,10 +10,11 @@ import appIcon from "./assets/icon.png?url";
 import { send, type ImportSource } from "./bridge";
 import { SHORTCUTS } from "./settings/AboutSection";
 import { Toggle } from "./settings/fields";
+import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
 import type { Info } from "./settings/types";
 
-const STEPS = ["welcome", "sync", "import", "done"] as const;
+const STEPS = ["welcome", "sync", "import", "search", "done"] as const;
 
 /** The keys worth knowing on the first day. */
 const FIRST_KEYS = SHORTCUTS.slice(0, 5);
@@ -80,7 +82,7 @@ export function Welcome() {
                 A browser built around a sidebar. Nothing you do here is collected, and you need no account.
               </p>
               <p className="mx-auto mt-3 max-w-[460px] text-[13px] leading-5 text-[var(--muted)]">
-                Two questions before you start. Both can wait: you find them in Settings at any time.
+                A few questions before you start. They can all wait: you find them in Settings at any time.
               </p>
             </div>
           )}
@@ -126,6 +128,34 @@ export function Welcome() {
             </>
           )}
 
+          {step === "search" && (
+            <>
+              <Heading title="Choose a search engine">
+                Used when what you type in the command bar is not a web address. Magnetite sends nothing to it until you
+                search.
+              </Heading>
+              <div className="set-card">
+                <div className="flex flex-wrap gap-2">
+                  {SEARCH_ENGINES.map((e) => {
+                    const on = info.settings.search_template === e.template;
+                    return (
+                      <button
+                        key={e.template}
+                        className="choice"
+                        aria-pressed={on}
+                        data-active={on || undefined}
+                        onClick={() => void send({ cmd: "set_settings", settings: { search_template: e.template } }).then(reload)}
+                      >
+                        {on ? "✓ " : ""}{e.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="set-hint">Another one, and keywords that search one site, are in Settings → Search.</p>
+              </div>
+            </>
+          )}
+
           {step === "done" && (
             <>
               <Heading title="You are set">
@@ -166,6 +196,7 @@ export function Welcome() {
             {step === "welcome" && <button className="btn primary" onClick={next}>Get started</button>}
             {step === "sync" && <button className="btn primary" disabled={syncJob !== null} onClick={next}>{syncing ? "Continue" : "Not now"}</button>}
             {step === "import" && <button className="btn primary" onClick={next}>{chosen.length > 0 ? "Continue" : "Not now"}</button>}
+            {step === "search" && <button className="btn primary" onClick={next}>Continue</button>}
             {step === "done" && (
               <button className="btn primary" disabled={starting} onClick={() => void finish(chosen)}>
                 {starting && chosen.length > 0 ? "Importing…" : "Start browsing"}

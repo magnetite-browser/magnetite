@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon } from "./Icons";
 import { IsolationSection } from "./IsolationSection";
+import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { applyAppearance, send, type DefaultBrowser, type Settings, type SiteSearch } from "./bridge";
 import { About } from "./settings/AboutSection";
 import { AutofillSection } from "./settings/AutofillSection";
@@ -48,14 +49,6 @@ const GROUPS: { label: string; sections: Section[] }[] = [
 ];
 const SECTIONS = GROUPS.flatMap((g) => g.sections);
 
-const SEARCH_ENGINES = [
-  { label: "DuckDuckGo", template: "https://duckduckgo.com/?q=%s" },
-  { label: "Startpage", template: "https://www.startpage.com/do/search?q=%s" },
-  { label: "Ecosia", template: "https://www.ecosia.org/search?q=%s" },
-  { label: "Brave Search", template: "https://search.brave.com/search?q=%s" },
-  { label: "Kagi", template: "https://kagi.com/search?q=%s" },
-  { label: "Google", template: "https://www.google.com/search?q=%s" },
-];
 
 export function SettingsPage() {
   const [info, setInfo] = useState<Info | null>(null);
