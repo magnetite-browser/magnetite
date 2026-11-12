@@ -40,6 +40,11 @@ wrap_download_handler! {
         }
         fn on_download_updated(&self, browser: Option<&mut Browser>, item: Option<&mut DownloadItem>, _callback: Option<&mut DownloadItemCallback>) {
             let Some(item) = item else { return };
+            // An extension being installed from the Chrome Web Store is no
+            // download to the user (Chrome does not list it either).
+            if is_extension_install(&CefString::from(&item.original_url()).to_string()) {
+                return;
+            }
             let state = if item.is_complete() != 0 {
                 DownloadState::Finished
             } else if item.is_canceled() != 0 || item.is_interrupted() != 0 {
@@ -84,6 +89,17 @@ wrap_download_handler! {
             }));
         }
     }
+}
+
+/// Where the Chrome Web Store's installer fetches an extension's package
+/// (`extension_urls::GetDefaultWebstoreUpdateUrl` in Chromium); the file
+/// lands as `<extension id>.crx` and is deleted once installed.
+const WEBSTORE_PACKAGES: &str = "https://clients2.google.com/service/update2/crx";
+
+/// Whether a download that started at `url` is an extension install.
+fn is_extension_install(url: &str) -> bool {
+    url.strip_prefix(WEBSTORE_PACKAGES)
+        .is_some_and(|rest| rest.is_empty() || rest.starts_with('?'))
 }
 
 /// The name to show for a download at `full` (Chromium's current path):
@@ -159,7 +175,21 @@ fn percent_decode(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{display_name, disposition_name, url_name};
+    use super::{display_name, disposition_name, is_extension_install, url_name};
+
+    #[test]
+    fn web_store_installs_are_no_downloads() {
+        assert!(is_extension_install(
+            "https://clients2.google.com/service/update2/crx?response=redirect&x=id%3Dabc%26installsource%3Dondemand%26uc"
+        ));
+        assert!(!is_extension_install(
+            "https://clients2.google.com/service/update2/crxfile.zip"
+        ));
+        assert!(!is_extension_install(
+            "https://example.org/service/update2/crx?x=1"
+        ));
+        assert!(!is_extension_install("https://example.org/tool.crx"));
+    }
 
     #[test]
     fn names_from_the_server_while_chromium_has_none() {

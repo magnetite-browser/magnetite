@@ -64,6 +64,10 @@ downloads. A click opens the view chosen in Settings → Tabs & archive (the
 archive by default), or the downloads while a download runs; resting on the
 button offers all four and, below a line, Settings.
 
+The downloads list every file a page downloads, except the package of an
+extension being installed from the Chrome Web Store: that is part of the
+install, as in Chrome, and Chromium deletes it once the extension is in.
+
 ## Data
 
 The archive is the `archive` list in `<data-dir>/state.json`, oldest first.
