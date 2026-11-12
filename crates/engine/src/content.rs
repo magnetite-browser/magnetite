@@ -650,8 +650,9 @@ wrap_browser_view_delegate! {
             popup_browser_view: Option<&mut BrowserView>,
             is_devtools: ::std::os::raw::c_int,
         ) -> ::std::os::raw::c_int {
-            // Other popups are cancelled in on_before_popup; DevTools dock
-            // beside the page unless the user wants Chromium's own window.
+            // DevTools dock beside the page unless the user wants Chromium's
+            // own window. A page's popup window (the only other popup that
+            // gets here, see on_before_popup) gets CEF's default window.
             match (is_devtools != 0, browser_view, popup_browser_view) {
                 (true, Some(source), Some(tools)) => i32::from(Engine::global().dock_devtools(source, tools)),
                 _ => 0,

@@ -12,7 +12,6 @@ it as a tab, or put it beside the current tab in split view.
 | A link that asks for a new tab or window | Pinned tabs and favorites |
 | `Shift`+click on a link | Any tab |
 | `Shift+Enter` on an address, search, bookmark or visit in the command bar (`command-bar.md`) | Over the page in front |
-| A popup window (`window.open` with window features) | Any tab |
 | A link from another app | Only if the setting below says so |
 
 - Pinned tabs and favorites are locked to the site of their pinned address
@@ -79,6 +78,9 @@ cache like any tab. The choice for links from other apps is
 
 A page opened as a peek or as a new tab loads in a window of its own. It
 has no script connection (`window.opener`) to the page that asked for it.
+A page's popup window (`window.open` with window features, such as "Sign
+in with Google") therefore does not become a peek: it opens as a small
+window of its own, as in other browsers, so it can talk back to the page.
 
 Code: `crates/app/src/app/peek.rs` (`open_peek`, `keep_peek`) and
 `events.rs` (the `OpenUrlRequested` handler), `crates/engine/src/client.rs` (site lock,
