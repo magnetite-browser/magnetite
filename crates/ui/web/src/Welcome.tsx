@@ -1,7 +1,7 @@
 // The welcome page (magnetite://ui/welcome): the app opens it once, as a tab,
 // at the first start. It asks what to bring along: sync with other devices,
-// tabs from another browser, which search engine to use, whether Magnetite
-// should be the default browser.
+// tabs from another browser, which search engine to use, what happens to
+// tabs left alone, whether Magnetite should be the default browser.
 // Nothing is read, sent or changed before the user chooses; the chosen
 // browsers are read and the system asked about the default browser at the
 // end, with "Start browsing". Everything here is in Settings too.
@@ -11,10 +11,11 @@ import { send, type ImportSource } from "./bridge";
 import { SHORTCUTS } from "./settings/AboutSection";
 import { Toggle } from "./settings/fields";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
+import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
-import type { Info } from "./settings/types";
+import type { Info, SettingsPatch } from "./settings/types";
 
-const STEPS = ["welcome", "sync", "import", "search", "done"] as const;
+const STEPS = ["welcome", "sync", "import", "search", "tabs", "done"] as const;
 
 /** The keys worth knowing on the first day. */
 const FIRST_KEYS = SHORTCUTS.slice(0, 5);
@@ -56,6 +57,8 @@ export function Welcome() {
   const next = () => setAt((i) => Math.min(i + 1, STEPS.length - 1));
   const back = () => setAt((i) => Math.max(i - 1, 0));
   const toggle = (key: string) => setChosen((keys) => (keys.includes(key) ? keys.filter((k) => k !== key) : [...keys, key]));
+  // A choice takes effect at once, like the search engine's.
+  const choose = (patch: SettingsPatch) => void send({ cmd: "set_settings", settings: patch }).then(reload);
   const named = (keys: string[]) => (sources ?? []).filter((s) => keys.includes(s.key)).map((s) => s.name);
   // The app imports what was chosen, closes this tab and shows the first
   // imported space, or the command bar for a first address. A browser it
@@ -156,6 +159,28 @@ export function Welcome() {
             </>
           )}
 
+          {step === "tabs" && (
+            <>
+              <Heading title="Tabs you leave alone">
+                Magnetite tidies up behind you. Both can be changed later in Settings → Tabs &amp; archive.
+              </Heading>
+              <div className="set-card flex flex-col gap-5">
+                <Times
+                  title="Unload a page that has been off screen for"
+                  hint="An unloaded page uses no memory and loads again when you open its tab. Shorter saves memory, longer keeps more pages ready. Favorites stay loaded."
+                  options={UNLOAD_AFTER.map((t) => ({ label: t.label, on: info.settings.unload_minutes === t.minutes, patch: { unload_minutes: t.minutes } }))}
+                  choose={choose}
+                />
+                <Times
+                  title="Archive a Today tab not used for"
+                  hint="Archived tabs leave the sidebar and can be found again in the archive. Pinned tabs and favorites are never archived."
+                  options={ARCHIVE_AFTER.map((t) => ({ label: t.label, on: info.settings.auto_archive_hours === t.hours, patch: { auto_archive_hours: t.hours } }))}
+                  choose={choose}
+                />
+              </div>
+            </>
+          )}
+
           {step === "done" && (
             <>
               <Heading title="You are set">
@@ -196,7 +221,7 @@ export function Welcome() {
             {step === "welcome" && <button className="btn primary" onClick={next}>Get started</button>}
             {step === "sync" && <button className="btn primary" disabled={syncJob !== null} onClick={next}>{syncing ? "Continue" : "Not now"}</button>}
             {step === "import" && <button className="btn primary" onClick={next}>{chosen.length > 0 ? "Continue" : "Not now"}</button>}
-            {step === "search" && <button className="btn primary" onClick={next}>Continue</button>}
+            {(step === "search" || step === "tabs") && <button className="btn primary" onClick={next}>Continue</button>}
             {step === "done" && (
               <button className="btn primary" disabled={starting} onClick={() => void finish(chosen)}>
                 {starting && chosen.length > 0 ? "Importing…" : "Start browsing"}
@@ -204,6 +229,23 @@ export function Welcome() {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** One question of the tabs step: a row of times to choose from. */
+function Times({ title, hint, options, choose }: { title: string; hint: string; options: { label: string; on: boolean; patch: SettingsPatch }[]; choose: (patch: SettingsPatch) => void }) {
+  return (
+    <div>
+      <div className="text-[14px] font-medium">{title}</div>
+      <p className="set-hint">{hint}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {options.map((o) => (
+          <button key={o.label} className="choice" aria-pressed={o.on} data-active={o.on || undefined} onClick={() => choose(o.patch)}>
+            {o.on ? "✓ " : ""}{o.label}
+          </button>
+        ))}
       </div>
     </div>
   );

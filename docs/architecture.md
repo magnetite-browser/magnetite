@@ -15,7 +15,7 @@
 
 - One **content window per loaded tab** (ADR-0004). Only the active tab (or
   the split-view panes, or the peek) is visible; the rest are hidden child
-  windows. Tabs hidden for 30 minutes lose their window; Today tabs unused
+  windows. Tabs hidden for 4 hours lose their window; Today tabs unused
   for 12 hours are archived.
 - The **sidebar** is our own web app. It receives the whole UI state as JSON
   after each change (`window.__magnetite.setState`) and sends commands through

@@ -10,6 +10,14 @@ use serde::{Deserialize, Serialize};
 /// The longest the archive may keep a tab: ten years.
 pub const MAX_ARCHIVE_DAYS: u32 = 3650;
 
+/// The current set of defaults. Raised when a default changes that
+/// installations still on the old one should follow
+/// (`Settings::with_current_defaults`).
+const DEFAULTS: u32 = 1;
+
+/// The unload time every installation began with before `DEFAULTS` 1.
+const FIRST_UNLOAD_MINUTES: u32 = 30;
+
 /// User preferences.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -22,6 +30,10 @@ pub struct Settings {
     pub history_days: u32,
     /// Hidden tabs lose their window after this; 0 disables unloading.
     pub unload_minutes: u32,
+    /// Which set of defaults these settings began with (`DEFAULTS`); 0 for
+    /// settings saved before defaults were counted. Not synced.
+    #[serde(default)]
+    pub defaults: u32,
     /// Search URL template with `%s` for the query.
     pub search_template: String,
     /// Keywords that search one site from the command bar (`gh rust`).
@@ -245,6 +257,19 @@ impl Settings {
 }
 
 impl Settings {
+    /// Settings read from this device's `state.json`, following defaults
+    /// that changed since they were saved: pages unloaded after 30 minutes
+    /// off screen, which read as slow tabs. That time may have been chosen
+    /// rather than kept; the two cannot be told apart, and Settings sets it
+    /// back.
+    pub fn with_current_defaults(mut self) -> Self {
+        if self.defaults < 1 && self.unload_minutes == FIRST_UNLOAD_MINUTES {
+            self.unload_minutes = Self::default().unload_minutes;
+        }
+        self.defaults = DEFAULTS;
+        self
+    }
+
     /// These settings with `patch` laid over them (what a Settings page
     /// changed), checked like any others. A page sends only what it changed:
     /// its copy of the rest may be old. What pages never change stays as it
@@ -283,7 +308,8 @@ impl Default for Settings {
             auto_archive_hours: 12,
             archive_days: 90,
             history_days: 90,
-            unload_minutes: 30,
+            unload_minutes: 240,
+            defaults: DEFAULTS,
             search_template: "https://duckduckgo.com/?q=%s".into(),
             site_searches: builtin_site_searches(),
             external_links: "tab".into(),
@@ -363,6 +389,32 @@ mod tests {
             .patched(patch(serde_json::json!({ "archive_days": 0 })))
             .unwrap();
         assert_eq!(next.archive_days, 1);
+    }
+
+    #[test]
+    fn settings_saved_with_the_first_unload_time_get_the_current_one() {
+        let saved = |json: serde_json::Value| -> Settings {
+            serde_json::from_value::<Settings>(json)
+                .unwrap()
+                .with_current_defaults()
+        };
+        // Saved before defaults were counted: 30 minutes was the default.
+        assert_eq!(
+            saved(serde_json::json!({ "unload_minutes": 30 })).unload_minutes,
+            240
+        );
+        // Anything else was chosen.
+        assert_eq!(
+            saved(serde_json::json!({ "unload_minutes": 10 })).unload_minutes,
+            10
+        );
+        assert_eq!(
+            saved(serde_json::json!({ "unload_minutes": 0 })).unload_minutes,
+            0
+        );
+        // Once only: 30 minutes chosen after that stays.
+        let chosen = saved(serde_json::json!({ "unload_minutes": 30, "defaults": 1 }));
+        assert_eq!(chosen.unload_minutes, 30);
     }
 
     #[test]

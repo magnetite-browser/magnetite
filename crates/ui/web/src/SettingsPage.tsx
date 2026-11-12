@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon } from "./Icons";
 import { IsolationSection } from "./IsolationSection";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
+import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
 import { applyAppearance, send, type DefaultBrowser, type Settings, type SiteSearch } from "./bridge";
 import { About } from "./settings/AboutSection";
 import { AutofillSection } from "./settings/AutofillSection";
@@ -156,13 +157,13 @@ export function SettingsPage() {
             <>
               <Field label="Archive Today tabs after" hint="Pinned tabs and favorites are never archived.">
                 <select className="field" value={settings.auto_archive_hours} onChange={(e) => update({ auto_archive_hours: Number(e.target.value) })}>
-                  <option value={12}>12 hours</option><option value={24}>24 hours</option><option value={168}>7 days</option><option value={720}>30 days</option>
+                  {ARCHIVE_AFTER.map((t) => <option key={t.hours} value={t.hours}>{t.label}</option>)}
                 </select>
               </Field>
               <ArchiveRetention key={settings.archive_days} days={settings.archive_days} save={(days) => update({ archive_days: days })} />
               <Field label="Suspend inactive tabs after" hint="Suspended tabs keep their place and reload when opened. This is what keeps hundreds of tabs cheap.">
                 <select className="field" value={settings.unload_minutes} onChange={(e) => update({ unload_minutes: Number(e.target.value) })}>
-                  <option value={10}>10 minutes</option><option value={30}>30 minutes</option><option value={120}>2 hours</option><option value={0}>Never</option>
+                  {UNLOAD_AFTER.map((t) => <option key={t.minutes} value={t.minutes}>{t.label}</option>)}
                 </select>
               </Field>
               <Field label="Clicking the archive button opens" hint="The button at the bottom left of the sidebar; resting on it shows bookmarks, history, downloads and the archive. While a download runs, a click opens downloads.">

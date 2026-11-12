@@ -127,7 +127,7 @@ impl AppState {
                         p.archive,
                         HashMap::new(),
                         Vec::new(),
-                        p.settings.sanitised(),
+                        p.settings.sanitised().with_current_defaults(),
                         p.downloads,
                     )
                 }
@@ -138,7 +138,7 @@ impl AppState {
                     p.archive,
                     p.favicons,
                     p.splits,
-                    p.settings.sanitised(),
+                    p.settings.sanitised().with_current_defaults(),
                     p.downloads,
                 ),
                 // Nothing saved: a plain sidebar. Nothing is read from

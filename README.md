@@ -50,7 +50,7 @@ Magnetite started as a new home for the workflow of the Arc browser and has grow
 - **Close means archive.** A closed tab goes to the archive, where you can search it and bring it back. `Cmd+Shift+T` reopens the last one.
 - **History on your terms.** Visited pages stay on this computer for 7, 30 or 90 days, or not at all; never synced, nothing from private logins.
 - **Auto-archive.** Today tabs you have not used for 12 hours are archived; you choose the time.
-- **Unloading.** Tabs hidden for 30 minutes give their memory back and reload when you return. Favorites and tabs you mark "Keep active" stay loaded.
+- **Unloading.** Tabs hidden for 4 hours give their memory back and reload when you return. Favorites and tabs you mark "Keep active" stay loaded.
 
 ### Logins kept apart
 

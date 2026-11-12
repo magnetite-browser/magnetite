@@ -52,9 +52,9 @@ the row turns the icon into a back arrow that takes the page back.
   opened in the background and was not viewed yet.
 - A click shows the tab and loads its page if needed. Tabs without a loaded
   page are dimmed. A page is unloaded once it has been off screen for more
-  than 30 minutes (Settings → Tabs & archive: 10 minutes, 30 minutes,
-  2 hours or never), unless it has media, is the tab its space returns
-  to, is a favorite, or is kept active.
+  than 4 hours (Settings → Tabs & archive: 10 minutes, 30 minutes,
+  2, 4 or 12 hours, or never), unless it has media, is the tab its space
+  returns to, is a favorite, or is kept active.
 - **Favorites stay loaded** once opened, until they are closed.
 - Closing a favorite or a pinned tab unloads it and takes it back to its
   pinned page, which it opens at next time. Its title stays the last page's
