@@ -270,8 +270,10 @@ button.panel-row:disabled { opacity: 0.45; }
 .sp[data-active] { color: var(--space); }
 
 /* menus */
-.menu { position: fixed; z-index: 50; min-width: 200px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px; box-shadow: 0 12px 32px rgba(0,0,0,0.45); }
+.menu { position: fixed; z-index: 50; min-width: 200px; max-width: 208px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px; box-shadow: 0 12px 32px rgba(0,0,0,0.45); }
 .menu button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; height: 28px; padding: 0 10px; border-radius: 6px; }
+/* One line per entry: the menu's height is counted in 28 px rows (ContextMenu.tsx). */
+.menu button span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .menu button:hover { background: rgba(255,255,255,0.1); }
 .menu button[data-danger] { color: var(--danger); }
 .menu button[data-danger]:hover { background: rgba(255, 90, 90, 0.14); }
