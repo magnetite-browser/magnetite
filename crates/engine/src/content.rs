@@ -566,7 +566,10 @@ impl Engine {
                 }
             }
             Kind::Overlay | Kind::DevTools => {}
-            Kind::Stray => crate::stray::hide(&browser),
+            Kind::Stray => {
+                crate::stray::hide(&browser);
+                self.lock().foreign.insert(browser.identifier(), browser);
+            }
             Kind::Content => {
                 let Some(view) = browser_view_get_for_browser(Some(&mut browser)) else {
                     return;
@@ -589,8 +592,12 @@ impl Engine {
                         host.set_audio_muted(1);
                     }
                 }
-                if let Some(id) = matched {
-                    self.emit(EngineEvent::ContentCreated { id });
+                match matched {
+                    Some(id) => self.emit(EngineEvent::ContentCreated { id }),
+                    // None of our pages: a page's popup window.
+                    None => {
+                        self.lock().foreign.insert(browser.identifier(), browser);
+                    }
                 }
             }
         }
@@ -599,7 +606,9 @@ impl Engine {
     pub(crate) fn on_browser_closed(&self, kind: Kind, browser: Option<&Browser>) {
         if let Some(b) = browser {
             self.forget_loaded_url(b.identifier());
-            self.lock().ui_reloads.remove(&b.identifier());
+            let mut inner = self.lock();
+            inner.ui_reloads.remove(&b.identifier());
+            inner.foreign.remove(&b.identifier());
         }
         if self.on_devtools_closed(browser) || kind != Kind::Content {
             return;

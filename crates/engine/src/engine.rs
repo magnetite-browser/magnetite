@@ -57,6 +57,10 @@ pub(crate) struct Inner {
     pub peek: Option<ContentId>,
     /// One CEF request context (cookies, storage, extensions) per profile id.
     pub contexts: HashMap<String, RequestContext>,
+    /// Browsers in windows Chromium made, not we: a page's popup window,
+    /// an extension's pop-up window. `quit` closes them; each one left open
+    /// would keep the app running.
+    pub foreign: HashMap<i32, Browser>,
     /// Keeps the watch on each profile's extension pins alive
     /// (`extensions::watch_pins`).
     pub pin_watches: Vec<Registration>,
@@ -143,6 +147,7 @@ impl Engine {
                 split: None,
                 peek: None,
                 contexts: HashMap::new(),
+                foreign: HashMap::new(),
                 pin_watches: Vec::new(),
                 ready_contexts: HashSet::new(),
                 queued: Vec::new(),
@@ -303,40 +308,46 @@ impl Engine {
             .and_then(|f| f.sidebar_browser.clone())
     }
 
-    /// Close every window; the message loop ends once the frame is gone.
-    /// Callers save their state first: if the frame is still there after
-    /// `QUIT_GRACE_MS` (a page or extension popup can hold its window
-    /// open), the process ends without the rest of the shutdown.
+    /// Close every window, ours and those Chromium made (`foreign`); the
+    /// message loop ends once they are gone. Callers save their state
+    /// first: if the process still runs `QUIT_GRACE_MS` later (a window we
+    /// do not know of, a shutdown that waits on one), it ends without the
+    /// rest of the shutdown.
     pub fn quit(&self) {
-        let contents: Vec<Window> = {
+        let (contents, foreign): (Vec<Window>, Vec<Browser>) = {
             let mut inner = self.lock();
             inner.quitting = true;
-            inner
-                .contents
-                .values()
-                .filter_map(|c| c.window.clone())
-                .collect()
+            (
+                inner
+                    .contents
+                    .values()
+                    .filter_map(|c| c.window.clone())
+                    .collect(),
+                inner.foreign.values().cloned().collect(),
+            )
         };
         let frame = self.frame_window();
+        for b in foreign {
+            if let Some(host) = b.host() {
+                host.close_browser(1);
+            }
+        }
         for w in contents {
             w.close();
         }
         if let Some(w) = frame {
             w.close();
         }
-        Self::post_delayed(
-            Box::new(|| {
-                if Engine::global().lock().frame.is_some() {
-                    eprintln!(
-                        "magnetite: windows did not close within {QUIT_GRACE_MS} ms; exiting"
-                    );
-                    // SAFETY: ends the process at once, skipping exit handlers
-                    // that would wait on the stuck shutdown.
-                    unsafe { libc::_exit(0) };
-                }
-            }),
-            QUIT_GRACE_MS,
-        );
+        // Not a task on the message loop: the loop may have ended and still
+        // not returned (a window we do not know of), or `shutdown` may wait
+        // on such a window. The process ends once this thread wakes.
+        std::thread::spawn(|| {
+            std::thread::sleep(std::time::Duration::from_millis(QUIT_GRACE_MS));
+            eprintln!("magnetite: still running {QUIT_GRACE_MS} ms after quitting; exiting");
+            // SAFETY: ends the process at once, skipping exit handlers that
+            // would wait on the stuck shutdown.
+            unsafe { libc::_exit(0) };
+        });
     }
 
     pub(crate) fn is_quitting(&self) -> bool {
@@ -487,7 +498,7 @@ extern "C" fn sigterm_handler(_sig: libc::c_int) {
 }
 
 /// How long closing the windows may take before `quit` gives up on them.
-const QUIT_GRACE_MS: i64 = 5000;
+const QUIT_GRACE_MS: u64 = 5000;
 
 fn schedule_tick(delay_ms: i64) {
     Engine::post_delayed(Box::new(tick), delay_ms);
