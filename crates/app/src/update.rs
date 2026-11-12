@@ -38,6 +38,9 @@ pub const CHECK_EVERY_SECS: i64 = 24 * 3600;
 /// Seconds after start before the first automatic check.
 pub const FIRST_CHECK_AFTER_SECS: i64 = 30;
 
+/// The app being replaced, inside the staging folder next to it.
+const OLD_APP: &str = "old.app";
+
 /// Largest manifest or signature accepted.
 const MAX_MANIFEST: u64 = 64 * 1024;
 
@@ -224,7 +227,8 @@ pub fn install(asset: &Asset, bundle: &Path) -> Result<PathBuf, String> {
     let _ = std::fs::remove_dir_all(&staging);
     std::fs::create_dir(&staging).map_err(|e| format!("Cannot prepare the update: {e}"))?;
     let result = stage_and_swap(asset, bundle, &staging);
-    if result.is_err() {
+    // Not when the old app is stranded in there (see `stage_and_swap`).
+    if result.is_err() && !staging.join(OLD_APP).exists() {
         let _ = std::fs::remove_dir_all(&staging);
     }
     result.map(|()| staging)
@@ -272,18 +276,25 @@ fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), St
         "macOS does not accept this update (not notarized). Download it from the release page."
             .to_string()
     })?;
-    let old = staging.join("old.app");
+    let old = staging.join(OLD_APP);
     std::fs::rename(bundle, &old).map_err(|e| format!("Cannot move the old app aside: {e}"))?;
     if let Err(e) = std::fs::rename(&new_app, bundle) {
-        let _ = std::fs::rename(&old, bundle);
-        return Err(format!("Cannot put the new app in place: {e}"));
+        return Err(match std::fs::rename(&old, bundle) {
+            Ok(()) => format!("Cannot put the new app in place: {e}"),
+            // Neither app is in place now: say where the old one is.
+            Err(_) => format!(
+                "Cannot put the new app in place: {e}. Your Magnetite is now at {}; move it back by hand.",
+                old.display()
+            ),
+        });
     }
     Ok(())
 }
 
-/// After Magnetite quits: start `bundle` again and delete `cleanup`.
+/// After Magnetite quits: start `bundle` again and delete `cleanup`, which
+/// holds the old app. If the new one does not open, the old one stays.
 pub fn relaunch_after_exit(bundle: &Path, cleanup: &Path) -> Result<(), String> {
-    let script = r#"while /bin/kill -0 "$1" 2>/dev/null; do /bin/sleep 0.2; done; /usr/bin/open "$2"; /bin/rm -rf "$3""#;
+    let script = r#"while /bin/kill -0 "$1" 2>/dev/null; do /bin/sleep 0.2; done; /usr/bin/open "$2" && /bin/rm -rf "$3""#;
     std::process::Command::new("/bin/sh")
         .args(["-c", script, "sh", &std::process::id().to_string()])
         .arg(bundle)
