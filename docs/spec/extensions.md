@@ -43,7 +43,8 @@ Settings.
 ## Pinning
 
 - Nothing is pinned until you pin it.
-- "Pin to toolbar" on Chromium's extensions page counts too. Magnetite
+- "Pin to toolbar" on Chromium's extensions page counts too, the moment
+  it is toggled (Magnetite watches Chromium's pin preference). Magnetite
   remembers Chromium's pins per profile; an extension newly pinned there
   joins the sidebar, one unpinned there leaves it. A change made in
   Magnetite afterwards stays until Chromium's pins change again.
