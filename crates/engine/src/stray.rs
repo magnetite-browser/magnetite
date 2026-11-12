@@ -27,6 +27,15 @@ fn set_shown(browser: &Browser, shown: bool) {
     let _ = (browser, shown);
 }
 
+/// Whether an extension's pop-up window may load `url` as it is: its own
+/// pages, web pages and an empty page.
+fn popup_may_show(url: &str) -> bool {
+    ["chrome-extension://", "https://", "http://"]
+        .iter()
+        .any(|p| url.starts_with(p))
+        || url == "about:blank"
+}
+
 impl Engine {
     /// A stray browser starts loading `url`: open that as our tab and close
     /// the browser (a new tab page means nothing to open). `DevTools` that
@@ -40,8 +49,12 @@ impl Engine {
             }
             return false;
         }
+        // Only the addresses an extension's window is for: anything else
+        // (`magnetite://`, `javascript:`, `data:`, …) goes the tab's way
+        // below, where the app's address policy decides.
         #[cfg(target_os = "macos")]
         if let Some(host) = browser.as_deref().and_then(ImplBrowser::host)
+            && popup_may_show(url)
             && crate::mac::is_popup_window(host.window_handle())
         {
             // Shown with the keyboard: it usually asks for something
@@ -86,5 +99,28 @@ impl Engine {
             });
         }
         true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::popup_may_show;
+
+    #[test]
+    fn a_popup_window_shows_extension_and_web_pages_only() {
+        assert!(popup_may_show(
+            "chrome-extension://abc/popup/index.html?uilocation=popout"
+        ));
+        assert!(popup_may_show("https://example.org/"));
+        assert!(popup_may_show("about:blank"));
+        for url in [
+            "magnetite://ui/settings",
+            "javascript:alert(1)",
+            "data:text/html,x",
+            "chrome://settings",
+            "file:///etc/passwd",
+        ] {
+            assert!(!popup_may_show(url), "{url}");
+        }
     }
 }
