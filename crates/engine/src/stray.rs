@@ -28,7 +28,8 @@ fn set_shown(browser: &Browser, shown: bool) {
 }
 
 /// Whether an extension's pop-up window may load `url` as it is: its own
-/// pages, web pages and an empty page.
+/// pages, web pages and an empty page. Only macOS keeps such windows.
+#[cfg(any(target_os = "macos", test))]
 fn popup_may_show(url: &str) -> bool {
     ["chrome-extension://", "https://", "http://"]
         .iter()
