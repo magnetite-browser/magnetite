@@ -38,7 +38,9 @@ Settings.
 - "Options" opens the extension's options page as a tab, in the profile of
   the page in front, where the extension is installed.
 - Pages an extension opens itself (a welcome page, `chrome.tabs.create`, a
-  pop-out window) open as Magnetite tabs in the profile they came from.
+  normal window) open as Magnetite tabs in the profile they came from. A
+  pop-up window (Bitwarden's passkey window) opens as a small window of its
+  own, as in other browsers.
 
 ## Pinning
 
@@ -72,7 +74,12 @@ Settings.
   default client (`stray.rs`). The window is hidden at once, its first
   address opens as a tab, and the window closes. A new-tab page opens
   nothing. DevTools that Chromium opens itself (Inspect on a popup) keep
-  their window.
+  their window, and so does an extension's pop-up window
+  (`chrome.windows.create({type: "popup"})`, such as Bitwarden's passkey
+  window): it is shown with the keyboard, as in other browsers, because
+  the extension waits for it and gives up when it closes. On macOS a
+  pop-up window is told apart by its window lacking a tab strip (no
+  full-size content view).
 
 ## Data
 
@@ -94,9 +101,12 @@ Settings.
   see `docs/development/upstream.md`). A second click during the wait would
   cancel the popup, so a sidebar button ignores clicks until the popup has
   the keyboard, for at most five seconds.
-- A tab or window an extension opens with `chrome.tabs.create` or
+- A tab or normal window an extension opens with `chrome.tabs.create` or
   `chrome.windows.create` becomes a new Magnetite tab. The id Chromium
   returned to the extension belongs to the closed window.
+- An extension's pop-up window is a plain Chromium window outside
+  Magnetite's layout. On Linux it still becomes a tab, so an extension
+  that waits for its window (Bitwarden's passkeys) gives up there.
 - Without the DevTools pipe (file descriptors 3 and 4 taken at start, or on
   Windows) the buttons and menu entries open nothing.
 

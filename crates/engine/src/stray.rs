@@ -1,7 +1,11 @@
 //! Windows Chromium opens by itself: an extension's new tab
-//! (`chrome.tabs.create`), its pop-out window, an options page. Chromium
+//! (`chrome.tabs.create`), its pop-up window, an options page. Chromium
 //! gives them a plain Chrome window outside our layout; we hide it at once
-//! and open its address as one of our tabs instead.
+//! and open its address as one of our tabs instead. A pop-up window
+//! (`chrome.windows.create({type: "popup"})`) stays a window, as in other
+//! browsers: the extension keeps watching it, and closing it would end
+//! what it is for (Bitwarden's passkey window falls back to the browser's
+//! own dialog when its window goes).
 
 use cef::*;
 
@@ -27,12 +31,22 @@ impl Engine {
     /// A stray browser starts loading `url`: open that as our tab and close
     /// the browser (a new tab page means nothing to open). `DevTools` that
     /// Chromium opens itself (Inspect on an extension popup) keep their
-    /// window. Returns whether the load is cancelled.
+    /// window, and so does an extension's pop-up window. Returns whether
+    /// the load is cancelled.
     pub(crate) fn adopt_stray(&self, browser: Option<&mut Browser>, url: &str) -> bool {
         if url.starts_with("devtools://") {
             if let Some(browser) = browser {
                 set_shown(browser, true);
             }
+            return false;
+        }
+        #[cfg(target_os = "macos")]
+        if let Some(host) = browser.as_deref().and_then(ImplBrowser::host)
+            && crate::mac::is_popup_window(host.window_handle())
+        {
+            // Shown with the keyboard: it usually asks for something
+            // (Bitwarden's master password, a passkey to pick).
+            crate::mac::focus_window_of(host.window_handle());
             return false;
         }
         let mut context = None;
