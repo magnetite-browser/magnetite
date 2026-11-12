@@ -257,7 +257,10 @@ impl MagnetiteApp {
             None => self.show_state(engine),
             Some(wait) => Engine::post_delayed(
                 Box::new(|| {
-                    if let Some(app) = global() {
+                    // Shown in the meantime by someone else: nothing to do.
+                    if let Some(app) = global()
+                        && lock(&app.show_pace).queued
+                    {
                         app.show_state(Engine::global());
                     }
                 }),

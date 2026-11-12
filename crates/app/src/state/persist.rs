@@ -4,7 +4,7 @@
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, OnceLock, mpsc};
+use std::sync::{Arc, Condvar, Mutex, OnceLock, PoisonError};
 
 use magnetite_core::split::SplitNode;
 use magnetite_core::{Id, Profile, SidebarSnapshot, Space};
@@ -266,28 +266,26 @@ impl AppState {
     /// Save the state now. For changes that must not be lost and for the
     /// last save before the app ends; everything else uses `persist_later`.
     pub fn persist(&self) {
-        if let Some(bytes) = self.saved_form() {
+        if let Some(bytes) = self.saved_form().bytes() {
             self.saver.write_now(&bytes);
         }
     }
 
     /// Save the state as it is now on the saver's own thread: writing it
     /// waits for the disk, which the caller's thread must not do for every
-    /// change a page reports.
+    /// change a page reports. Only the copy is made here.
     pub fn persist_later(&self) {
-        if let Some(bytes) = self.saved_form() {
-            self.saver.write_later(bytes);
-        }
+        self.saver.write_later(self.saved_form());
     }
 
-    /// `state.json`'s content for the state as it is now.
-    fn saved_form(&self) -> Option<Vec<u8>> {
+    /// What `state.json` holds for the state as it is now.
+    fn saved_form(&self) -> Persisted {
         let favicons = self
             .runtime
             .iter()
             .filter_map(|(id, r)| r.favicon.clone().map(|f| (id.clone(), f)))
             .collect();
-        let p = Persisted {
+        Persisted {
             sidebar: self.lasting_sidebar(),
             active_space: self.active_space.clone(),
             active_tab: self.active_tab.clone(),
@@ -298,8 +296,14 @@ impl AppState {
             downloads: self.downloads.lasting(),
             deleted_profiles: self.deleted_profiles.clone(),
             unsynced_spaces: self.unsynced_spaces.clone(),
-        };
-        serde_json::to_vec_pretty(&p)
+        }
+    }
+}
+
+impl Persisted {
+    /// The file's content.
+    fn bytes(&self) -> Option<Vec<u8>> {
+        serde_json::to_vec_pretty(self)
             .inspect_err(|e| eprintln!("magnetite: cannot save state: {e}"))
             .ok()
     }
@@ -307,19 +311,34 @@ impl AppState {
 
 /// Writes `state.json`, at once or on a thread of its own. Each state handed
 /// over gets a number in the order it was taken, and the file never goes
-/// back to an older one: a save made at once passes those still waiting.
+/// back to an older one: a save made at once passes the one still waiting.
 pub(super) struct Saver {
     file: Arc<StateFile>,
     taken: AtomicU64,
-    /// The writing thread's inbox; the thread starts with the first use and
-    /// ends when the saver is dropped.
-    later: OnceLock<mpsc::Sender<(u64, Vec<u8>)>>,
+    /// What the writing thread takes its work from; the thread starts with
+    /// the first use and ends when the saver is dropped.
+    later: OnceLock<Arc<Waiting>>,
 }
 
 struct StateFile {
     path: PathBuf,
     /// The number of the newest state written. Held while writing.
     written: Mutex<u64>,
+}
+
+/// The one state waiting for the writing thread. A newer one takes its
+/// place, so a slow disk never makes them pile up.
+#[derive(Default)]
+struct Waiting {
+    slot: Mutex<Slot>,
+    changed: Condvar,
+}
+
+#[derive(Default)]
+struct Slot {
+    state: Option<(u64, Persisted)>,
+    /// The saver is gone: write what waits, then end.
+    closed: bool,
 }
 
 impl StateFile {
@@ -337,6 +356,28 @@ impl StateFile {
         match write() {
             Ok(()) => *written = number,
             Err(e) => eprintln!("magnetite: cannot save state: {e}"),
+        }
+    }
+
+    /// The writing thread: turns each waiting state into the file's content
+    /// and writes it, until the saver is dropped.
+    fn write_waiting(&self, waiting: &Waiting) {
+        loop {
+            let (number, state) = {
+                let mut slot = crate::lock(&waiting.slot);
+                loop {
+                    if let Some(state) = slot.state.take() {
+                        break state;
+                    }
+                    if slot.closed {
+                        return;
+                    }
+                    slot = (waiting.changed.wait(slot)).unwrap_or_else(PoisonError::into_inner);
+                }
+            };
+            if let Some(bytes) = state.bytes() {
+                self.write(number, &bytes);
+            }
         }
     }
 }
@@ -361,21 +402,23 @@ impl Saver {
         self.file.write(self.next_number(), bytes);
     }
 
-    fn write_later(&self, bytes: Vec<u8>) {
-        let inbox = self.later.get_or_init(|| {
-            let (inbox, states) = mpsc::channel::<(u64, Vec<u8>)>();
-            let file = self.file.clone();
-            std::thread::spawn(move || {
-                for (number, bytes) in states {
-                    file.write(number, &bytes);
-                }
-            });
-            inbox
+    fn write_later(&self, state: Persisted) {
+        let waiting = self.later.get_or_init(|| {
+            let waiting = Arc::new(Waiting::default());
+            let (file, theirs) = (self.file.clone(), waiting.clone());
+            std::thread::spawn(move || file.write_waiting(&theirs));
+            waiting
         });
-        let state = (self.next_number(), bytes);
-        // The thread is gone only if it panicked: then write here.
-        if let Err(mpsc::SendError((number, bytes))) = inbox.send(state) {
-            self.file.write(number, &bytes);
+        crate::lock(&waiting.slot).state = Some((self.next_number(), state));
+        waiting.changed.notify_one();
+    }
+}
+
+impl Drop for Saver {
+    fn drop(&mut self) {
+        if let Some(waiting) = self.later.get() {
+            crate::lock(&waiting.slot).closed = true;
+            waiting.changed.notify_one();
         }
     }
 }
@@ -531,7 +574,7 @@ mod tests {
         s.settings.auto_archive_hours = 1;
         s.persist_later();
         s.settings.auto_archive_hours = 2;
-        let (number, newer) = (s.saver.next_number(), s.saved_form().unwrap());
+        let (number, newer) = (s.saver.next_number(), s.saved_form().bytes().unwrap());
         drop(busy);
         s.saver.file.write(number, &newer);
         // Whichever of the two got to the file first, the newer one stays.
