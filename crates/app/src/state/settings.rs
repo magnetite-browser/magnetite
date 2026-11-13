@@ -55,6 +55,9 @@ pub struct Settings {
     pub strip_trackers: bool,
     /// Where DevTools open: right of or below the page, or a separate window.
     pub devtools_dock: magnetite_engine::DevToolsDock,
+    /// The size docked DevTools were dragged to, per side. This device's
+    /// own: screens differ.
+    pub devtools_size: magnetite_engine::DevToolsSize,
     #[serde(default)]
     pub sync: SyncSettings,
     /// Extensions (ids) shown in the sidebar; all of them are in the menu
@@ -355,6 +358,7 @@ impl Default for Settings {
             auto_pip: true,
             strip_trackers: true,
             devtools_dock: magnetite_engine::DevToolsDock::Right,
+            devtools_size: magnetite_engine::DevToolsSize::default(),
             sync: SyncSettings::default(),
             pinned_extensions: Vec::new(),
             chromium_pins_seen: HashMap::new(),

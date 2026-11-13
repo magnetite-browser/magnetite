@@ -258,6 +258,25 @@ export interface Settings {
   };
 }
 
+/** What a page in device mode is shown as (the device bar, `device.rs`). */
+export interface DeviceConfig {
+  /** "Responsive", or a device's name. */
+  preset: string;
+  /** CSS pixels, as the device is held. */
+  width: number;
+  height: number;
+  dpr: number;
+  /** Touch and a mobile viewport. */
+  mobile: boolean;
+  /** Whose browser identity the page sees; null: Magnetite's own. */
+  ua: "iphone" | "ipad" | "android" | null;
+  /** Percent; null: as large as fits. */
+  zoom: number | null;
+  throttle: "none" | "fast4g" | "slow4g" | "3g" | "offline";
+  /** The Save-Data hint; null: the browser's own. */
+  save_data: boolean | null;
+}
+
 /** A full-height view behind the sidebar's archive and downloads button. */
 export type LibraryView = "archive" | "downloads" | "bookmarks" | "history";
 
@@ -327,6 +346,8 @@ export type Command =
   | { cmd: "capture_share"; x: number; y: number }
   | { cmd: "capture_dismiss" }
   | { cmd: "site_permissions" }
+  | { cmd: "device_get"; page: number }
+  | { cmd: "device_set"; page: number; config: DeviceConfig | null }
   | { cmd: "site_ads"; url: string }
   | { cmd: "set_site_ads"; url: string; blocking: boolean }
   | { cmd: "set_adblock_enabled"; enabled: boolean }
@@ -548,6 +569,8 @@ interface Replies {
   capture_save: { saved: string | null };
   split_drop_frame: SplitDropFrame | { tab?: undefined };
   site_permissions: { rows: PermissionRow[] };
+  /** `null` once device mode is off. */
+  device_get: DeviceConfig | null;
   /** `site`: the registrable domain of the page asked about; null for no web page. */
   site_ads: { site: string | null; enabled: boolean; blocking: boolean };
   site_data_scope: { domain: string; origins: string[] } | { domain?: undefined };
@@ -561,6 +584,8 @@ type QueryFn = (q: { request: string; persistent?: boolean; onSuccess: (r: strin
 declare global {
   interface Window {
     magnetiteQuery?: QueryFn;
+    /** The device bar's page: the engine shows a size dragged with the handles. */
+    __magnetiteDevice?: (c: DeviceConfig) => void;
     __magnetite: {
       setState: (s: UiState) => void;
       copied: (r: CopyResult) => void;

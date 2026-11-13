@@ -152,6 +152,9 @@ pub enum EngineEvent {
         id: ContentId,
         action: DevToolsAction,
     },
+    /// The divider beside docked DevTools was let go or double-clicked:
+    /// their size per side, to keep.
+    DevToolsResized(crate::DevToolsSize),
     /// A divider between split pages was dragged, let go or double-clicked.
     /// `path` and `index` name it as in `magnetite_core::split::Divider`.
     SplitDivider {
@@ -274,6 +277,7 @@ impl EngineEvent {
         match self {
             Self::DevToolsMenu { .. } => "DevToolsMenu",
             Self::SplitDivider { .. } => "SplitDivider",
+            Self::DevToolsResized(_) => "DevToolsResized",
             Self::Ready => "Ready",
             Self::FrameCreated => "FrameCreated",
             Self::SidebarLoaded => "SidebarLoaded",

@@ -4,6 +4,7 @@ import "./index.css";
 import { App } from "./App";
 import { CaptureOverlay } from "./CaptureOverlay";
 import { CommandPalette } from "./CommandPalette";
+import { DeviceBar } from "./DeviceBar";
 import { Licenses } from "./Licenses";
 import { Notifications } from "./Notifications";
 import { SplitDrop } from "./SplitDrop";
@@ -21,6 +22,7 @@ function Route() {
   if (path.startsWith("/command")) return <CommandPalette />;
   if (path.startsWith("/notifications")) return <Notifications />;
   if (path.startsWith("/splitdrop")) return <SplitDrop />;
+  if (path.startsWith("/device")) return <DeviceBar />;
   if (path.startsWith("/smart-folder")) return <SmartFolderDialog />;
   return <App />;
 }

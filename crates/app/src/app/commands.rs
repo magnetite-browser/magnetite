@@ -414,6 +414,15 @@ pub(super) enum UiCommand {
         id: String,
         subscribed: bool,
     },
+    /// Device bar: the device page `page` is shown as (`null`: none).
+    DeviceGet {
+        page: magnetite_engine::ContentId,
+    },
+    /// Device bar: show page `page` as `config`, or end device mode (`null`).
+    DeviceSet {
+        page: magnetite_engine::ContentId,
+        config: Value,
+    },
     /// Site panel: permission rows of the focused page.
     SitePermissions,
     SetPermission {
@@ -1664,6 +1673,8 @@ impl MagnetiteApp {
                 self.set_adblock_list(&id, subscribed);
                 self.push_state(engine);
             }
+            UiCommand::DeviceGet { page } => return Ok(engine.device_config(page)),
+            UiCommand::DeviceSet { page, config } => engine.set_device_config(page, config),
             UiCommand::SitePermissions => {
                 let rows = self
                     .focused_content(None)

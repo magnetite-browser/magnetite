@@ -1,6 +1,8 @@
 // Injected into the DevTools frontend (devdock.rs): adds "Dock side" and
-// "Close DevTools" to its main menu (⋮), and shows the toolbar's close
-// button (×) while docked. We dock DevTools ourselves, so Chromium takes
+// "Close DevTools" to its main menu (⋮), shows the toolbar's close
+// button (×) while docked, and adds the device toolbar button after the
+// element picker (device.rs): Chromium shows its own only for DevTools
+// docked in a Chrome tab window. We dock DevTools ourselves, so Chromium takes
 // them for a separate window and hides its own dock controls and ×. A choice goes back to the browser as
 // a marked console message, which only this page can produce in this browser.
 // The main menu is found by the stable `jslog` ids of its items, not labels.
@@ -94,14 +96,51 @@
     button.toggleAttribute("data-magnetite-docked", (window.__magnetiteDock || "right") !== "window");
   }
 
+  // Device mode (device.rs): this button and ⌘⇧M turn it on and off; the
+  // choices are in the bar above the page. The browser says whether it is
+  // on (`__magnetiteDeviceOn`), so the button follows the bar's × as well.
+  const deviceButtons = new Set();
+  function showDevice() {
+    const on = !!window.__magnetiteDeviceOn;
+    for (const b of deviceButtons) {
+      b.setAttribute("aria-pressed", String(on));
+      b.style.color = on ? "var(--icon-toggled, #8ab4f8)" : "var(--icon-default, #c7c7c7)";
+    }
+  }
+  function deviceButton(picker) {
+    if (picker.dataset.magnetiteDevice) return;
+    picker.dataset.magnetiteDevice = "1";
+    const b = document.createElement("button");
+    b.title = "Toggle device toolbar - ⌘ ⇧ M";
+    b.setAttribute("aria-label", "Toggle device toolbar");
+    b.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:28px;height:26px;padding:0;border:0;border-radius:4px;background:transparent;cursor:pointer";
+    b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="10" height="14" rx="2"/><path d="M5 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-2.4"/><path d="M8 18h.01"/></svg>';
+    b.addEventListener("click", () => send("device"));
+    picker.after(b);
+    deviceButtons.add(b);
+    showDevice();
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey && e.shiftKey && e.key.toLowerCase() === "m") {
+      e.preventDefault();
+      e.stopPropagation();
+      send("device");
+    }
+  }, true);
+
   function scan(root) {
     for (const el of root.querySelectorAll("*")) {
       if (el.classList && el.classList.contains("soft-context-menu")) decorate(el);
       if (el.tagName === "DEVTOOLS-BUTTON" && el.classList.contains("close-devtools")) closeButton(el);
+      if (el.tagName === "DEVTOOLS-BUTTON" && (el.getAttribute("jslog") || "").includes("elements.toggle-element-search")) deviceButton(el);
       if (el.shadowRoot) scan(el.shadowRoot);
     }
   }
-  // Also run when the browser tells the dock (devdock.rs, `tell_dock`).
-  window.__magnetiteScan = () => scan(document);
+  // Also run when the browser tells the dock or device mode (devdock.rs,
+  // device.rs).
+  window.__magnetiteScan = () => {
+    scan(document);
+    showDevice();
+  };
   new MutationObserver(() => requestAnimationFrame(() => scan(document))).observe(document.body, { childList: true, subtree: true });
 })();

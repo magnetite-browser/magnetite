@@ -93,15 +93,47 @@ close them. "Inspect" in a page's context menu opens them at that element.
 
 | Settings → Developer → "Developer tools open" | Layout |
 |---|---|
-| Right of the page (default) | 42 % of the page's width, at least 320 px |
-| Below the page | 40 % of the page's height, at least 180 px |
+| Right of the page (default) | 42 % of the page's width at first; DevTools at least 240 px wide, the page 320 px |
+| Below the page | 40 % of the page's height at first; DevTools at least 120 px high, the page 160 px |
 | In a separate window | a normal window, 960 × 680 at first |
 
 Docked DevTools take their room from the page they inspect and hide and show
-with it. The DevTools main menu (⋮) has "Dock side" with the same three
+with it. Dragging the gap between page and DevTools resizes both (a line in
+the gap shows on hover); a double-click gives DevTools their first size
+again. The size counts for every page's docked DevTools, per side, and is
+kept on this device after a restart. The DevTools main menu (⋮) has "Dock side" with the same three
 choices and "Close DevTools"; a choice there changes the setting. Docked
 DevTools also have the close button (×) at the end of their toolbar, as in
 Chrome.
+
+**Device mode.** The button after the element picker in the DevTools
+toolbar, or `Cmd+Shift+M` in DevTools, shows the page as a phone, tablet or
+computer. A bar above the page, in the page area, has the choices:
+
+- **Dimensions:** Responsive (a size of one's own, 390 × 844 at first),
+  phones (iPhone SE, iPhone 16, iPhone 16 Pro Max, Pixel 9, Galaxy S24),
+  tablets (iPad Mini, iPad Pro 13) and computers (Laptop, Desktop).
+- **Width × height**, in CSS pixels: editable in Responsive, locked for a
+  device, which has its own. The button beside them turns the device to
+  landscape and back.
+- **Zoom:** Fit (as large as the area allows, at most 100 %), 50 % to 150 %.
+- **Network:** no throttling, Fast 4G, Slow 4G, 3G or offline (Chrome's
+  presets: latency, download and upload speed).
+- **Save-Data:** the browser's own, on or off.
+- **×** ends device mode.
+
+The page gets the device's size and pixel density, touch input (phones
+and tablets) and the device's browser identity (an iPhone's or iPad's
+Safari, an Android Chrome; computers keep Magnetite's). It sits below the
+bar, centred, scaled to the zoom. In Responsive, handles on its right,
+bottom and corner resize it (the right one on both sides, so it stays
+centred); the bar shows the new size While a handle is dragged, the scale stays as it was
+when the drag began, so with "Fit" the size follows the pointer evenly even
+when the page reaches the edge of its area. Device mode ends with the button, the
+× or the DevTools closing, also when they move between docked and their own
+window; the next one starts with the device used last. Chromium's own
+device toolbar shows only for DevTools docked in a Chrome tab window, which
+Magnetite's are not.
 
 `Cmd+W` in DevTools that have a window of their own, or in a window an
 extension opened itself, closes that window and no tab.
@@ -162,13 +194,15 @@ or written without one of these actions.
 | Requested permissions | memory | the tab leaves the site or closes |
 | Origins seen | memory | Magnetite quits |
 | Last capture (PNG) | memory | replaced, dismissed, or Magnetite quits |
-| Tracker removal, DevTools dock | `state.json` | changed |
+| Tracker removal, DevTools dock and size | `state.json` | changed |
 
 ## Not built yet
 
 - Editing the address in place (the address opens the command bar instead).
 - Developer mode per site: status, load times and console counters in a strip.
-- A viewport tool: the page at phone, tablet or custom widths.
+- Device mode without DevTools, and devices of one's own in the list.
+- Dividers beside docked DevTools, and the device mode's resize handles,
+  on other platforms than macOS.
 - Environment labels for hosts (such as "PROD"), set up in Settings.
 - Site panel: certificate details and a link to all site settings.
 - Site panel: a hint when macOS itself blocks camera, microphone or location.
@@ -178,4 +212,5 @@ or written without one of these actions.
 Code: `crates/ui/web/src` (`AddressRow.tsx`, `SitePanel.tsx`,
 `Capture*.tsx`), `crates/core/src/links.rs`, `crates/app/src` (`app/site.rs`,
 `app/screenshots.rs`, `capture.rs`), `crates/engine/src` (`site.rs`, `sitedata.rs`, `capture.rs`,
-`devdock.rs`, `devtools.rs`, `keys.rs`).
+`devdock.rs`, `device.rs`, `devtools_menu.js`, `devtools.rs`, `keys.rs`),
+`crates/ui/web/src/DeviceBar.tsx`.
