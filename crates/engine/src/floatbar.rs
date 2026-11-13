@@ -1,5 +1,6 @@
 //! The sidebar as a floating panel. While the docked sidebar is hidden, the
-//! pointer reaching the window's left edge (`mac::set_edge_zone`) slides a
+//! pointer reaching the window's left edge (`mac::set_edge_zone`,
+//! `win::set_edge_zone`) slides a
 //! second sidebar page (`magnetite://ui/?float`) over the pages; it hides again
 //! when the pointer leaves it. Created on first use, then kept hidden.
 
@@ -91,7 +92,12 @@ impl Engine {
         };
         #[cfg(target_os = "macos")]
         crate::mac::set_edge_zone(frame.window_handle(), hidden.then_some(&zone));
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        {
+            let _ = zone;
+            crate::win::set_edge_zone(frame.window_handle(), hidden.then_some((EDGE, TOP)));
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = (zone, hidden);
     }
 
