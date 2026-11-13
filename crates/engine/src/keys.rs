@@ -31,6 +31,9 @@ const CMD: u32 = if cfg!(target_os = "macos") {
 } else {
     CTRL
 };
+/// The modifier of the space digits: Ctrl on macOS. Elsewhere Ctrl is the
+/// shortcut modifier and its digits select tabs, so the spaces get Alt.
+const SPACE_DIGITS: u32 = if cfg!(target_os = "macos") { CTRL } else { ALT };
 
 /// Map a raw key-down event to a *reserved* shortcut: matched before the page
 /// sees the key, so web apps cannot take it (see docs/spec/site-controls.md).
@@ -55,6 +58,9 @@ pub fn shortcut_for_key(event: &KeyEvent) -> Option<Shortcut> {
         (m, k) if m == (CTRL | SHIFT) && k == VK_TAB => Some(Shortcut::PrevTab),
         (m, k) if m == CMD && (upper('1')..=upper('9')).contains(&k) => {
             u8::try_from(k - upper('0')).ok().map(Shortcut::SelectTab)
+        }
+        (m, k) if m == SPACE_DIGITS && (upper('1')..=upper('9')).contains(&k) => {
+            u8::try_from(k - upper('0')).ok().map(Shortcut::SelectSpace)
         }
         _ => None,
     }

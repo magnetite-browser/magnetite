@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { send } from "./bridge";
+import { IS_MAC, send } from "./bridge";
 
 /**
  * Keyboard shortcuts while the sidebar has the keyboard; most go to the app
@@ -14,7 +14,7 @@ export function useSidebarShortcuts(float: boolean, onEscape: () => void) {
       type Mods = { shift?: boolean; alt?: boolean; ctrl?: boolean; meta?: boolean };
       const is = (key: string, m: Mods) =>
         k === key.toLowerCase() && e.metaKey === !!m.meta && e.shiftKey === !!m.shift && e.altKey === !!m.alt && e.ctrlKey === !!m.ctrl;
-      const fire = (shortcut: string | { select_tab: number }) => {
+      const fire = (shortcut: string | { select_tab: number } | { select_space: number }) => {
         e.preventDefault();
         send({ cmd: "shortcut", shortcut });
       };
@@ -38,6 +38,7 @@ export function useSidebarShortcuts(float: boolean, onEscape: () => void) {
       if (is("Tab", { ctrl: true })) return fire("next_tab");
       if (is("Tab", { ctrl: true, shift: true })) return fire("prev_tab");
       if (/^[1-9]$/.test(e.key) && is(e.key, cmd)) return fire({ select_tab: Number(e.key) });
+      if (/^[1-9]$/.test(e.key) && is(e.key, IS_MAC ? { ctrl: true } : { alt: true })) return fire({ select_space: Number(e.key) });
       if (is(",", cmd)) {
         e.preventDefault();
         send({ cmd: "new_tab", url: "magnetite://ui/settings" });

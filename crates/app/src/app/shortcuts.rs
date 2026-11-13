@@ -150,6 +150,17 @@ impl MagnetiteApp {
                     self.activate_tab(engine, &t);
                 }
             }
+            Shortcut::SelectSpace(n) => {
+                // Spaces count from 1, in the footer's order.
+                let target = self.with_state(|s| {
+                    let at = usize::from(n).checked_sub(1)?;
+                    let space = s.sidebar.spaces.get(at)?;
+                    (space.id != s.active_space).then(|| space.id.clone())
+                });
+                if let Some(id) = target {
+                    self.activate_space(engine, &id);
+                }
+            }
             Shortcut::ReopenClosed => self.reopen_closed(engine),
             Shortcut::TogglePin => {
                 let active = self.with_state(|s| {

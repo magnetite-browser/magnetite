@@ -20,6 +20,8 @@ pub enum Shortcut {
     PrevSpace,
     /// 1-based, `Cmd+1` to `Cmd+9`.
     SelectTab(u8),
+    /// 1-based, `Ctrl+1` to `Ctrl+9` (`Alt` outside macOS).
+    SelectSpace(u8),
     /// Escape inside the peek window.
     ClosePeek,
     /// `Cmd+O` inside the peek window: keep the page as a tab.
