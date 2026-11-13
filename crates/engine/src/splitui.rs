@@ -27,6 +27,7 @@ impl Engine {
 
     /// Show the split dividers and one beside each docked `DevTools` on
     /// screen (native windows on macOS; other platforms have none yet).
+    #[cfg_attr(not(target_os = "macos"), allow(clippy::unused_self))]
     pub(crate) fn show_dividers(&self) {
         #[cfg(target_os = "macos")]
         {

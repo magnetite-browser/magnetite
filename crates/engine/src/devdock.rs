@@ -274,6 +274,8 @@ impl Engine {
     /// The divider beside page `id`'s docked `DevTools` was dragged to
     /// `pos` (screen DIP along the dock's axis), let go or double-clicked
     /// (back to the default size). Let go, the app keeps the size.
+    // The divider is a native view on macOS only (`mac/chrome.rs`).
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     pub(crate) fn devtools_divider(&self, id: ContentId, action: DividerAction) {
         let (slot, dock) = {
             let inner = self.lock();
