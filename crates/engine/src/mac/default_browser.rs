@@ -7,18 +7,17 @@ use block2::RcBlock;
 use objc2_app_kit::NSWorkspace;
 use objc2_foundation::{NSBundle, NSError, NSString, NSURL};
 
-/// Whether this app opens `scheme` links; `None` when it does not run as
-/// an app bundle (a bare binary cannot be anyone's default).
+/// Whether Magnetite opens `scheme` links; `None` when it does not run as
+/// an app bundle (a bare binary cannot be anyone's default). macOS keeps
+/// the default by bundle identifier and names any copy of the app it knows
+/// (a second download, the one Homebrew unpacked), so the identifier is
+/// compared, not the path.
 pub fn handles(scheme: &str) -> Option<bool> {
-    let bundle = NSBundle::mainBundle();
-    bundle.bundleIdentifier()?;
+    let own = NSBundle::mainBundle().bundleIdentifier()?;
     let probe = NSURL::URLWithString(&NSString::from_str(&format!("{scheme}://example.org/")))?;
     let handler = NSWorkspace::sharedWorkspace().URLForApplicationToOpenURL(&probe);
-    let path = |url: &NSURL| {
-        url.path()
-            .map(|p| p.to_string().trim_end_matches('/').to_string())
-    };
-    Some(handler.is_some_and(|h| path(&h).is_some() && path(&h) == path(&bundle.bundleURL())))
+    let id = handler.and_then(|h| NSBundle::bundleWithURL(&h)?.bundleIdentifier());
+    Some(id.is_some_and(|id| id.isEqualToString(&own)))
 }
 
 /// Ask macOS to open `scheme` links with this app. `done` runs once the
