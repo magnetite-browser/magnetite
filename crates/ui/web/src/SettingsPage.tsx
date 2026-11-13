@@ -4,7 +4,7 @@ import { Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIco
 import { IsolationSection } from "./IsolationSection";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
-import { applyAppearance, send, type DefaultBrowser, type Settings, type SiteSearch } from "./bridge";
+import { applyAppearance, keyLabel, send, type DefaultBrowser, type Settings, type SiteSearch } from "./bridge";
 import { About } from "./settings/AboutSection";
 import { AutofillSection } from "./settings/AutofillSection";
 import { AppearanceSection } from "./settings/AppearanceSection";
@@ -148,9 +148,9 @@ export function SettingsPage() {
                   <option value="mini">a mini window</option>
                 </select>
               </Field>
-              <Toggle label="Quick search from anywhere (⌥⌘N)" hint="Opens the command bar over any app; what you pick opens in a mini window. Only that key combination reaches Magnetite, no other typing." checked={settings.quick_search} onChange={(v) => update({ quick_search: v })} />
+              <Toggle label={`Quick search from anywhere (${keyLabel("⌥⌘N")})`} hint="Opens the command bar over any app; what you pick opens in a mini window. Only that key combination reaches Magnetite, no other typing." checked={settings.quick_search} onChange={(v) => update({ quick_search: v })} />
               <Toggle label="Pop out playing videos" hint="When you leave a tab with a playing video, it continues in a floating picture-in-picture window. Coming back puts it into the page again." checked={settings.auto_pip} onChange={(v) => update({ auto_pip: v })} />
-              <Toggle label="Remove trackers from copied links" hint="Copy Link (⇧⌘C) drops tracking parameters such as utm_source and fbclid." checked={settings.strip_trackers} onChange={(v) => update({ strip_trackers: v })} />
+              <Toggle label="Remove trackers from copied links" hint={`Copy Link (${keyLabel("⇧⌘C")}) drops tracking parameters such as utm_source and fbclid.`} checked={settings.strip_trackers} onChange={(v) => update({ strip_trackers: v })} />
             </>
           )}
           {sectionId === "tabs" && (
@@ -177,7 +177,7 @@ export function SettingsPage() {
               <Field label="Archive" hint={`${info.archive_count} archived tabs. Search them from the command bar or the archive view in the sidebar.`}>
                 <button className="btn" onClick={() => send({ cmd: "reopen_closed" })}>Reopen last archived tab</button>
               </Field>
-              <Field label="Keep history for" hint="The pages you visit, with title and time, to find them again in the command bar and the history view (⌘Y). Kept on this computer only, never synced; private profiles leave none. Older visits are deleted within a minute.">
+              <Field label="Keep history for" hint={`The pages you visit, with title and time, to find them again in the command bar and the history view (${keyLabel("⌘Y", "Ctrl+H")}). Kept on this computer only, never synced; private profiles leave none. Older visits are deleted within a minute.`}>
                 <select className="field" value={settings.history_days} onChange={(e) => update({ history_days: Number(e.target.value) })}>
                   {[7, 30, 90].includes(settings.history_days) || settings.history_days === 0 ? null : <option value={settings.history_days}>{settings.history_days} days</option>}
                   <option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option><option value={0}>Don't keep history</option>
@@ -206,7 +206,7 @@ export function SettingsPage() {
           )}
           {sectionId === "spaces" && <IsolationSection info={info} reload={reload} />}
           {sectionId === "developer" && (
-            <Field label="Developer tools open" hint="F12, ⌥⌘I, or Developer tools in the site panel. Docked tools sit next to the page inside the window; the page gets narrower or shorter to make room.">
+            <Field label="Developer tools open" hint={`F12, ${keyLabel("⌥⌘I", "Ctrl+Shift+I")}, or Developer tools in the site panel. Docked tools sit next to the page inside the window; the page gets narrower or shorter to make room.`}>
               <div className="seg">
                 {([["right", "Right of the page"], ["bottom", "Below the page"], ["window", "In a separate window"]] as const).map(([v, label]) => (
                   <button key={v} data-on={settings.devtools_dock === v || undefined} onClick={() => update({ devtools_dock: v })}>{label}</button>

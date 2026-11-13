@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDismiss } from "./dismiss";
 import { Favicon } from "./Favicon";
 import { CaptureIcon, CodeIcon, Minus, Plus, ShareIcon, Speaker, SpeakerOff } from "./Icons";
-import { findTabInSpace, hostOf, onSiteDataCleared, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { findTabInSpace, hostOf, keyLabel, onSiteDataCleared, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
 const PERMISSION_LABEL: Record<PermissionKind, string> = {
   camera: "Camera",
@@ -166,10 +166,10 @@ export function SitePanel({ state, item, rt, onClose }: { state: UiState; item: 
 
         <div className="panel-tools">
           {!internal && (
-            <button title="Capture (⇧⌘2)" onClick={() => { send({ cmd: "capture_start" }); onClose(); }}>
+            <button title={`Capture (${keyLabel("⇧⌘2")})`} onClick={() => { send({ cmd: "capture_start" }); onClose(); }}>
               <CaptureIcon width={16} height={16} />
               <span>Capture</span>
-              <kbd>⇧⌘2</kbd>
+              <kbd>{keyLabel("⇧⌘2")}</kbd>
             </button>
           )}
           <button title="Share" onClick={(e) => { send({ cmd: "share", id: item.id, x: e.clientX, y: e.clientY }); onClose(); }}>
@@ -177,10 +177,10 @@ export function SitePanel({ state, item, rt, onClose }: { state: UiState; item: 
             <span>Share</span>
           </button>
           {!internal && (
-            <button title="Developer tools (⌥⌘I)" onClick={() => { send({ cmd: "toggle_devtools" }); onClose(); }}>
+            <button title={`Developer tools (${keyLabel("⌥⌘I", "Ctrl+Shift+I")})`} onClick={() => { send({ cmd: "toggle_devtools" }); onClose(); }}>
               <CodeIcon width={16} height={16} />
               <span>Developer tools</span>
-              <kbd>⌥⌘I</kbd>
+              <kbd>{keyLabel("⌥⌘I", "Ctrl+Shift+I")}</kbd>
             </button>
           )}
         </div>
