@@ -333,6 +333,7 @@ export type Command =
   | { cmd: "new_space"; title: string; icon?: string }
   | { cmd: "rename_space"; id: Id; title: string; icon?: string }
   | { cmd: "delete_space"; id: Id }
+  | { cmd: "move_space"; id: Id; index: number }
   | { cmd: "new_folder"; title: string }
   | { cmd: "rename_folder"; id: Id; title: string }
   | { cmd: "delete_folder"; id: Id }

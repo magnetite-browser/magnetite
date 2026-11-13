@@ -138,6 +138,11 @@ pub(super) enum UiCommand {
     DeleteSpace {
         id: String,
     },
+    /// Reorder the spaces: put `id` at `index`, counted without it.
+    MoveSpace {
+        id: String,
+        index: usize,
+    },
     NewFolder {
         title: String,
     },
@@ -750,6 +755,10 @@ impl MagnetiteApp {
                 }
                 let space = self.with_state(|s| s.active_space.clone());
                 self.activate_space(engine, &space);
+            }
+            UiCommand::MoveSpace { id, index } => {
+                self.with_state(|s| s.move_space(&id, index));
+                self.push_state(engine);
             }
             UiCommand::NewFolder { title } => {
                 self.with_state(|s| {

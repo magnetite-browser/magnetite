@@ -15,6 +15,7 @@ import { PinnedExtensions } from "./PinnedExtensions";
 import { FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, type RowContext } from "./Rows";
 import { accentCss, applyAppearance, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
 import { IconPicker, SpaceGlyph } from "./Glyphs";
+import { SpaceSwitcher } from "./SpaceSwitcher";
 import { dragging, endDrag, indexAfterTaking } from "./dnd";
 import { useSpaceSwipe } from "./useSpaceSwipe";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
@@ -226,13 +227,7 @@ export function App() {
       {/* Footer: archive and downloads left (one button), spaces centred, new right */}
       <div className="flex h-12 shrink-0 items-center gap-1 px-2">
         <LibraryButton opens={state.settings.library_opens} onOpen={setPanel} />
-        <div className="scroll flex min-w-0 flex-1 items-center justify-center gap-0.5 overflow-x-auto" style={{ overflowY: "hidden" }}>
-          {state.sidebar.spaces.map((s) => (
-            <button key={s.id} className="sp" data-active={s.id === space.id || undefined} style={{ ["--space" as string]: accentCss(s.accent) }} onClick={() => send({ cmd: "switch_space", id: s.id })} onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY, s); }} title={s.title}>
-              <SpaceGlyph icon={s.icon} title={s.title} size={17} />
-            </button>
-          ))}
-        </div>
+        <SpaceSwitcher spaces={state.sidebar.spaces} current={space.id} onMenu={spaceMenu} />
         <button
           className="ib lg plus-btn"
           aria-label={newMenu ? "Close menu" : "New…"}

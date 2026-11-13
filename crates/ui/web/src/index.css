@@ -268,6 +268,10 @@ button.panel-row:disabled { opacity: 0.45; }
 .sp { width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; font-size: 14px; color: var(--muted); position: relative; flex: none; }
 .sp:hover { background: rgba(255,255,255,0.06); }
 .sp[data-active] { color: var(--space); }
+/* where a dragged space would go: a line in the gap before or after this one */
+.sp[data-before]::before, .sp[data-after]::after { content: ""; position: absolute; top: 6px; bottom: 6px; width: 2px; border-radius: 1px; background: var(--accent); pointer-events: none; }
+.sp[data-before]::before { left: -2px; }
+.sp[data-after]::after { right: -2px; }
 
 /* menus */
 .menu { position: fixed; z-index: 50; min-width: 200px; max-width: 208px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px; box-shadow: 0 12px 32px rgba(0,0,0,0.45); }
