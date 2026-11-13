@@ -169,8 +169,8 @@ pub(crate) struct DeviceMode {
     /// The bar above the page, and its window once made.
     pub bar: BrowserView,
     pub bar_window: Option<Window>,
-    /// What the page was last told: size, pixel ratio, scale.
-    told: Option<(u32, u32, f64, f64)>,
+    /// What the page was last told: size, pixel ratio, scale, mobile.
+    told: Option<(u32, u32, f64, f64, bool)>,
     /// Where the page sits and its scale, for the handles.
     layout: Option<(Rect, f64)>,
     /// The handles beside the page ("Responsive" only).
@@ -427,7 +427,13 @@ impl Engine {
         } else {
             Vec::new()
         };
-        let metrics = (config.width, config.height, config.dpr, scale);
+        let metrics = (
+            config.width,
+            config.height,
+            config.dpr,
+            scale,
+            config.mobile,
+        );
         let tell = {
             let mut inner = self.lock();
             let mode = inner.docked.get_mut(&id).and_then(|d| d.device.as_mut());
