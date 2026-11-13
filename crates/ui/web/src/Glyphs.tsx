@@ -77,10 +77,10 @@ export function IconPicker({ at, current, allowDefault, onPick, onClose }: { at:
   const top = Math.min(at.y / zoom, window.innerHeight / zoom - 150);
   return (
     <div className="cmdbar-backdrop" onMouseDown={onClose}>
-      <div className="menu no-drag" style={{ left, top, minWidth: 0, width: 224 }} onMouseDown={(e) => e.stopPropagation()}>
+      <div className="menu no-drag" style={{ left, top, minWidth: 0, maxWidth: "none", width: 232 }} onMouseDown={(e) => e.stopPropagation()}>
         <div className="grid grid-cols-8 gap-0.5">
           {GLYPH_NAMES.map((g) => (
-            <button key={g} className="grid place-items-center rounded-md hover:bg-white/10" style={{ padding: 0, height: 28, width: 26, color: g === current ? "var(--space)" : "var(--secondary)" }} title={g} onClick={() => onPick(g)}><Glyph name={g} size={15} /></button>
+            <button key={g} className="justify-center rounded-md hover:bg-white/10" style={{ padding: 0, height: 28, width: 26, color: g === current ? "var(--space)" : "var(--secondary)" }} title={g} onClick={() => onPick(g)}><Glyph name={g} size={15} /></button>
           ))}
         </div>
         {allowDefault && current && (
