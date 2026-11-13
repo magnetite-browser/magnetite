@@ -38,7 +38,9 @@ html, body, #root {
 :root { --row-h: 32px; --row-gap: 3px; --fav-h: 38px; }
 html[data-density="compact"] { --row-h: 28px; --row-gap: 1px; --fav-h: 34px; }
 html[data-density="spacious"] { --row-h: 36px; --row-gap: 5px; --fav-h: 42px; }
-button { font: inherit; color: inherit; background: none; border: 0; padding: 0; }
+/* In the base layer, so utility classes on a button still apply: outside a
+   layer this reset would win over every one of them. */
+@layer base { button { font: inherit; color: inherit; background: none; border: 0; padding: 0; } }
 /* Keyboard focus: a thin ring in the space's colour, inside the element's own corners. */
 button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 1.5px solid color-mix(in srgb, var(--space, var(--accent)) 65%, transparent); outline-offset: -1.5px; }
 
