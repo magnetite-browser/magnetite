@@ -4,7 +4,7 @@
 use std::collections::HashSet;
 
 use magnetite_core::{Id, SidebarNode, Space, TabItem, UnixSeconds};
-use magnetite_engine::ContentId;
+use magnetite_engine::{ContentId, MemoryPressure};
 
 use super::settings::MAX_ARCHIVE_DAYS;
 use super::{AppState, ArchivedTab, Peek, TabRuntime, new_id, now};
@@ -246,18 +246,51 @@ impl AppState {
             0 => return Vec::new(),
             minutes => i64::from(minutes) * 60,
         };
+        (self.idle_pages(now, active).into_iter())
+            .filter(|(_, last_active)| now - last_active > limit)
+            .map(|(id, _)| id)
+            .collect()
+    }
+
+    /// The tabs whose page is to be unloaded because the system is short of
+    /// memory, whatever the unload time of the settings: at a warning the
+    /// half that was out of sight the longest (at least one), at the
+    /// critical level all that `tabs_to_unload` could ever pick.
+    pub fn tabs_to_unload_under_pressure(
+        &self,
+        level: MemoryPressure,
+        now: UnixSeconds,
+        active: &HashSet<Id>,
+    ) -> Vec<Id> {
+        let mut idle = self.idle_pages(now, active);
+        idle.sort_by_key(|(_, last_active)| *last_active);
+        let count = match level {
+            MemoryPressure::Warning => idle.len().div_ceil(2),
+            MemoryPressure::Critical => idle.len(),
+        };
+        idle.into_iter().take(count).map(|(id, _)| id).collect()
+    }
+
+    /// The tabs with a page that may be unloaded, each with the time it was
+    /// last on screen (`now` if never).
+    fn idle_pages(&self, now: UnixSeconds, active: &HashSet<Id>) -> Vec<(Id, UnixSeconds)> {
         (self.runtime.iter())
             .filter(|(id, r)| r.content.is_some() && !active.contains(*id) && !self.has_media(id))
-            .filter(|(id, _)| {
+            .filter_map(|(id, _)| {
                 // A favorite is in no space.
-                self.find_tab(id).is_some_and(|(space, t)| {
-                    space.is_some()
-                        && !t.keep_active
-                        && now - t.last_active_at.unwrap_or(now) > limit
-                })
+                let (space, tab) = self.find_tab(id)?;
+                (space.is_some() && !tab.keep_active)
+                    .then(|| (id.clone(), tab.last_active_at.unwrap_or(now)))
             })
-            .map(|(id, _)| id.clone())
             .collect()
+    }
+
+    /// The pages never archived or unloaded by themselves: those on screen
+    /// (all of a split's) and the tab each other space returns to.
+    pub fn pages_in_use(&self) -> HashSet<Id> {
+        let mut active: HashSet<Id> = self.active_tab.values().cloned().collect();
+        active.extend(self.visible_panes());
+        active
     }
 
     /// Close tab `id` into the archive. Tabs of private profiles just close
@@ -534,6 +567,13 @@ mod tests {
         // "Never unload" in Settings spares every page.
         s.settings.unload_minutes = 0;
         assert_eq!(s.tabs_to_unload(now(), &active), Vec::<Id>::new());
+        // A system short of memory does not: first the page unused the
+        // longest goes, then all that are out of sight.
+        s.find_tab_mut("c").unwrap().last_active_at = Some(long_ago - 60);
+        let warned = s.tabs_to_unload_under_pressure(MemoryPressure::Warning, now(), &active);
+        assert_eq!(warned, ["c"]);
+        let critical = s.tabs_to_unload_under_pressure(MemoryPressure::Critical, now(), &active);
+        assert_eq!(critical, ["c", "a"]);
         // Closing a kept tab ends it: back from the archive it may sleep.
         s.find_tab_mut("c").unwrap().keep_active = true;
         s.archive_tab("c");

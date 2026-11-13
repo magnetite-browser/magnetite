@@ -13,6 +13,7 @@
 //! - `default_browser`: whether Magnetite opens links from other apps;
 //! - `hotkey`: the system-wide quick search key;
 //! - `pill`: the link-hover status pill;
+//! - `pressure`: the system's memory pressure signal;
 //! - `share`: the share menu, the pasteboard and the save panel.
 //!
 //! Everything runs on the main thread (CEF's UI thread on macOS). CEF's
@@ -23,6 +24,7 @@ mod chrome;
 mod default_browser;
 mod hotkey;
 mod pill;
+mod pressure;
 mod share;
 
 pub use chrome::{
@@ -31,6 +33,7 @@ pub use chrome::{
 pub use default_browser::{handles, set_handler};
 pub use hotkey::set_quick_search_hotkey;
 pub use pill::{hide_status_pill, set_status_pill};
+pub use pressure::watch_memory_pressure;
 pub use share::{copy_png, copy_text, save_png, share_png, show_share_picker};
 
 use crate::engine::Engine;

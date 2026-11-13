@@ -321,6 +321,7 @@ impl EngineDelegate for MagnetiteApp {
                 });
                 engine.quit();
             }
+            EngineEvent::MemoryPressure(level) => self.unload_under_pressure(engine, level),
             EngineEvent::Tick => {
                 // Installed or removed extensions show up in the sidebar.
                 let extensions = self.front_extensions(engine);

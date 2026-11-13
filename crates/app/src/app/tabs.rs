@@ -2,7 +2,7 @@
 //! that unloads and archives.
 
 use magnetite_core::sidebar::Section;
-use magnetite_engine::{ContentId, Engine, host_of};
+use magnetite_engine::{ContentId, Engine, MemoryPressure, host_of};
 
 use crate::state::{AppState, folder_in_tree_mut, now};
 use crate::{lock, trace, url_policy};
@@ -488,17 +488,29 @@ impl MagnetiteApp {
         }
     }
 
+    /// The system is short of memory: unload pages out of sight now, not
+    /// when their unload time is up.
+    pub(super) fn unload_under_pressure(&self, engine: &Engine, level: MemoryPressure) {
+        let to_close: Vec<ContentId> = self.with_state(|s| {
+            let ids = s.tabs_to_unload_under_pressure(level, now(), &s.pages_in_use());
+            ids.iter().filter_map(|id| s.detach_content(id)).collect()
+        });
+        if to_close.is_empty() {
+            return;
+        }
+        for c in to_close {
+            engine.close_content(c);
+        }
+        self.push_state(engine);
+    }
+
     /// Once a minute: archive stale Today tabs, prune the archive and the
     /// history (and save the history), unload long-hidden content windows,
     /// keep locks in sync with pin state.
     pub(super) fn housekeeping(&self, engine: &Engine) {
         let (to_close, changed, locks) = self.with_state(|s| {
             let now = now();
-            // Never archived or unloaded: the pages on screen (all of a
-            // split's) and the tab each other space returns to.
-            let mut active: std::collections::HashSet<String> =
-                s.active_tab.values().cloned().collect();
-            active.extend(s.visible_panes());
+            let active = s.pages_in_use();
             let mut to_close = Vec::new();
             let mut changed = false;
             // Auto-archive Today tabs not viewed for the period.

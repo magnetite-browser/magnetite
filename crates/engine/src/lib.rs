@@ -67,7 +67,7 @@ pub use devdock::DevToolsDock;
 pub use engine::{ContextProfile, Engine, EngineDelegate};
 pub use events::{
     ContentId, DevToolsAction, DividerAction, DownloadReport, DownloadState, EngineEvent,
-    ExtensionMenuAction, Shortcut, UrlSource,
+    ExtensionMenuAction, MemoryPressure, Shortcut, UrlSource,
 };
 pub use extensions::ExtensionInfo;
 pub use media::{MediaAction, MediaState};

@@ -133,6 +133,15 @@ pub enum DividerAction {
     Equalize,
 }
 
+/// How short of memory the system says it is (`EngineEvent::MemoryPressure`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MemoryPressure {
+    /// Memory is getting tight.
+    Warning,
+    /// The system is about to end processes to get memory back.
+    Critical,
+}
+
 /// Everything the engine reports to the application.
 #[derive(Debug, Clone)]
 pub enum EngineEvent {
@@ -246,6 +255,8 @@ pub enum EngineEvent {
     QuitRequested,
     /// Fires roughly once a minute for housekeeping (auto-archive, unloading).
     Tick,
+    /// The system is short of memory: pages nobody looks at should go.
+    MemoryPressure(MemoryPressure),
     /// "Open in" on mini window `id`: make its page a tab of `space` (the
     /// space shown first, `Engine::set_mini_spaces`, when `None`).
     MiniToTab {
@@ -285,6 +296,7 @@ impl EngineEvent {
             Self::Shortcut { .. } => "Shortcut",
             Self::QuitRequested => "QuitRequested",
             Self::Tick => "Tick",
+            Self::MemoryPressure(_) => "MemoryPressure",
             Self::MiniToTab { .. } => "MiniToTab",
         }
     }
