@@ -120,6 +120,8 @@ wrap_browser_process_handler! {
             engine.start_tick();
             #[cfg(target_os = "macos")]
             crate::mac::install_pip_swipe();
+            #[cfg(target_os = "macos")]
+            crate::mac::watch_memory_pressure();
             engine.emit(EngineEvent::Ready);
         }
     }
