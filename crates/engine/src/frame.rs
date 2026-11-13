@@ -11,6 +11,8 @@ pub(crate) struct FrameState {
     pub sidebar_view: BrowserView,
     pub content_panel: Panel,
     pub sidebar_browser: Option<Browser>,
+    /// The hint in the content panel for a window without a page.
+    pub empty: Option<crate::empty::EmptyHint>,
 }
 
 impl Engine {
@@ -189,6 +191,7 @@ impl Engine {
         if let Some(panel) = self.lock().frame.as_ref().map(|f| f.content_panel.clone()) {
             panel.set_background_color(argb);
         }
+        self.colour_empty_hint(argb);
     }
 
     pub fn sidebar_visible(&self) -> bool {
@@ -337,6 +340,7 @@ wrap_window_delegate! {
             inner.frame = Some(FrameState {
                 window: window.clone(),
                 sidebar_view: sidebar,
+                empty: crate::empty::EmptyHint::new(&content),
                 content_panel: content,
                 sidebar_browser,
             });
