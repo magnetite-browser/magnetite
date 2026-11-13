@@ -438,7 +438,7 @@ export type Command =
   | { cmd: "import_from"; key: string }
   /** The text of a bookmarks file (the HTML browsers export): its bookmarks join the current space's. */
   | { cmd: "import_bookmarks"; html: string }
-  | { cmd: "shortcut"; shortcut: string | { select_tab: number } };
+  | { cmd: "shortcut"; shortcut: string | { select_tab: number } | { select_space: number } };
 
 /** A browser on this computer that Magnetite can import from. */
 export interface ImportSource {

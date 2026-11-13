@@ -45,6 +45,10 @@ by all spaces. The profile decides which logins the pages of a space use.
   space; after the last comes the first.
 - A two-finger horizontal swipe on the sidebar does the same, one space per
   gesture.
+- `Ctrl+1` to `Ctrl+9` go to the first to ninth space, in the order of the
+  footer icons. A number without a space does nothing. The keys are taken
+  before the page sees them. On Linux they are `Alt+1` to `Alt+9`, since
+  `Ctrl` with a number selects a tab there.
 - The command "Switch to <space>" in the command bar.
 - Showing a tab of another space, for example from the command bar or the
   archive, switches to its space.
@@ -114,7 +118,6 @@ this device").
 
 ## Not built yet
 
-- Switching with `Ctrl+1` to `Ctrl+9`.
 - Choosing icon, colour and profile while creating a space.
 - Gradient themes and a light appearance.
 
