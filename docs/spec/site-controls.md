@@ -107,16 +107,30 @@ DevTools also have the close button (×) at the end of their toolbar, as in
 Chrome.
 
 **Device mode.** The button after the element picker in the DevTools
-toolbar, or `Cmd+Shift+M` in DevTools, shows the page as a phone or tablet:
-iPhone SE, iPhone 15 Pro (first), Pixel 8, iPad Air, or a laptop, picked in
-the menu beside the button; the arrow turns it to landscape and back. The
-page gets that device's size and pixel density, touch input and the
-device's browser identity (an iPhone's Safari, an Android Chrome; the
-laptop keeps Magnetite's). It sits at the top of its area, centred, scaled
-down when the area is smaller. Device mode ends when the button is pressed
-again or the DevTools close, also when they move between docked and their
-own window. Chromium's own device toolbar shows only for DevTools docked in
-a Chrome tab window, which Magnetite's are not.
+toolbar, or `Cmd+Shift+M` in DevTools, shows the page as a phone, tablet or
+computer. A bar above the page, in the page area, has the choices:
+
+- **Dimensions:** Responsive (a size of one's own, 390 × 844 at first),
+  phones (iPhone SE, iPhone 16, iPhone 16 Pro Max, Pixel 9, Galaxy S24),
+  tablets (iPad Mini, iPad Pro 13) and computers (Laptop, Desktop).
+- **Width × height**, in CSS pixels; typing a size makes it Responsive.
+  The arrow beside them turns the device to landscape and back.
+- **Zoom:** Fit (as large as the area allows, at most 100 %), 50 % to 150 %.
+- **Network:** no throttling, Fast 4G, Slow 4G, 3G or offline (Chrome's
+  presets: latency, download and upload speed).
+- **Save-Data:** the browser's own, on or off.
+- **×** ends device mode.
+
+The page gets the device's size and pixel density, touch input (phones
+and tablets) and the device's browser identity (an iPhone's or iPad's
+Safari, an Android Chrome; computers keep Magnetite's). It sits below the
+bar, centred, scaled to the zoom. In Responsive, handles on its right,
+bottom and corner resize it (the right one on both sides, so it stays
+centred); the bar shows the new size. Device mode ends with the button, the
+× or the DevTools closing, also when they move between docked and their own
+window; the next one starts with the device used last. Chromium's own
+device toolbar shows only for DevTools docked in a Chrome tab window, which
+Magnetite's are not.
 
 `Cmd+W` in DevTools that have a window of their own, or in a window an
 extension opened itself, closes that window and no tab.
@@ -183,8 +197,9 @@ or written without one of these actions.
 
 - Editing the address in place (the address opens the command bar instead).
 - Developer mode per site: status, load times and console counters in a strip.
-- A viewport tool outside DevTools, and custom device sizes.
-- Dividers beside docked DevTools on other platforms than macOS.
+- Device mode without DevTools, and devices of one's own in the list.
+- Dividers beside docked DevTools, and the device mode's resize handles,
+  on other platforms than macOS.
 - Environment labels for hosts (such as "PROD"), set up in Settings.
 - Site panel: certificate details and a link to all site settings.
 - Site panel: a hint when macOS itself blocks camera, microphone or location.
@@ -194,4 +209,5 @@ or written without one of these actions.
 Code: `crates/ui/web/src` (`AddressRow.tsx`, `SitePanel.tsx`,
 `Capture*.tsx`), `crates/core/src/links.rs`, `crates/app/src` (`app/site.rs`,
 `app/screenshots.rs`, `capture.rs`), `crates/engine/src` (`site.rs`, `sitedata.rs`, `capture.rs`,
-`devdock.rs`, `device.rs`, `devtools_menu.js`, `devtools.rs`, `keys.rs`).
+`devdock.rs`, `device.rs`, `devtools_menu.js`, `devtools.rs`, `keys.rs`),
+`crates/ui/web/src/DeviceBar.tsx`.

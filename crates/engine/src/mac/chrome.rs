@@ -392,12 +392,19 @@ pub enum DividerKey {
         id: crate::events::ContentId,
         row: bool,
     },
+    /// Beside page `id` in device mode, to resize it (`device.rs`).
+    Device {
+        id: crate::events::ContentId,
+        edge: crate::device::Edge,
+    },
 }
 
 impl DividerKey {
+    /// Whether it moves across (a vertical bar); the corner moves both ways.
     fn row(&self) -> bool {
         match self {
             Self::Split { row, .. } | Self::DevTools { row, .. } => *row,
+            Self::Device { edge, .. } => *edge != crate::device::Edge::Bottom,
         }
     }
 }
@@ -437,15 +444,17 @@ define_class!(
             self.cursor().set();
             let Some(mtm) = MainThreadMarker::new() else { return };
             let at = NSEvent::mouseLocation();
-            let pos = if self.ivars().key.borrow().row() {
-                at.x
-            } else {
-                // AppKit's y grows upwards from the primary screen's bottom.
-                let height = objc2_app_kit::NSScreen::screens(mtm).firstObject().map_or(0.0, |s| s.frame().size.height);
-                height - at.y
-            };
+            // AppKit's y grows upwards from the primary screen's bottom.
+            let height = objc2_app_kit::NSScreen::screens(mtm).firstObject().map_or(0.0, |s| s.frame().size.height);
             #[allow(clippy::cast_possible_truncation)]
-            self.report(crate::events::DividerAction::Move(pos.round() as i32));
+            let (x, y) = (at.x.round() as i32, (height - at.y).round() as i32);
+            // A resize handle in device mode takes both; a divider its axis.
+            let key = self.ivars().key.borrow().clone();
+            if let DividerKey::Device { id, edge } = key {
+                Engine::global().device_handle(id, edge, x, y, crate::events::DividerAction::Move(x));
+                return;
+            }
+            self.report(crate::events::DividerAction::Move(if key.row() { x } else { y }));
         }
 
         #[unsafe(method(mouseUp:))]
@@ -526,12 +535,18 @@ impl MagnetiteDividerView {
                 action,
             }),
             DividerKey::DevTools { id, .. } => engine.devtools_divider(id, action),
+            // Device handles act while dragged (`mouse_dragged`).
+            DividerKey::Device { .. } => {}
         }
     }
 
     // The successors (`columnResizeCursorInDirections:`) need macOS 15.
     #[allow(deprecated)]
     fn cursor(&self) -> Retained<objc2_app_kit::NSCursor> {
+        let corner = crate::device::Edge::Corner;
+        if matches!(*self.ivars().key.borrow(), DividerKey::Device { edge, .. } if edge == corner) {
+            return objc2_app_kit::NSCursor::crosshairCursor();
+        }
         if self.ivars().key.borrow().row() {
             objc2_app_kit::NSCursor::resizeLeftRightCursor()
         } else {

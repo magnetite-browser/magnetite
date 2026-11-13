@@ -96,80 +96,35 @@
     button.toggleAttribute("data-magnetite-docked", (window.__magnetiteDock || "right") !== "window");
   }
 
-  // Device mode: the page shown as one of these (CSS size, pixel ratio,
-  // browser identity; device.rs). Off at first, and with every new DevTools.
-  const DEVICES = [
-    ["iPhone SE", 375, 667, 2, "iphone"],
-    ["iPhone 15 Pro", 393, 852, 3, "iphone"],
-    ["Pixel 8", 412, 915, 2.625, "android"],
-    ["iPad Air", 820, 1180, 2, "ipad"],
-    ["Laptop", 1280, 800, 1, null],
-  ];
-  const device = { on: false, index: 1, landscape: false };
-  const deviceUi = new Set();
-  function sendDevice() {
-    if (!device.on) return send("device:off");
-    const [, w, h, dpr, ua] = DEVICES[device.index];
-    const [width, height] = device.landscape ? [h, w] : [w, h];
-    send("device:" + JSON.stringify({ width, height, dpr, mobile: ua !== null, ua }));
-  }
+  // Device mode (device.rs): this button and ⌘⇧M turn it on and off; the
+  // choices are in the bar above the page. The browser says whether it is
+  // on (`__magnetiteDeviceOn`), so the button follows the bar's × as well.
+  const deviceButtons = new Set();
   function showDevice() {
-    for (const { button, extra, select } of deviceUi) {
-      button.setAttribute("aria-pressed", String(device.on));
-      button.style.color = device.on ? "var(--icon-toggled, #8ab4f8)" : "var(--icon-default, #c7c7c7)";
-      extra.style.display = device.on ? "inline-flex" : "none";
-      select.value = String(device.index);
-      const [, w, h] = DEVICES[device.index];
-      select.title = device.landscape ? `${h} × ${w}` : `${w} × ${h}`;
+    const on = !!window.__magnetiteDeviceOn;
+    for (const b of deviceButtons) {
+      b.setAttribute("aria-pressed", String(on));
+      b.style.color = on ? "var(--icon-toggled, #8ab4f8)" : "var(--icon-default, #c7c7c7)";
     }
   }
-  function toggleDevice() {
-    device.on = !device.on;
-    sendDevice();
-    showDevice();
-  }
-  const SVG = (paths) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
-  const iconButton = (label, paths) => {
-    const b = document.createElement("button");
-    b.title = label;
-    b.setAttribute("aria-label", label);
-    b.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:28px;height:26px;padding:0;border:0;border-radius:4px;background:transparent;cursor:pointer;color:var(--icon-default, #c7c7c7)";
-    b.innerHTML = SVG(paths);
-    return b;
-  };
   function deviceButton(picker) {
     if (picker.dataset.magnetiteDevice) return;
     picker.dataset.magnetiteDevice = "1";
-    const button = iconButton("Toggle device toolbar - ⌘ ⇧ M", '<rect x="3" y="8" width="10" height="14" rx="2"/><path d="M5 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-2.4"/><path d="M8 18h.01"/>');
-    button.addEventListener("click", toggleDevice);
-    const extra = document.createElement("span");
-    extra.style.cssText = "align-items:center;gap:2px;margin:0 4px";
-    const select = document.createElement("select");
-    select.setAttribute("aria-label", "Device");
-    select.style.cssText = "height:20px;font:inherit;font-size:12px;color:inherit;background:var(--sys-color-cdt-base-container, #282828);border:1px solid var(--sys-color-divider, #555);border-radius:4px";
-    // Names only, to leave the toolbar room; the size is in the tooltip.
-    DEVICES.forEach(([name], i) => select.append(new Option(name, String(i))));
-    select.addEventListener("change", () => {
-      device.index = Number(select.value);
-      sendDevice();
-      showDevice();
-    });
-    const rotate = iconButton("Rotate", '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>');
-    rotate.addEventListener("click", () => {
-      device.landscape = !device.landscape;
-      sendDevice();
-      showDevice();
-    });
-    extra.append(select, rotate);
-    picker.after(button, extra);
-    deviceUi.add({ button, extra, select });
+    const b = document.createElement("button");
+    b.title = "Toggle device toolbar - ⌘ ⇧ M";
+    b.setAttribute("aria-label", "Toggle device toolbar");
+    b.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:28px;height:26px;padding:0;border:0;border-radius:4px;background:transparent;cursor:pointer";
+    b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="10" height="14" rx="2"/><path d="M5 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-2.4"/><path d="M8 18h.01"/></svg>';
+    b.addEventListener("click", () => send("device"));
+    picker.after(b);
+    deviceButtons.add(b);
     showDevice();
   }
   document.addEventListener("keydown", (e) => {
     if (e.metaKey && e.shiftKey && e.key.toLowerCase() === "m") {
       e.preventDefault();
       e.stopPropagation();
-      toggleDevice();
+      send("device");
     }
   }, true);
 
@@ -181,7 +136,11 @@
       if (el.shadowRoot) scan(el.shadowRoot);
     }
   }
-  // Also run when the browser tells the dock (devdock.rs, `tell_dock`).
-  window.__magnetiteScan = () => scan(document);
+  // Also run when the browser tells the dock or device mode (devdock.rs,
+  // device.rs).
+  window.__magnetiteScan = () => {
+    scan(document);
+    showDevice();
+  };
   new MutationObserver(() => requestAnimationFrame(() => scan(document))).observe(document.body, { childList: true, subtree: true });
 })();

@@ -50,7 +50,17 @@ impl Engine {
                             crate::mac::DividerKey::DevTools { id: *id, row },
                         ))
                     });
-                let wanted: Vec<_> = split.chain(devtools).collect();
+                // The resize handles of pages in device mode ("Responsive").
+                let handles = (inner.docked.iter())
+                    .filter(|(_, d)| d.shown)
+                    .filter_map(|(id, d)| Some((*id, d.device.as_ref()?)))
+                    .flat_map(|(id, m)| {
+                        let key = move |edge| crate::mac::DividerKey::Device { id, edge };
+                        m.handles
+                            .iter()
+                            .map(move |(r, edge)| (r.clone(), key(*edge)))
+                    });
+                let wanted: Vec<_> = split.chain(devtools).chain(handles).collect();
                 (wanted, inner.frame.as_ref().map(|f| f.window.clone()))
             };
             if let Some(frame) = frame {

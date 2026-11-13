@@ -84,6 +84,8 @@ pub(crate) struct Inner {
     /// The split view's dividers as last laid out (`update_dividers`),
     /// shown together with the docked DevTools' ones (`show_dividers`).
     pub split_dividers: Vec<magnetite_core::split::Divider>,
+    /// The device device mode used last (`device.rs`), to start with next.
+    pub last_device: Option<crate::device::DeviceConfig>,
     /// Background of the page area (ARGB), for windows drawn in its gaps.
     pub chrome_color: u32,
     /// The open overlay window (capture tool), if any.
@@ -163,6 +165,7 @@ impl Engine {
                 docked: HashMap::new(),
                 devtools_size: crate::DevToolsSize::default(),
                 split_dividers: Vec::new(),
+                last_device: None,
                 chrome_color: 0xFF1B_1B1E,
                 overlay: None,
                 overlay_detached: false,

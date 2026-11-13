@@ -57,10 +57,8 @@ pub(crate) struct DockedDevTools {
     /// are on screen: a divider sits in it.
     pub gap: Option<Rect>,
     pub shown: bool,
-    /// Device mode (`device.rs`): the device the page is shown as, and the
-    /// scale last told to it.
-    pub device: Option<crate::device::Device>,
-    pub device_scale: Option<f64>,
+    /// Device mode (`device.rs`), while on.
+    pub device: Option<crate::device::DeviceMode>,
     pub browser_id: Option<i32>,
     /// A separate window, not docked beside the page.
     pub separate: bool,
@@ -198,9 +196,9 @@ impl Engine {
             return false;
         };
         let id = self.devtools_owner(browser);
-        if let Some(device) = choice.strip_prefix("device:") {
+        if choice == "device" {
             if let Some(id) = id {
-                self.set_device(id, crate::device::Device::parse(device));
+                self.toggle_device(id);
             }
             return true;
         }
@@ -373,18 +371,18 @@ impl Engine {
         self.show_dividers();
     }
 
-    /// Show or hide page `id`'s docked DevTools along with the page (a
-    /// separate DevTools window stays as it is).
+    /// Show or hide page `id`'s docked DevTools and its device bar along
+    /// with the page (a separate DevTools window stays as it is).
     pub(crate) fn show_docked(&self, id: ContentId, show: bool) {
         let window = {
             let mut inner = self.lock();
-            let docked = inner.docked.get_mut(&id).filter(|d| !d.separate);
-            docked.and_then(|d| {
+            inner.docked.get_mut(&id).and_then(|d| {
                 d.shown = show;
-                d.window.clone()
+                d.window.clone().filter(|_| !d.separate)
             })
         };
         self.show_dividers();
+        self.show_device_bar(id, show);
         if let Some(w) = window {
             if show {
                 w.show();
@@ -398,11 +396,12 @@ impl Engine {
     pub(crate) fn close_docked(&self, id: ContentId) {
         let entry = self.lock().docked.remove(&id);
         self.show_dividers();
+        let Some(mut entry) = entry else { return };
         // Device mode ends with the DevTools.
-        if entry.as_ref().is_some_and(|d| d.device.is_some()) {
-            self.emulate(id, None);
+        if let Some(mode) = entry.device.take() {
+            self.end_device(id, mode);
         }
-        if let Some(w) = entry.and_then(|d| d.window) {
+        if let Some(w) = entry.window {
             w.close();
         }
     }
@@ -432,7 +431,6 @@ impl Engine {
                 gap: None,
                 shown: false,
                 device: None,
-                device_scale: None,
                 browser_id,
                 separate,
                 view: tools.clone(),
@@ -497,9 +495,15 @@ wrap_window_delegate! {
             window.set_to_fill_layout();
             let mut v = View::from(&self.view);
             window.add_child_view(Some(&mut v));
-            if let Some(d) = engine.lock().docked.get_mut(&self.id) {
-                d.window = Some(window.clone());
-            }
+            let page_visible = {
+                let mut inner = engine.lock();
+                let visible = inner.contents.get(&self.id).and_then(|c| c.window.clone()).is_some_and(|w| w.is_visible() != 0);
+                if let Some(d) = inner.docked.get_mut(&self.id) {
+                    d.window = Some(window.clone());
+                    d.shown = visible;
+                }
+                visible
+            };
             if self.separate {
                 window.set_title(Some(&CefString::from("DevTools")));
                 window.center_window(Some(&Size { width: 960, height: 680 }));
@@ -508,15 +512,7 @@ wrap_window_delegate! {
                 self.view.request_focus();
                 return;
             }
-            let (slot, page_visible) = {
-                let mut inner = engine.lock();
-                let c = inner.contents.get(&self.id);
-                let found = (c.and_then(|c| c.slot.clone()), c.and_then(|c| c.window.clone()).is_some_and(|w| w.is_visible() != 0));
-                if let Some(d) = inner.docked.get_mut(&self.id) {
-                    d.shown = found.1;
-                }
-                found
-            };
+            let slot = engine.lock().contents.get(&self.id).and_then(|c| c.slot.clone());
             #[cfg(target_os = "macos")]
             {
                 crate::mac::round_window_corners(window.window_handle(), 10.0, false);
@@ -547,8 +543,8 @@ wrap_window_delegate! {
                 let removed = ours.then(|| inner.docked.remove(&self.id)).flatten();
                 drop(inner);
                 // Device mode ends with the DevTools.
-                if removed.is_some_and(|d| d.device.is_some()) {
-                    engine.emulate(self.id, None);
+                if let Some(mode) = removed.and_then(|d| d.device) {
+                    engine.end_device(self.id, mode);
                 }
                 ours
             };
