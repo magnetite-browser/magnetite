@@ -55,9 +55,11 @@ impl EmptyHint {
         self.text.set_visible(visible.into());
     }
 
-    /// The text halfway between the background `argb` and white or black,
-    /// whichever stands out.
+    /// The labels on the background `argb`, the text halfway between it and
+    /// white or black, whichever stands out.
     fn set_background(&self, argb: u32) {
+        self.logo.set_background_color(argb);
+        self.text.set_background_color(argb);
         let channel = |shift: u32| (argb >> shift) & 0xFF;
         let light = channel(16) * 3 + channel(8) * 6 + channel(0) > 1280;
         let toward = if light { 0 } else { 0xFF };
