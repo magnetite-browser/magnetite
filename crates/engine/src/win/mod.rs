@@ -3,6 +3,10 @@
 
 use std::ffi::c_void;
 
+mod share;
+
+pub use share::{copy_png, copy_text, mouse_point, save_png};
+
 #[link(name = "dwmapi")]
 unsafe extern "system" {
     fn DwmSetWindowAttribute(

@@ -11,7 +11,11 @@ use crate::engine::Engine;
 const LOGO: i32 = 72;
 /// The app icon, 128 pixels wide.
 const LOGO_PNG: &[u8] = include_bytes!("../../ui/web/src/assets/icon.png");
-const HINT: &str = "Press ⌘T to open a tab";
+const HINT: &str = if cfg!(target_os = "macos") {
+    "Press ⌘T to open a tab"
+} else {
+    "Press Ctrl+T to open a tab"
+};
 
 /// The labels in the content panel.
 pub(crate) struct EmptyHint {

@@ -133,7 +133,10 @@ impl MiniChrome {
 pub(crate) fn pointer_screen_area() -> Rect {
     #[cfg(target_os = "macos")]
     let display = display_get_nearest_point(Some(&crate::mac::mouse_point()), 0);
-    #[cfg(not(target_os = "macos"))]
+    // Windows tells the pointer's place in pixels, CEF's screens are in points.
+    #[cfg(target_os = "windows")]
+    let display = crate::win::mouse_point().and_then(|at| display_get_nearest_point(Some(&at), 1));
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     let display: Option<Display> = None;
     display.or_else(display_get_primary).map_or_else(
         || Rect {
