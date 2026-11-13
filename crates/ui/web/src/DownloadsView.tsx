@@ -93,7 +93,7 @@ export function DownloadsView({ onClose }: { onClose: () => void }) {
           </div>
         ))}
         {items && items.length === 0 && <div className="px-2 py-6 text-[var(--muted)]">No downloads yet.</div>}
-        <button className="row w-full text-[var(--muted)]" onClick={() => send({ cmd: "new_tab", url: "chrome://downloads" })} title="Chromium's full download history">
+        <button className="row w-full" style={{ color: "var(--muted)" }} onClick={() => send({ cmd: "new_tab", url: "chrome://downloads" })} title="Chromium's full download history">
           <DownloadIcon className="shrink-0" />
           <span className="title text-left">All downloads…</span>
         </button>
