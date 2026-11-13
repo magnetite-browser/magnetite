@@ -36,6 +36,7 @@ impl EngineDelegate for MagnetiteApp {
                     engine.set_chrome_toolbar(true);
                 }
                 engine.set_devtools_dock(dock);
+                engine.set_devtools_size(self.with_state(|s| s.settings.devtools_size));
                 // Pages are made from here on: the lists from before block
                 // from the first one; due ones are fetched meanwhile.
                 self.blocker.started();
@@ -281,6 +282,10 @@ impl EngineDelegate for MagnetiteApp {
                     self.push_state(engine);
                 }
             },
+            EngineEvent::DevToolsResized(size) => {
+                self.with_state(|s| s.settings.devtools_size = size);
+                self.save_soon();
+            }
             EngineEvent::SplitDivider {
                 path,
                 index,

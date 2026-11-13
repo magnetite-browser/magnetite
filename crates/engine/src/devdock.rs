@@ -10,7 +10,7 @@ use cef::*;
 use serde::{Deserialize, Serialize};
 
 use crate::engine::Engine;
-use crate::events::{ContentId, DevToolsAction, EngineEvent};
+use crate::events::{ContentId, DevToolsAction, DividerAction, EngineEvent};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -41,8 +41,26 @@ impl DevToolsDock {
     }
 }
 
+/// The size of docked `DevTools` the user dragged (the divider between page
+/// and `DevTools`), in DIP: their width docked right, their height below.
+/// `None`: the default share of the page area.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct DevToolsSize {
+    pub right: Option<u32>,
+    pub bottom: Option<u32>,
+}
+
 pub(crate) struct DockedDevTools {
     pub window: Option<Window>,
+    /// The gap between page and `DevTools` (screen coordinates) while both
+    /// are on screen: a divider sits in it.
+    pub gap: Option<Rect>,
+    pub shown: bool,
+    /// Device mode (`device.rs`): the device the page is shown as, and the
+    /// scale last told to it.
+    pub device: Option<crate::device::Device>,
+    pub device_scale: Option<f64>,
     pub browser_id: Option<i32>,
     /// A separate window, not docked beside the page.
     pub separate: bool,
@@ -57,6 +75,33 @@ const MENU_MARK: &str = "__magnetite_devtools__:";
 
 /// Space between the page and its DevTools, like between split panes.
 const GAP: i32 = 8;
+
+/// How much of the page area docked `DevTools` take at first, and the least
+/// room `DevTools` and the page keep (DIP), docked right / below.
+const RIGHT_SHARE: f64 = 0.42;
+const RIGHT_MIN_TOOLS: i32 = 240;
+const RIGHT_MIN_PAGE: i32 = 320;
+const BOTTOM_SHARE: f64 = 0.4;
+const BOTTOM_MIN_TOOLS: i32 = 120;
+const BOTTOM_MIN_PAGE: i32 = 160;
+
+/// The extent of docked `DevTools` along an `extent` long side: `wanted`
+/// (or `share` of it), keeping at least `min_tools` for them and
+/// `min_page` (and the gap) for the page; `DevTools` win when both cannot.
+fn tools_extent(
+    extent: i32,
+    wanted: Option<u32>,
+    share: f64,
+    min_tools: i32,
+    min_page: i32,
+) -> i32 {
+    // Rounded and clamped to the slot, so the casts stay in range.
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    let wanted = wanted.map_or((f64::from(extent) * share) as i32, |w| {
+        w.min(i32::MAX as u32) as i32
+    });
+    wanted.min(extent - min_page - GAP).max(min_tools)
+}
 
 impl Engine {
     /// Open (or focus) DevTools for page `id`; they dock per `set_devtools_dock`.
@@ -147,6 +192,12 @@ impl Engine {
             return false;
         };
         let id = self.devtools_owner(browser);
+        if let Some(device) = choice.strip_prefix("device:") {
+            if let Some(id) = id {
+                self.set_device(id, crate::device::Device::parse(device));
+            }
+            return true;
+        }
         let action = match choice {
             "close" => DevToolsAction::Close,
             dock => match DevToolsDock::from_str(dock) {
@@ -160,23 +211,32 @@ impl Engine {
         true
     }
 
-    /// The page's and its DevTools' rectangles inside `slot`.
-    fn split_slot(&self, id: ContentId, slot: &Rect) -> (Rect, Option<Rect>) {
-        let (docked, dock) = {
+    /// The page's and its DevTools' rectangles inside `slot`, and the gap
+    /// between them.
+    fn split_slot(&self, id: ContentId, slot: &Rect) -> (Rect, Option<(Rect, Rect)>) {
+        let (docked, dock, size) = {
             let inner = self.lock();
             let docked = inner.docked.get(&id).is_some_and(|d| !d.separate);
-            (docked, inner.devtools_dock)
+            (docked, inner.devtools_dock, inner.devtools_size)
         };
         if !docked {
             return (slot.clone(), None);
         }
-        // Rounded and clamped to the slot, so the casts stay in range.
-        #[allow(clippy::cast_possible_truncation)]
         if dock == DevToolsDock::Bottom {
-            let h =
-                ((f64::from(slot.height) * 0.4) as i32).clamp(180, (slot.height - 200).max(180));
+            let h = tools_extent(
+                slot.height,
+                size.bottom,
+                BOTTOM_SHARE,
+                BOTTOM_MIN_TOOLS,
+                BOTTOM_MIN_PAGE,
+            );
             let page = Rect {
                 height: slot.height - h - GAP,
+                ..slot.clone()
+            };
+            let gap = Rect {
+                y: slot.y + page.height,
+                height: GAP,
                 ..slot.clone()
             };
             let tools = Rect {
@@ -184,11 +244,22 @@ impl Engine {
                 height: h,
                 ..slot.clone()
             };
-            (page, Some(tools))
+            (page, Some((tools, gap)))
         } else {
-            let w = ((f64::from(slot.width) * 0.42) as i32).clamp(320, (slot.width - 360).max(320));
+            let w = tools_extent(
+                slot.width,
+                size.right,
+                RIGHT_SHARE,
+                RIGHT_MIN_TOOLS,
+                RIGHT_MIN_PAGE,
+            );
             let page = Rect {
                 width: slot.width - w - GAP,
+                ..slot.clone()
+            };
+            let gap = Rect {
+                x: slot.x + page.width,
+                width: GAP,
                 ..slot.clone()
             };
             let tools = Rect {
@@ -196,8 +267,77 @@ impl Engine {
                 width: w,
                 ..slot.clone()
             };
-            (page, Some(tools))
+            (page, Some((tools, gap)))
         }
+    }
+
+    /// The divider beside page `id`'s docked `DevTools` was dragged to
+    /// `pos` (screen DIP along the dock's axis), let go or double-clicked
+    /// (back to the default size). Let go, the app keeps the size.
+    pub(crate) fn devtools_divider(&self, id: ContentId, action: DividerAction) {
+        let (slot, dock) = {
+            let inner = self.lock();
+            (
+                inner.contents.get(&id).and_then(|c| c.slot.clone()),
+                inner.devtools_dock,
+            )
+        };
+        let Some(slot) = slot else { return };
+        match action {
+            DividerAction::Move(pos) => {
+                // The pointer stays in the middle of the gap.
+                let (extent, wanted) = if dock == DevToolsDock::Bottom {
+                    (slot.height, slot.y + slot.height - pos - GAP / 2)
+                } else {
+                    (slot.width, slot.x + slot.width - pos - GAP / 2)
+                };
+                let wanted = u32::try_from(wanted.max(0)).ok();
+                {
+                    let size = &mut self.lock().devtools_size;
+                    if dock == DevToolsDock::Bottom {
+                        let h = tools_extent(
+                            extent,
+                            wanted,
+                            BOTTOM_SHARE,
+                            BOTTOM_MIN_TOOLS,
+                            BOTTOM_MIN_PAGE,
+                        );
+                        size.bottom = u32::try_from(h).ok();
+                    } else {
+                        let w = tools_extent(
+                            extent,
+                            wanted,
+                            RIGHT_SHARE,
+                            RIGHT_MIN_TOOLS,
+                            RIGHT_MIN_PAGE,
+                        );
+                        size.right = u32::try_from(w).ok();
+                    }
+                }
+                self.place(id, &slot);
+            }
+            DividerAction::Release | DividerAction::Equalize => {
+                if action == DividerAction::Equalize {
+                    let mut inner = self.lock();
+                    let size = &mut inner.devtools_size;
+                    if dock == DevToolsDock::Bottom {
+                        size.bottom = None;
+                    } else {
+                        size.right = None;
+                    }
+                }
+                // Other pages' docked DevTools take the size as well.
+                self.reposition_contents();
+                let size = self.lock().devtools_size;
+                self.emit(EngineEvent::DevToolsResized(size));
+            }
+        }
+    }
+
+    /// The docked `DevTools`' size per side, as the user last left it.
+    pub fn set_devtools_size(&self, size: DevToolsSize) {
+        self.lock().devtools_size = size;
+        self.reposition_contents();
     }
 
     /// Lay out page `id` (and its docked DevTools) in `slot`, the area the
@@ -212,23 +352,31 @@ impl Engine {
             (window, inner.docked.get(&id).and_then(|d| d.window.clone()))
         };
         let (page, tools) = self.split_slot(id, slot);
+        let page = self.device_rect(id, page);
         if let Some(w) = window {
             w.set_bounds(Some(&page));
         }
-        if let (Some(w), Some(r)) = (tools_window, tools) {
-            w.set_bounds(Some(&r));
+        if let (Some(w), Some((r, _))) = (tools_window, &tools) {
+            w.set_bounds(Some(r));
         }
+        if let Some(d) = self.lock().docked.get_mut(&id) {
+            d.gap = tools.map(|(_, gap)| gap);
+        }
+        self.show_dividers();
     }
 
     /// Show or hide page `id`'s docked DevTools along with the page (a
     /// separate DevTools window stays as it is).
     pub(crate) fn show_docked(&self, id: ContentId, show: bool) {
-        let window = self
-            .lock()
-            .docked
-            .get(&id)
-            .filter(|d| !d.separate)
-            .and_then(|d| d.window.clone());
+        let window = {
+            let mut inner = self.lock();
+            let docked = inner.docked.get_mut(&id).filter(|d| !d.separate);
+            docked.and_then(|d| {
+                d.shown = show;
+                d.window.clone()
+            })
+        };
+        self.show_dividers();
         if let Some(w) = window {
             if show {
                 w.show();
@@ -241,6 +389,11 @@ impl Engine {
 
     pub(crate) fn close_docked(&self, id: ContentId) {
         let entry = self.lock().docked.remove(&id);
+        self.show_dividers();
+        // Device mode ends with the DevTools.
+        if entry.as_ref().is_some_and(|d| d.device.is_some()) {
+            self.emulate(id, None);
+        }
         if let Some(w) = entry.and_then(|d| d.window) {
             w.close();
         }
@@ -268,6 +421,10 @@ impl Engine {
             id,
             DockedDevTools {
                 window: None,
+                gap: None,
+                shown: false,
+                device: None,
+                device_scale: None,
                 browser_id,
                 separate,
                 view: tools.clone(),
@@ -344,9 +501,13 @@ wrap_window_delegate! {
                 return;
             }
             let (slot, page_visible) = {
-                let inner = engine.lock();
+                let mut inner = engine.lock();
                 let c = inner.contents.get(&self.id);
-                (c.and_then(|c| c.slot.clone()), c.and_then(|c| c.window.clone()).is_some_and(|w| w.is_visible() != 0))
+                let found = (c.and_then(|c| c.slot.clone()), c.and_then(|c| c.window.clone()).is_some_and(|w| w.is_visible() != 0));
+                if let Some(d) = inner.docked.get_mut(&self.id) {
+                    d.shown = found.1;
+                }
+                found
             };
             #[cfg(target_os = "macos")]
             {
@@ -375,11 +536,15 @@ wrap_window_delegate! {
                     .docked
                     .get(&self.id)
                     .is_some_and(|d| View::from(&d.view).is_same(Some(&mut mine)) != 0);
-                if ours {
-                    inner.docked.remove(&self.id);
+                let removed = ours.then(|| inner.docked.remove(&self.id)).flatten();
+                drop(inner);
+                // Device mode ends with the DevTools.
+                if removed.is_some_and(|d| d.device.is_some()) {
+                    engine.emulate(self.id, None);
                 }
                 ours
             };
+            engine.show_dividers();
             let slot = engine.lock().contents.get(&self.id).and_then(|c| c.slot.clone());
             if still_docked && let Some(slot) = slot {
                 engine.place(self.id, &slot);
@@ -408,7 +573,21 @@ wrap_window_delegate! {
 
 #[cfg(test)]
 mod tests {
-    use super::DevToolsDock;
+    use super::{DevToolsDock, tools_extent};
+
+    #[test]
+    fn docked_devtools_keep_room_for_the_page() {
+        let right = |extent, wanted| tools_extent(extent, wanted, 0.42, 240, 320);
+        assert_eq!(right(1000, None), 420, "the default share");
+        assert_eq!(right(1000, Some(500)), 500, "as dragged");
+        assert_eq!(
+            right(1000, Some(900)),
+            1000 - 320 - 8,
+            "the page keeps its least"
+        );
+        assert_eq!(right(1000, Some(10)), 240, "DevTools keep theirs");
+        assert_eq!(right(400, Some(300)), 240, "no room for both: DevTools win");
+    }
 
     #[test]
     fn dock_names_match_the_settings() {

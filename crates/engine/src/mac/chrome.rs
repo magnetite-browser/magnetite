@@ -377,13 +377,29 @@ pub fn set_edge_zone(frame_handle: cef::sys::cef_window_handle_t, at: Option<&ce
     });
 }
 
-/// Which divider a native divider view is: as `magnetite_core::split::Divider`.
+/// Which divider a native divider view is. `row`: the panes on its two
+/// sides are side by side (a vertical divider); else stacked.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DividerKey {
-    pub path: Vec<usize>,
-    pub index: usize,
-    /// Pages side by side (a vertical divider); else stacked.
-    pub row: bool,
+pub enum DividerKey {
+    /// Between split pages: as `magnetite_core::split::Divider`.
+    Split {
+        path: Vec<usize>,
+        index: usize,
+        row: bool,
+    },
+    /// Between page `id` and its docked `DevTools` (`devdock.rs`).
+    DevTools {
+        id: crate::events::ContentId,
+        row: bool,
+    },
+}
+
+impl DividerKey {
+    fn row(&self) -> bool {
+        match self {
+            Self::Split { row, .. } | Self::DevTools { row, .. } => *row,
+        }
+    }
 }
 
 pub struct DividerIvars {
@@ -394,8 +410,9 @@ pub struct DividerIvars {
 }
 
 define_class!(
-    /// A divider in the gap between split pages: drag to resize the pages on
-    /// both sides, double-click to even them out. Positions come from the
+    /// A divider in the gap between split pages, or between a page and its
+    /// docked DevTools: drag to resize both sides, double-click to even out
+    /// the split or give DevTools their default size. Positions come from the
     /// pointer's place on screen, so the window may move under the pointer
     /// while dragging. Transparent: the gap colour shows through; a grip
     /// appears on hover.
@@ -420,7 +437,7 @@ define_class!(
             self.cursor().set();
             let Some(mtm) = MainThreadMarker::new() else { return };
             let at = NSEvent::mouseLocation();
-            let pos = if self.ivars().key.borrow().row {
+            let pos = if self.ivars().key.borrow().row() {
                 at.x
             } else {
                 // AppKit's y grows upwards from the primary screen's bottom.
@@ -501,17 +518,21 @@ impl MagnetiteDividerView {
 
     fn report(&self, action: crate::events::DividerAction) {
         let key = self.ivars().key.borrow().clone();
-        Engine::global().emit(EngineEvent::SplitDivider {
-            path: key.path,
-            index: key.index,
-            action,
-        });
+        let engine = Engine::global();
+        match key {
+            DividerKey::Split { path, index, .. } => engine.emit(EngineEvent::SplitDivider {
+                path,
+                index,
+                action,
+            }),
+            DividerKey::DevTools { id, .. } => engine.devtools_divider(id, action),
+        }
     }
 
     // The successors (`columnResizeCursorInDirections:`) need macOS 15.
     #[allow(deprecated)]
     fn cursor(&self) -> Retained<objc2_app_kit::NSCursor> {
-        if self.ivars().key.borrow().row {
+        if self.ivars().key.borrow().row() {
             objc2_app_kit::NSCursor::resizeLeftRightCursor()
         } else {
             objc2_app_kit::NSCursor::resizeUpDownCursor()
@@ -533,7 +554,7 @@ impl MagnetiteDividerView {
         iv.grip.setFillColor(&colour);
         let b = self.bounds();
         let long = if dragging { 56.0 } else { 32.0 };
-        let (w, h) = if iv.key.borrow().row {
+        let (w, h) = if iv.key.borrow().row() {
             (2.0, long)
         } else {
             (long, 2.0)

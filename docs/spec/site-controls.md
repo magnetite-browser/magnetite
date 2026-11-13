@@ -93,15 +93,30 @@ close them. "Inspect" in a page's context menu opens them at that element.
 
 | Settings → Developer → "Developer tools open" | Layout |
 |---|---|
-| Right of the page (default) | 42 % of the page's width, at least 320 px |
-| Below the page | 40 % of the page's height, at least 180 px |
+| Right of the page (default) | 42 % of the page's width at first; DevTools at least 240 px wide, the page 320 px |
+| Below the page | 40 % of the page's height at first; DevTools at least 120 px high, the page 160 px |
 | In a separate window | a normal window, 960 × 680 at first |
 
 Docked DevTools take their room from the page they inspect and hide and show
-with it. The DevTools main menu (⋮) has "Dock side" with the same three
+with it. Dragging the gap between page and DevTools resizes both (a line in
+the gap shows on hover); a double-click gives DevTools their first size
+again. The size counts for every page's docked DevTools, per side, and is
+kept on this device after a restart. The DevTools main menu (⋮) has "Dock side" with the same three
 choices and "Close DevTools"; a choice there changes the setting. Docked
 DevTools also have the close button (×) at the end of their toolbar, as in
 Chrome.
+
+**Device mode.** The button after the element picker in the DevTools
+toolbar, or `Cmd+Shift+M` in DevTools, shows the page as a phone or tablet:
+iPhone SE, iPhone 15 Pro (first), Pixel 8, iPad Air, or a laptop, picked in
+the menu beside the button; the arrow turns it to landscape and back. The
+page gets that device's size and pixel density, touch input and the
+device's browser identity (an iPhone's Safari, an Android Chrome; the
+laptop keeps Magnetite's). It sits at the top of its area, centred, scaled
+down when the area is smaller. Device mode ends when the button is pressed
+again or the DevTools close, also when they move between docked and their
+own window. Chromium's own device toolbar shows only for DevTools docked in
+a Chrome tab window, which Magnetite's are not.
 
 `Cmd+W` in DevTools that have a window of their own, or in a window an
 extension opened itself, closes that window and no tab.
@@ -162,13 +177,14 @@ or written without one of these actions.
 | Requested permissions | memory | the tab leaves the site or closes |
 | Origins seen | memory | Magnetite quits |
 | Last capture (PNG) | memory | replaced, dismissed, or Magnetite quits |
-| Tracker removal, DevTools dock | `state.json` | changed |
+| Tracker removal, DevTools dock and size | `state.json` | changed |
 
 ## Not built yet
 
 - Editing the address in place (the address opens the command bar instead).
 - Developer mode per site: status, load times and console counters in a strip.
-- A viewport tool: the page at phone, tablet or custom widths.
+- A viewport tool outside DevTools, and custom device sizes.
+- Dividers beside docked DevTools on other platforms than macOS.
 - Environment labels for hosts (such as "PROD"), set up in Settings.
 - Site panel: certificate details and a link to all site settings.
 - Site panel: a hint when macOS itself blocks camera, microphone or location.
@@ -178,4 +194,4 @@ or written without one of these actions.
 Code: `crates/ui/web/src` (`AddressRow.tsx`, `SitePanel.tsx`,
 `Capture*.tsx`), `crates/core/src/links.rs`, `crates/app/src` (`app/site.rs`,
 `app/screenshots.rs`, `capture.rs`), `crates/engine/src` (`site.rs`, `sitedata.rs`, `capture.rs`,
-`devdock.rs`, `devtools.rs`, `keys.rs`).
+`devdock.rs`, `device.rs`, `devtools_menu.js`, `devtools.rs`, `keys.rs`).

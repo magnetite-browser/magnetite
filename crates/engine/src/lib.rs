@@ -28,6 +28,7 @@ mod config;
 mod content;
 mod default_browser;
 mod devdock;
+mod device;
 mod devpipe;
 mod devtools;
 mod downloads;
@@ -66,7 +67,7 @@ pub use client::host_of;
 pub use config::EngineConfig;
 pub use content::SPLIT_GAP;
 pub use default_browser::DefaultBrowser;
-pub use devdock::DevToolsDock;
+pub use devdock::{DevToolsDock, DevToolsSize};
 pub use engine::{ContextProfile, Engine, EngineDelegate};
 pub use events::{
     ContentId, DevToolsAction, DividerAction, DownloadReport, DownloadState, EngineEvent,
