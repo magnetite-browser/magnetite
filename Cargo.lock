@@ -1391,6 +1391,13 @@ name = "magnetite-ui"
 version = "0.0.2"
 
 [[package]]
+name = "magnetite-windows"
+version = "0.0.2"
+dependencies = [
+ "magnetite",
+]
+
+[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

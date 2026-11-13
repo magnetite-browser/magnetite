@@ -54,7 +54,7 @@ jobs:
             sleep 1
           done
           DATABASE_URL=postgres://postgres@127.0.0.1:5432/postgres \
-            cargo test --locked -p magnetite --bin magnetite two_devices -- --ignored
+            cargo test --locked -p magnetite --lib two_devices -- --ignored
       # One platform is enough: the notices list no per-platform build
       # packages.
       - if: runner.os == 'macOS'

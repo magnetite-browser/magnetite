@@ -58,7 +58,9 @@ mod splitui;
 mod stray;
 
 pub use autofill::AutofillPrefs;
-pub use bootstrap::{run, run_helper};
+#[cfg(target_os = "windows")]
+pub use bootstrap::set_sandbox_info;
+pub use bootstrap::{run, run_helper, started_by_bootstrap};
 pub use capture::{FrozenFrame, PageTiles};
 pub use client::host_of;
 pub use config::EngineConfig;
