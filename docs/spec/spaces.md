@@ -28,6 +28,12 @@ by all spaces. The profile decides which logins the pages of a space use.
 - **Rename**: the space menu, or double-click the title. **Icon**: the space
   menu, or click the icon. **Colour**: Settings → Appearance → Space
   colours, with eleven presets and a colour picker.
+- **Reorder**: drag a space icon in the footer onto another one. A line
+  shows where it goes: before the icon under the pointer on its left half,
+  after it on its right half; where it already is, no line shows. The
+  current space stays the current one. The order is the one
+  `Cmd+Option+Right`, `Cmd+Option+Left` and the swipe follow, and it syncs
+  with the sidebar (`sync.md`).
 - **Delete**: "Delete space…", then click again to confirm. The last space
   cannot be deleted. The space's pinned and Today tabs move to the archive
   (`archive.md`). If it was the current space, the first space takes over.
@@ -108,13 +114,13 @@ this device").
 
 ## Not built yet
 
-- Reordering spaces.
 - Switching with `Ctrl+1` to `Ctrl+9`.
 - Choosing icon, colour and profile while creating a space.
 - Gradient themes and a light appearance.
 
 Code: `crates/core/src/model.rs`, `crates/app/src/app/commands.rs`,
 `crates/app/src/state/profiles.rs`,
-`crates/ui/web/src/{App,IsolationSection,Glyphs}.tsx`,
+`crates/app/src/state/tabs.rs` (`move_space`),
+`crates/ui/web/src/{App,SpaceSwitcher,IsolationSection,Glyphs}.tsx`,
 `crates/ui/web/src/useSpaceSwipe.ts`,
 `crates/ui/web/src/settings/AppearanceSection.tsx`.

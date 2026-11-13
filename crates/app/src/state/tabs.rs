@@ -402,6 +402,16 @@ impl AppState {
         self.prune_private_profiles();
         contents
     }
+
+    /// Put space `id` at `index` of the spaces, counted without it (past the
+    /// end: last). The current space stays the current one.
+    pub fn move_space(&mut self, id: &str, index: usize) {
+        let spaces = &mut self.sidebar.spaces;
+        if let Some(from) = spaces.iter().position(|sp| sp.id == id) {
+            let space = spaces.remove(from);
+            spaces.insert(index.min(spaces.len()), space);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -443,6 +453,32 @@ mod tests {
         assert_eq!(s.tab_for_space("two").as_deref(), Some("t"));
         assert_eq!(s.tab_for_space(&first).as_deref(), Some("b"));
         assert_eq!(s.tab_for_space("gone"), None);
+    }
+
+    #[test]
+    fn moving_a_space_counts_the_index_without_it() {
+        let mut s = state();
+        let first = s.active_space.clone();
+        for id in ["two", "three"] {
+            s.sidebar.spaces.push(Space {
+                id: id.into(),
+                pinned: vec![],
+                today: vec![],
+                ..s.sidebar.spaces[0].clone()
+            });
+        }
+        let order = |s: &AppState| -> Vec<String> {
+            s.sidebar.spaces.iter().map(|sp| sp.id.clone()).collect()
+        };
+        s.move_space(&first, 1);
+        assert_eq!(order(&s), ["two", first.as_str(), "three"]);
+        s.move_space("three", 0);
+        assert_eq!(order(&s), ["three", "two", first.as_str()]);
+        s.move_space("three", 9);
+        assert_eq!(order(&s), ["two", first.as_str(), "three"], "past the end");
+        s.move_space("gone", 0);
+        assert_eq!(order(&s), ["two", first.as_str(), "three"]);
+        assert_eq!(s.active_space, first, "the current space stays");
     }
 
     #[test]
