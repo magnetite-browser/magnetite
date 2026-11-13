@@ -1,5 +1,6 @@
 //! magnetite: wires the engine, the domain model and the sidebar UI.
 
+mod adblock;
 mod app;
 mod capture;
 mod downloads;

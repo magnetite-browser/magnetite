@@ -396,6 +396,15 @@ pub(super) enum UiCommand {
         y: f64,
     },
     CaptureDismiss,
+    /// Site panel: whether ads are blocked on the site of `host`.
+    SiteAds {
+        host: String,
+    },
+    /// Site panel: block ads on the site of `host` again, or not.
+    SetSiteAds {
+        host: String,
+        blocking: bool,
+    },
     /// Site panel: permission rows of the focused page.
     SitePermissions,
     SetPermission {
@@ -1226,6 +1235,7 @@ impl MagnetiteApp {
                 };
                 let (chromium, cef) = magnetite_engine::engine_versions();
                 let default_browser = engine.default_browser();
+                let adblock = self.adblock_json();
                 return Ok(self.with_state(|s| {
                     // What stays on this device: the spaces marked so, and
                     // the profiles that only they use.
@@ -1251,6 +1261,7 @@ impl MagnetiteApp {
                         "repository": env!("CARGO_PKG_REPOSITORY"),
                         "engine": { "chromium": chromium, "cef": cef },
                         "data_dir": self.data_dir.display().to_string(),
+                        "adblock": adblock,
                     })
                 }));
             }
@@ -1263,6 +1274,7 @@ impl MagnetiteApp {
                 self.push_state(engine);
             }
             UiCommand::SetSettings { settings: patch } => {
+                let before = self.with_state(|s| s.settings.adblock.clone());
                 let settings = self.with_state(|s| {
                     let settings = s.settings.patched(patch)?;
                     s.settings = settings.clone();
@@ -1278,6 +1290,13 @@ impl MagnetiteApp {
                 Self::apply_devtools_dock(engine, settings.devtools_dock);
                 engine.set_autofill(settings.autofill);
                 engine.set_quick_search_key(settings.quick_search);
+                // Lists are fetched and compiled only when they changed.
+                let after = &settings.adblock;
+                if (after.enabled, &after.lists) != (before.enabled, &before.lists) {
+                    self.apply_adblock();
+                } else if after.allowed_sites != before.allowed_sites {
+                    self.apply_adblock_sites();
+                }
                 self.push_state(engine);
             }
             UiCommand::OpenEnginePage { page, profile } => {
@@ -1622,6 +1641,11 @@ impl MagnetiteApp {
             }
             UiCommand::CaptureDismiss => {
                 lock(&self.capture).result = None;
+            }
+            UiCommand::SiteAds { host } => return Ok(self.site_ads(&host)),
+            UiCommand::SetSiteAds { host, blocking } => {
+                self.set_site_ads(engine, &host, blocking);
+                self.push_state(engine);
             }
             UiCommand::SitePermissions => {
                 let rows = self

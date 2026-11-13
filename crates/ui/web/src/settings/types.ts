@@ -24,6 +24,11 @@ export interface Info {
   data_dir: string;
   /** Installed extensions of the page in front's profile. */
   extensions: ExtensionInfo[];
+  /** The filter lists one can subscribe to, and whether downloads are under way. */
+  adblock: {
+    lists: { id: string; name: string; about: string; host: string; fetched_at: number | null; error: string | null }[];
+    working: boolean;
+  };
   /** Where Chromium keeps its encryption key: macOS Keychain, or its fixed test key (`--mock-keychain`). */
   keychain: "keychain" | "test";
 }

@@ -1,7 +1,8 @@
 // The welcome page (magnetite://ui/welcome): the app opens it once, as a tab,
 // at the first start. It asks what to bring along: sync with other devices,
-// tabs from another browser, which search engine to use, what happens to
-// tabs left alone, whether Magnetite should be the default browser.
+// tabs from another browser, which search engine to use, whether to block
+// ads and with which lists, what happens to tabs left alone, whether
+// Magnetite should be the default browser.
 // Nothing is read, sent or changed before the user chooses; the chosen
 // browsers are read and the system asked about the default browser at the
 // end, with "Start browsing". Everything here is in Settings too.
@@ -9,13 +10,14 @@ import { useCallback, useEffect, useState } from "react";
 import appIcon from "./assets/icon.png?url";
 import { send, type ImportSource } from "./bridge";
 import { SHORTCUTS } from "./settings/AboutSection";
+import { AdblockChoice } from "./settings/AdblockSection";
 import { Toggle } from "./settings/fields";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
 import type { Info, SettingsPatch } from "./settings/types";
 
-const STEPS = ["welcome", "sync", "import", "search", "tabs", "done"] as const;
+const STEPS = ["welcome", "sync", "import", "search", "ads", "tabs", "done"] as const;
 
 /** The keys worth knowing on the first day. */
 const FIRST_KEYS = SHORTCUTS.slice(0, 5);
@@ -159,6 +161,18 @@ export function Welcome() {
             </>
           )}
 
+          {step === "ads" && (
+            <>
+              <Heading title="Block ads and trackers?">
+                Magnetite can stop ads and trackers before they load. You choose the filter lists; this can be changed later
+                in Settings → Ad blocking.
+              </Heading>
+              <div className="flex flex-col gap-3">
+                <AdblockChoice info={info} update={choose} reload={() => void reload()} />
+              </div>
+            </>
+          )}
+
           {step === "tabs" && (
             <>
               <Heading title="Tabs you leave alone">
@@ -221,7 +235,7 @@ export function Welcome() {
             {step === "welcome" && <button className="btn primary" onClick={next}>Get started</button>}
             {step === "sync" && <button className="btn primary" disabled={syncJob !== null} onClick={next}>{syncing ? "Continue" : "Not now"}</button>}
             {step === "import" && <button className="btn primary" onClick={next}>{chosen.length > 0 ? "Continue" : "Not now"}</button>}
-            {(step === "search" || step === "tabs") && <button className="btn primary" onClick={next}>Continue</button>}
+            {(step === "search" || step === "ads" || step === "tabs") && <button className="btn primary" onClick={next}>Continue</button>}
             {step === "done" && (
               <button className="btn primary" disabled={starting} onClick={() => void finish(chosen)}>
                 {starting && chosen.length > 0 ? "Importing…" : "Start browsing"}

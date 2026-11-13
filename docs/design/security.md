@@ -136,6 +136,10 @@ from a context Magnetite did not make is not opened.
   Server text is never shown. Only the Settings page and the welcome page
   of the first start, which shows the same controls, may read the code or
   change the chain. Details in `docs/spec/sync.md` and ADR-0005.
+- Ad blocking: the filter lists the user chose, and nothing while it is off.
+  `https://` only, at most 5 redirects, 16 MB per list, a web page in place
+  of a list is refused. Only the download is sent; what pages are opened
+  and what is blocked stays on this computer (`docs/spec/ad-blocking.md`).
 - Sync server: lives in the magnetite-sync repository, with its own
   security notes (README "Limits", `docs/design.md`,
   `docs/public-instance.md`).

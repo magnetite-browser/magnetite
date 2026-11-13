@@ -19,6 +19,7 @@
 )]
 
 mod autofill;
+mod blocker;
 mod bootstrap;
 mod capture;
 mod cef_app;
@@ -58,6 +59,7 @@ mod splitui;
 mod stray;
 
 pub use autofill::AutofillPrefs;
+pub use blocker::{Filters, set_allowed_sites, set_filters};
 pub use bootstrap::{run, run_helper};
 pub use capture::{FrozenFrame, PageTiles};
 pub use client::host_of;

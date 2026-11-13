@@ -36,6 +36,7 @@ impl EngineDelegate for MagnetiteApp {
                     engine.set_chrome_toolbar(true);
                 }
                 engine.set_devtools_dock(dock);
+                self.apply_adblock();
                 if self.import == ArcImport::Now {
                     eprintln!(
                         "magnetite: state imported from Arc ({})",
@@ -332,6 +333,7 @@ impl EngineDelegate for MagnetiteApp {
                 self.housekeeping(engine);
                 self.smart_refresh_due(engine);
                 self.update_tick(engine);
+                self.adblock_tick();
                 static TICKS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
                 if TICKS
                     .fetch_add(1, std::sync::atomic::Ordering::Relaxed)

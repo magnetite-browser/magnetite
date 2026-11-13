@@ -21,6 +21,9 @@ serde_json.workspace = true
 base64.workspace = true
 libc = "0.2"
 psl = "2"
+# Brave's filter engine (MPL-2.0). Without "single-thread": CEF checks
+# requests on its IO thread while the app compiles lists on another.
+adblock = { version = "0.13", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
