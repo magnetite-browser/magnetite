@@ -248,6 +248,14 @@ export interface Settings {
   library_opens: LibraryView;
   /** Chromium's password manager and autofill: which parts are on (Settings → Passwords & autofill). */
   autofill: { passwords: boolean; addresses: boolean; cards: boolean; breach_check: boolean };
+  /** The ad blocker (Settings → Ad blocking); this device's own choice, never synced. */
+  adblock: {
+    enabled: boolean;
+    /** Ids of the filter lists subscribed to (`Info.adblock.lists`). */
+    lists: string[];
+    /** Sites (registrable domains) where nothing is blocked. */
+    allowed_sites: string[];
+  };
 }
 
 /** A full-height view behind the sidebar's archive and downloads button. */
@@ -319,6 +327,10 @@ export type Command =
   | { cmd: "capture_share"; x: number; y: number }
   | { cmd: "capture_dismiss" }
   | { cmd: "site_permissions" }
+  | { cmd: "site_ads"; url: string }
+  | { cmd: "set_site_ads"; url: string; blocking: boolean }
+  | { cmd: "set_adblock_enabled"; enabled: boolean }
+  | { cmd: "set_adblock_list"; id: string; subscribed: boolean }
   | { cmd: "set_permission"; origin: string; kind: PermissionKind; value: PermissionValue }
   | { cmd: "site_data_scope" }
   | { cmd: "clear_site_data"; domain: string }
@@ -536,6 +548,8 @@ interface Replies {
   capture_save: { saved: string | null };
   split_drop_frame: SplitDropFrame | { tab?: undefined };
   site_permissions: { rows: PermissionRow[] };
+  /** `site`: the registrable domain of the page asked about; null for no web page. */
+  site_ads: { site: string | null; enabled: boolean; blocking: boolean };
   site_data_scope: { domain: string; origins: string[] } | { domain?: undefined };
 }
 

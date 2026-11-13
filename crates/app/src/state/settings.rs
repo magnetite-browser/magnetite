@@ -76,6 +76,41 @@ pub struct Settings {
     /// query. Never synced. `None` before the first start that knew this.
     #[serde(default)]
     pub smart_allowed: Option<Vec<String>>,
+    /// The ad blocker. Not synced: each device downloads its own lists.
+    pub adblock: AdblockSettings,
+}
+
+/// The ad blocker (Settings → Ad blocking, `adblock.rs`). Off, with no list,
+/// until the user turns it on and picks the lists.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct AdblockSettings {
+    pub enabled: bool,
+    /// The lists subscribed to (`adblock::LISTS` ids).
+    pub lists: Vec<String>,
+    /// Sites (registrable domains) where nothing is blocked.
+    pub allowed_sites: Vec<String>,
+}
+
+impl AdblockSettings {
+    /// Known lists only, and sites as lower-case names, each once.
+    fn sanitised(mut self) -> Self {
+        let mut lists: Vec<String> = Vec::new();
+        for id in std::mem::take(&mut self.lists) {
+            if crate::adblock::list(&id).is_some() && !lists.contains(&id) {
+                lists.push(id);
+            }
+        }
+        self.lists = lists;
+        let mut sites: Vec<String> = (self.allowed_sites.iter())
+            .map(|s| s.trim().trim_end_matches('.').to_lowercase())
+            .filter(|s| !s.is_empty())
+            .collect();
+        sites.sort();
+        sites.dedup();
+        self.allowed_sites = sites;
+        self
+    }
 }
 
 /// How the sidebar and Magnetite's own pages look (Settings → Appearance).
@@ -236,6 +271,7 @@ impl Settings {
         self.archive_days = self.archive_days.clamp(1, MAX_ARCHIVE_DAYS);
         self.history_days = self.history_days.min(MAX_ARCHIVE_DAYS);
         self.appearance = self.appearance.clamped();
+        self.adblock = self.adblock.sanitised();
         if !usable_search(&self.search_template) {
             self.search_template = defaults.search_template;
         }
@@ -326,6 +362,7 @@ impl Default for Settings {
             library_opens: LibraryView::Archive,
             autofill: magnetite_engine::AutofillPrefs::default(),
             smart_allowed: None,
+            adblock: AdblockSettings::default(),
         }
     }
 }
@@ -445,6 +482,28 @@ mod tests {
         }
         .sanitised();
         assert_eq!(fine.search_template, "https://kagi.com/search?q=%s");
+    }
+
+    #[test]
+    fn the_ad_blocker_starts_off_and_keeps_only_known_lists() {
+        assert_eq!(Settings::default().adblock, AdblockSettings::default());
+        let chosen = AdblockSettings {
+            enabled: true,
+            lists: vec![
+                "easylist".into(),
+                "made-up".into(),
+                "easyprivacy".into(),
+                "easylist".into(),
+            ],
+            allowed_sites: vec![
+                " News.example. ".into(),
+                "news.example".into(),
+                String::new(),
+            ],
+        };
+        let kept = chosen.sanitised();
+        assert_eq!(kept.lists, ["easylist", "easyprivacy"]);
+        assert_eq!(kept.allowed_sites, ["news.example"]);
     }
 
     #[test]

@@ -585,5 +585,19 @@ wrap_request_context_handler! {
             }
             Engine::global().context_ready(&self.profile);
         }
+
+        // Asked for requests no browser's handler took: a service worker's.
+        fn resource_request_handler(
+            &self,
+            browser: Option<&mut Browser>,
+            _frame: Option<&mut Frame>,
+            request: Option<&mut Request>,
+            _is_navigation: ::std::os::raw::c_int,
+            _is_download: ::std::os::raw::c_int,
+            request_initiator: Option<&CefString>,
+            _disable_default_handling: Option<&mut ::std::os::raw::c_int>,
+        ) -> Option<ResourceRequestHandler> {
+            crate::blocker::resource_request_handler(browser.as_deref(), request.as_deref(), request_initiator)
+        }
     }
 }

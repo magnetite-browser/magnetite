@@ -53,6 +53,8 @@ focus returns to the chip.
   Developer tools. Magnetite's own pages offer Share only, and nothing below.
 - **Zoom:** − and + move through Chromium's zoom steps, 25 % to 500 %; a
   click on the value resets it to 100 %.
+- **Block ads:** shown while the ad blocker is on (`ad-blocking.md`). Off
+  lets the whole site load everything and loads the page again.
 - **Mute tab:** mutes this tab's audio until unmuted or the tab is unloaded.
 
 **Permissions.** Rows exist for camera, microphone, location, notifications,

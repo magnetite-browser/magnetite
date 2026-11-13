@@ -1,11 +1,12 @@
 // Full-page settings, opened as its own tab (magnetite://ui/settings).
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon } from "./Icons";
+import { AdblockIcon, Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon } from "./Icons";
 import { IsolationSection } from "./IsolationSection";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
 import { applyAppearance, send, type DefaultBrowser, type Settings, type SiteSearch } from "./bridge";
 import { About } from "./settings/AboutSection";
+import { AdblockSection } from "./settings/AdblockSection";
 import { AutofillSection } from "./settings/AutofillSection";
 import { AppearanceSection } from "./settings/AppearanceSection";
 import { Field, Switch, Toggle } from "./settings/fields";
@@ -27,6 +28,7 @@ const GROUPS: { label: string; sections: Section[] }[] = [
       { id: "appearance", label: "Appearance", Icon: PaletteIcon, title: "Appearance", intro: "How the sidebar and Magnetite's own pages look. Web pages keep their own design." },
       { id: "tabs", label: "Tabs & archive", Icon: Archive, title: "Tabs & archive", intro: "Closing a tab never deletes it. Today tabs you stop using move to the archive on their own. The history of visited pages stays on this computer." },
       { id: "search", label: "Search", Icon: Search, title: "Search", intro: "Used when what you type in the command bar is not a web address. A keyword and a space search one site instead." },
+      { id: "adblock", label: "Ad blocking", Icon: AdblockIcon, title: "Ad blocking", intro: "Magnetite can stop ads and trackers before they load, with filter lists you choose. Off until you turn it on." },
       { id: "autofill", label: "Passwords & autofill", Icon: KeyIcon, title: "Passwords & autofill", intro: "Magnetite can keep your passwords, addresses and cards and fill them in for you. All of it stays on this computer." },
     ],
   },
@@ -42,7 +44,7 @@ const GROUPS: { label: string; sections: Section[] }[] = [
   {
     label: "Magnetite",
     sections: [
-      { id: "data", label: "Data & privacy", Icon: PrivacyIcon, title: "Data & privacy", intro: "No telemetry, no Magnetite account. Magnetite talks only to the sites you open, the services you connect (sync, smart folders), GitHub for update checks, and Google's component server, from which Chromium fetches the Widevine module for protected video and its certificate lists." },
+      { id: "data", label: "Data & privacy", Icon: PrivacyIcon, title: "Data & privacy", intro: "No telemetry, no Magnetite account. Magnetite talks only to the sites you open, the services you connect (sync, smart folders), the publishers of the ad blocking lists you choose, GitHub for update checks, and Google's component server, from which Chromium fetches the Widevine module for protected video and its certificate lists." },
       { id: "developer", label: "Developer", Icon: CodeIcon, title: "Developer", intro: "Tools for building and debugging websites." },
       { id: "about", label: "About", Icon: InfoIcon, title: "About Magnetite", intro: "A free, open-source browser built around a sidebar, on a Chromium engine, made in Europe." },
     ],
@@ -191,6 +193,7 @@ export function SettingsPage() {
           {sectionId === "appearance" && <AppearanceSection info={info} update={update} reload={reload} />}
           {sectionId === "smart" && <SmartFoldersSection />}
           {sectionId === "autofill" && <AutofillSection info={info} update={update} />}
+          {sectionId === "adblock" && <AdblockSection info={info} update={update} reload={reload} />}
           {sectionId === "search" && (
             <>
               <Field label="Search engine">

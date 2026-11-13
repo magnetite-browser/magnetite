@@ -1,10 +1,12 @@
 // Site panel: identity and connection, quick tools for the page (capture,
-// share, developer tools), then this site's permissions, zoom and sound.
+// share, developer tools), then this site's permissions, zoom, ad blocking
+// and sound.
 // Opens under the address row; Esc or a click outside closes it.
 import { useEffect, useRef, useState } from "react";
 import { useDismiss } from "./dismiss";
 import { Favicon } from "./Favicon";
 import { CaptureIcon, CodeIcon, Minus, Plus, ShareIcon, Speaker, SpeakerOff } from "./Icons";
+import { Switch } from "./settings/fields";
 import { findTabInSpace, hostOf, onSiteDataCleared, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
 const PERMISSION_LABEL: Record<PermissionKind, string> = {
@@ -15,6 +17,25 @@ const PERMISSION_LABEL: Record<PermissionKind, string> = {
   popups: "Pop-ups and redirects",
   clipboard: "Clipboard",
 };
+
+/** Ad blocking on this site, while the ad blocker is on (Settings → Ad blocking). */
+function BlockAds({ url }: { url: string }) {
+  const [ads, setAds] = useState<{ site: string | null; enabled: boolean; blocking: boolean } | null>(null);
+  useEffect(() => {
+    void send({ cmd: "site_ads", url }).then(setAds);
+  }, [url]);
+  if (!ads?.enabled) return null;
+  const set = (blocking: boolean) => {
+    setAds({ ...ads, blocking });
+    send({ cmd: "set_site_ads", url, blocking });
+  };
+  return (
+    <label className="panel-row" title={`For all of ${ads.site}. The page loads again.`}>
+      <span className="flex-1">Block ads</span>
+      <Switch label="Block ads on this site" checked={ads.blocking} onChange={set} />
+    </label>
+  );
+}
 
 /** Pop-ups have no "ask" state in Chromium. */
 const CHOICES = (kind: PermissionKind): PermissionValue[] => (kind === "popups" ? ["allow", "block"] : ["allow", "ask", "block"]);
@@ -198,6 +219,8 @@ export function SitePanel({ state, item, rt, onClose }: { state: UiState; item: 
               <button className="zoom-value" aria-label="Reset zoom to 100%" title="Reset to 100%" onClick={() => send({ cmd: "set_zoom", percent: 100 })}>{zoom}%</button>
               <button className="ib sm" aria-label="Zoom in" disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]!} onClick={() => step(1)}><Plus width={14} height={14} /></button>
             </div>
+            {/* Asked again when the tab goes to another site; the app takes the host from the address (without port). */}
+            <BlockAds key={`${item.id} ${host}`} url={item.url} />
             <button className="panel-row w-full" disabled={!rt?.loaded} onClick={() => send({ cmd: "set_muted", id: item.id, muted: !rt?.muted })}>
               <span className="flex-1 text-left">{rt?.muted ? "Unmute tab" : "Mute tab"}</span>
               {rt?.muted ? <SpeakerOff width={15} height={15} /> : <Speaker width={15} height={15} />}
