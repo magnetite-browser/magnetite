@@ -62,6 +62,13 @@ shows the host and the space it is in, "Favorites" or "Archived".
 | Backspace at the start | end the site search; the keyword is text again |
 | Esc | close |
 
+A line below the results names these keys for the selected result: what
+Enter does with it ("Open in a new tab", "Go to the tab", "Run",
+"Restore"), and Shift+Enter, Cmd+Enter, Tab or Backspace where they apply.
+With nothing typed it says what the bar finds and gives one site search
+keyword as an example, another one each time the bar opens. Outside macOS,
+Cmd+Enter is Ctrl+Enter.
+
 ## Addresses and search
 
 - Input with `://`, or starting with `about:`, is used as typed.

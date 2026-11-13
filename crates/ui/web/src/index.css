@@ -288,7 +288,7 @@ button.panel-row:disabled { opacity: 0.45; }
 /* backdrop behind sidebar pop-ups: a click on it closes them */
 .cmdbar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.16); z-index: 40; }
 /* command bar: the whole page of the centred palette window */
-.cmdbar { max-height: 460px; display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
+.cmdbar { max-height: 490px; display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
 .cmdbar input { flex: 1; min-width: 0; height: 56px; background: none; border: 0; outline: 0; color: var(--fg); font: inherit; font-size: 17px; padding: 0 18px; }
 /* The site a keyword search goes to ("GitHub"), before the query. */
 .cmdbar .site-chip { flex: none; margin-left: 14px; margin-right: -10px; padding: 3px 8px; border-radius: 6px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; }
@@ -297,6 +297,11 @@ button.panel-row:disabled { opacity: 0.45; }
 .cmdbar .result[data-selected] { background: rgba(255,255,255,0.1); }
 .cmdbar .result .meta { color: var(--muted); font-size: 12px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cmdbar .group { padding: 6px 8px 2px; font-size: 12px; color: var(--muted); }
+/* What the keys do with the selected result, or what to type. */
+.cmdbar .hints { flex: none; display: flex; flex-wrap: wrap; column-gap: 16px; height: 30px; padding: 0 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; }
+/* One line: what does not fit wraps out of sight instead of being cut in half. */
+.cmdbar .hints > * { display: flex; align-items: center; gap: 5px; height: 30px; }
+.cmdbar .hints kbd { padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,0.1); font: inherit; font-size: 11px; color: var(--secondary); }
 
 /* buttons and choices (settings page, site panel) */
 .btn { height: 32px; padding: 0 12px; border-radius: 8px; background: rgba(255,255,255,0.08); font-weight: 500; }
