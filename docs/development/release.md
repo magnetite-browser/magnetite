@@ -236,10 +236,11 @@ tap stays for those who installed from it.
   `THIRD_PARTY_NOTICES.md` and `CREDITS.html`.
 - Linux: unpack, set up the sandbox as its `README.md` says, start it, open a
   page.
-- Windows: no release build is made yet. `scripts/build.sh` makes the
-  package and the installer locally (`docs/development/building.md`); CI
-  and the release workflow still need their Windows entry, and
-  `magnetite.exe` and the installer a signature.
+- Windows: run the installer (`Magnetite-<version>-windows-x86_64-setup.exe`),
+  start Magnetite from the Start menu, open a page. Neither the installer
+  nor `magnetite.exe` is signed yet, so SmartScreen warns about the
+  download; an installed version does not update itself, it opens the
+  release page.
 - An installed older version offers the update once the release is public.
 - The release notes say what changed in words a user understands.
 

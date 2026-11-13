@@ -21,9 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Windows is not built yet. Its steps here and in actions/setup stay
-        # for the day it joins: add `windows-latest`.
-        os: [macos-15, ubuntu-24.04]
+        os: [macos-15, ubuntu-24.04, windows-latest]
     runs-on: ${{ matrix.os }}
     # A stuck build must not run for GitHub's six hours.
     timeout-minutes: 90
