@@ -3,9 +3,11 @@
 
 use std::ffi::c_void;
 
+mod dividers;
 mod edge;
 mod share;
 
+pub use dividers::{DividerKey, set_dividers};
 pub use edge::set_edge_zone;
 pub use share::{copy_png, copy_text, mouse_point, save_png};
 

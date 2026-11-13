@@ -1,15 +1,16 @@
 //! Split view chrome around the pages: dividers in the gaps between split
-//! pages (native windows on macOS, `MagnetiteDividerView` in `mac/chrome.rs`: drag to resize,
+//! pages (native windows on macOS and Windows, `MagnetiteDividerView` in `mac/chrome.rs` and
+//! `win/dividers.rs`: drag to resize,
 //! double-click to even out), and screenshots for the drop-zone overlay
 //! shown while a tab is dragged over the page area.
 
 use cef::*;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 use magnetite_core::split::Axis;
 use magnetite_core::split::SplitNode;
 
 use crate::content::SPLIT_GAP;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 use crate::content::rect_of;
 use crate::engine::Engine;
 use crate::events::ContentId;
@@ -39,8 +40,30 @@ impl Engine {
                 crate::mac::set_dividers(frame.window_handle(), &wanted);
             }
         }
-        // Other platforms: no dividers yet (sizes still even out on request).
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        {
+            let frame = self.frame_window();
+            let wanted: Vec<_> = dividers
+                .into_iter()
+                .map(|d| {
+                    let key = crate::win::DividerKey {
+                        row: d.axis == Axis::Row,
+                        path: d.path,
+                        index: d.index,
+                    };
+                    // Windows places its windows in pixels.
+                    (
+                        display_convert_screen_rect_to_pixels(Some(&rect_of(d.bounds))),
+                        key,
+                    )
+                })
+                .collect();
+            if let Some(frame) = frame {
+                crate::win::set_dividers(frame.window_handle(), &wanted);
+            }
+        }
+        // Linux: no dividers yet (sizes still even out on request).
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = dividers;
     }
 
