@@ -54,19 +54,19 @@ the row turns the icon into a back arrow that takes the page back.
   page are dimmed. A page is unloaded once it has been off screen for more
   than 4 hours (Settings → Tabs & archive: 10 minutes, 30 minutes,
   2, 4 or 12 hours, or never), unless it has media, is the tab its space
-  returns to, is a favorite, or is kept active. When the system runs short
+  returns to, is a favorite or pinned, or is kept active. When the system runs short
   of memory, such pages are unloaded without waiting, also with "never":
   at the system's warning the half that was off screen the longest, at its
   critical level all of them.
 - While no page is on screen (every tab closed, or a new space), the page
   area shows the logo and "Press ⌘T to open a tab".
-- **Favorites stay loaded** once opened, until they are closed.
+- **Favorites and pinned tabs stay loaded** once opened, until they are
+  closed, also when the system runs short of memory.
 - Closing a favorite or a pinned tab unloads it and takes it back to its
   pinned page, which it opens at next time. Its title stays the last page's
   until then.
-- **Keep active** in the menu of a pinned or Today tab spares that tab:
-  its page is never unloaded for being off screen, and a Today tab is not
-  auto-archived. A check mark shows it in the menu and a small flash on the
+- **Keep active** in the menu of a Today tab spares that tab: its page is
+  never unloaded for being off screen, and it is not auto-archived. A check mark shows it in the menu and a small flash on the
   row; the same entry lets the tab sleep again. Closing the tab ends it.
 - Double-click renames a tab; "Use page title" in the context menu undoes
   it. Middle-click closes a tab.
