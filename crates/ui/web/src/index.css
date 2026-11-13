@@ -298,8 +298,8 @@ button.panel-row:disabled { opacity: 0.45; }
 .cmdbar .result .meta { color: var(--muted); font-size: 12px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cmdbar .group { padding: 6px 8px 2px; font-size: 12px; color: var(--muted); }
 /* What the keys do with the selected result, or what to type. */
-.cmdbar .hints { flex: none; display: flex; flex-wrap: wrap; column-gap: 16px; height: 30px; padding: 0 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; }
-/* One line: what does not fit wraps out of sight instead of being cut in half. */
+.cmdbar .hints { flex: none; display: flex; flex-wrap: wrap; column-gap: 16px; padding: 0 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); white-space: nowrap; }
+/* Each hint stays whole; in a narrow window the line wraps and the bar grows. */
 .cmdbar .hints > * { display: flex; align-items: center; gap: 5px; height: 30px; }
 .cmdbar .hints kbd { padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,0.1); font: inherit; font-size: 11px; color: var(--secondary); }
 
