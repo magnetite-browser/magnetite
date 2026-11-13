@@ -113,8 +113,9 @@ computer. A bar above the page, in the page area, has the choices:
 - **Dimensions:** Responsive (a size of one's own, 390 × 844 at first),
   phones (iPhone SE, iPhone 16, iPhone 16 Pro Max, Pixel 9, Galaxy S24),
   tablets (iPad Mini, iPad Pro 13) and computers (Laptop, Desktop).
-- **Width × height**, in CSS pixels; typing a size makes it Responsive.
-  The arrow beside them turns the device to landscape and back.
+- **Width × height**, in CSS pixels: editable in Responsive, locked for a
+  device, which has its own. The button beside them turns the device to
+  landscape and back.
 - **Zoom:** Fit (as large as the area allows, at most 100 %), 50 % to 150 %.
 - **Network:** no throttling, Fast 4G, Slow 4G, 3G or offline (Chrome's
   presets: latency, download and upload speed).
@@ -126,7 +127,9 @@ and tablets) and the device's browser identity (an iPhone's or iPad's
 Safari, an Android Chrome; computers keep Magnetite's). It sits below the
 bar, centred, scaled to the zoom. In Responsive, handles on its right,
 bottom and corner resize it (the right one on both sides, so it stays
-centred); the bar shows the new size. Device mode ends with the button, the
+centred); the bar shows the new size While a handle is dragged, the scale stays as it was
+when the drag began, so with "Fit" the size follows the pointer evenly even
+when the page reaches the edge of its area. Device mode ends with the button, the
 × or the DevTools closing, also when they move between docked and their own
 window; the next one starts with the device used last. Chromium's own
 device toolbar shows only for DevTools docked in a Chrome tab window, which

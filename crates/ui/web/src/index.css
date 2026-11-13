@@ -490,10 +490,13 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 
 /* The device bar above a page in device mode (DeviceBar.tsx): one row,
    centred, on the page area's background. */
-.device-bar { height: 100vh; display: flex; align-items: center; justify-content: safe center; gap: 4px; padding: 0 2px; background: var(--bg); color: var(--secondary); font-size: 12px; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.device-bar { height: 100vh; display: flex; align-items: center; justify-content: safe center; gap: 3px; padding: 0 2px; background: var(--bg); color: var(--secondary); font-size: 12px; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
 .device-bar > * { flex: none; }
-.device-bar .field.sm { height: 24px; font-size: 12px; padding: 0 18px 0 5px; }
+.device-bar .field.sm { height: 24px; font-size: 12px; padding: 0 22px 0 5px; }
+/* The chevron of select.field, centred for the smaller height. */
+.device-bar select.field.sm { background-position: calc(100% - 12px) 50%, calc(100% - 7px) 50%; }
+.device-bar .field.sm:disabled { opacity: 0.55; }
 /* Long device names are cut rather than widening the bar. */
-.device-bar .field.sm.device-preset { width: 112px; }
+.device-bar .field.sm.device-preset { width: 104px; }
 .device-group { display: inline-flex; align-items: center; gap: 4px; }
 .device-bar .field.sm.device-size { width: 52px; padding: 0 4px; text-align: center; }

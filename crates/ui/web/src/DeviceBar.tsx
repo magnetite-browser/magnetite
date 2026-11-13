@@ -54,7 +54,7 @@ const THROTTLES: [DeviceConfig["throttle"], string][] = [
 const size = (text: string) => Math.min(4000, Math.max(50, Math.round(Number(text)) || 50));
 
 /** A width or height field: the value is taken on Enter or when leaving it. */
-function SizeField({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function SizeField({ label, value, disabled, onChange }: { label: string; value: number; disabled: boolean; onChange: (v: number) => void }) {
   const [text, setText] = useState(String(value));
   useEffect(() => setText(String(value)), [value]);
   const take = () => {
@@ -67,6 +67,8 @@ function SizeField({ label, value, onChange }: { label: string; value: number; o
       className="field sm device-size"
       aria-label={label}
       inputMode="numeric"
+      disabled={disabled}
+      title={disabled ? "A device has its own size; Responsive takes any" : undefined}
       value={text}
       onChange={(e) => setText(e.target.value.replace(/\D/g, ""))}
       onBlur={take}
@@ -100,6 +102,8 @@ export function DeviceBar() {
     if (!preset) change({ preset: RESPONSIVE });
     else change({ preset: preset.name, width: preset.width, height: preset.height, dpr: preset.dpr, mobile: preset.mobile, ua: preset.ua });
   };
+  // A device's size is its own; Responsive takes any.
+  const fixed = config.preset !== RESPONSIVE;
   // A size of one's own is "Responsive", with the rest as it was.
   const resize = (patch: Partial<DeviceConfig>) => change({ ...patch, preset: RESPONSIVE });
 
@@ -116,14 +120,16 @@ export function DeviceBar() {
         </select>
       </label>
       <span className="device-group" title="Width × height in CSS pixels">
-        <SizeField label="Width" value={config.width} onChange={(width) => resize({ width })} />
+        <SizeField label="Width" value={config.width} disabled={fixed} onChange={(width) => resize({ width })} />
         <span aria-hidden>×</span>
-        <SizeField label="Height" value={config.height} onChange={(height) => resize({ height })} />
+        <SizeField label="Height" value={config.height} disabled={fixed} onChange={(height) => resize({ height })} />
       </span>
       <button className="ib sm" title="Rotate" aria-label="Rotate" onClick={() => change({ width: config.height, height: config.width })}>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
-          <path d="M3 3v5h5" />
+        {/* A phone turning, with two arrows (as Chrome's "screen rotation"). */}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <rect x="9" y="4" width="6" height="16" rx="1.5" transform="rotate(45 12 12)" />
+          <path d="M2.5 10a9.5 9.5 0 0 1 7.5-7.5M7.2 2.2 10 2.5l-.6 2.7" />
+          <path d="M21.5 14a9.5 9.5 0 0 1-7.5 7.5M16.8 21.8 14 21.5l.6-2.7" />
         </svg>
       </button>
       <select className="field sm" aria-label="Zoom" value={config.zoom ?? "fit"} onChange={(e) => change({ zoom: e.target.value === "fit" ? null : Number(e.target.value) })}>

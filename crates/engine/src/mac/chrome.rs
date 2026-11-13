@@ -535,8 +535,9 @@ impl MagnetiteDividerView {
                 action,
             }),
             DividerKey::DevTools { id, .. } => engine.devtools_divider(id, action),
-            // Device handles act while dragged (`mouse_dragged`).
-            DividerKey::Device { .. } => {}
+            // Device handles move with both coordinates (`mouse_dragged`);
+            // here only letting go counts.
+            DividerKey::Device { id, edge } => engine.device_handle(id, edge, 0, 0, action),
         }
     }
 

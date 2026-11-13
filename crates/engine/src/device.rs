@@ -175,6 +175,9 @@ pub(crate) struct DeviceMode {
     layout: Option<(Rect, f64)>,
     /// The handles beside the page ("Responsive" only).
     pub handles: Vec<(Rect, Edge)>,
+    /// The scale when the drag of a handle began: held until it ends, so
+    /// the size follows the pointer evenly even while "Fit" shrinks the page.
+    drag_scale: Option<f64>,
 }
 
 impl Engine {
@@ -227,6 +230,7 @@ impl Engine {
                 told: None,
                 layout: None,
                 handles: Vec::new(),
+                drag_scale: None,
             });
         }
         self.emulate(id, Some(config), None);
@@ -458,8 +462,9 @@ impl Engine {
         rect
     }
 
-    /// A resize handle of page `id` was dragged to `(x, y)` (screen DIP) or
-    /// let go: "Responsive" takes the new size; the bar shows it.
+    /// A resize handle of page `id` was dragged to `(x, y)` (screen DIP):
+    /// "Responsive" takes the new size, and the bar shows it. Let go, the
+    /// scale held during the drag is free again.
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     pub(crate) fn device_handle(
         &self,
@@ -469,17 +474,19 @@ impl Engine {
         y: i32,
         action: DividerAction,
     ) {
-        let DividerAction::Move(_) = action else {
-            return;
-        };
         let config = {
             let mut inner = self.lock();
             let Some(mode) = inner.docked.get_mut(&id).and_then(|d| d.device.as_mut()) else {
                 return;
             };
+            let DividerAction::Move(_) = action else {
+                mode.drag_scale = None;
+                return;
+            };
             let Some((rect, scale)) = mode.layout.clone() else {
                 return;
             };
+            let scale = *mode.drag_scale.get_or_insert(scale);
             let size = |px: f64| {
                 // Clamped to the device sizes, so the cast stays in range.
                 #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
