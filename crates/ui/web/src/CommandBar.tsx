@@ -64,8 +64,8 @@ function tabActions(state: UiState): Action[] {
   if (!today && tab.home_url && tab.home_url !== tab.url) actions.push({ id: "reset", title: `Back to pinned page (${hostOf(tab.home_url)})`, keywords: ["reset", "home", "pinned"], cmd: { cmd: "reset_tab", id } });
   if (favorite) actions.push({ id: "unfavorite", title: "Remove tab from favorites", keywords: ["favorite", "unfavorite"], cmd: { cmd: "move_tab", id, space: state.active_space, section: "today", index: 0 } });
   else actions.push({ id: "favorite", title: "Add tab to favorites", keywords: ["favorite"], cmd: { cmd: "move_tab", id, space: state.active_space, section: "favorites", index: 999 } });
+  if (today) actions.push({ id: "keep_active", title: tab.keep_active ? "Stop keeping tab active" : "Keep tab active", keywords: ["keep", "active", "awake"], cmd: { cmd: "set_keep_active", id, keep: !tab.keep_active } });
   if (owner) {
-    actions.push({ id: "keep_active", title: tab.keep_active ? "Stop keeping tab active" : "Keep tab active", keywords: ["keep", "active", "awake"], cmd: { cmd: "set_keep_active", id, keep: !tab.keep_active } });
     for (const sp of spaces) {
       if (sp.id !== owner.id) actions.push({ id: `move_${sp.id}`, title: `Move tab to ${sp.title}`, keywords: ["move", "space"], cmd: { cmd: "move_tab", id, space: sp.id, section: "today", index: 0 } });
     }
