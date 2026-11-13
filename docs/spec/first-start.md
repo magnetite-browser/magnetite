@@ -52,7 +52,8 @@ page (`import.md`).
 ## Default browser
 
 Settings → General shows whether Magnetite opens links from other apps
-(the system's handler for `https`). While it does not, "Make default" asks
+(the system's handler for `https`; any copy of Magnetite counts, since
+macOS keeps the default by the app's identifier). While it does not, "Make default" asks
 macOS to make it the handler for `http` and `https`; macOS asks the user to
 confirm, and the card shows the outcome. Magnetite never asks on its own.
 Outside macOS, or when Magnetite does not run as an app bundle, the card is
