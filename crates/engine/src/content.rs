@@ -710,6 +710,8 @@ wrap_window_delegate! {
                 window.set_bounds(Some(bounds));
                 #[cfg(target_os = "macos")]
                 crate::mac::round_window_corners(window.window_handle(), 10.0, true);
+                #[cfg(target_os = "windows")]
+                crate::win::round_window_corners(window.window_handle(), true);
                 window.show();
                 window.activate();
                 self.view.request_focus();
@@ -719,6 +721,8 @@ wrap_window_delegate! {
             window.set_bounds(Some(&engine.content_rect()));
             #[cfg(target_os = "macos")]
             crate::mac::round_window_corners(window.window_handle(), 10.0, false);
+            #[cfg(target_os = "windows")]
+            crate::win::round_window_corners(window.window_handle(), false);
             #[cfg(target_os = "macos")]
             crate::mac::pin_window(window.window_handle());
             window.show();

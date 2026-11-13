@@ -20,6 +20,7 @@
 
 mod autofill;
 mod bootstrap;
+mod caption;
 mod capture;
 mod cef_app;
 mod client;
@@ -56,6 +57,8 @@ mod site;
 mod sitedata;
 mod splitui;
 mod stray;
+#[cfg(target_os = "windows")]
+mod win;
 
 pub use autofill::AutofillPrefs;
 #[cfg(target_os = "windows")]

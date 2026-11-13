@@ -220,6 +220,8 @@ wrap_window_delegate! {
             window.set_bounds(Some(&self.bounds));
             #[cfg(target_os = "macos")]
             crate::mac::round_window_corners(window.window_handle(), self.radius, self.shadow);
+            #[cfg(target_os = "windows")]
+            crate::win::round_window_corners(window.window_handle(), self.shadow);
             *self.slot.get(&mut Engine::global().lock()) = Some(window.clone());
             if self.slot == Slot::Notifications {
                 crate::floatbar::show_quietly(window);

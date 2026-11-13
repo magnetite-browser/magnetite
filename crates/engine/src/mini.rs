@@ -302,6 +302,8 @@ impl Engine {
             crate::mac::round_window_corners(handle, 10.0, false);
             crate::mac::pin_window(handle);
         }
+        #[cfg(target_os = "windows")]
+        crate::win::round_window_corners(window.window_handle(), false);
     }
 
     /// Page window `id` was just shown: if it began as a mini window, make

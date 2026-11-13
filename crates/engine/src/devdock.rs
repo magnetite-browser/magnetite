@@ -214,9 +214,14 @@ impl Engine {
         let (page, tools) = self.split_slot(id, slot);
         if let Some(w) = window {
             w.set_bounds(Some(&page));
+            // The rounded cut does not follow the new size.
+            #[cfg(target_os = "windows")]
+            crate::win::clip_page(w.window_handle());
         }
         if let (Some(w), Some(r)) = (tools_window, tools) {
             w.set_bounds(Some(&r));
+            #[cfg(target_os = "windows")]
+            crate::win::clip_page(w.window_handle());
         }
     }
 
@@ -353,6 +358,8 @@ wrap_window_delegate! {
                 crate::mac::round_window_corners(window.window_handle(), 10.0, false);
                 crate::mac::pin_window(window.window_handle());
             }
+            #[cfg(target_os = "windows")]
+            crate::win::round_window_corners(window.window_handle(), false);
             if let Some(slot) = slot {
                 engine.place(self.id, &slot);
             }
