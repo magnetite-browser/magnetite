@@ -314,6 +314,8 @@ impl MagnetiteApp {
         *lock(&self.shown_extensions) = extensions;
         engine.set_chrome_color(0xFF00_0000 | chrome);
         engine.set_accent_color(0xFF00_0000 | accent);
+        engine
+            .set_empty_hint(self.with_state(|s| s.visible_panes().is_empty() && s.peek.is_none()));
         engine.ui_eval_all(&format!(
             "window.__magnetite && window.__magnetite.setState({json})"
         ));

@@ -58,6 +58,8 @@ the row turns the icon into a back arrow that takes the page back.
   of memory, such pages are unloaded without waiting, also with "never":
   at the system's warning the half that was off screen the longest, at its
   critical level all of them.
+- While no page is on screen (every tab closed, or a new space), the page
+  area shows the logo and "Press ⌘T to open a tab".
 - **Favorites stay loaded** once opened, until they are closed.
 - Closing a favorite or a pinned tab unloads it and takes it back to its
   pinned page, which it opens at next time. Its title stays the last page's
