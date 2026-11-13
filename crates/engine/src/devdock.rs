@@ -87,7 +87,9 @@ const BOTTOM_MIN_PAGE: i32 = 160;
 
 /// The extent of docked `DevTools` along an `extent` long side: `wanted`
 /// (or `share` of it), keeping at least `min_tools` for them and
-/// `min_page` (and the gap) for the page; `DevTools` win when both cannot.
+/// `min_page` (and the gap) for the page. When both do not fit, `DevTools`
+/// keep theirs as far as the side allows; they never pass its end, so the
+/// page is at worst empty, never of negative size.
 fn tools_extent(
     extent: i32,
     wanted: Option<u32>,
@@ -100,7 +102,11 @@ fn tools_extent(
     let wanted = wanted.map_or((f64::from(extent) * share) as i32, |w| {
         w.min(i32::MAX as u32) as i32
     });
-    wanted.min(extent - min_page - GAP).max(min_tools)
+    wanted
+        .min(extent - min_page - GAP)
+        .max(min_tools)
+        .min(extent - GAP)
+        .max(0)
 }
 
 impl Engine {
@@ -589,6 +595,12 @@ mod tests {
         );
         assert_eq!(right(1000, Some(10)), 240, "DevTools keep theirs");
         assert_eq!(right(400, Some(300)), 240, "no room for both: DevTools win");
+        assert_eq!(
+            right(200, None),
+            192,
+            "a narrow split pane: within the pane"
+        );
+        assert_eq!(right(4, None), 0, "never negative");
     }
 
     #[test]
