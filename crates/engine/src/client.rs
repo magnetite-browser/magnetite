@@ -283,6 +283,8 @@ wrap_focus_handler! {
                 .content_id_for(browser.as_deref())
                 .or_else(|| engine.devtools_owner(browser.as_deref()));
             if let Some(id) = page {
+                // A click into a page closes an open palette.
+                engine.blur_overlay();
                 // The outline follows the keyboard at once, before the app hears of it.
                 engine.update_focus_ring(Some(id));
                 engine.emit(EngineEvent::ContentFocused { id });

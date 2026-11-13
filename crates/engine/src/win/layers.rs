@@ -130,8 +130,11 @@ unsafe extern "system" {
 }
 
 const BLACK_BRUSH: i32 = 4;
+/// The window right above in the stacking order.
+const GW_HWNDPREV: u32 = 3;
 const GW_OWNER: u32 = 4;
 const SW_HIDE: i32 = 0;
+const SW_SHOWNOACTIVATE: i32 = 4;
 const WS_POPUP: u32 = 0x8000_0000;
 /// See-through, never active, not in the taskbar.
 const LAYERED: u32 = 0x0008_0000 | 0x0800_0000 | 0x80;
@@ -145,6 +148,8 @@ const SWP_NOMOVE: u32 = 0x2;
 const SWP_NOZORDER: u32 = 0x4;
 const SWP_NOACTIVATE: u32 = 0x10;
 const SWP_SHOWWINDOW: u32 = 0x40;
+/// Only this window changes its place, not the others of its owner.
+const SWP_NOOWNERZORDER: u32 = 0x200;
 const WM_MOUSEACTIVATE: u32 = 0x21;
 const WM_LBUTTONDOWN: u32 = 0x201;
 const MA_NOACTIVATE: isize = 3;
@@ -306,16 +311,21 @@ fn place_ring(ring: &mut Ring) {
         } else if draw_ring(ring.hwnd, (rect[0], rect[1]), size, ring.argb, dpi) {
             ring.drawn = (size.0, size.1, ring.argb);
         }
-        // Above its page: on top of the frame's windows as they are now.
-        SetWindowPos(
-            ring.hwnd,
-            std::ptr::null_mut(),
-            0,
-            0,
-            0,
-            0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
-        );
+        // Right above its page and no higher: the palette, a peek and the
+        // notification panel stay above both.
+        let above = GetWindow(ring.page, GW_HWNDPREV);
+        if above != ring.hwnd {
+            SetWindowPos(
+                ring.hwnd,
+                above,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER,
+            );
+        }
+        ShowWindow(ring.hwnd, SW_SHOWNOACTIVATE);
     }
 }
 
