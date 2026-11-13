@@ -335,7 +335,14 @@ impl Engine {
             &self.content_rect(),
             &window.bounds(),
         );
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        crate::win::show_peek_backdrop(
+            frame.window_handle(),
+            window.window_handle(),
+            // Windows places its windows in pixels.
+            &display_convert_screen_rect_to_pixels(Some(&self.content_rect())),
+        );
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = (frame, window);
     }
 
@@ -354,7 +361,11 @@ impl Engine {
         if ended {
             crate::mac::hide_peek_backdrop();
         }
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        if ended {
+            crate::win::hide_peek_backdrop();
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = ended;
     }
 
@@ -509,7 +520,13 @@ impl Engine {
         for (window, ring) in pages {
             crate::mac::set_focus_ring(window.window_handle(), ring.then_some(accent));
         }
-        #[cfg(not(target_os = "macos"))]
+        // One outline at most, a window of its own above the focused page.
+        #[cfg(target_os = "windows")]
+        {
+            let focused = pages.iter().find(|(_, ring)| *ring);
+            crate::win::set_focus_ring(focused.map(|(window, _)| window.window_handle()), accent);
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = (pages, accent);
     }
 

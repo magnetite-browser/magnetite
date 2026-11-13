@@ -5,10 +5,12 @@ use std::ffi::c_void;
 
 mod dividers;
 mod edge;
+mod layers;
 mod share;
 
 pub use dividers::{DividerKey, set_dividers};
 pub use edge::set_edge_zone;
+pub use layers::{hide_peek_backdrop, set_focus_ring, show_peek_backdrop};
 pub use share::{copy_png, copy_text, mouse_point, save_png};
 
 #[link(name = "dwmapi")]
@@ -105,4 +107,6 @@ pub fn clip_page(handle: cef::sys::cef_window_handle_t) {
             SetWindowRgn(hwnd, region, 1);
         }
     }
+    // The outline of a split's focused page is a window of its own.
+    layers::follow_ring(hwnd);
 }
