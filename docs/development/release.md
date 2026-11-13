@@ -236,9 +236,10 @@ tap stays for those who installed from it.
   `THIRD_PARTY_NOTICES.md` and `CREDITS.html`.
 - Linux: unpack, set up the sandbox as its `README.md` says, start it, open a
   page.
-- Windows: no build is made yet. `scripts/build.sh` and `packaging/windows/`
-  are prepared for one; CI and the release workflow get their Windows entry
-  back once a build has been tried.
+- Windows: no release build is made yet. `scripts/build.sh` makes the
+  package and the installer locally (`docs/development/building.md`); CI
+  and the release workflow still need their Windows entry, and
+  `magnetite.exe` and the installer a signature.
 - An installed older version offers the update once the release is public.
 - The release notes say what changed in words a user understands.
 

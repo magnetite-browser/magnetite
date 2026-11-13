@@ -80,7 +80,7 @@ Magnetite started as a new home for the workflow of the Arc browser and has grow
 
 ## Status
 
-Magnetite is developed and used daily on macOS (Apple silicon). Linux builds start and pass the tests. Windows has not been built yet.
+Magnetite is developed and used daily on macOS (Apple silicon). Linux and Windows builds start and pass the tests.
 
 There are no releases yet, so for now you [build it yourself](#build-it-yourself). Expect breaking changes, including to the data format on disk.
 

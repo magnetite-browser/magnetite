@@ -79,18 +79,34 @@ Never run with `--no-sandbox`.
 From macOS (or anywhere with Podman or Docker), build and test for Linux in a
 container: `scripts/linux-container.sh build` or `scripts/linux-container.sh test`.
 
-## Windows (not built yet)
+## Windows
 
-Nobody has built Magnetite on Windows so far. The scripts are prepared for
-it, and these should be the steps: Visual Studio 2022 Build Tools with
-"Desktop development with C++" (brings CMake and Ninja), Rust for MSVC,
-Node 22, pnpm 10 and Git for Windows. Run the script in Git Bash started
-from the "x64 Native Tools Command Prompt", so `cl`, `cmake` and `ninja` are
-on `PATH`:
+Visual Studio 2022 Build Tools with "Desktop development with C++" (brings
+CMake and Ninja), Rust for MSVC, Node 22, pnpm 10 and Git for Windows. Run
+the script in Git Bash started from the "x64 Native Tools Command Prompt"
+(`"C:\Program Files\Git\bin\bash.exe"`), so `cl`, `cmake` and `ninja` are on
+`PATH`:
 
 ```sh
-scripts/build.sh
+scripts/build.sh              # dist/magnetite-<version>/, a zip and the installer
 ```
+
+Start `dist/magnetite-<version>/magnetite.exe`. That file is CEF's
+`bootstrap.exe` under our name: it loads Magnetite from `magnetite.dll`
+(`crates/windows`) and makes the sandbox information Chromium needs on
+Windows. `cargo build` alone also makes a plain `target/debug/magnetite.exe`;
+it starts, but without that information its GPU process fails and pages are
+drawn without the graphics card.
+
+The installer (`Magnetite-<version>-windows-<arch>-setup.exe`) is made when
+[Inno Setup 6](https://jrsoftware.org/isinfo.php) is installed
+(`winget install JRSoftware.InnoSetup`), from `packaging/windows/magnetite.iss`.
+It installs for the current user, without administrator rights.
+
+Windows builds start, show pages and pass the tests. The window's buttons
+(minimise, maximise, close) are at the top right, in a row above the page
+area (`crates/engine/src/caption.rs`). Still missing there: a signature for
+`magnetite.exe` and the installer, and what the specs list as macOS only.
 
 ## Testing
 
