@@ -91,7 +91,7 @@ Not there yet: several main windows, and H.264 or AAC playback on Linux and Inte
 Releases will appear on the GitHub releases page, one package per system:
 
 - **macOS 13 or newer** (Apple silicon, Intel): a zip with `Magnetite.app`, also through Homebrew.
-- **Linux** (x86_64, aarch64): a tarball; its `README.md` explains the sandbox setup.
+- **Linux** (x86_64, aarch64): an rpm (Fedora, RHEL) and a deb (Debian, Ubuntu), which update with your system's updates, and a tarball for other systems; its `README.md` explains the sandbox setup.
 
 Magnetite updates itself from these releases. The update list is signed, and `SHA256SUMS` lists the packages' checksums.
 

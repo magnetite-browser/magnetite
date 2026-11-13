@@ -72,6 +72,19 @@ sudo apt install cmake ninja-build pkg-config patchelf \
 scripts/build.sh
 ```
 
+On Fedora:
+
+```sh
+sudo dnf install cmake ninja-build patchelf nss atk at-spi2-atk cups-libs \
+  libdrm libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm pango \
+  alsa-lib gtk3
+scripts/build.sh
+```
+
+`scripts/linux-packages.sh dist/magnetite-<version>` turns the build into
+the rpm and deb packages a release ships (needs `rpm-build` and `dpkg` on
+Fedora, `rpm` on Debian/Ubuntu, and `packaging/linux/repo-key.asc`).
+
 Chromium's sandbox needs unprivileged user namespaces or a setuid
 `chrome-sandbox`; see `packaging/linux/README.md`, which ships in the package.
 Never run with `--no-sandbox`.

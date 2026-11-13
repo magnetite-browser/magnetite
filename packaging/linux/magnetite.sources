@@ -1,0 +1,4 @@
+Types: deb
+URIs: https://packages.magnetitebrowser.org/deb/
+Suites: ./
+Signed-By: /usr/share/keyrings/magnetite.asc

@@ -4,6 +4,11 @@ Magnetite is a desktop browser with sidebar tabs and spaces, built on
 Chromium (CEF). This folder holds everything it needs: keep the files
 together.
 
+On Fedora, RHEL, Debian or Ubuntu, prefer the `.rpm` or `.deb` from the same
+release: it sets up the sandbox and the menu entry, and your system's updates
+keep it current. This folder does not update itself; download the next
+release by hand.
+
 ## Start
 
 ```sh
@@ -12,7 +17,7 @@ together.
 
 Your data lives in `~/.local/share/magnetite` (or `$XDG_DATA_HOME/magnetite`).
 
-Magnetite needs the usual Chromium libraries (GTK 3, NSS, ALSA, libdrm, GBM,
+Magnetite needs the usual Chromium libraries (GTK 3 or 4, NSS, ALSA, libdrm, GBM,
 X11/XKB). Most desktops have them. On Debian or Ubuntu:
 
 ```sh
