@@ -28,6 +28,10 @@ impl Engine {
     const GRAB_OVERLAP: i32 = 6;
     /// Room for the traffic lights when the sidebar is hidden.
     const TRAFFIC_LIGHTS: i32 = 80;
+    /// Gap above the pages while the sidebar is hidden in a normal window:
+    /// the traffic lights sit in it. Pages are windows above the frame and
+    /// would cover them otherwise.
+    const BUTTONS_BAR: i32 = 34;
 
     /// Keep the window-drag strip along the top of the page area, above the
     /// page windows (see `mac::set_grab_strip`).
@@ -48,7 +52,7 @@ impl Engine {
         let skip = if sidebar { 0 } else { Self::TRAFFIC_LIGHTS };
         let strip = Rect {
             x: panel.x + skip,
-            y: panel.y,
+            y: self.content_rect().y - Self::CONTENT_INSET,
             width: (panel.width - skip).max(1),
             height: Self::CONTENT_INSET + Self::GRAB_OVERLAP,
         };
@@ -81,20 +85,27 @@ impl Engine {
     }
 
     /// Screen rectangle (DIP) the content windows must cover: the content
-    /// panel minus an inset so the page floats inside the frame.
+    /// panel minus an inset so the page floats inside the frame, and minus
+    /// the room for the traffic lights when no sidebar holds them (a full
+    /// screen window has none).
     pub fn content_rect(&self) -> Rect {
-        let r = self
-            .lock()
-            .frame
-            .as_ref()
-            .map(|f| f.content_panel.bounds_in_screen())
-            .unwrap_or_default();
+        let (r, buttons) = {
+            let inner = self.lock();
+            let frame = inner.frame.as_ref();
+            (
+                frame
+                    .map(|f| f.content_panel.bounds_in_screen())
+                    .unwrap_or_default(),
+                !inner.sidebar_visible && frame.is_some_and(|f| f.window.is_fullscreen() == 0),
+            )
+        };
         let i = Self::CONTENT_INSET;
+        let top = if buttons { Self::BUTTONS_BAR } else { i };
         Rect {
             x: r.x + i,
-            y: r.y + i,
+            y: r.y + top,
             width: (r.width - 2 * i).max(1),
-            height: (r.height - 2 * i).max(1),
+            height: (r.height - top - i).max(1),
         }
     }
 
@@ -357,6 +368,13 @@ wrap_window_delegate! {
                 engine.show_float_sidebar(true);
             }
             engine.emit(EngineEvent::FrameBoundsChanged);
+        }
+
+        // Entering or leaving full screen changes the room above the pages.
+        fn on_window_fullscreen_transition(&self, _window: Option<&mut Window>, is_completed: ::std::os::raw::c_int) {
+            if is_completed != 0 {
+                Engine::global().reposition_contents();
+            }
         }
 
         fn on_window_destroyed(&self, _window: Option<&mut Window>) {
