@@ -168,7 +168,7 @@ export function Welcome() {
                 in Settings → Ad blocking.
               </Heading>
               <div className="flex flex-col gap-3">
-                <AdblockChoice info={info} update={choose} reload={() => void reload()} />
+                <AdblockChoice info={info} reload={() => void reload()} />
               </div>
             </>
           )}

@@ -2,11 +2,9 @@
 // the filter lists to subscribe to, and the sites where nothing is blocked.
 // Nothing is downloaded until the user turns blocking on and picks a list.
 import { useEffect } from "react";
-import type { Settings } from "../bridge";
+import { send } from "../bridge";
 import { Switch, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
-
-type Adblock = Settings["adblock"];
 
 /** When a list was downloaded, in words. */
 function fetchedText(at: number | null): string {
@@ -14,33 +12,28 @@ function fetchedText(at: number | null): string {
   return `Updated ${new Date(at * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`;
 }
 
-type Props = { info: Info; update: (patch: SettingsPatch) => void; reload: () => void };
-
 /**
  * The switch and, while it is on, the lists to choose from. Shared by
- * Settings and the welcome page. A change starts downloads: asked again
- * until they are done, to show how they went.
+ * Settings and the welcome page. Each change is one command (one list at a
+ * time), so quick choices do not undo each other; it starts downloads,
+ * asked about again until they are done.
  */
-export function AdblockChoice({ info, update, reload }: Props) {
+export function AdblockChoice({ info, reload }: { info: Info; reload: () => void }) {
   const adblock = info.settings.adblock;
-  const set = (patch: Partial<Adblock>) => {
-    update({ adblock: { ...adblock, ...patch } });
-    reload();
-  };
+  const change = (command: Parameters<typeof send>[0]) => void send(command).then(reload);
   const working = info.adblock.working;
   useEffect(() => {
     if (!working) return;
     const timer = setTimeout(reload, 1500);
     return () => clearTimeout(timer);
   }, [working, info, reload]);
-  const toggleList = (id: string) => set({ lists: adblock.lists.includes(id) ? adblock.lists.filter((l) => l !== id) : [...adblock.lists, id] });
   return (
     <>
       <Toggle
         label="Block ads and trackers"
         hint="Requests of web pages to ad and tracking servers are stopped before they load. Only with the lists you choose below."
         checked={adblock.enabled}
-        onChange={(enabled) => set({ enabled })}
+        onChange={(enabled) => change({ cmd: "set_adblock_enabled", enabled })}
       />
       {adblock.enabled && (
         <div className="set-card flex flex-col gap-4">
@@ -65,7 +58,7 @@ export function AdblockChoice({ info, update, reload }: Props) {
                     </span>
                   )}
                 </span>
-                <Switch label={l.name} checked={on} onChange={() => toggleList(l.id)} />
+                <Switch label={l.name} checked={on} onChange={(subscribed) => change({ cmd: "set_adblock_list", id: l.id, subscribed })} />
               </label>
             );
           })}
@@ -75,11 +68,11 @@ export function AdblockChoice({ info, update, reload }: Props) {
   );
 }
 
-export function AdblockSection({ info, update, reload }: Props) {
+export function AdblockSection({ info, update, reload }: { info: Info; update: (patch: SettingsPatch) => void; reload: () => void }) {
   const adblock = info.settings.adblock;
   return (
     <>
-      <AdblockChoice info={info} update={update} reload={reload} />
+      <AdblockChoice info={info} reload={reload} />
       {adblock.enabled && (
         <div className="set-card">
           <div className="set-label">Sites where ads are not blocked</div>

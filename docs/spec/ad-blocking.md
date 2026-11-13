@@ -33,10 +33,14 @@ Only lists in one file are offered: lists that include others
   folder (`filter-lists/`). Every hour Magnetite looks for chosen lists
   older than four days and downloads them again. A failed download keeps
   the copy from before; a download that is a web page (a Wi-Fi sign-in
-  page) or larger than 16 MB is refused.
+  page, served as `text/html` or starting with `<`) or larger than 16 MB
+  is refused.
 - A list no longer chosen is deleted.
-- The lists are compiled when they change and at start, on a thread of
-  their own (about 40 ms for all four). Until then pages load unblocked.
+- The lists are compiled on a thread of their own (about 40 ms for all
+  four): at start while the engine starts, and before the first page is
+  made, so restored pages are blocked from their first request; after a
+  change, from the lists already here, and again once missing or old ones
+  are downloaded. A download only starts while no newer change came.
 - The download is the only request: its publisher sees the IP address and
   "Magnetite" as the client, as any website would. Which pages are opened,
   and what was blocked, is never sent anywhere.

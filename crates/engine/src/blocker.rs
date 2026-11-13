@@ -36,10 +36,11 @@ impl Filters {
         Self(FilterEngine::new_with_filter_set(set))
     }
 
-    /// What to do with a request for `url` of type `kind` (adblock-rust's
-    /// names: "script", "image", …) made by a page at `source`.
-    fn verdict(&self, url: &str, source: &str, kind: &str) -> Verdict {
-        let Ok(request) = FilterRequest::new(url, source, kind, "GET") else {
+    /// What to do with a `method` request for `url` of type `kind`
+    /// (adblock-rust's names: "script", "image", …) made by a page at
+    /// `source`.
+    fn verdict(&self, url: &str, source: &str, kind: &str, method: &str) -> Verdict {
+        let Ok(request) = FilterRequest::new(url, source, kind, method) else {
             return Verdict::Load;
         };
         let result = self.0.check_network_request(&request);
@@ -104,11 +105,11 @@ fn kind_name(kind: ResourceType) -> Option<&'static str> {
     })
 }
 
-/// What to do with a request for `url` of type `kind` from a page at
-/// `source`, with the filters and allowed sites in use. Only web pages'
+/// What to do with a `method` request for `url` of type `kind` from a page
+/// at `source`, with the filters and allowed sites in use. Only web pages'
 /// requests for web addresses are checked: not Magnetite's own pages,
 /// extensions or DevTools.
-fn decide(url: &str, source: &str, kind: ResourceType) -> Verdict {
+fn decide(url: &str, source: &str, kind: ResourceType, method: &str) -> Verdict {
     let web = |u: &str| u.starts_with("https://") || u.starts_with("http://");
     let Some(kind) = kind_name(kind).filter(|_| web(url) && web(source)) else {
         return Verdict::Load;
@@ -126,7 +127,7 @@ fn decide(url: &str, source: &str, kind: ResourceType) -> Verdict {
     if allowed {
         return Verdict::Load;
     }
-    filters.verdict(url, source, kind)
+    filters.verdict(url, source, kind, method)
 }
 
 /// The handler for a request a browser (`browser`, if any: service workers
@@ -152,7 +153,8 @@ pub(crate) fn resource_request_handler(
     let source = page
         .or_else(|| initiator.map(CefString::to_string))
         .unwrap_or_default();
-    match decide(&url, &source, request.resource_type()) {
+    let method = CefString::from(&request.method()).to_string();
+    match decide(&url, &source, request.resource_type(), &method) {
         Verdict::Load => None,
         Verdict::Block => Some(Stop::new(None)),
         Verdict::Rewrite(to) => Some(Stop::new(Some(to))),
@@ -193,12 +195,14 @@ mod tests {
 ||tracker.example^$third-party
 @@||ads.example/allowed.js
 ||cdn.news.example^$removeparam=utm_source
+||beacon.example^$method=post
 ";
 
     #[test]
     fn requests_are_blocked_by_the_lists_rules() {
         let filters = Filters::compile([LIST.to_string()]);
-        let check = |url: &str, kind: &str| filters.verdict(url, "https://news.example/", kind);
+        let check =
+            |url: &str, kind: &str| filters.verdict(url, "https://news.example/", kind, "GET");
         assert_eq!(
             check("https://ads.example/banner.js", "script"),
             Verdict::Block
@@ -220,8 +224,20 @@ mod tests {
             "https://tracker.example/t.gif",
             "https://tracker.example/",
             "image",
+            "GET",
         );
         assert_eq!(own, Verdict::Load);
+        // A rule for one method: CEF's method name counts.
+        let beacon = |method: &str| {
+            filters.verdict(
+                "https://beacon.example/r",
+                "https://news.example/",
+                "ping",
+                method,
+            )
+        };
+        assert_eq!(beacon("POST"), Verdict::Block);
+        assert_eq!(beacon("GET"), Verdict::Load);
         // Parameters go from what a page fetches (by default not from scripts).
         assert_eq!(
             check(
@@ -237,39 +253,50 @@ mod tests {
         set_filters(Some(Filters::compile([LIST.to_string()])));
         let ad = "https://ads.example/banner.js";
         assert_eq!(
-            decide(ad, "https://www.news.example/a", ResourceType::SCRIPT),
+            decide(
+                ad,
+                "https://www.news.example/a",
+                ResourceType::SCRIPT,
+                "GET"
+            ),
             Verdict::Block
         );
         // The page itself, and pages that are no web pages.
         assert_eq!(
-            decide(ad, "https://news.example/", ResourceType::MAIN_FRAME),
+            decide(ad, "https://news.example/", ResourceType::MAIN_FRAME, "GET"),
             Verdict::Load
         );
         assert_eq!(
-            decide(ad, "magnetite://ui/sidebar", ResourceType::SCRIPT),
+            decide(ad, "magnetite://ui/sidebar", ResourceType::SCRIPT, "GET"),
             Verdict::Load
         );
         assert_eq!(
             decide(
                 ad,
                 "chrome-extension://abc/popup.html",
-                ResourceType::SCRIPT
+                ResourceType::SCRIPT,
+                "GET"
             ),
             Verdict::Load
         );
         // A site the user allowed, with any of its hosts.
         set_allowed_sites(["news.example".to_string()]);
         assert_eq!(
-            decide(ad, "https://www.news.example/a", ResourceType::SCRIPT),
+            decide(
+                ad,
+                "https://www.news.example/a",
+                ResourceType::SCRIPT,
+                "GET"
+            ),
             Verdict::Load
         );
         assert_eq!(
-            decide(ad, "https://other.example/", ResourceType::SCRIPT),
+            decide(ad, "https://other.example/", ResourceType::SCRIPT, "GET"),
             Verdict::Block
         );
         set_filters(None);
         assert_eq!(
-            decide(ad, "https://other.example/", ResourceType::SCRIPT),
+            decide(ad, "https://other.example/", ResourceType::SCRIPT, "GET"),
             Verdict::Load
         );
     }

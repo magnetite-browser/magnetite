@@ -4,10 +4,15 @@
 
 use std::io::Write;
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 /// Write `bytes` to `path` with owner-only permissions (0600 on Unix).
+/// Each write has a temp file of its own, so two threads writing the same
+/// file at once leave one whole version of it.
 pub fn write_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    let tmp = path.with_extension("tmp");
+    static WRITES: AtomicU64 = AtomicU64::new(0);
+    let n = WRITES.fetch_add(1, Ordering::Relaxed);
+    let tmp = path.with_extension(format!("{}-{n}.tmp", std::process::id()));
     // A leftover from a crash would keep its mode; `create_new` sets ours.
     let _ = std::fs::remove_file(&tmp);
     let mut options = std::fs::OpenOptions::new();

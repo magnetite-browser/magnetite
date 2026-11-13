@@ -396,14 +396,23 @@ pub(super) enum UiCommand {
         y: f64,
     },
     CaptureDismiss,
-    /// Site panel: whether ads are blocked on the site of `host`.
+    /// Site panel: whether ads are blocked on the site of the page at `url`.
     SiteAds {
-        host: String,
+        url: String,
     },
-    /// Site panel: block ads on the site of `host` again, or not.
+    /// Site panel: block ads on the site of the page at `url` again, or not.
     SetSiteAds {
-        host: String,
+        url: String,
         blocking: bool,
+    },
+    /// Settings, welcome page: the ad blocker on or off.
+    SetAdblockEnabled {
+        enabled: bool,
+    },
+    /// Settings, welcome page: subscribe to filter list `id`, or not.
+    SetAdblockList {
+        id: String,
+        subscribed: bool,
     },
     /// Site panel: permission rows of the focused page.
     SitePermissions,
@@ -1293,7 +1302,7 @@ impl MagnetiteApp {
                 // Lists are fetched and compiled only when they changed.
                 let after = &settings.adblock;
                 if (after.enabled, &after.lists) != (before.enabled, &before.lists) {
-                    self.apply_adblock();
+                    self.apply_adblock(true);
                 } else if after.allowed_sites != before.allowed_sites {
                     self.apply_adblock_sites();
                 }
@@ -1642,9 +1651,17 @@ impl MagnetiteApp {
             UiCommand::CaptureDismiss => {
                 lock(&self.capture).result = None;
             }
-            UiCommand::SiteAds { host } => return Ok(self.site_ads(&host)),
-            UiCommand::SetSiteAds { host, blocking } => {
-                self.set_site_ads(engine, &host, blocking);
+            UiCommand::SiteAds { url } => return Ok(self.site_ads(&url)),
+            UiCommand::SetSiteAds { url, blocking } => {
+                self.set_site_ads(engine, &url, blocking);
+                self.push_state(engine);
+            }
+            UiCommand::SetAdblockEnabled { enabled } => {
+                self.set_adblock_enabled(enabled);
+                self.push_state(engine);
+            }
+            UiCommand::SetAdblockList { id, subscribed } => {
+                self.set_adblock_list(&id, subscribed);
                 self.push_state(engine);
             }
             UiCommand::SitePermissions => {

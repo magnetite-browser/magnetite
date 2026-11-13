@@ -25,7 +25,7 @@ mod testing;
 
 pub(crate) use folders::folder_in_tree_mut;
 pub use history::{History, Visit};
-pub use settings::{Appearance, Settings, SiteSearch, SyncSettings};
+pub use settings::{AdblockSettings, Appearance, Settings, SiteSearch, SyncSettings};
 
 /// What the sidebar UI receives on every change.
 #[derive(Serialize)]

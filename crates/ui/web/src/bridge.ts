@@ -327,8 +327,10 @@ export type Command =
   | { cmd: "capture_share"; x: number; y: number }
   | { cmd: "capture_dismiss" }
   | { cmd: "site_permissions" }
-  | { cmd: "site_ads"; host: string }
-  | { cmd: "set_site_ads"; host: string; blocking: boolean }
+  | { cmd: "site_ads"; url: string }
+  | { cmd: "set_site_ads"; url: string; blocking: boolean }
+  | { cmd: "set_adblock_enabled"; enabled: boolean }
+  | { cmd: "set_adblock_list"; id: string; subscribed: boolean }
   | { cmd: "set_permission"; origin: string; kind: PermissionKind; value: PermissionValue }
   | { cmd: "site_data_scope" }
   | { cmd: "clear_site_data"; domain: string }
@@ -546,8 +548,8 @@ interface Replies {
   capture_save: { saved: string | null };
   split_drop_frame: SplitDropFrame | { tab?: undefined };
   site_permissions: { rows: PermissionRow[] };
-  /** `site`: the registrable domain of the host asked about. */
-  site_ads: { site: string; enabled: boolean; blocking: boolean };
+  /** `site`: the registrable domain of the page asked about; null for no web page. */
+  site_ads: { site: string | null; enabled: boolean; blocking: boolean };
   site_data_scope: { domain: string; origins: string[] } | { domain?: undefined };
 }
 

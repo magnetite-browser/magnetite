@@ -96,30 +96,32 @@ pub fn fetch(dir: &Path, list: &FilterList) -> Result<(), String> {
         .get(list.url)
         .call()
         .map_err(|e| format!("Cannot download it: {e}"))?;
+    let html = (res.headers().get("content-type"))
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|t| t.trim_start().to_ascii_lowercase().starts_with("text/html"));
     let mut body = Vec::new();
     res.body_mut()
         .as_reader()
         .take(MAX_LIST + 1)
         .read_to_end(&mut body)
         .map_err(|e| format!("The download broke off: {e}"))?;
-    check(&body)?;
+    check(&body, html)?;
     std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-    // Written whole, then put in place: a reader never sees half a list.
-    let part = dir.join(format!("{}.part", list.id));
-    std::fs::write(&part, &body).map_err(|e| e.to_string())?;
-    std::fs::rename(&part, path(dir, list.id)).map_err(|e| e.to_string())
+    // Written whole: a reader never sees half a list.
+    crate::files::write_private(&path(dir, list.id), &body).map_err(|e| e.to_string())
 }
 
 /// Whether a download looks like a filter list: text, not too large, and
-/// not a web page (a login page of a hotel's Wi-Fi, for one).
-fn check(body: &[u8]) -> Result<(), String> {
+/// not a web page (`html`: served as one), such as the sign-in page of a
+/// hotel's Wi-Fi. No list starts with `<`; every page does, after a byte
+/// order mark and white space.
+fn check(body: &[u8], html: bool) -> Result<(), String> {
     if body.len() as u64 > MAX_LIST {
         return Err("The list is larger than expected.".into());
     }
     let text = std::str::from_utf8(body).map_err(|_| "The download is no filter list.")?;
-    let text = text.trim_start();
-    let start = text.get(..64).unwrap_or(text).to_ascii_lowercase();
-    if start.starts_with("<!doctype") || start.starts_with("<html") || text.trim().is_empty() {
+    let text = text.trim_start_matches('\u{feff}').trim_start();
+    if html || text.starts_with('<') || text.is_empty() {
         return Err("The download is no filter list.".into());
     }
     Ok(())
@@ -145,11 +147,14 @@ mod tests {
 
     #[test]
     fn only_text_that_is_no_web_page_counts_as_a_list() {
-        assert!(check(b"[Adblock Plus 2.0]\n||ads.example^\n").is_ok());
-        assert!(check(b"  <!DOCTYPE html><html>Sign in to the Wi-Fi</html>").is_err());
-        assert!(check(b"<html><body>").is_err());
-        assert!(check(b"\n \n").is_err());
-        assert!(check(&[0xff, 0xfe, 0x00]).is_err());
+        let list = b"[Adblock Plus 2.0]\n||ads.example^\n";
+        assert!(check(list, false).is_ok());
+        assert!(check(list, true).is_err(), "served as a web page");
+        assert!(check(b"  <!DOCTYPE html><html>Sign in to the Wi-Fi</html>", false).is_err());
+        assert!(check(b"\n<!-- portal --><html>Sign in</html>", false).is_err());
+        assert!(check("\u{feff}<html><body>".as_bytes(), false).is_err());
+        assert!(check(b"\n \n", false).is_err());
+        assert!(check(&[0xff, 0xfe, 0x00], false).is_err());
     }
 
     #[test]
