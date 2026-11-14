@@ -102,6 +102,7 @@ export function App() {
   // Back, forward and reload act on the page in front: the peek while one is open.
   const frontRt = state.peek ? state.peek.runtime : activeRt;
   const activeItem = state.active_tab ? findTab(state, state.active_tab) : null;
+  const topBar = state.settings.appearance.top_bar && !FLOAT;
   const spaceVars = { ["--space" as string]: accentCss(space.accent), ["--space-soft" as string]: accentCss(space.accent, 0.14), ["--bg" as string]: state.chrome, background: state.chrome };
   // Media in tabs that are not on screen, playing ones first (at most two rows).
   const onScreen = new Set(state.panes.length > 1 ? state.panes : state.active_tab ? [state.active_tab] : []);
@@ -155,6 +156,8 @@ export function App() {
   return (
     <div className="flex flex-col h-full" style={spaceVars} onWheel={swipe.onWheel} data-float={FLOAT || undefined} key={FLOAT ? shownAt : undefined}>
       {!FLOAT && <SidebarResizer />}
+      {/* With the top bar on, it holds the band and the address (TopBar.tsx); the floating sidebar keeps its own. */}
+      {!topBar && (<>
       {/* Traffic-light band: sidebar toggle left, navigation right. Empty space drags the window. */}
       <div className={`titlebar-drag hdr flex h-[42px] shrink-0 items-center gap-0.5 ${FLOAT ? "pl-2" : "pl-[86px]"} pr-2`}>
         <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={FLOAT ? "Keep the sidebar open (⌘S)" : "Hide sidebar (⌘S)"}><SidebarIcon /></button>
@@ -178,6 +181,7 @@ export function App() {
           <AddressRow state={state} item={activeItem} rt={activeRt} onEdit={() => send({ cmd: "open_palette", mode: activeItem ? "navigate" : "new" })} openMenu={openMenu} />
         )}
       </div>
+      </>)}
 
       {media.length > 0 && <MediaBar entries={media} />}
 

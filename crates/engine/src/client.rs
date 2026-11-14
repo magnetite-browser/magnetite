@@ -12,6 +12,8 @@ use crate::keys;
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
     Sidebar,
+    /// The top bar above the sidebar and the pages (`frame.rs`).
+    TopBar,
     Content,
     /// A `magnetite://ui` page in an overlay window above a page (capture tool).
     Overlay,
@@ -24,7 +26,7 @@ pub enum Kind {
 
 /// Our own UI asks with the app's trust; everything else is a page.
 fn url_source(kind: Kind) -> UrlSource {
-    if matches!(kind, Kind::Sidebar | Kind::Overlay) {
+    if matches!(kind, Kind::Sidebar | Kind::TopBar | Kind::Overlay) {
         UrlSource::Ui
     } else {
         UrlSource::Page
@@ -98,6 +100,9 @@ wrap_client! {
 impl MagnetiteClient {
     pub fn sidebar() -> Client {
         MagnetiteClient::new(Kind::Sidebar)
+    }
+    pub fn top_bar() -> Client {
+        MagnetiteClient::new(Kind::TopBar)
     }
     pub fn content() -> Client {
         MagnetiteClient::new(Kind::Content)
@@ -407,7 +412,7 @@ wrap_load_handler! {
                         engine.emit(EngineEvent::SidebarLoaded);
                     }
                 }
-                Kind::Overlay | Kind::DevTools | Kind::Stray => {}
+                Kind::TopBar | Kind::Overlay | Kind::DevTools | Kind::Stray => {}
             }
         }
     }
@@ -431,7 +436,7 @@ wrap_request_handler! {
             // The sidebar, the floating sidebar and overlays show our UI only:
             // a link dropped on them must not turn them into a web page that
             // then receives the app's state.
-            if matches!(self.kind, Kind::Sidebar | Kind::Overlay) && main {
+            if matches!(self.kind, Kind::Sidebar | Kind::TopBar | Kind::Overlay) && main {
                 let url = request.as_ref().map(|r| CefString::from(&r.url()).to_string()).unwrap_or_default();
                 if !engine.is_own_ui(&url) {
                     return 1;
@@ -516,7 +521,7 @@ wrap_request_handler! {
             }
             // Our own pages have no "this page crashed" view to reload from:
             // without this the sidebar stays blank until the app restarts.
-            if matches!(self.kind, Kind::Sidebar | Kind::Overlay)
+            if matches!(self.kind, Kind::Sidebar | Kind::TopBar | Kind::Overlay)
                 && let Some(browser) = browser.as_deref().cloned()
                 && engine.may_reload_ui(browser.identifier())
             {
@@ -716,7 +721,7 @@ wrap_context_menu_handler! {
             model: Option<&mut MenuModel>,
         ) {
             let Some(m) = model else { return };
-            if matches!(self.kind, Kind::Sidebar | Kind::Overlay) {
+            if matches!(self.kind, Kind::Sidebar | Kind::TopBar | Kind::Overlay) {
                 m.clear();
             } else if self.kind == Kind::Content
                 && let Some(incognito) = keys::command_id_for("IDC_CONTENT_CONTEXT_OPENLINKOFFTHERECORD")
@@ -751,19 +756,24 @@ wrap_drag_handler! {
         kind: Kind,
     }
     impl DragHandler {
-        /// `-webkit-app-region: drag` areas of the sidebar page become the
-        /// frame window's draggable regions (the sidebar view sits at 0,0).
+        /// `-webkit-app-region: drag` areas of the sidebar and the top bar
+        /// page become the frame window's draggable regions.
         fn on_draggable_regions_changed(
             &self,
             _browser: Option<&mut Browser>,
             frame: Option<&mut Frame>,
             regions: Option<&[DraggableRegion]>,
         ) {
-            if self.kind != Kind::Sidebar || frame.is_some_and(|f| f.is_main() == 0) {
+            if frame.is_some_and(|f| f.is_main() == 0) {
                 return;
             }
+            let regions = regions.map(<[DraggableRegion]>::to_vec).unwrap_or_default();
             let engine = Engine::global();
-            engine.lock().sidebar_drag = regions.map(<[DraggableRegion]>::to_vec).unwrap_or_default();
+            match self.kind {
+                Kind::Sidebar => engine.lock().sidebar_drag = regions,
+                Kind::TopBar => engine.lock().top_bar_drag = regions,
+                _ => return,
+            }
             engine.apply_drag_regions();
         }
     }

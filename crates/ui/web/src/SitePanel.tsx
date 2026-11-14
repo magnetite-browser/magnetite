@@ -151,9 +151,11 @@ function connection(item: TabItem, rt: TabRuntime | undefined): { text: string; 
   return { text: "Unavailable" };
 }
 
-export function SitePanel({ state, item, rt, onClose }: { state: UiState; item: TabItem; rt: TabRuntime | undefined; onClose: () => void }) {
+/** `inWindow`: the panel fills a window of its own below the top bar
+ * (`TopBarPopup.tsx`), which has the keyboard already. */
+export function SitePanel({ state, item, rt, onClose, inWindow = false }: { state: UiState; item: TabItem; rt: TabRuntime | undefined; onClose: () => void; inWindow?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
-  useDismiss(onClose);
+  useDismiss(onClose, { takeFocus: !inWindow });
   useEffect(() => box.current?.focus(), []);
   const internal = item.url.startsWith("magnetite://");
   const conn = connection(item, rt);
@@ -173,7 +175,7 @@ export function SitePanel({ state, item, rt, onClose }: { state: UiState; item: 
 
   return (
     <>
-      <div className="fixed inset-0 z-40" onMouseDown={onClose} />
+      {!inWindow && <div className="fixed inset-0 z-40" onMouseDown={onClose} />}
       <div ref={box} tabIndex={-1} className="site-panel no-drag" role="dialog" aria-label={`Site controls for ${host}`}>
         <div className="flex items-center gap-2.5 px-3 pt-3 pb-2">
           <Favicon url={item.url} src={rt?.favicon} />

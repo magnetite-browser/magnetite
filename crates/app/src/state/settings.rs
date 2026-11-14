@@ -126,6 +126,9 @@ pub struct Appearance {
     pub density: Density,
     /// Width of the docked sidebar in points, 220 to 360.
     pub sidebar_width: u32,
+    /// Navigation, the address and the window buttons in a bar across the
+    /// top of the window, not at the top of the sidebar.
+    pub top_bar: bool,
 }
 
 impl Default for Appearance {
@@ -134,6 +137,7 @@ impl Default for Appearance {
             text_scale: 100,
             density: Density::Comfortable,
             sidebar_width: 264,
+            top_bar: false,
         }
     }
 }
@@ -486,6 +490,30 @@ mod tests {
         }
         .sanitised();
         assert_eq!(fine.search_template, "https://kagi.com/search?q=%s");
+    }
+
+    /// Appearance saved before the top bar existed keeps its values and
+    /// leaves the top bar off; a top bar turned on stays on once saved.
+    #[test]
+    fn appearance_saved_before_the_top_bar_loads_with_it_off() {
+        let older: Appearance =
+            serde_json::from_str(r#"{"text_scale":110,"density":"compact","sidebar_width":300}"#)
+                .unwrap();
+        assert_eq!(
+            older,
+            Appearance {
+                text_scale: 110,
+                density: Density::Compact,
+                sidebar_width: 300,
+                top_bar: false,
+            }
+        );
+        let on = Appearance {
+            top_bar: true,
+            ..older
+        };
+        let saved = serde_json::to_string(&on).unwrap();
+        assert_eq!(serde_json::from_str::<Appearance>(&saved).unwrap(), on);
     }
 
     #[test]

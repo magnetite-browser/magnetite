@@ -565,6 +565,11 @@ impl Engine {
                     None => inner.pending_sidebar_browser = Some(browser),
                 }
             }
+            Kind::TopBar => {
+                if let Some(f) = self.lock().frame.as_mut() {
+                    f.top_bar_browser = Some(browser);
+                }
+            }
             Kind::Overlay | Kind::DevTools => {}
             Kind::Stray => {
                 crate::stray::hide(&browser);
