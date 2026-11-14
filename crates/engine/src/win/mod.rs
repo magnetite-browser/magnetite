@@ -33,6 +33,7 @@ unsafe extern "system" {
 
 #[link(name = "user32")]
 unsafe extern "system" {
+    fn SetWindowLongPtrW(hwnd: *mut c_void, index: i32, value: isize) -> isize;
     fn GetWindowRect(hwnd: *mut c_void, rect: *mut [i32; 4]) -> i32;
     fn GetDpiForWindow(hwnd: *mut c_void) -> u32;
     fn SetWindowRgn(hwnd: *mut c_void, region: *mut c_void, redraw: i32) -> i32;
@@ -89,6 +90,22 @@ pub fn round_window_corners(handle: cef::sys::cef_window_handle_t, shadow: bool)
         set(handle, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE);
         clip_page(handle);
     }
+}
+
+/// The index of a window's owner for `SetWindowLongPtrW`.
+const GWLP_HWNDPARENT: i32 = -8;
+
+/// Make the page window `child` a window of the frame `frame`, as the
+/// pages made for tabs are from the start (the counterpart of
+/// `mac::attach_child`). A mini window is nobody's; turned into a tab it
+/// must go with the frame: minimised with it, above it, and without a
+/// button of its own in the taskbar.
+pub fn attach_child(frame: cef::sys::cef_window_handle_t, child: cef::sys::cef_window_handle_t) {
+    if frame.0.is_null() || child.0.is_null() {
+        return;
+    }
+    // SAFETY: two live windows of this process; Windows only notes the owner.
+    unsafe { SetWindowLongPtrW(child.0.cast(), GWLP_HWNDPARENT, frame.0 as isize) };
 }
 
 /// A frameless window that stays a plain rectangle (the device bar above a

@@ -319,7 +319,11 @@ impl Engine {
         if let (true, Some(frame)) = (adopted, frame) {
             crate::mac::attach_child(frame.window_handle(), window.window_handle());
         }
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        if let (true, Some(frame)) = (adopted, frame) {
+            crate::win::attach_child(frame.window_handle(), window.window_handle());
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = (adopted, frame, window);
     }
 
