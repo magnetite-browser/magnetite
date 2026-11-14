@@ -601,6 +601,11 @@ impl MagnetiteApp {
                         self.open_url(engine, &url, false);
                     });
                 }
+                // As a link from another program arrives while Magnetite runs.
+                static LINKED: std::sync::Once = std::sync::Once::new();
+                if let Some(url) = self.link_on_start.clone() {
+                    LINKED.call_once(|| engine.open_link_from_other_app(url));
+                }
                 // The first start asks what to bring along; nothing is taken
                 // from another browser without that.
                 static WELCOMED: std::sync::Once = std::sync::Once::new();

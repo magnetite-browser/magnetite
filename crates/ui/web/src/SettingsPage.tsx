@@ -4,7 +4,7 @@ import { Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIco
 import { IsolationSection } from "./IsolationSection";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
-import { applyAppearance, keyLabel, send, type DefaultBrowser, type Settings, type SiteSearch } from "./bridge";
+import { applyAppearance, IS_MAC, keyLabel, send, type DefaultBrowser, type Settings, type SiteSearch } from "./bridge";
 import { About } from "./settings/AboutSection";
 import { AutofillSection } from "./settings/AutofillSection";
 import { AppearanceSection } from "./settings/AppearanceSection";
@@ -374,6 +374,7 @@ function ClearHistory({ disabled, onClear }: { disabled: boolean; onClear: () =>
 /**
  * Whether Magnetite opens links from other apps, and a button to make it so.
  * macOS asks the user itself; the card shows what the system says afterwards.
+ * Windows has the user choose in its Settings, which open.
  */
 function DefaultBrowserCard({ state }: { state: DefaultBrowser }) {
   const [now, setNow] = useState(state);
@@ -386,7 +387,7 @@ function DefaultBrowserCard({ state }: { state: DefaultBrowser }) {
   };
   return (
     <Field label="Default browser" hint={now === "yes" ? "Magnetite opens links from other apps." : "Links from other apps open in another browser."}>
-      {now === "no" && <button className="btn" disabled={asking} onClick={ask}>{asking ? "Waiting for macOS…" : "Make default"}</button>}
+      {now === "no" && <button className="btn" disabled={asking} onClick={ask}>{asking ? (IS_MAC ? "Waiting for macOS…" : "Opening Settings…") : "Make default"}</button>}
     </Field>
   );
 }

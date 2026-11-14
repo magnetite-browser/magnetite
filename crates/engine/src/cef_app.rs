@@ -124,6 +124,27 @@ wrap_browser_process_handler! {
             crate::mac::watch_memory_pressure();
             engine.emit(EngineEvent::Ready);
         }
+        // Magnetite was started while it runs already (Windows, Linux):
+        // by another program with a link for the default browser, which is
+        // the command line's one argument, or by the user, without one.
+        // That second process ends; the link opens here.
+        fn on_already_running_app_relaunch(
+            &self,
+            command_line: Option<&mut CommandLine>,
+            _current_directory: Option<&CefString>,
+        ) -> ::std::os::raw::c_int {
+            let engine = Engine::global();
+            let mut arguments = CefStringList::new();
+            if let Some(command_line) = command_line {
+                command_line.arguments(Some(&mut arguments));
+            }
+            match crate::client::first_string(&mut arguments).filter(|url| !url.is_empty()) {
+                // The app brings the window to the front, if the link opens in it.
+                Some(url) => engine.open_link_from_other_app(url),
+                None => engine.activate_frame(),
+            }
+            1
+        }
     }
 }
 

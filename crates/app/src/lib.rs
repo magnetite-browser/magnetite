@@ -100,7 +100,11 @@ pub fn run_from_bootstrap(sandbox_info: *mut std::ffi::c_void) -> i32 {
 
 /// Run the browser. Blocks until it quits; returns the process exit code.
 pub fn run() -> i32 {
-    let cli = parse_cli(std::env::args()).unwrap_or_else(|e| e.exit());
+    // Windows starts its default browser with the link as the one argument
+    // after `--single-argument` (`packaging/windows/magnetite.iss`): that
+    // is a link from another program, never options of ours.
+    let (args, link) = split_link(std::env::args().collect());
+    let cli = parse_cli(args).unwrap_or_else(|e| e.exit());
 
     let data_dir = cli.data_dir.unwrap_or_else(default_data_dir);
     // Sidebar, tokens and Chromium's profiles: the user's only.
@@ -129,9 +133,25 @@ pub fn run() -> i32 {
     } else {
         state::ArcImport::Ask
     };
-    let delegate = Arc::new(app::MagnetiteApp::new(data_dir, import, cli.open));
+    let delegate = Arc::new(app::MagnetiteApp::new(data_dir, import, cli.open, link));
     app::install_global(&delegate);
     magnetite_engine::run(config, delegate)
+}
+
+/// The marker Chromium's command lines know: what follows is one argument,
+/// whatever it looks like. A link from another program is handed over so,
+/// and can then not smuggle in options (`--data-dir`, Chromium's switches).
+const SINGLE_ARGUMENT: &str = "--single-argument";
+
+/// Split the command line at `--single-argument`: our own arguments before
+/// it, and the link after it (the arguments after it joined by spaces, as
+/// a link with spaces would have been split).
+fn split_link(mut args: Vec<String>) -> (Vec<String>, Option<String>) {
+    let Some(at) = args.iter().position(|a| a == SINGLE_ARGUMENT) else {
+        return (args, None);
+    };
+    let link = args.split_off(at)[1..].join(" ");
+    (args, Some(link).filter(|l| !l.is_empty()))
 }
 
 /// Lock `m`, also after a panic elsewhere left it poisoned: the data behind
@@ -227,7 +247,34 @@ fn default_ui_dir() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_cli;
+    use super::{parse_cli, split_link};
+
+    #[test]
+    fn a_link_from_another_program_is_never_an_option() {
+        let args = |list: &[&str]| list.iter().map(|a| (*a).to_string()).collect::<Vec<_>>();
+        let (ours, link) = split_link(args(&[
+            "magnetite",
+            "--no-import",
+            "--single-argument",
+            "https://example.org/a b",
+        ]));
+        assert_eq!(ours, args(&["magnetite", "--no-import"]));
+        assert_eq!(link.as_deref(), Some("https://example.org/a b"));
+        // What comes after the marker stays the link, whatever it looks like.
+        let (ours, link) = split_link(args(&[
+            "magnetite",
+            "--single-argument",
+            "--data-dir=/x",
+            "--no-sandbox",
+        ]));
+        assert_eq!(ours, args(&["magnetite"]));
+        assert_eq!(link.as_deref(), Some("--data-dir=/x --no-sandbox"));
+        assert_eq!(
+            split_link(args(&["magnetite", "--single-argument"])).1,
+            None
+        );
+        assert_eq!(split_link(args(&["magnetite", "--open", "x"])).1, None);
+    }
 
     fn cli(args: &[&str]) -> Result<super::Cli, clap::Error> {
         parse_cli(args.iter().map(|a| (*a).to_string()))

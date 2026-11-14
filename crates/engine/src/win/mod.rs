@@ -3,12 +3,14 @@
 
 use std::ffi::c_void;
 
+mod default_browser;
 mod dividers;
 mod edge;
 mod hotkey;
 mod layers;
 mod share;
 
+pub use default_browser::{handles, open_default_apps};
 pub use dividers::{DividerKey, set_dividers};
 pub use edge::set_edge_zone;
 pub use hotkey::set_quick_search_hotkey;

@@ -182,7 +182,7 @@ wrap_display_handler! {
 }
 
 /// First entry of a CEF string list, via the C API (the wrapper owns the list).
-fn first_string(list: &mut CefStringList) -> Option<String> {
+pub(crate) fn first_string(list: &mut CefStringList) -> Option<String> {
     let raw: *mut sys::_cef_string_list_t = list.into();
     // SAFETY: `raw` is a live list for the duration of the callback.
     unsafe {

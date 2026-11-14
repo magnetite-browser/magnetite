@@ -69,5 +69,24 @@ Source: "{#Source}\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 Name: "{autoprograms}\Magnetite"; Filename: "{app}\magnetite.exe"; IconFilename: "{app}\magnetite.ico"
 Name: "{autodesktop}\Magnetite"; Filename: "{app}\magnetite.exe"; IconFilename: "{app}\magnetite.ico"; Tasks: desktopicon
 
+[Registry]
+; Magnetite as a browser Windows can offer as the default, for this user.
+; Windows starts it with the link after --single-argument: whatever the link
+; looks like, it is then one argument and never an option.
+Root: HKCU; Subkey: "Software\Classes\MagnetiteURL"; ValueType: string; ValueData: "Magnetite URL"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\MagnetiteURL"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\MagnetiteURL\DefaultIcon"; ValueType: string; ValueData: "{app}\magnetite.exe,0"
+Root: HKCU; Subkey: "Software\Classes\MagnetiteURL\shell\open\command"; ValueType: string; ValueData: """{app}\magnetite.exe"" --single-argument %1"
+Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite"; ValueType: string; ValueData: "Magnetite"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite\DefaultIcon"; ValueType: string; ValueData: "{app}\magnetite.exe,0"
+Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite\shell\open\command"; ValueType: string; ValueData: """{app}\magnetite.exe"""
+Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite\Capabilities"; ValueType: string; ValueName: "ApplicationName"; ValueData: "Magnetite"
+Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite\Capabilities"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "A fast, open-source browser built around a sidebar."
+Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite\Capabilities"; ValueType: string; ValueName: "ApplicationIcon"; ValueData: "{app}\magnetite.exe,0"
+Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite\Capabilities\URLAssociations"; ValueType: string; ValueName: "http"; ValueData: "MagnetiteURL"
+Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite\Capabilities\URLAssociations"; ValueType: string; ValueName: "https"; ValueData: "MagnetiteURL"
+Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite\Capabilities\StartMenu"; ValueType: string; ValueName: "StartMenuInternet"; ValueData: "Magnetite"
+Root: HKCU; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueName: "Magnetite"; ValueData: "Software\Clients\StartMenuInternet\Magnetite\Capabilities"; Flags: uninsdeletevalue
+
 [Run]
 Filename: "{app}\magnetite.exe"; Description: "{cm:LaunchProgram,Magnetite}"; Flags: nowait postinstall skipifsilent
