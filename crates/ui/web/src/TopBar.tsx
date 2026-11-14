@@ -6,9 +6,16 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { AddressRow } from "./AddressRow";
 import { Back, Close, Forward, Maximize, Minus, Reload, SidebarIcon, SplitIcon } from "./Icons";
-import { PinnedExtensions } from "./PinnedExtensions";
+import { PinnedExtensions, SLOT } from "./PinnedExtensions";
 import { IS_MAC, accentCss, applyAppearance, findTab, hostOf, send, subscribe, type UiState } from "./bridge";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
+
+/** The least the address keeps beside pinned extensions, in points. */
+const ADDRESS_MIN = 240;
+/** What the bar holds besides the address and the extensions: the room for
+ * the traffic lights (or the left padding), four buttons, the two gaps, the
+ * right padding and, outside macOS, the three window buttons. */
+const RESERVED = (IS_MAC ? 86 : 8) + 4 * SLOT + 2 * 8 + 8 + (IS_MAC ? 0 : 8 + 3 * SLOT);
 
 export function TopBar() {
   const [state, setState] = useState<UiState | null>(null);
@@ -17,6 +24,13 @@ export function TopBar() {
     send({ cmd: "get_state" }).then((s) => window.__magnetite?.setState(s));
   }, []);
   useSidebarShortcuts(false, () => {});
+  // The window's width in points: how many pinned extensions fit depends on it.
+  const [width, setWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const measure = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
   const appearance = state?.settings.appearance;
   useLayoutEffect(() => {
     if (appearance) applyAppearance(appearance);
@@ -31,6 +45,11 @@ export function TopBar() {
   const activeItem = state.active_tab ? findTab(state, state.active_tab) : null;
   // Focus rings take the active space's colour, as in the sidebar.
   const space = state.sidebar.spaces.find((s) => s.id === state.active_space);
+  // Extensions that would squeeze the address stay in the menu bar's
+  // Extensions menu. Lengths on the page grow with the text size: the one
+  // this render's state asks for, which `applyAppearance` sets after it.
+  const zoom = state.settings.appearance.text_scale / 100;
+  const room = Math.max(0, Math.floor((width / zoom - RESERVED - ADDRESS_MIN) / SLOT));
   return (
     <div
       className="topbar titlebar-drag"
@@ -59,7 +78,7 @@ export function TopBar() {
       </div>
 
       <div className="flex shrink-0 items-center gap-0.5 pr-2">
-        <PinnedExtensions state={state} openMenu={openMenu} popups />
+        <PinnedExtensions state={state} openMenu={openMenu} popups room={room} />
         {!IS_MAC && (
           <div className="ml-2 flex items-center gap-0.5">
             <button className="ib no-drag" onClick={() => send({ cmd: "window_minimize" })} title="Minimize" aria-label="Minimize"><Minus /></button>

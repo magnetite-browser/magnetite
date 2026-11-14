@@ -11,21 +11,21 @@ import { extensionIcon, send, type ExtensionInfo, type UiState } from "./bridge"
 const OPENING_MS = 5000;
 
 /** Room per icon in the top row (button plus gap), in points. */
-const SLOT = 30;
+export const SLOT = 30;
 /** What the rest of the row takes: traffic lights, sidebar toggle, back, forward, reload, padding. */
 const RESERVED = 86 + 28 + 3 * 30 + 12;
 
 type OpenMenu = (x: number, y: number, items: MenuItem[]) => void;
 
-/** `popups`: in the top bar, which has room for all of them and opens
- * menus as windows below itself. */
-export function PinnedExtensions({ state, openMenu, popups = false }: { state: UiState; openMenu: OpenMenu; popups?: boolean }) {
+/** `popups`: in the top bar, which opens menus as windows below itself.
+ * `room`: how many icons fit there; the sidebar works it out from its width. */
+export function PinnedExtensions({ state, openMenu, popups = false, room }: { state: UiState; openMenu: OpenMenu; popups?: boolean; room?: number }) {
   const installed = new Map(state.extensions.map((e) => [e.id, e]));
   const pinned = state.settings.pinned_extensions.flatMap((id) => installed.get(id) ?? []);
   // Those that do not fit stay in the menu bar's Extensions menu. The row
   // grows with the text size, the sidebar's width in points does not.
   const { sidebar_width, text_scale } = state.settings.appearance;
-  const room = popups ? pinned.length : Math.max(0, Math.floor((sidebar_width / (text_scale / 100) - RESERVED) / SLOT));
+  room ??= Math.max(0, Math.floor((sidebar_width / (text_scale / 100) - RESERVED) / SLOT));
   return (
     <>
       {pinned.slice(0, room).map((e) => (

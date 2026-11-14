@@ -153,8 +153,10 @@ into a bar across the whole window, above the sidebar and the pages. It
 switches at once, without a restart.
 
 - From left to right: the sidebar button, back, forward and reload, the
-  address, all pinned extensions, and outside macOS minimize, maximize and
-  close. On macOS the window's own buttons sit at its left end.
+  address, the pinned extensions, and outside macOS minimize, maximize and
+  close. On macOS the window's own buttons sit at its left end. The address
+  keeps at least 240 points: pinned extensions that do not fit beside it are
+  left out, as in the sidebar (`extensions.md`).
 - The address shows the whole address without `https://` and `www.`; a
   click opens the command bar with it, as in the sidebar. An open peek shows
   its controls in its place.
