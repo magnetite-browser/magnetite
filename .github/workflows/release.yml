@@ -56,6 +56,15 @@ jobs:
       run:
         shell: bash
     steps:
+      # A release never carries an ad hoc signed Mac app or disk image:
+      # Gatekeeper blocks them after download. Checked first, before the
+      # long build.
+      - name: Require the Apple secrets
+        if: runner.os == 'macOS' && (env.HAS_APPLE_CERT != 'true' || env.HAS_APPLE_NOTARY != 'true')
+        run: |
+          echo "::error::the Apple signing or notarization secrets are missing from the release environment"
+          exit 1
+
       - if: runner.os == 'Windows'
         run: git config --global core.autocrlf false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -73,7 +82,7 @@ jobs:
           cargo build --locked --profile release -p magnetite --bins
 
       - name: Developer ID certificate
-        if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true'
+        if: runner.os == 'macOS'
         env:
           APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -83,7 +92,7 @@ jobs:
         run: scripts/build.sh --release --skip-ui
 
       - name: Notarize
-        if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true' && env.HAS_APPLE_NOTARY == 'true'
+        if: runner.os == 'macOS'
         env:
           APPLE_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
           APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
@@ -91,10 +100,6 @@ jobs:
         run: |
           scripts/release/notarize-macos.sh dist/Magnetite.app \
             "dist/Magnetite-$VERSION-${{ matrix.target }}.zip" "dist/Magnetite-$VERSION-${{ matrix.target }}.dmg"
-
-      - name: Warn about an unnotarized app
-        if: runner.os == 'macOS' && (env.HAS_APPLE_CERT != 'true' || env.HAS_APPLE_NOTARY != 'true')
-        run: echo "::warning::${{ matrix.target }} is ad hoc signed, not notarized; Gatekeeper will block it after download"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

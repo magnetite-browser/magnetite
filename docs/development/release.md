@@ -46,9 +46,10 @@ publishes it by hand. Publishing is what makes installed apps update.
 |---|---|
 | `MAGNETITE_UPDATE_PUBLIC_KEY` | the public key the app embeds; the workflow refuses to sign with any other key |
 
-Without the Apple secrets the macOS apps are signed ad hoc and the workflow
-warns. Without `MAGNETITE_UPDATE_KEY` the last job fails: an unsigned manifest
-is never published.
+Without the Apple secrets the macOS jobs fail before they build: an app or
+disk image that is only signed ad hoc is never published. Without
+`MAGNETITE_UPDATE_KEY` the last job fails: an unsigned manifest is never
+published.
 
 ## The update key
 
