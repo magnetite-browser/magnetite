@@ -1,0 +1,14 @@
+# A headless Wayland session for scripts/wayland-test.sh: the Linux builder
+# image (packaging/linux/Containerfile) plus sway on wlroots' headless
+# backend with XWayland, grim for screenshots, wtype for keys and vptr
+# (vptr.c) for the pointer.
+FROM magnetite-linux-builder
+COPY vptr.c /tmp/vptr/
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      sway xwayland grim wtype procps libwayland-dev libwayland-bin git \
+    && git clone --depth 1 https://gitlab.freedesktop.org/wlroots/wlr-protocols.git /tmp/wlr-protocols \
+    && cd /tmp/vptr && xml=/tmp/wlr-protocols/unstable/wlr-virtual-pointer-unstable-v1.xml \
+    && wayland-scanner client-header "$xml" vp.h && wayland-scanner private-code "$xml" vp.c \
+    && gcc -O1 -o /usr/local/bin/vptr vptr.c vp.c -lwayland-client \
+    && rm -rf /var/lib/apt/lists/* /tmp/wlr-protocols /tmp/vptr \
+    && useradd --create-home tester

@@ -79,6 +79,18 @@ Never run with `--no-sandbox`.
 From macOS (or anywhere with Podman or Docker), build and test for Linux in a
 container: `scripts/linux-container.sh build` or `scripts/linux-container.sh test`.
 
+In a Wayland session Magnetite runs as an X11 client, through XWayland, until
+its child windows work under Wayland (`docs/adr/0012-wayland.md`);
+`--ozone-platform=wayland` runs it as a Wayland client all the same. To test
+either without a desktop, `scripts/wayland-test.sh` runs a container build in
+a headless Wayland session:
+
+```sh
+scripts/linux-container.sh build --no-archive
+scripts/wayland-test.sh dist/magnetite-<version>      # the smoke test
+scripts/wayland-test.sh --help                        # steps files, results
+```
+
 ## Windows (not built yet)
 
 Nobody has built Magnetite on Windows so far. The scripts are prepared for
