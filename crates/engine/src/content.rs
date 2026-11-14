@@ -767,7 +767,11 @@ wrap_window_delegate! {
         fn initial_bounds(&self, _window: Option<&mut Window>) -> Rect {
             self.mini.clone().unwrap_or_else(|| Engine::global().content_rect())
         }
-        fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { self.mini.is_some().into() }
+        // On Linux CEF gives a window that cannot resize its first size as
+        // its minimum and maximum, which Chromium's Wayland backend enforces
+        // on every later set_bounds: a page would keep its first size. A
+        // subsurface has no resize handles anyway.
+        fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { (self.mini.is_some() || crate::cef_app::wayland()).into() }
         fn can_minimize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { self.mini.is_some().into() }
         fn is_frameless(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
         fn with_standard_window_buttons(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 0 }

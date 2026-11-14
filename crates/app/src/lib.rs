@@ -1,5 +1,6 @@
 //! magnetite: wires the engine, the domain model and the sidebar UI.
 
+mod adblock;
 mod app;
 mod capture;
 mod downloads;
@@ -17,7 +18,9 @@ use clap::Parser;
 use magnetite_engine::EngineConfig;
 
 #[derive(Parser)]
-#[command(name = "magnetite")]
+// `--version` also tells a running Magnetite which version a system update
+// put in its place (`update::SystemBinary`).
+#[command(name = "magnetite", version)]
 struct Cli {
     /// Directory holding profile data and state. Defaults to the platform app-data dir.
     #[arg(long)]

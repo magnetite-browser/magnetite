@@ -72,12 +72,40 @@ sudo apt install cmake ninja-build pkg-config patchelf \
 scripts/build.sh
 ```
 
+On Fedora:
+
+```sh
+sudo dnf install cmake ninja-build patchelf nss atk at-spi2-atk cups-libs \
+  libdrm libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm pango \
+  alsa-lib gtk3
+scripts/build.sh
+```
+
+`scripts/linux-packages.sh dist/magnetite-<version>` turns the build into
+the rpm and deb packages a release ships (needs `rpm-build` and `dpkg` on
+Fedora, `rpm` on Debian/Ubuntu, and `packaging/linux/repo-key.asc`).
+
 Chromium's sandbox needs unprivileged user namespaces or a setuid
 `chrome-sandbox`; see `packaging/linux/README.md`, which ships in the package.
 Never run with `--no-sandbox`.
 
 From macOS (or anywhere with Podman or Docker), build and test for Linux in a
 container: `scripts/linux-container.sh build` or `scripts/linux-container.sh test`.
+
+In a Wayland session Magnetite runs as an X11 client, through XWayland, until
+its child windows work under Wayland (`docs/adr/0012-wayland.md`);
+`--ozone-platform=wayland` runs it as a Wayland client all the same, which
+needs a CEF with Magnetite's Wayland patch: with the official CEF of the
+build above it stops at the first page. A session without XWayland
+therefore needs that CEF. To test
+either without a desktop, `scripts/wayland-test.sh` runs a container build in
+a headless Wayland session:
+
+```sh
+scripts/linux-container.sh build --no-archive
+scripts/wayland-test.sh dist/magnetite-<version>      # the smoke test
+scripts/wayland-test.sh --help                        # steps files, results
+```
 
 ## Windows
 

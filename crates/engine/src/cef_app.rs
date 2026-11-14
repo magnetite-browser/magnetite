@@ -60,6 +60,37 @@ fn add_to_list(cmd: &mut CommandLine, switch: &str, item: &str) {
     cmd.append_switch_with_value(Some(&name), Some(&CefString::from(value.as_str())));
 }
 
+/// Run as an X11 client, also in a Wayland session (through `XWayland`).
+/// Under Wayland, CEF stops the program when it makes a window with a
+/// parent, which every page is (ADR-0012). An `--ozone-platform` on the
+/// command line wins, and without an X server Chromium keeps its choice.
+/// Notes the outcome for `wayland()`.
+#[cfg(target_os = "linux")]
+fn through_xwayland(cmd: &mut CommandLine) {
+    let name = CefString::from("ozone-platform");
+    if cmd.has_switch(Some(&name)) == 0
+        && std::env::var_os("DISPLAY").is_some_and(|d| !d.is_empty())
+    {
+        cmd.append_switch_with_value(Some(&name), Some(&CefString::from("x11")));
+    }
+    let platform = CefString::from(&cmd.switch_value(Some(&name))).to_string();
+    let wayland = platform == "wayland"
+        || (platform.is_empty() && std::env::var_os("WAYLAND_DISPLAY").is_some());
+    WAYLAND.store(wayland, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[cfg(target_os = "linux")]
+static WAYLAND: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Whether Chromium runs as a Wayland client, so that the frame's child
+/// windows are subsurfaces of it (ADR-0012). Always false off Linux.
+pub(crate) fn wayland() -> bool {
+    #[cfg(target_os = "linux")]
+    return WAYLAND.load(std::sync::atomic::Ordering::Relaxed);
+    #[cfg(not(target_os = "linux"))]
+    false
+}
+
 wrap_app! {
     pub struct BrowserApp {}
 
@@ -82,6 +113,8 @@ wrap_app! {
             }
             #[cfg(target_os = "macos")]
             enable_feature(cmd, PIP_WITHOUT_ADDRESS);
+            #[cfg(target_os = "linux")]
+            through_xwayland(cmd);
             // Our private DevTools session (`devpipe.rs`): fds 3 and 4.
             if crate::devpipe::is_open() {
                 cmd.append_switch(Some(&CefString::from("remote-debugging-pipe")));

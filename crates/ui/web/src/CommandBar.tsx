@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Favicon } from "./Favicon";
 import { Arrow, Command as CommandIcon } from "./Icons";
-import { findTab, findTabInSpace, hostOf, send, type Command, type PaletteMode, type SearchResult, type Side, type SiteSearch, type UiState } from "./bridge";
+import { IS_MAC, findTab, findTabInSpace, hostOf, send, type Command, type PaletteMode, type SearchResult, type Side, type SiteSearch, type UiState } from "./bridge";
 import { useDismiss } from "./dismiss";
 
 /**
@@ -64,8 +64,8 @@ function tabActions(state: UiState): Action[] {
   if (!today && tab.home_url && tab.home_url !== tab.url) actions.push({ id: "reset", title: `Back to pinned page (${hostOf(tab.home_url)})`, keywords: ["reset", "home", "pinned"], cmd: { cmd: "reset_tab", id } });
   if (favorite) actions.push({ id: "unfavorite", title: "Remove tab from favorites", keywords: ["favorite", "unfavorite"], cmd: { cmd: "move_tab", id, space: state.active_space, section: "today", index: 0 } });
   else actions.push({ id: "favorite", title: "Add tab to favorites", keywords: ["favorite"], cmd: { cmd: "move_tab", id, space: state.active_space, section: "favorites", index: 999 } });
+  if (today) actions.push({ id: "keep_active", title: tab.keep_active ? "Stop keeping tab active" : "Keep tab active", keywords: ["keep", "active", "awake"], cmd: { cmd: "set_keep_active", id, keep: !tab.keep_active } });
   if (owner) {
-    actions.push({ id: "keep_active", title: tab.keep_active ? "Stop keeping tab active" : "Keep tab active", keywords: ["keep", "active", "awake"], cmd: { cmd: "set_keep_active", id, keep: !tab.keep_active } });
     for (const sp of spaces) {
       if (sp.id !== owner.id) actions.push({ id: `move_${sp.id}`, title: `Move tab to ${sp.title}`, keywords: ["move", "space"], cmd: { cmd: "move_tab", id, space: sp.id, section: "today", index: 0 } });
     }
@@ -76,6 +76,11 @@ function tabActions(state: UiState): Action[] {
   if (space?.today.some((t) => t.id !== id)) actions.push({ id: "close_others", title: "Close other Today tabs", keywords: ["close", "others", "archive"], cmd: { cmd: "archive_today", keep: id } });
   return actions;
 }
+
+/** The keys of the hint line, as this platform writes them. */
+const KEYS = IS_MAC
+  ? { enter: "↵", peek: "⇧↵", newTab: "⌘↵", tab: "⇥", back: "⌫" }
+  : { enter: "Enter", peek: "Shift+Enter", newTab: "Ctrl+Enter", tab: "Tab", back: "Backspace" };
 
 /**
  * The site search `input` starts with: its first word is a keyword (any
@@ -127,6 +132,8 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const naming = mode === "new_space" || mode === "new_profile";
+  // The site search the hint line names while nothing is typed: another one each time the bar opens.
+  const [example] = useState(() => state.settings.site_searches[Math.floor(Math.random() * state.settings.site_searches.length)]);
   const quick = mode === "quick";
   const sites = naming ? [] : state.settings.site_searches;
   // The palette window is focused already; it closes on Esc or when it loses focus.
@@ -270,12 +277,33 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
       else if (e.shiftKey && item.kind !== "action" && item.peek) {
         send({ cmd: "open_peek", url: item.peek });
         onClose();
-      } else if (e.metaKey && item.kind === "url") {
+      } else if ((IS_MAC ? e.metaKey : e.ctrlKey) && item.kind === "url") {
         send({ cmd: "new_tab", url: item.url });
         onClose();
       } else pick(item);
     }
   };
+
+  // The hint line: what the keys do with the selected row, or what to type.
+  const current = items[sel];
+  const hints: [keys: string, does: string][] = [];
+  if (current) {
+    const opens = quick ? "Open in a mini window" : mode === "navigate" ? "Open in this tab" : mode === "split" ? "Open in the split" : "Open in a new tab";
+    const enter =
+      current.kind === "action" ? (naming ? "Create" : "Run")
+      : current.kind === "tab" ? (mode === "split" ? "Add to the split" : "Go to the tab")
+      : current.kind === "archived" ? "Restore"
+      : current.kind === "bookmark" && !quick ? "Open in a new tab"
+      : opens;
+    hints.push([KEYS.enter, enter]);
+    if (!quick && current.kind !== "action" && current.peek) hints.push([KEYS.peek, "Peek"]);
+    // Enter opens a new tab already when the bar was opened for one.
+    if (!quick && current.kind === "url" && mode !== "new") hints.push([KEYS.newTab, "New tab"]);
+  }
+  const keyword = site ? undefined : sites.find((s) => s.keyword === q.toLowerCase());
+  if (keyword) hints.push([KEYS.tab, `Search ${keyword.name}`]);
+  if (site && !query) hints.push([KEYS.back, "All results"]);
+  const idle = current ? null : site ? `Type what to search on ${site.name}` : quick ? "Finds bookmarks and visited pages" : "Finds tabs, bookmarks, visited pages and commands";
 
   let flat = -1;
   return (
@@ -313,6 +341,13 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
           ))}
         </div>
       )}
+      <div className="hints">
+        {idle && <span>{idle}</span>}
+        {idle && !site && example && <span><kbd>{example.keyword}</kbd> and a space searches {example.name}</span>}
+        {hints.map(([keys, does]) => (
+          <span key={keys}><kbd>{keys}</kbd> {does}</span>
+        ))}
+      </div>
     </div>
   );
 }

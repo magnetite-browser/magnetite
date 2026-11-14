@@ -19,6 +19,7 @@
 )]
 
 mod autofill;
+mod blocker;
 mod bootstrap;
 mod caption;
 mod capture;
@@ -28,6 +29,7 @@ mod config;
 mod content;
 mod default_browser;
 mod devdock;
+mod device;
 mod devpipe;
 mod devtools;
 mod downloads;
@@ -61,6 +63,7 @@ mod stray;
 mod win;
 
 pub use autofill::AutofillPrefs;
+pub use blocker::{Filters, set_allowed_sites, set_filters};
 #[cfg(target_os = "windows")]
 pub use bootstrap::set_sandbox_info;
 pub use bootstrap::{run, run_helper, started_by_bootstrap};
@@ -69,7 +72,7 @@ pub use client::host_of;
 pub use config::EngineConfig;
 pub use content::SPLIT_GAP;
 pub use default_browser::DefaultBrowser;
-pub use devdock::DevToolsDock;
+pub use devdock::{DevToolsDock, DevToolsSize};
 pub use engine::{ContextProfile, Engine, EngineDelegate};
 pub use events::{
     ContentId, DevToolsAction, DividerAction, DownloadReport, DownloadState, EngineEvent,

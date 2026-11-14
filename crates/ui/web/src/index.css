@@ -288,7 +288,7 @@ button.panel-row:disabled { opacity: 0.45; }
 /* backdrop behind sidebar pop-ups: a click on it closes them */
 .cmdbar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.16); z-index: 40; }
 /* command bar: the whole page of the centred palette window */
-.cmdbar { max-height: 460px; display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
+.cmdbar { max-height: 490px; display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
 .cmdbar input { flex: 1; min-width: 0; height: 56px; background: none; border: 0; outline: 0; color: var(--fg); font: inherit; font-size: 17px; padding: 0 18px; }
 /* The site a keyword search goes to ("GitHub"), before the query. */
 .cmdbar .site-chip { flex: none; margin-left: 14px; margin-right: -10px; padding: 3px 8px; border-radius: 6px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; }
@@ -297,6 +297,11 @@ button.panel-row:disabled { opacity: 0.45; }
 .cmdbar .result[data-selected] { background: rgba(255,255,255,0.1); }
 .cmdbar .result .meta { color: var(--muted); font-size: 12px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cmdbar .group { padding: 6px 8px 2px; font-size: 12px; color: var(--muted); }
+/* What the keys do with the selected result, or what to type. */
+.cmdbar .hints { flex: none; display: flex; flex-wrap: wrap; column-gap: 16px; padding: 0 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); white-space: nowrap; }
+/* Each hint stays whole; in a narrow window the line wraps and the bar grows. */
+.cmdbar .hints > * { display: flex; align-items: center; gap: 5px; height: 30px; }
+.cmdbar .hints kbd { padding: 1px 5px; border-radius: 4px; background: rgba(255,255,255,0.1); font: inherit; font-size: 11px; color: var(--secondary); }
 
 /* buttons and choices (settings page, site panel) */
 .btn { height: 32px; padding: 0 12px; border-radius: 8px; background: rgba(255,255,255,0.08); font-weight: 500; }
@@ -482,3 +487,16 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 /* The docked sidebar's right edge: drag to resize. */
 .sidebar-resizer { position: fixed; top: 0; right: 0; bottom: 0; width: 6px; z-index: 60; cursor: col-resize; }
 .sidebar-resizer:hover, .sidebar-resizer:active { background: linear-gradient(to left, var(--space-soft, rgba(255,255,255,0.08)) 2px, transparent 2px); }
+
+/* The device bar above a page in device mode (DeviceBar.tsx): one row,
+   centred, on the page area's background. */
+.device-bar { height: 100vh; display: flex; align-items: center; justify-content: safe center; gap: 3px; padding: 0 2px; background: var(--bg); color: var(--secondary); font-size: 12px; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.device-bar > * { flex: none; }
+.device-bar .field.sm { height: 24px; font-size: 12px; padding: 0 22px 0 5px; }
+/* The chevron of select.field, centred for the smaller height. */
+.device-bar select.field.sm { background-position: calc(100% - 12px) 50%, calc(100% - 7px) 50%; }
+.device-bar .field.sm:disabled { opacity: 0.55; }
+/* Long device names are cut rather than widening the bar. */
+.device-bar .field.sm.device-preset { width: 104px; }
+.device-group { display: inline-flex; align-items: center; gap: 4px; }
+.device-bar .field.sm.device-size { width: 52px; padding: 0 4px; text-align: center; }

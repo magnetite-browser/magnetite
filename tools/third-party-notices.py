@@ -100,6 +100,13 @@ NO_LICENCE_FILE = {
     "objc2-encode": OBJC2,
     "objc2-foundation": OBJC2,
     "bitcoin_hashes": ("", CC0_TEXT),
+    # redox-os/seahash, LICENSE: the MIT text without a copyright line.
+    "seahash": ("", MIT_TEXT),
+    # google/flatbuffers, LICENSE (Apache-2.0); the copyright from its sources.
+    "flatbuffers": (
+        "Copyright 2018 Google Inc. All rights reserved.",
+        (Path(__file__).parent / "licences" / "flatbuffers-LICENSE").read_text().strip(),
+    ),
 }
 # Opening words of common licence texts, only to title the groups of texts.
 KNOWN_TEXTS = {

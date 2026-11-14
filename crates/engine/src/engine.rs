@@ -79,6 +79,13 @@ pub(crate) struct Inner {
     /// Where DevTools open, and the docked ones per page.
     pub devtools_dock: crate::DevToolsDock,
     pub docked: HashMap<ContentId, crate::devdock::DockedDevTools>,
+    /// The docked DevTools' size the user dragged, per side.
+    pub devtools_size: crate::DevToolsSize,
+    /// The split view's dividers as last laid out (`update_dividers`),
+    /// shown together with the docked DevTools' ones (`show_dividers`).
+    pub split_dividers: Vec<magnetite_core::split::Divider>,
+    /// The device device mode used last (`device.rs`), to start with next.
+    pub last_device: Option<crate::device::DeviceConfig>,
     /// Background of the page area (ARGB), for windows drawn in its gaps.
     pub chrome_color: u32,
     /// The open overlay window (capture tool), if any.
@@ -156,6 +163,9 @@ impl Engine {
                 sidebar_drag: Vec::new(),
                 devtools_dock: crate::DevToolsDock::default(),
                 docked: HashMap::new(),
+                devtools_size: crate::DevToolsSize::default(),
+                split_dividers: Vec::new(),
+                last_device: None,
                 chrome_color: 0xFF1B_1B1E,
                 overlay: None,
                 overlay_detached: false,
@@ -584,6 +594,20 @@ wrap_request_context_handler! {
                 prepare_context(ctx);
             }
             Engine::global().context_ready(&self.profile);
+        }
+
+        // Asked for requests no browser's handler took: a service worker's.
+        fn resource_request_handler(
+            &self,
+            browser: Option<&mut Browser>,
+            _frame: Option<&mut Frame>,
+            request: Option<&mut Request>,
+            _is_navigation: ::std::os::raw::c_int,
+            _is_download: ::std::os::raw::c_int,
+            request_initiator: Option<&CefString>,
+            _disable_default_handling: Option<&mut ::std::os::raw::c_int>,
+        ) -> Option<ResourceRequestHandler> {
+            crate::blocker::resource_request_handler(browser.as_deref(), request.as_deref(), request_initiator)
         }
     }
 }

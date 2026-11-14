@@ -238,9 +238,10 @@ impl AppState {
     }
 
     /// The tabs whose page is to be unloaded now: out of sight for longer
-    /// than the unload time of the settings (0: never). The same tabs are
-    /// spared as in `stale_today_tabs`, and the favorites: those are the
-    /// pages one comes back to all day, so they stay ready.
+    /// than the unload time of the settings (0: never). Only Today tabs, and
+    /// the same ones are spared as in `stale_today_tabs`: favorites and
+    /// pinned tabs are the pages one comes back to all day, so they stay
+    /// ready.
     pub fn tabs_to_unload(&self, now: UnixSeconds, active: &HashSet<Id>) -> Vec<Id> {
         let limit = match self.settings.unload_minutes {
             0 => return Vec::new(),
@@ -277,10 +278,10 @@ impl AppState {
         (self.runtime.iter())
             .filter(|(id, r)| r.content.is_some() && !active.contains(*id) && !self.has_media(id))
             .filter_map(|(id, _)| {
-                // A favorite is in no space.
-                let (space, tab) = self.find_tab(id)?;
-                (space.is_some() && !tab.keep_active)
-                    .then(|| (id.clone(), tab.last_active_at.unwrap_or(now)))
+                let tab = (self.sidebar.spaces.iter())
+                    .flat_map(|space| space.today.iter())
+                    .find(|t| t.id == *id)?;
+                (!tab.keep_active).then(|| (id.clone(), tab.last_active_at.unwrap_or(now)))
             })
             .collect()
     }
@@ -561,7 +562,7 @@ mod tests {
     }
 
     #[test]
-    fn a_tab_kept_active_is_neither_unloaded_nor_archived_by_itself() {
+    fn only_today_tabs_not_kept_active_unload_or_archive_by_themselves() {
         let mut s = state();
         s.settings.auto_archive_hours = 12;
         s.settings.unload_minutes = 30;
@@ -586,17 +587,23 @@ mod tests {
         let mut unload = s.tabs_to_unload(now(), &active);
         unload.sort();
         assert_eq!(unload, ["a", "c"]);
-        // A favorite stays loaded without being asked to.
+        // Favorites and pinned tabs stay loaded without being asked to.
         s.sidebar.favorites[0].items.push(TabItem {
             last_active_at: Some(long_ago),
             ..tab("fav")
         });
-        let page = TabRuntime {
-            content: Some(4),
-            loaded: true,
-            ..TabRuntime::default()
-        };
-        s.runtime.insert("fav".into(), page);
+        s.sidebar.spaces[0].pinned.push(SidebarNode::Tab(TabItem {
+            last_active_at: Some(long_ago),
+            ..tab("pin")
+        }));
+        for (id, page) in [("fav", 4), ("pin", 5)] {
+            let runtime = TabRuntime {
+                content: Some(page),
+                loaded: true,
+                ..TabRuntime::default()
+            };
+            s.runtime.insert(id.into(), runtime);
+        }
         let mut unload = s.tabs_to_unload(now(), &active);
         unload.sort();
         assert_eq!(unload, ["a", "c"]);

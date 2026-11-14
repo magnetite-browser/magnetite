@@ -13,6 +13,7 @@ use crate::state::{AppState, ArcImport};
 use crate::sync::SyncClient;
 use crate::{capture, lock};
 
+mod adblocking;
 mod addresses;
 mod commands;
 mod events;
@@ -69,6 +70,7 @@ pub struct MagnetiteApp {
     /// A save is on its way (`save_soon`).
     save_queued: AtomicBool,
     show_pace: Mutex<ShowPace>,
+    blocker: adblocking::Blocker,
 }
 
 /// When the sidebar was last sent the state, and whether another sending
@@ -195,6 +197,7 @@ impl MagnetiteApp {
         link_on_start: Option<String>,
     ) -> Self {
         let state = AppState::load_or_default(&data_dir, import);
+        let blocker = adblocking::Blocker::start(&data_dir, &state.settings.adblock);
         Self {
             state: Mutex::new(state),
             data_dir,
@@ -211,6 +214,7 @@ impl MagnetiteApp {
             prompts: Mutex::new(Prompts::default()),
             save_queued: AtomicBool::new(false),
             show_pace: Mutex::new(ShowPace::default()),
+            blocker,
         }
     }
 

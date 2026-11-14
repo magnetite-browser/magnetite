@@ -16,55 +16,88 @@ use crate::engine::Engine;
 use crate::events::ContentId;
 
 impl Engine {
-    /// Make the dividers match `tree` (none when there is no split).
+    /// Make the split dividers match `tree` (none when there is no split).
     pub(crate) fn update_dividers(&self, tree: Option<&SplitNode<ContentId>>) {
         let dividers = tree
             .filter(|t| t.pane_count() > 1)
             .map(|t| t.dividers(self.split_area(), SPLIT_GAP))
             .unwrap_or_default();
+        self.lock().split_dividers = dividers;
+        self.show_dividers();
+    }
+
+    /// Show the split dividers and one beside each docked `DevTools` on
+    /// screen (native windows on macOS; on Windows the split dividers
+    /// only; Linux has none yet).
+    #[cfg_attr(
+        not(any(target_os = "macos", target_os = "windows")),
+        allow(clippy::unused_self)
+    )]
+    pub(crate) fn show_dividers(&self) {
         #[cfg(target_os = "macos")]
         {
-            let frame = self.frame_window();
-            let wanted: Vec<_> = dividers
-                .into_iter()
-                .map(|d| {
-                    let key = crate::mac::DividerKey {
+            let (wanted, frame) = {
+                let inner = self.lock();
+                let row = inner.devtools_dock != crate::DevToolsDock::Bottom;
+                let split = inner.split_dividers.iter().map(|d| {
+                    let key = crate::mac::DividerKey::Split {
                         row: d.axis == Axis::Row,
-                        path: d.path,
+                        path: d.path.clone(),
                         index: d.index,
                     };
                     (rect_of(d.bounds), key)
-                })
-                .collect();
+                });
+                let devtools = (inner.docked.iter())
+                    .filter(|(_, d)| d.shown && !d.separate)
+                    .filter_map(|(id, d)| {
+                        Some((
+                            d.gap.clone()?,
+                            crate::mac::DividerKey::DevTools { id: *id, row },
+                        ))
+                    });
+                // The resize handles of pages in device mode ("Responsive").
+                let handles = (inner.docked.iter())
+                    .filter(|(_, d)| d.shown)
+                    .filter_map(|(id, d)| Some((*id, d.device.as_ref()?)))
+                    .flat_map(|(id, m)| {
+                        let key = move |edge| crate::mac::DividerKey::Device { id, edge };
+                        m.handles
+                            .iter()
+                            .map(move |(r, edge)| (r.clone(), key(*edge)))
+                    });
+                let wanted: Vec<_> = split.chain(devtools).chain(handles).collect();
+                (wanted, inner.frame.as_ref().map(|f| f.window.clone()))
+            };
             if let Some(frame) = frame {
                 crate::mac::set_dividers(frame.window_handle(), &wanted);
             }
         }
+        // Windows: the split dividers only; the docked DevTools and the
+        // device mode have no handles there yet.
         #[cfg(target_os = "windows")]
         {
-            let frame = self.frame_window();
-            let wanted: Vec<_> = dividers
-                .into_iter()
-                .map(|d| {
-                    let key = crate::win::DividerKey {
-                        row: d.axis == Axis::Row,
-                        path: d.path,
-                        index: d.index,
-                    };
-                    // Windows places its windows in pixels.
-                    (
-                        display_convert_screen_rect_to_pixels(Some(&rect_of(d.bounds))),
-                        key,
-                    )
-                })
-                .collect();
+            let (wanted, frame) = {
+                let inner = self.lock();
+                let wanted: Vec<_> = (inner.split_dividers.iter())
+                    .map(|d| {
+                        let key = crate::win::DividerKey {
+                            row: d.axis == Axis::Row,
+                            path: d.path.clone(),
+                            index: d.index,
+                        };
+                        // Windows places its windows in pixels.
+                        (
+                            display_convert_screen_rect_to_pixels(Some(&rect_of(d.bounds))),
+                            key,
+                        )
+                    })
+                    .collect();
+                (wanted, inner.frame.as_ref().map(|f| f.window.clone()))
+            };
             if let Some(frame) = frame {
                 crate::win::set_dividers(frame.window_handle(), &wanted);
             }
         }
-        // Linux: no dividers yet (sizes still even out on request).
-        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-        let _ = dividers;
     }
 
     /// JPEG screenshot of page `id` as a data URL (drop-zone overlay).

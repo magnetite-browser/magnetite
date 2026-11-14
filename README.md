@@ -80,7 +80,7 @@ Magnetite started as a new home for the workflow of the Arc browser and has grow
 
 ## Status
 
-Magnetite is developed and used daily on macOS (Apple silicon). Linux and Windows builds start and pass the tests.
+Magnetite is developed and used daily on macOS (Apple silicon). Linux and Windows builds start and pass the tests. On Linux, in a Wayland session Magnetite runs through XWayland by default, which the session must have; running as a Wayland client needs a CEF build with Magnetite's patch ([ADR-0012](docs/adr/0012-wayland.md)).
 
 There are no releases yet, so for now you [build it yourself](#build-it-yourself). Expect breaking changes, including to the data format on disk.
 
@@ -91,7 +91,7 @@ Not there yet: several main windows, and H.264 or AAC playback on Linux and Inte
 Releases will appear on the GitHub releases page, one package per system:
 
 - **macOS 13 or newer** (Apple silicon, Intel): a zip with `Magnetite.app`, also through Homebrew.
-- **Linux** (x86_64, aarch64): a tarball; its `README.md` explains the sandbox setup.
+- **Linux** (x86_64, aarch64): an rpm (Fedora, RHEL) and a deb (Debian, Ubuntu), which update with your system's updates, and a tarball for other systems; its `README.md` explains the sandbox setup.
 
 Magnetite updates itself from these releases. The update list is signed, and `SHA256SUMS` lists the packages' checksums.
 

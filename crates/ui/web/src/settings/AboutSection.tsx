@@ -104,10 +104,12 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
   const line =
     !st || st.state === "idle" ? "Not checked yet."
     : st.state === "unavailable" ? "This build does not update itself: it has no release key. Updates come with the next release from the project's page."
+    : st.state === "system" ? "Your system's updates bring new versions of Magnetite (dnf, apt or the software centre). Magnetite offers a restart once one is installed."
     : st.state === "checking" ? "Checking…"
     : st.state === "up_to_date" ? `Magnetite is up to date. Last checked ${new Date(st.checked_at * 1000).toLocaleString()}.`
     : st.state === "available" ? `Magnetite ${st.version} is available.`
     : st.state === "installing" ? `Installing Magnetite ${st.version}… Magnetite restarts when it is ready.`
+    : u?.system ? st.error
     : `The last check failed: ${st.error}`;
   return (
     <>
@@ -123,16 +125,17 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
               <button className="btn primary" onClick={() => send({ cmd: "install_update" })}>{st.installable ? "Restart to update" : "Download"}</button>
             </div>
           ) : (
-            <button className="btn shrink-0" disabled={st?.state === "checking" || st?.state === "installing" || st?.state === "unavailable"} onClick={checkNow}>Check now</button>
+            <button className="btn shrink-0" disabled={st?.state === "checking" || st?.state === "installing" || st?.state === "unavailable" || u?.system} onClick={checkNow}>Check now</button>
           )}
         </div>
       </div>
-      <Toggle
+      {/* A system package never asks GitHub: the switch would do nothing. */}
+      {!u?.system && <Toggle
         label="Check for updates automatically"
         hint="At start and once a day Magnetite asks the project's release page on GitHub whether a new version exists. Only that request is sent: no identifiers, no usage data. Updates are signed; Magnetite installs only what the project's release key signed."
         checked={checkUpdates}
         onChange={(v) => update({ check_updates: v })}
-      />
+      />}
     </>
   );
 }

@@ -47,9 +47,9 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   if (section !== "favorites") items.push({ label: "Add to favorites", onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "favorites", index: 999 }) });
   else items.push({ label: "Remove from favorites", onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "today", index: 0 }) });
   items.push({ label: "Add to bookmarks", onClick: () => send({ cmd: "add_bookmark", id: tab.id }) });
-  // Spared from unloading and auto-archive until it is let go again. A
-  // favorite stays loaded anyway.
-  if (section !== "favorites") items.push({ label: tab.keep_active ? "✓ Keep active" : "Keep active", onClick: () => send({ cmd: "set_keep_active", id: tab.id, keep: !tab.keep_active }) });
+  // Spared from unloading and auto-archive until it is let go again.
+  // Favorites and pinned tabs stay loaded anyway.
+  if (section === "today") items.push({ label: tab.keep_active ? "✓ Keep active" : "Keep active", onClick: () => send({ cmd: "set_keep_active", id: tab.id, keep: !tab.keep_active }) });
   if (ctx.state.active_tab && ctx.state.active_tab !== tab.id && !onScreen && ctx.state.panes.length < MAX_PANES) {
     items.push({ label: "Open in split view", onClick: () => send({ cmd: "add_split", id: tab.id }) });
   }
@@ -302,7 +302,7 @@ const TabRowInner = memo(
               {rt.muted ? <SpeakerOff width={14} height={14} /> : <Speaker width={14} height={14} />}
             </button>
           )}
-          {tab.keep_active && (
+          {tab.keep_active && section === "today" && (
             <span className="kept" title="Kept active: this tab is not unloaded" aria-label="Kept active">
               <KeepActiveIcon width={12} height={12} />
             </span>

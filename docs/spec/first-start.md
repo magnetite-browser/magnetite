@@ -7,7 +7,7 @@ the sidebar holds one space, "Personal", and no tab.
 
 ## The welcome page
 
-`magnetite://ui/welcome` opens as a tab, once. It has six steps; "Back"
+`magnetite://ui/welcome` opens as a tab, once. It has seven steps; "Back"
 returns to the one before, and the bar at the bottom left shows the place.
 
 | Step | What it offers | To go on |
@@ -16,6 +16,7 @@ returns to the one before, and the bar at the bottom left shows the place.
 | Sync | the controls of Settings → Sync: start a chain, or join one with its 24 words (`sync.md`) | "Not now", or "Continue" once the device syncs |
 | Import | every browser found on this computer, to choose from (`import.md`) | "Continue", or "Not now" with none chosen |
 | Search | the search engines of Settings → Search, the current one (DuckDuckGo at first) marked; a choice takes effect at once | "Continue" |
+| Ads | "Block ads and trackers" (off) and, once on, the filter lists to choose from, none chosen: the controls of Settings → Ad blocking (`ad-blocking.md`); a choice takes effect at once | "Continue" |
 | Tabs | when a page off screen is unloaded (4 hours at first, or never) and when an unused Today tab is archived (12 hours at first), the times of Settings → Tabs & archive; a choice takes effect at once | "Continue" |
 | Done | which browsers will be imported, five keys for the first day, and "Make Magnetite the default browser" (off) | "Start browsing" |
 

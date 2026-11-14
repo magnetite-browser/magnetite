@@ -248,6 +248,33 @@ export interface Settings {
   library_opens: LibraryView;
   /** Chromium's password manager and autofill: which parts are on (Settings → Passwords & autofill). */
   autofill: { passwords: boolean; addresses: boolean; cards: boolean; breach_check: boolean };
+  /** The ad blocker (Settings → Ad blocking); this device's own choice, never synced. */
+  adblock: {
+    enabled: boolean;
+    /** Ids of the filter lists subscribed to (`Info.adblock.lists`). */
+    lists: string[];
+    /** Sites (registrable domains) where nothing is blocked. */
+    allowed_sites: string[];
+  };
+}
+
+/** What a page in device mode is shown as (the device bar, `device.rs`). */
+export interface DeviceConfig {
+  /** "Responsive", or a device's name. */
+  preset: string;
+  /** CSS pixels, as the device is held. */
+  width: number;
+  height: number;
+  dpr: number;
+  /** Touch and a mobile viewport. */
+  mobile: boolean;
+  /** Whose browser identity the page sees; null: Magnetite's own. */
+  ua: "iphone" | "ipad" | "android" | null;
+  /** Percent; null: as large as fits. */
+  zoom: number | null;
+  throttle: "none" | "fast4g" | "slow4g" | "3g" | "offline";
+  /** The Save-Data hint; null: the browser's own. */
+  save_data: boolean | null;
 }
 
 /** A full-height view behind the sidebar's archive and downloads button. */
@@ -319,6 +346,12 @@ export type Command =
   | { cmd: "capture_share"; x: number; y: number }
   | { cmd: "capture_dismiss" }
   | { cmd: "site_permissions" }
+  | { cmd: "device_get"; page: number }
+  | { cmd: "device_set"; page: number; config: DeviceConfig | null }
+  | { cmd: "site_ads"; url: string }
+  | { cmd: "set_site_ads"; url: string; blocking: boolean }
+  | { cmd: "set_adblock_enabled"; enabled: boolean }
+  | { cmd: "set_adblock_list"; id: string; subscribed: boolean }
   | { cmd: "set_permission"; origin: string; kind: PermissionKind; value: PermissionValue }
   | { cmd: "site_data_scope" }
   | { cmd: "clear_site_data"; domain: string }
@@ -536,6 +569,10 @@ interface Replies {
   capture_save: { saved: string | null };
   split_drop_frame: SplitDropFrame | { tab?: undefined };
   site_permissions: { rows: PermissionRow[] };
+  /** `null` once device mode is off. */
+  device_get: DeviceConfig | null;
+  /** `site`: the registrable domain of the page asked about; null for no web page. */
+  site_ads: { site: string | null; enabled: boolean; blocking: boolean };
   site_data_scope: { domain: string; origins: string[] } | { domain?: undefined };
 }
 
@@ -547,6 +584,8 @@ type QueryFn = (q: { request: string; persistent?: boolean; onSuccess: (r: strin
 declare global {
   interface Window {
     magnetiteQuery?: QueryFn;
+    /** The device bar's page: the engine shows a size dragged with the handles. */
+    __magnetiteDevice?: (c: DeviceConfig) => void;
     __magnetite: {
       setState: (s: UiState) => void;
       copied: (r: CopyResult) => void;
@@ -636,6 +675,8 @@ export interface PermissionPrompt {
 export type UpdateStatus =
   | { state: "idle" }
   | { state: "unavailable" }
+  /** An rpm or deb install: the system's package manager updates it. */
+  | { state: "system" }
   | { state: "checking" }
   | { state: "up_to_date"; checked_at: number }
   | { state: "available"; version: string; notes_url: string; installable: boolean }
@@ -644,6 +685,8 @@ export type UpdateStatus =
 
 export interface UpdateInfo {
   status: UpdateStatus;
+  /** An rpm or deb install, also once `status` has moved on from "system". */
+  system: boolean;
   /** The running version. */
   version: string;
 }
