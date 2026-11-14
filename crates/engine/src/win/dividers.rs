@@ -186,41 +186,62 @@ impl Divider {
 const GRIP: i32 = 2;
 const GRIP_LONG: i32 = 32;
 const GRIP_DRAGGED: i32 = 56;
-/// The corner handle shows a dot of this size.
-const GRIP_DOT: i32 = 4;
+/// A handle in device mode has a thicker and longer one, to be found.
+const HANDLE_GRIP: i32 = 4;
+const HANDLE_LONG: i32 = 48;
+/// The corner handle shows slanted stripes this wide, as a window's corner
+/// for resizing does.
+const STRIPE: i32 = 2;
 
 /// Fill `pixels` (BGRA with the colours already multiplied by the alpha,
 /// `size` wide and high) with the grip of a divider: a line in the middle,
-/// along the divider. The rest has an alpha of 1 of 255: nothing to see,
-/// yet the window takes the mouse there (a fully clear one does not).
+/// along the divider; slanted stripes in the lower right half for the
+/// corner handle. The rest has an alpha of 1 of 255: nothing to see, yet
+/// the window takes the mouse there (a fully clear one does not).
 fn grip_pixels(pixels: &mut [u8], size: (i32, i32), key: &DividerKey, look: Look, dpi: i32) {
     let scaled = |points: i32| (points * dpi / 96).max(1);
-    let long = scaled(if look == Look::Dragging {
-        GRIP_DRAGGED
-    } else {
-        GRIP_LONG
-    });
-    let (width, height) = match key {
+    let handle = matches!(key, DividerKey::Device { .. });
+    let corner = matches!(
+        key,
         DividerKey::Device {
-            edge: Edge::Corner, ..
-        } => (scaled(GRIP_DOT), scaled(GRIP_DOT)),
-        _ if key.row() => (scaled(GRIP), long),
-        _ => (long, scaled(GRIP)),
+            edge: Edge::Corner,
+            ..
+        }
+    );
+    let (thick, long) = match (handle, look == Look::Dragging) {
+        (_, true) => (if handle { HANDLE_GRIP } else { GRIP }, GRIP_DRAGGED),
+        (true, false) => (HANDLE_GRIP, HANDLE_LONG),
+        (false, false) => (GRIP, GRIP_LONG),
+    };
+    let (thick, long) = (scaled(thick), scaled(long));
+    let (width, height) = if key.row() {
+        (thick, long)
+    } else {
+        (long, thick)
     };
     let (width, height) = (width.min(size.0), height.min(size.1));
     let (left, top) = ((size.0 - width) / 2, (size.1 - height) / 2);
-    // White at 35 % (20 % when faint), brass while dragged.
-    let colour = match look {
-        Look::Hidden => [0, 0, 0, 1],
-        Look::Faint => [51, 51, 51, 51],
-        Look::Hover => [89, 89, 89, 89],
-        Look::Dragging => [102, 166, 214, 255],
+    let stripe = scaled(STRIPE);
+    // White at 35 % under the pointer, brass while dragged. A handle is
+    // there all the time at 55 %, and at 85 % under the pointer.
+    let colour = match (look, handle) {
+        (Look::Hidden, _) => [0, 0, 0, 1],
+        (Look::Faint, _) => [140, 140, 140, 140],
+        (Look::Hover, true) => [217, 217, 217, 217],
+        (Look::Hover, false) => [89, 89, 89, 89],
+        (Look::Dragging, _) => [102, 166, 214, 255],
     };
     let columns = usize::try_from(size.0).unwrap_or(0).max(1);
     for (i, pixel) in pixels.as_chunks_mut::<4>().0.iter_mut().enumerate() {
         let x = i32::try_from(i % columns).unwrap_or(i32::MAX);
         let y = i32::try_from(i / columns).unwrap_or(i32::MAX);
-        let inside = x >= left && x < left + width && y >= top && y < top + height;
+        let inside = if corner {
+            // From the diagonal to the lower right corner, every other stripe.
+            let along = x + y - (size.0.min(size.1) - 1);
+            along >= 0 && (along / stripe) % 2 == 0
+        } else {
+            x >= left && x < left + width && y >= top && y < top + height
+        };
         *pixel = if inside { colour } else { [0, 0, 0, 1] };
     }
 }
