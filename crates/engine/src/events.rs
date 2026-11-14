@@ -255,6 +255,13 @@ pub enum EngineEvent {
         from: Option<ContentId>,
         shortcut: Shortcut,
     },
+    /// Magnetite was started again while running (a link from another app,
+    /// `magnetite <url>` in a terminal, the menu entry). `argv` is that
+    /// start's whole command line, `cwd` the folder it ran in.
+    Relaunched {
+        argv: Vec<String>,
+        cwd: Option<std::path::PathBuf>,
+    },
     /// The user asked to quit (Cmd+Q, Dock menu, SIGTERM). The delegate
     /// should save state and call [`crate::Engine::quit`].
     QuitRequested,
@@ -300,6 +307,7 @@ impl EngineEvent {
             Self::LoadingChanged { .. } => "LoadingChanged",
             Self::OpenUrlRequested { .. } => "OpenUrlRequested",
             Self::Shortcut { .. } => "Shortcut",
+            Self::Relaunched { .. } => "Relaunched",
             Self::QuitRequested => "QuitRequested",
             Self::Tick => "Tick",
             Self::MemoryPressure(_) => "MemoryPressure",

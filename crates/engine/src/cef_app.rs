@@ -157,6 +157,17 @@ wrap_browser_process_handler! {
             crate::mac::watch_memory_pressure();
             engine.emit(EngineEvent::Ready);
         }
+        // A second start hands its command line to the running Magnetite.
+        // Handled here, or Chromium would open a window of its own.
+        fn on_already_running_app_relaunch(&self, command_line: Option<&mut CommandLine>, current_directory: Option<&CefString>) -> ::std::os::raw::c_int {
+            let mut list = CefStringList::new();
+            if let Some(cmd) = command_line {
+                cmd.argv(Some(&mut list));
+            }
+            let cwd = current_directory.map(|d| std::path::PathBuf::from(d.to_string())).filter(|d| d.is_absolute());
+            Engine::global().emit(EngineEvent::Relaunched { argv: list.into_iter().collect(), cwd });
+            1
+        }
     }
 }
 
