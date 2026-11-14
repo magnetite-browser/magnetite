@@ -164,6 +164,20 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .chip-dot { position: absolute; right: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
 .chip-dot[data-state="capture"] { background: #f05d5d; }
 .addr-status { position: absolute; z-index: 30; left: 0; right: 0; top: 40px; display: flex; align-items: center; gap: 8px; height: 26px; padding: 0 10px; border-radius: 8px; background: var(--surface-2); font-size: 12.5px; color: var(--secondary); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+/* The top bar (TopBar.tsx): one row the window's width; the address takes
+   the middle. Its copy status sits inside the address, the bar is too short
+   to show it below. */
+.topbar { display: flex; align-items: center; gap: 8px; height: 100%; padding: 0 0 0 0; }
+.topbar-address { flex: 1; min-width: 0; max-width: 1100px; margin: 0 auto; }
+.topbar-address .addr, .topbar-address .urlbar { height: 32px; }
+.topbar .addr-status { top: 3px; left: auto; right: 34px; max-width: 60%; height: 26px; box-shadow: none; }
+.topbar .window-close:hover:not(:disabled) { background: rgba(232, 17, 35, 0.9); color: #fff; }
+
+/* A top bar pop-up fills its window (TopBarPopup.tsx). */
+html[data-window] body { background: var(--surface); }
+html[data-window] .site-panel { position: static; max-height: none; border: 0; border-radius: 0; box-shadow: none; }
+html[data-window] .menu { position: static; max-width: none; border: 0; border-radius: 0; box-shadow: none; }
+
 .addr-status .link { margin-left: auto; color: var(--fg); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
 
 /* site panel */

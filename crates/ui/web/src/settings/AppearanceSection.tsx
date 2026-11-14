@@ -1,4 +1,4 @@
-// Settings → Appearance: space colours, text size, density, sidebar width.
+// Settings → Appearance: space colours, layout, text size, density, sidebar width.
 import { useRef, useState } from "react";
 import { SpaceGlyph } from "../Glyphs";
 import { DEFAULT_ACCENT, accentCss, applyAppearance, send, type Appearance, type Color } from "../bridge";
@@ -66,6 +66,13 @@ export function AppearanceSection({ info, update, reload }: { info: Info; update
                 </label>
               </div>
             </div>
+          ))}
+        </div>
+      </Field>
+      <Field label="Layout" hint="Where back, forward, the address and the extensions sit: at the top of the sidebar, or in a bar across the window.">
+        <div className="seg">
+          {([["Sidebar", false], ["Top bar", true]] as const).map(([label, on]) => (
+            <button key={label} data-on={draft.top_bar === on || undefined} onClick={() => set({ top_bar: on }, true)}>{label}</button>
           ))}
         </div>
       </Field>

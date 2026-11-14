@@ -74,8 +74,13 @@ pub(crate) struct Inner {
     pub shown: Option<ContentId>,
     /// Runtime override of `EngineConfig::chrome_toolbar` (settings change).
     pub chrome_toolbar: bool,
-    /// Last draggable regions reported by the sidebar page (window coordinates).
+    /// Last draggable regions reported by the sidebar page (its own
+    /// coordinates: the body's).
     pub sidebar_drag: Vec<DraggableRegion>,
+    /// The top bar is on (`set_top_bar_visible`).
+    pub top_bar_visible: bool,
+    /// Last draggable regions reported by the top bar page (window coordinates).
+    pub top_bar_drag: Vec<DraggableRegion>,
     /// Where DevTools open, and the docked ones per page.
     pub devtools_dock: crate::DevToolsDock,
     pub docked: HashMap<ContentId, crate::devdock::DockedDevTools>,
@@ -161,6 +166,8 @@ impl Engine {
                 shown: None,
                 chrome_toolbar: config.chrome_toolbar,
                 sidebar_drag: Vec::new(),
+                top_bar_visible: false,
+                top_bar_drag: Vec::new(),
                 devtools_dock: crate::DevToolsDock::default(),
                 docked: HashMap::new(),
                 devtools_size: crate::DevToolsSize::default(),
@@ -268,16 +275,33 @@ impl Engine {
         } else {
             self.docked_sidebar_browser()
         };
-        if let Some(frame) = browser.and_then(|b| b.main_frame()) {
+        // The top bar holds the address row while it is on.
+        let top_bar = self
+            .top_bar_visible()
+            .then(|| self.top_bar_browser())
+            .flatten();
+        for frame in [browser, top_bar]
+            .into_iter()
+            .flatten()
+            .filter_map(|b| b.main_frame())
+        {
             self.eval_in_ui(&frame, js);
         }
     }
 
-    /// Run `js` in every sidebar page, shown or not: state pushes.
+    /// Run `js` in every sidebar page and the top bar, shown or not, and in
+    /// the overlay (a pop-up of the top bar shows live state): state pushes.
     pub fn ui_eval_all(&self, js: &str) {
-        for browser in [self.docked_sidebar_browser(), self.float_sidebar_browser()]
-            .into_iter()
-            .flatten()
+        let overlay = (self.lock().overlay.clone())
+            .and_then(|w| w.child_view_at(0)?.as_browser_view()?.browser());
+        for browser in [
+            self.docked_sidebar_browser(),
+            self.float_sidebar_browser(),
+            self.top_bar_browser(),
+            overlay,
+        ]
+        .into_iter()
+        .flatten()
         {
             if let Some(frame) = browser.main_frame() {
                 self.eval_in_ui(&frame, js);
@@ -309,6 +333,13 @@ impl Engine {
             || (dev != crate::EngineConfig::SIDEBAR_URL
                 && !dev.is_empty()
                 && url.starts_with(dev.as_str()))
+    }
+
+    fn top_bar_browser(&self) -> Option<Browser> {
+        self.lock()
+            .frame
+            .as_ref()
+            .and_then(|f| f.top_bar_browser.clone())
     }
 
     fn docked_sidebar_browser(&self) -> Option<Browser> {

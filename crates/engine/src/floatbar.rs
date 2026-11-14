@@ -8,7 +8,8 @@ use cef::*;
 use crate::client::MagnetiteClient;
 use crate::engine::Engine;
 
-/// Room left free above the panel: the frame's traffic lights.
+/// Room left free above the panel: the frame's traffic lights (more with
+/// the top bar on).
 const TOP: i32 = 40;
 /// Gap between the panel and the window edges.
 const MARGIN: i32 = 6;
@@ -99,11 +100,13 @@ impl Engine {
     fn float_bounds(&self) -> Option<Rect> {
         let frame = self.frame_window()?;
         let b = frame.bounds();
+        // Below the top bar while it is on.
+        let top = TOP.max(self.top_bar_offset() + MARGIN);
         Some(Rect {
             x: b.x + MARGIN,
-            y: b.y + TOP,
+            y: b.y + top,
             width: self.sidebar_width(),
-            height: (b.height - TOP - MARGIN).max(100),
+            height: (b.height - top - MARGIN).max(100),
         })
     }
 

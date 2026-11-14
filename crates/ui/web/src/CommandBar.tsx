@@ -25,6 +25,7 @@ const ACTIONS: Action[] = [
   { id: "bookmarks", title: "Open bookmarks", keywords: ["bookmarks", "saved"], cmd: { cmd: "show_bookmarks" } },
   { id: "bookmark_page", title: "Bookmark this page", keywords: ["bookmark", "save", "keep"], cmd: { cmd: "add_bookmark" } },
   { id: "toggle_sidebar", title: "Toggle sidebar", keywords: ["hide", "show"], cmd: { cmd: "toggle_sidebar" } },
+  { id: "toggle_top_bar", title: "Toggle top bar", keywords: ["top", "bar", "address", "layout", "toolbar"], cmd: { cmd: "toggle_top_bar" } },
   { id: "import", title: "Import from another browser…", keywords: ["import", "chrome", "firefox", "zen", "arc", "brave", "edge"], cmd: { cmd: "new_tab", url: "magnetite://ui/settings#data" } },
   { id: "copy_link", title: "Copy link without trackers", keywords: ["copy", "link", "url", "clean"], cmd: { cmd: "copy_link", variant: "clean", notify: true } },
   { id: "copy_original", title: "Copy original link", keywords: ["copy", "link", "url", "raw"], cmd: { cmd: "copy_link", variant: "original", notify: true } },

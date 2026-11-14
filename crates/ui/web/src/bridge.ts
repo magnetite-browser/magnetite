@@ -294,6 +294,8 @@ export interface Appearance {
   density: "compact" | "comfortable" | "spacious";
   /** Docked sidebar width in points, 220 to 360. */
   sidebar_width: number;
+  /** Navigation, address and window buttons in a bar across the top. */
+  top_bar: boolean;
 }
 
 /** Apply text size and row density to this page. */
@@ -425,6 +427,11 @@ export type Command =
   | { cmd: "smart_hide"; id: Id }
   | { cmd: "smart_allow"; id: Id }
   | { cmd: "toggle_sidebar" }
+  | { cmd: "toggle_top_bar" }
+  | { cmd: "window_minimize" }
+  | { cmd: "window_maximize" }
+  | { cmd: "window_close" }
+  | { cmd: "top_bar_popup"; popup: TopBarPopupKind; id?: string; x: number; y: number; width: number; height: number }
   | { cmd: "focus_sidebar" }
   | { cmd: "float_sidebar"; show: boolean }
   | { cmd: "set_space_color"; id: Id; color: Color | null }
@@ -605,6 +612,9 @@ declare global {
     };
   }
 }
+
+/** The top bar's pop-ups, each a window below the bar (`TopBarPopup.tsx`). */
+export type TopBarPopupKind = "site" | "copy" | "extension";
 
 /** Run `command` in the app; resolves with its reply (see `Replies`). */
 export function send<K extends Command["cmd"]>(command: Extract<Command, { cmd: K }>): Promise<Reply<K>> {

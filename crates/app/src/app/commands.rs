@@ -43,6 +43,28 @@ impl EnginePage {
     }
 }
 
+/// The top bar's pop-ups (`magnetite://ui/popup?kind=…`).
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(super) enum TopBarPopup {
+    /// Site controls for the page in front.
+    Site,
+    /// Copy link, original link or Markdown.
+    Copy,
+    /// A pinned extension's menu.
+    Extension,
+}
+
+impl TopBarPopup {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Site => "site",
+            Self::Copy => "copy",
+            Self::Extension => "extension",
+        }
+    }
+}
+
 /// Commands the sidebar UI can send (`magnetiteQuery` with a JSON request).
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
@@ -455,6 +477,24 @@ pub(super) enum UiCommand {
         profile: Option<String>,
     },
     ToggleSidebar,
+    /// Turn the top bar on or off (Settings → Appearance has it too).
+    ToggleTopBar,
+    /// The top bar's window buttons (Linux and Windows).
+    WindowMinimize,
+    WindowMaximize,
+    WindowClose,
+    /// Open one of the top bar's pop-ups below it, `width` by `height`, at
+    /// (`x`, `y`) in the top bar page's coordinates.
+    TopBarPopup {
+        popup: TopBarPopup,
+        /// The extension a menu is for.
+        #[serde(default)]
+        id: Option<String>,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+    },
     /// A sidebar pop-up opened: give the sidebar keyboard focus.
     FocusSidebar,
     /// Slide the floating sidebar out or hide it (its page leaves on pointer-out).
@@ -1303,6 +1343,7 @@ impl MagnetiteApp {
                     Ok::<_, String>(settings)
                 })?;
                 engine.set_sidebar_width(settings.appearance.sidebar_width);
+                engine.set_top_bar_visible(settings.appearance.top_bar);
                 engine
                     .set_chrome_toolbar(settings.chrome_toolbar || engine.config().chrome_toolbar);
                 Self::apply_devtools_dock(engine, settings.devtools_dock);
@@ -1329,6 +1370,34 @@ impl MagnetiteApp {
                 );
             }
             UiCommand::ToggleSidebar => self.handle_shortcut(engine, Shortcut::ToggleSidebar),
+            UiCommand::ToggleTopBar => {
+                let on = self.with_state(|s| {
+                    let a = &mut s.settings.appearance;
+                    a.top_bar = !a.top_bar;
+                    a.top_bar
+                });
+                engine.set_top_bar_visible(on);
+                self.push_state(engine);
+            }
+            UiCommand::WindowMinimize => engine.minimize_frame(),
+            UiCommand::WindowMaximize => engine.toggle_maximize_frame(),
+            UiCommand::WindowClose => engine.close_frame(),
+            UiCommand::TopBarPopup {
+                popup,
+                id,
+                x,
+                y,
+                width,
+                height,
+            } => {
+                let id = id.map(|id| format!("&id={}", urlencode(&id)));
+                let url = format!(
+                    "magnetite://ui/popup?kind={}{}",
+                    popup.as_str(),
+                    id.unwrap_or_default()
+                );
+                engine.open_top_bar_popup(&url, x, y, width, height);
+            }
             UiCommand::FocusSidebar => engine.focus_sidebar(),
             UiCommand::FloatSidebar { show } => {
                 let had_focus = engine.float_sidebar_shown() && !show;

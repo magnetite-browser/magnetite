@@ -10,9 +10,11 @@ import { Notifications } from "./Notifications";
 import { SplitDrop } from "./SplitDrop";
 import { SettingsPage } from "./SettingsPage";
 import { SmartFolderDialog } from "./SmartFolderDialog";
+import { TopBar } from "./TopBar";
+import { TopBarPopup } from "./TopBarPopup";
 import { Welcome } from "./Welcome";
 
-/** Each magnetite://ui page: the sidebar, settings, the welcome page, and the small windows over the page area. */
+/** Each magnetite://ui page: the sidebar, the top bar, settings, the welcome page, and the small windows over the page area. */
 function Route() {
   const path = location.pathname;
   if (path.startsWith("/settings")) return <SettingsPage />;
@@ -24,6 +26,8 @@ function Route() {
   if (path.startsWith("/splitdrop")) return <SplitDrop />;
   if (path.startsWith("/device")) return <DeviceBar />;
   if (path.startsWith("/smart-folder")) return <SmartFolderDialog />;
+  if (path.startsWith("/topbar")) return <TopBar />;
+  if (path.startsWith("/popup")) return <TopBarPopup />;
   return <App />;
 }
 

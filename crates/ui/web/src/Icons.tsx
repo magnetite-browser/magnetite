@@ -24,6 +24,8 @@ export const Reload = icon(L.RotateCw);
 export const Reset = icon(L.RotateCcw);
 export const SidebarIcon = icon(L.PanelLeft);
 export const Close = icon(L.X);
+/** The top bar's maximize button (Linux, Windows). */
+export const Maximize = icon(L.Square, { size: 13 });
 export const ChevronDown = icon(L.ChevronDown);
 export const Plus = icon(L.Plus);
 export const BookmarkIcon = icon(L.Bookmark);

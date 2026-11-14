@@ -1,4 +1,5 @@
-//! The frame window: sidebar view + content panel.
+//! The frame window: the top bar view (when on) above the body, which holds
+//! the sidebar view and the content panel.
 
 use cef::*;
 
@@ -8,7 +9,12 @@ use crate::events::{ContentId, EngineEvent};
 
 pub(crate) struct FrameState {
     pub window: Window,
+    /// The row below the top bar: sidebar view and content panel.
+    pub body: Panel,
     pub sidebar_view: BrowserView,
+    /// The top bar's view, made the first time it is turned on.
+    pub top_bar_view: Option<BrowserView>,
+    pub top_bar_browser: Option<Browser>,
     pub content_panel: Panel,
     pub sidebar_browser: Option<Browser>,
     /// The hint in the content panel for a window without a page.
@@ -32,23 +38,23 @@ impl Engine {
     /// the traffic lights sit in it. Pages are windows above the frame and
     /// would cover them otherwise.
     const BUTTONS_BAR: i32 = 34;
+    /// Height of the top bar (`magnetite://ui/topbar`).
+    pub const TOP_BAR_HEIGHT: i32 = 42;
 
     /// Keep the window-drag strip along the top of the page area, above the
     /// page windows (see `mac::set_grab_strip`).
     pub(crate) fn update_grab_strip(&self) {
         let frame = {
             let inner = self.lock();
-            inner.frame.as_ref().map(|f| {
-                (
-                    f.window.clone(),
-                    f.content_panel.bounds_in_screen(),
-                    inner.sidebar_visible,
-                )
-            })
+            inner
+                .frame
+                .as_ref()
+                .map(|f| (f.window.clone(), inner.sidebar_visible))
         };
-        let Some((window, panel, sidebar)) = frame else {
+        let Some((window, sidebar)) = frame else {
             return;
         };
+        let panel = self.content_panel_in_screen();
         let skip = if sidebar { 0 } else { Self::TRAFFIC_LIGHTS };
         let strip = Rect {
             x: panel.x + skip,
@@ -89,15 +95,12 @@ impl Engine {
     /// the room for the traffic lights when no sidebar holds them (a full
     /// screen window has none).
     pub fn content_rect(&self) -> Rect {
-        let (r, buttons) = {
+        let r = self.content_panel_in_screen();
+        let buttons = {
             let inner = self.lock();
-            let frame = inner.frame.as_ref();
-            (
-                frame
-                    .map(|f| f.content_panel.bounds_in_screen())
-                    .unwrap_or_default(),
-                !inner.sidebar_visible && frame.is_some_and(|f| f.window.is_fullscreen() == 0),
-            )
+            !inner.sidebar_visible
+                && !inner.top_bar_visible
+                && (inner.frame.as_ref()).is_some_and(|f| f.window.is_fullscreen() == 0)
         };
         let i = Self::CONTENT_INSET;
         let top = if buttons { Self::BUTTONS_BAR } else { i };
@@ -109,12 +112,12 @@ impl Engine {
         }
     }
 
-    /// Draggable areas of the frame: the sidebar page's `app-region: drag`
-    /// zones plus the whole content panel. Pages sit in child windows above
-    /// the panel, so only the gaps around them (top edge, sides, split
-    /// gutters) end up moving the window.
+    /// Draggable areas of the frame: the top bar's and the sidebar page's
+    /// `app-region: drag` zones plus the whole content panel. Pages sit in
+    /// child windows above the panel, so only the gaps around them (top
+    /// edge, sides, split gutters) end up moving the window.
     pub(crate) fn apply_drag_regions(&self) {
-        let (window, panel, sidebar) = {
+        let (window, sidebar, top_bar) = {
             let inner = self.lock();
             let Some(f) = inner.frame.as_ref() else {
                 return;
@@ -124,14 +127,160 @@ impl Engine {
             } else {
                 Vec::new()
             };
-            (f.window.clone(), f.content_panel.clone(), sidebar)
+            let top_bar = if inner.top_bar_visible {
+                inner.top_bar_drag.clone()
+            } else {
+                Vec::new()
+            };
+            (f.window.clone(), sidebar, top_bar)
+        };
+        // The sidebar page reports bounds within itself, below the top bar.
+        let below = |mut r: DraggableRegion| {
+            r.bounds.y += self.top_bar_offset();
+            r
         };
         let mut regions = vec![DraggableRegion {
-            bounds: panel.bounds(),
+            bounds: self.content_panel_in_window(),
             draggable: 1,
         }];
-        regions.extend(sidebar);
+        regions.extend(sidebar.into_iter().map(below));
+        regions.extend(top_bar);
         window.set_draggable_regions(Some(&regions));
+    }
+
+    /// How far the body sits below the window's top: the top bar's height
+    /// while it is on.
+    pub(crate) fn top_bar_offset(&self) -> i32 {
+        if self.top_bar_visible() {
+            Self::TOP_BAR_HEIGHT
+        } else {
+            0
+        }
+    }
+
+    /// The content panel's place in the window: right of the sidebar, below
+    /// the top bar. Worked out from the window's size, not asked of the
+    /// panel: Chromium lays out the nested body lazily, so the panel can
+    /// still report where it was before a change.
+    fn content_panel_in_window(&self) -> Rect {
+        let inner = self.lock();
+        let Some(f) = inner.frame.as_ref() else {
+            return Rect::default();
+        };
+        let client = f.window.bounds();
+        let x = if inner.sidebar_visible {
+            inner.sidebar_width
+        } else {
+            0
+        };
+        let y = if inner.top_bar_visible {
+            Self::TOP_BAR_HEIGHT
+        } else {
+            0
+        };
+        Rect {
+            x,
+            y,
+            width: (client.width - x).max(1),
+            height: (client.height - y).max(1),
+        }
+    }
+
+    /// `content_panel_in_window` in screen coordinates.
+    fn content_panel_in_screen(&self) -> Rect {
+        let client = (self.frame_window())
+            .map(|w| w.bounds())
+            .unwrap_or_default();
+        let r = self.content_panel_in_window();
+        Rect {
+            x: client.x + r.x,
+            y: client.y + r.y,
+            ..r
+        }
+    }
+
+    pub fn top_bar_visible(&self) -> bool {
+        self.lock().top_bar_visible
+    }
+
+    /// Show the top bar above the sidebar and the pages, or hide it. Its
+    /// page is made the first time.
+    pub fn set_top_bar_visible(&self, visible: bool) {
+        let frame = {
+            let mut inner = self.lock();
+            inner.top_bar_visible = visible;
+            inner
+                .frame
+                .as_ref()
+                .map(|f| (f.window.clone(), f.top_bar_view.clone()))
+        };
+        let Some((window, view)) = frame else {
+            return;
+        };
+        match view {
+            Some(view) => View::from(&view).set_visible(visible.into()),
+            None if visible => {
+                let Some(view) = create_top_bar_view() else {
+                    return;
+                };
+                window.add_child_view_at(Some(&mut View::from(&view)), 0);
+                if let Some(f) = self.lock().frame.as_mut() {
+                    f.top_bar_view = Some(view);
+                }
+            }
+            None => {}
+        }
+        window.layout();
+        self.reposition_contents();
+        self.apply_drag_regions();
+        self.update_edge_zone();
+    }
+
+    /// The top bar's window buttons (Linux and Windows; macOS has its own).
+    pub fn minimize_frame(&self) {
+        if let Some(w) = self.frame_window() {
+            w.minimize();
+        }
+    }
+
+    /// Maximize the frame window, or restore it when it is maximized.
+    pub fn toggle_maximize_frame(&self) {
+        if let Some(w) = self.frame_window() {
+            if w.is_maximized() != 0 {
+                w.restore();
+            } else {
+                w.maximize();
+            }
+        }
+    }
+
+    /// Close the frame window: asks to quit, as the window manager's close does.
+    pub fn close_frame(&self) {
+        if let Some(w) = self.frame_window() {
+            w.close();
+        }
+    }
+
+    /// Open `url` in an overlay below the top bar, `width` by `height`, its
+    /// top-left at (`x`, `y`) in the top bar page's coordinates: the top
+    /// bar's pop-ups (site controls, menus), which its short page cannot hold.
+    pub fn open_top_bar_popup(&self, url: &str, x: i32, y: i32, width: i32, height: i32) -> bool {
+        let Some(bar) = (self.lock().frame.as_ref()).and_then(|f| {
+            f.top_bar_view
+                .as_ref()
+                .map(|v| View::from(v).bounds_in_screen())
+        }) else {
+            return false;
+        };
+        // Kept inside the window's width.
+        let x = x.clamp(0, (bar.width - width).max(0));
+        let bounds = Rect {
+            x: bar.x + x,
+            y: bar.y + y,
+            width,
+            height,
+        };
+        self.open_overlay_with(bounds, url, 12.0, true, true)
     }
 
     /// Open the system share menu for `url` at a point of the frame window
@@ -199,8 +348,11 @@ impl Engine {
     /// paints the same colour so there is no seam.
     pub fn set_chrome_color(&self, argb: u32) {
         self.lock().chrome_color = argb;
-        if let Some(panel) = self.lock().frame.as_ref().map(|f| f.content_panel.clone()) {
-            panel.set_background_color(argb);
+        let panels =
+            (self.lock().frame.as_ref()).map(|f| (f.content_panel.clone(), f.body.clone()));
+        if let Some((content, body)) = panels {
+            content.set_background_color(argb);
+            body.set_background_color(argb);
         }
         self.colour_empty_hint(argb);
     }
@@ -292,6 +444,65 @@ wrap_browser_view_delegate! {
     }
 }
 
+/// The top bar's view: our UI at `magnetite://ui/topbar`, full width.
+fn create_top_bar_view() -> Option<BrowserView> {
+    let engine = Engine::global();
+    let mut client = MagnetiteClient::top_bar();
+    let mut delegate = TopBarViewDelegate::new();
+    let settings = BrowserSettings {
+        background_color: engine.lock().chrome_color,
+        ..Default::default()
+    };
+    // Next to the sidebar's page, also on a development server.
+    let url = format!("{}/topbar", engine.config().ui_url.trim_end_matches('/'));
+    browser_view_create(
+        Some(&mut client),
+        Some(&CefString::from(url.as_str())),
+        Some(&settings),
+        None,
+        None,
+        Some(&mut delegate),
+    )
+}
+
+wrap_browser_view_delegate! {
+    struct TopBarViewDelegate {}
+    impl ViewDelegate {
+        // A size with no width counts as none: CEF would use the page's own.
+        fn preferred_size(&self, _view: Option<&mut View>) -> Size {
+            Size { width: 1, height: Engine::TOP_BAR_HEIGHT }
+        }
+        fn minimum_size(&self, _view: Option<&mut View>) -> Size {
+            Size { width: 1, height: Engine::TOP_BAR_HEIGHT }
+        }
+        fn maximum_size(&self, _view: Option<&mut View>) -> Size {
+            Size { width: i32::MAX, height: Engine::TOP_BAR_HEIGHT }
+        }
+        // The window's column layout asks this, not the preferred size.
+        fn height_for_width(&self, _view: Option<&mut View>, _width: ::std::os::raw::c_int) -> ::std::os::raw::c_int {
+            Engine::TOP_BAR_HEIGHT
+        }
+    }
+    impl BrowserViewDelegate {
+        fn browser_runtime_style(&self) -> RuntimeStyle { RuntimeStyle::ALLOY }
+        fn on_popup_browser_view_created(
+            &self,
+            _browser_view: Option<&mut BrowserView>,
+            _popup_browser_view: Option<&mut BrowserView>,
+            _is_devtools: ::std::os::raw::c_int,
+        ) -> ::std::os::raw::c_int {
+            // No popups from the top bar page.
+            1
+        }
+    }
+}
+
+wrap_panel_delegate! {
+    struct BodyPanelDelegate {}
+    impl ViewDelegate {}
+    impl PanelDelegate {}
+}
+
 wrap_panel_delegate! {
     struct ContentPanelDelegate {}
     impl ViewDelegate {
@@ -311,7 +522,18 @@ wrap_window_delegate! {
         fn on_window_created(&self, window: Option<&mut Window>) {
             let Some(window) = window else { return };
             let engine = Engine::global();
-            let layout = window
+            // Top to bottom: the top bar (added when turned on), the body.
+            let column = window
+                .set_to_box_layout(Some(&BoxLayoutSettings {
+                    horizontal: 0,
+                    cross_axis_alignment: AxisAlignment::STRETCH,
+                    ..Default::default()
+                }))
+                .expect("box layout");
+            let mut bd = BodyPanelDelegate::new();
+            let body = panel_create(Some(&mut bd)).expect("body panel");
+            body.set_background_color(0xFF1B_1B1E);
+            let layout = body
                 .set_to_box_layout(Some(&BoxLayoutSettings {
                     horizontal: 1,
                     cross_axis_alignment: AxisAlignment::STRETCH,
@@ -338,9 +560,12 @@ wrap_window_delegate! {
 
             let mut sv = View::from(&sidebar);
             let mut cv = View::from(&content);
-            window.add_child_view(Some(&mut sv));
-            window.add_child_view(Some(&mut cv));
+            body.add_child_view(Some(&mut sv));
+            body.add_child_view(Some(&mut cv));
             layout.set_flex_for_view(Some(&mut cv), 1);
+            let mut bv = View::from(&body);
+            window.add_child_view(Some(&mut bv));
+            column.set_flex_for_view(Some(&mut bv), 1);
             window.set_title(Some(&CefString::from("magnetite")));
             window.center_window(Some(&Size { width: 1280, height: 860 }));
             window.show();
@@ -350,12 +575,19 @@ wrap_window_delegate! {
             let sidebar_browser = inner.pending_sidebar_browser.take();
             inner.frame = Some(FrameState {
                 window: window.clone(),
+                body,
                 sidebar_view: sidebar,
+                top_bar_view: None,
+                top_bar_browser: None,
                 empty: crate::empty::EmptyHint::new(&content),
                 content_panel: content,
                 sidebar_browser,
             });
             drop(inner);
+            // Turned on before the window existed (the saved setting).
+            if engine.top_bar_visible() {
+                engine.set_top_bar_visible(true);
+            }
             engine.emit(EngineEvent::FrameCreated);
         }
 

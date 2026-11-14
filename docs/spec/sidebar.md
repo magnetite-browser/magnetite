@@ -142,7 +142,27 @@ is docked at every start.
 
 Dragging the sidebar's right edge sets its width (220 to 360 points, 264 by
 default; double-click resets). Settings → Appearance has the width too, plus
-text size (85 to 130 %) and row density (compact, comfortable, spacious).
+text size (85 to 130 %), row density (compact, comfortable, spacious) and
+the layout (below).
+
+## Top bar
+
+Settings → Appearance → Layout → **Top bar** (off by default), or "Toggle
+top bar" in the command bar, moves the sidebar's title band and address row
+into a bar across the whole window, above the sidebar and the pages. It
+switches at once, without a restart.
+
+- From left to right: the sidebar button, back, forward and reload, the
+  address, all pinned extensions, and outside macOS minimize, maximize and
+  close. On macOS the window's own buttons sit at its left end.
+- The address shows the whole address without `https://` and `www.`; a
+  click opens the command bar with it, as in the sidebar. An open peek shows
+  its controls in its place.
+- The site controls, the copy menu (right-click on the copy button) and an
+  extension's menu open in small windows just below the bar.
+- The sidebar keeps the rest: favorites, tabs, the footer. Hidden (`Cmd+S`),
+  it still slides out over the pages, below the bar.
+- Empty space in the bar drags the window; a double-click maximizes it.
 
 ## Keyboard
 

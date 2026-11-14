@@ -32,6 +32,7 @@ impl EngineDelegate for MagnetiteApp {
                 // Before any profile exists: each gets these when it is made.
                 engine.set_autofill(autofill);
                 engine.set_sidebar_width(width);
+                engine.set_top_bar_visible(self.with_state(|s| s.settings.appearance.top_bar));
                 if toolbar {
                     engine.set_chrome_toolbar(true);
                 }
