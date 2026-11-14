@@ -323,6 +323,18 @@ impl EngineDelegate for MagnetiteApp {
                 });
                 self.show_state_paced(engine);
             }
+            EngineEvent::Relaunched { argv, cwd } => {
+                // Parsed as at start: an option's value is no address.
+                let cwd = cwd.unwrap_or_default();
+                let args = crate::parse_cli(argv)
+                    .map(|cli| cli.urls)
+                    .unwrap_or_default();
+                let urls: Vec<String> = args.iter().map(|a| launch_url(a, &cwd)).collect();
+                if urls.is_empty() {
+                    engine.activate_frame();
+                }
+                self.open_from_other_app(engine, urls);
+            }
             EngineEvent::QuitRequested => {
                 self.with_state(|s| {
                     s.persist();
@@ -389,6 +401,48 @@ impl EngineDelegate for MagnetiteApp {
         let value = self.handle_command(engine, cmd)?;
         Ok(value.to_string())
     }
+}
+
+impl MagnetiteApp {
+    /// Open `urls` as links from another app: as macOS hands them over,
+    /// following the setting for links from outside. There is one peek, and
+    /// opening it closes the one before: of several addresses the last gets
+    /// it, the others become background tabs.
+    pub(super) fn open_from_other_app(&self, engine: &Engine, urls: Vec<String>) {
+        let peek = self.with_state(|s| s.settings.external_links == "peek");
+        let last = urls.len().saturating_sub(1);
+        for (i, url) in urls.into_iter().enumerate() {
+            if peek && i < last {
+                self.open_url_from(engine, &url, true, url_policy::Source::OtherApp, None);
+                continue;
+            }
+            self.on_event(
+                engine,
+                EngineEvent::OpenUrlRequested {
+                    from: None,
+                    url,
+                    background: false,
+                    new_window: false,
+                    own_window: false,
+                    locked: false,
+                    source: UrlSource::OtherApp,
+                    context: None,
+                },
+            );
+        }
+    }
+}
+
+/// An address for `arg`, which another program put on Magnetite's command
+/// line (`magnetite %U` in the menu entry, a path typed in a terminal): a
+/// file or folder that exists, relative to `cwd`, becomes its `file://`
+/// address; anything else stays as given, for `url_policy` to judge.
+pub(crate) fn launch_url(arg: &str, cwd: &std::path::Path) -> String {
+    let path = cwd.join(arg);
+    if arg.contains("://") || !path.is_absolute() || !path.exists() {
+        return arg.to_string();
+    }
+    url::Url::from_file_path(&path).map_or_else(|()| arg.to_string(), String::from)
 }
 
 /// Where `OpenUrlRequested` opens an address.
@@ -492,5 +546,31 @@ mod tests {
             ..ask(Source::Page)
         };
         assert_eq!(locked_background.target("tab"), Target::Tab);
+    }
+
+    /// A file handed over by another app or typed in a terminal opens as its
+    /// `file://` address, whether given relative to the working folder or
+    /// absolute. An address, or anything that is no existing path, stays as
+    /// given, even where a folder happens to be named like an address.
+    #[test]
+    fn launch_arguments_that_are_existing_files_become_file_addresses() {
+        let dir = crate::files::test_dir("launch-url");
+        std::fs::create_dir_all(dir.join("https:").join("a.example")).unwrap();
+        std::fs::write(dir.join("my page.html"), "").unwrap();
+        let file_url = url::Url::from_file_path(dir.join("my page.html"))
+            .unwrap()
+            .to_string();
+        assert!(file_url.starts_with("file:///") && file_url.ends_with("/my%20page.html"));
+
+        assert_eq!(super::launch_url("my page.html", &dir), file_url);
+        let absolute = dir.join("my page.html");
+        assert_eq!(
+            super::launch_url(absolute.to_str().unwrap(), std::path::Path::new("/")),
+            file_url
+        );
+        for given in ["https://a.example", "example.org", "about:blank"] {
+            assert_eq!(super::launch_url(given, &dir), given);
+        }
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

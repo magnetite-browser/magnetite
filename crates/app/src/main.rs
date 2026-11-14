@@ -49,6 +49,9 @@ struct Cli {
     /// Open this URL as a new tab after start (also used by tests).
     #[arg(long)]
     open: Option<String>,
+    /// Addresses or files to open, as links from another app (`%U` in the
+    /// desktop entry).
+    urls: Vec<String>,
 }
 
 /// The command line. CEF helper processes never reach here (separate
@@ -113,7 +116,16 @@ fn main() {
     } else {
         state::ArcImport::Ask
     };
-    let delegate = Arc::new(app::MagnetiteApp::new(data_dir, import, cli.open));
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let launch_urls = (cli.urls.iter())
+        .map(|a| app::launch_url(a, &cwd))
+        .collect();
+    let delegate = Arc::new(app::MagnetiteApp::new(
+        data_dir,
+        import,
+        cli.open,
+        launch_urls,
+    ));
     app::install_global(&delegate);
     std::process::exit(magnetite_engine::run(config, delegate));
 }
@@ -231,5 +243,26 @@ mod tests {
         assert!(parsed.no_import && parsed.mock_keychain);
         // A real mistake is an error, not a start on the default profile.
         assert!(cli(&["magnetite", "--data-dir"]).is_err());
+    }
+
+    /// Links and files from other apps arrive as plain arguments
+    /// (`magnetite %U`): they are kept, in order, next to our own options and
+    /// switches we do not know, and an option's value is never one of them.
+    #[test]
+    fn addresses_from_other_apps_survive_next_to_options_and_unknown_switches() {
+        let parsed = cli(&[
+            "magnetite",
+            "--enable-features=Foo",
+            "--data-dir",
+            "/tmp/d",
+            "https://a.example/",
+            "page.html",
+        ])
+        .unwrap();
+        assert_eq!(parsed.urls, ["https://a.example/", "page.html"]);
+        assert_eq!(
+            parsed.data_dir.as_deref(),
+            Some(std::path::Path::new("/tmp/d"))
+        );
     }
 }
