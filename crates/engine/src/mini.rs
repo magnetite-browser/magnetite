@@ -323,13 +323,16 @@ impl Engine {
         let _ = (adopted, frame, window);
     }
 
-    /// Register the system-wide quick search key (⌥⌘N; macOS only), or
-    /// let it go. Taken by another app, it stays unregistered (traced).
+    /// Register the system-wide quick search key (⌥⌘N on macOS, Ctrl+Alt+N
+    /// on Windows), or let it go. Taken by another app, it stays
+    /// unregistered (traced).
     #[allow(clippy::unused_self)] // an Engine method like its siblings
     pub fn set_quick_search_key(&self, on: bool) {
         #[cfg(target_os = "macos")]
         crate::mac::set_quick_search_hotkey(on);
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        crate::win::set_quick_search_hotkey(on);
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = on;
     }
 
