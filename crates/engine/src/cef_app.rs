@@ -60,22 +60,63 @@ fn add_to_list(cmd: &mut CommandLine, switch: &str, item: &str) {
     cmd.append_switch_with_value(Some(&name), Some(&CefString::from(value.as_str())));
 }
 
-/// Run as an X11 client, also in a Wayland session (through `XWayland`).
-/// Under Wayland, CEF stops the program when it makes a window with a
-/// parent, which every page is (ADR-0012). An `--ozone-platform` on the
-/// command line wins, and without an X server Chromium keeps its choice.
-/// Notes the outcome for `wayland()`.
+/// The patch to CEF that makes a window with a parent a subsurface of it
+/// under Wayland (magnetite-cef, `patches/`). Without it CEF stops the
+/// program when it makes such a window, which every page is (ADR-0012).
 #[cfg(target_os = "linux")]
-fn through_xwayland(cmd: &mut CommandLine) {
+const WAYLAND_PATCH: &str = "wayland-child-windows.patch";
+
+/// The list of Magnetite's patches in the CEF in use, one file name a line.
+/// Magnetite's CEF build carries it, and packaging puts it next to the
+/// executable; the official CEF has none.
+#[cfg(target_os = "linux")]
+const CEF_PATCHES_FILE: &str = "magnetite-patches.txt";
+
+/// Whether `patches`, the text of `CEF_PATCHES_FILE`, lists `patch`.
+#[cfg(target_os = "linux")]
+fn lists_patch(patches: &str, patch: &str) -> bool {
+    patches.lines().any(|line| line.trim() == patch)
+}
+
+/// The platform Chromium runs on when the command line names none: Wayland
+/// in a Wayland session if the CEF in use can do child windows there, else
+/// X11 wherever an X server is (in a Wayland session: `XWayland`). `None`
+/// leaves the choice to Chromium.
+#[cfg(target_os = "linux")]
+fn default_platform(
+    wayland_session: bool,
+    x_server: bool,
+    cef_has_patch: bool,
+) -> Option<&'static str> {
+    if wayland_session && cef_has_patch {
+        Some("wayland")
+    } else if x_server {
+        Some("x11")
+    } else {
+        None
+    }
+}
+
+/// Pick Chromium's platform (`default_platform`) unless an
+/// `--ozone-platform` on the command line did, and note for `wayland()`
+/// what it runs on.
+#[cfg(target_os = "linux")]
+fn choose_platform(cmd: &mut CommandLine) {
+    let set = |var: &str| std::env::var_os(var).is_some_and(|v| !v.is_empty());
     let name = CefString::from("ozone-platform");
-    if cmd.has_switch(Some(&name)) == 0
-        && std::env::var_os("DISPLAY").is_some_and(|d| !d.is_empty())
-    {
-        cmd.append_switch_with_value(Some(&name), Some(&CefString::from("x11")));
+    if cmd.has_switch(Some(&name)) == 0 {
+        let cef_has_patch = std::env::current_exe()
+            .ok()
+            .and_then(|exe| std::fs::read_to_string(exe.with_file_name(CEF_PATCHES_FILE)).ok())
+            .is_some_and(|patches| lists_patch(&patches, WAYLAND_PATCH));
+        if let Some(platform) =
+            default_platform(set("WAYLAND_DISPLAY"), set("DISPLAY"), cef_has_patch)
+        {
+            cmd.append_switch_with_value(Some(&name), Some(&CefString::from(platform)));
+        }
     }
     let platform = CefString::from(&cmd.switch_value(Some(&name))).to_string();
-    let wayland = platform == "wayland"
-        || (platform.is_empty() && std::env::var_os("WAYLAND_DISPLAY").is_some());
+    let wayland = platform == "wayland" || (platform.is_empty() && set("WAYLAND_DISPLAY"));
     WAYLAND.store(wayland, std::sync::atomic::Ordering::Relaxed);
 }
 
@@ -114,7 +155,7 @@ wrap_app! {
             #[cfg(target_os = "macos")]
             enable_feature(cmd, PIP_WITHOUT_ADDRESS);
             #[cfg(target_os = "linux")]
-            through_xwayland(cmd);
+            choose_platform(cmd);
             // Our private DevTools session (`devpipe.rs`): fds 3 and 4.
             if crate::devpipe::is_open() {
                 cmd.append_switch(Some(&CefString::from("remote-debugging-pipe")));
@@ -218,5 +259,54 @@ wrap_render_process_handler! {
                 .on_process_message_received(browser.cloned(), frame.cloned(), Some(source_process), message.cloned())
                 .into()
         }
+    }
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::{default_platform, lists_patch};
+
+    /// A name that is only part of a line must not count: Magnetite would
+    /// then run on Wayland with a CEF that stops at the first page.
+    #[test]
+    fn lists_patch_wants_a_whole_line() {
+        let patch = "wayland-child-windows.patch";
+
+        assert!(lists_patch("wayland-child-windows.patch\n", patch));
+        assert!(lists_patch(
+            "other.patch\nwayland-child-windows.patch",
+            patch
+        ));
+        assert!(lists_patch(
+            "other.patch\r\n  wayland-child-windows.patch\t\r\n",
+            patch
+        ));
+
+        assert!(!lists_patch("", patch));
+        assert!(!lists_patch("other.patch\n", patch));
+        assert!(!lists_patch("not-wayland-child-windows.patch.bak\n", patch));
+        assert!(!lists_patch("wayland-child-windows.patch.bak\n", patch));
+        assert!(!lists_patch("old-wayland-child-windows.patch\n", patch));
+        assert!(!lists_patch(
+            "wayland-child-windows.patch other.patch\n",
+            patch
+        ));
+    }
+
+    /// Wayland only with the patch, else X11 where an X server is: the
+    /// wrong choice stops the program at the first page or at the start.
+    #[test]
+    fn default_platform_is_wayland_only_with_the_patch() {
+        // (Wayland session, X server, CEF has the patch)
+        assert_eq!(default_platform(true, false, true), Some("wayland"));
+        assert_eq!(default_platform(true, true, true), Some("wayland"));
+
+        assert_eq!(default_platform(true, true, false), Some("x11"));
+        assert_eq!(default_platform(false, true, false), Some("x11"));
+        assert_eq!(default_platform(false, true, true), Some("x11"));
+
+        assert_eq!(default_platform(true, false, false), None);
+        assert_eq!(default_platform(false, false, false), None);
+        assert_eq!(default_platform(false, false, true), None);
     }
 }

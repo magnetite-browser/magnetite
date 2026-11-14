@@ -1,8 +1,9 @@
 # ADR-0012: Under Wayland, child windows are subsurfaces of the frame
 
-- Status: accepted (2026-11-13). Steps 1 and 3 are done and step 2 in part:
-  with a CEF that has the patch, `--ozone-platform=wayland` passes the smoke
-  test. Such a CEF is not released yet, so XWayland is still the default.
+- Status: accepted (2026-11-13). Steps 1 and 3 are done, steps 2 and 4 in
+  part: with a CEF that has the patch, Magnetite is a Wayland client in a
+  Wayland session. No such CEF is released for Linux yet, so releases still
+  run through XWayland.
 
 ## Context
 
@@ -62,9 +63,9 @@ pointer.
 
 ### Steps
 
-1. **No more crash (done).** Without an `--ozone-platform` option, Magnetite
-   runs as an X11 client whenever an X server is there (`cef_app.rs`,
-   `through_xwayland`). `scripts/wayland-test.sh` runs a build in a headless
+1. **No more crash (done).** Without an `--ozone-platform` option and with
+   a CEF that lacks the patch, Magnetite runs as an X11 client whenever an
+   X server is there (`cef_app.rs`, `choose_platform`). `scripts/wayland-test.sh` runs a build in a headless
    Wayland session, with pointer and keyboard.
 2. **CEF for Linux (in part).** magnetite-cef builds x86_64 and aarch64 with
    the codecs (H.264, AAC and HEVC, which Linux lacks today) and a patch to
@@ -86,9 +87,12 @@ pointer.
    A build with the patched CEF was also tested by hand on Fedora 45 in a
    Wayland session. Open: the frame cannot be resized by its edges (under
    X11 neither).
-4. **Wayland by default** where the CEF in use has the patch; XWayland
-   stays the fallback for other CEF builds and behind `--ozone-platform=x11`.
-   CI runs the smoke test in a Wayland session.
+4. **Wayland by default (in part)** where the CEF in use has the patch;
+   XWayland stays the fallback for other CEF builds and behind
+   `--ozone-platform=x11`. Magnetite's CEF build carries the list of its
+   patches (`magnetite-patches.txt`, next to `libcef.so` in the package),
+   and the app reads from it whether the Wayland patch is in. Open: CI runs
+   the smoke test in a Wayland session.
 
 ## Consequences
 

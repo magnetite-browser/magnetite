@@ -136,10 +136,12 @@ package_folder() {
   mkdir -p "$stage"
   cp "$bin/magnetite$exe" "$bin/magnetite-helper$exe" "$stage/"
   # CEF's runtime files. Its headers, wrapper sources, CMake files, import
-  # libraries and archive.json are build inputs only.
+  # libraries and archive.json are build inputs only. magnetite-patches.txt
+  # is in Magnetite's CEF build alone: the app reads from it what that CEF
+  # can do (cef_app.rs, `choose_platform`).
   for f in "$cef"/*; do
     case $(basename "$f") in
-      *.so | *.so.* | chrome-sandbox | *.dll | *.pak | *.dat | *.bin | vk_swiftshader_icd.json) cp "$f" "$stage/" ;;
+      *.so | *.so.* | chrome-sandbox | *.dll | *.pak | *.dat | *.bin | vk_swiftshader_icd.json | magnetite-patches.txt) cp "$f" "$stage/" ;;
     esac
   done
   cp -R "$cef/locales" "$stage/locales"
