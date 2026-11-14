@@ -9,6 +9,7 @@ mod edge;
 mod hotkey;
 mod layers;
 mod share;
+mod video;
 
 pub use default_browser::{handles, open_default_apps};
 pub use dividers::{DividerKey, set_dividers};
@@ -16,6 +17,7 @@ pub use edge::set_edge_zone;
 pub use hotkey::set_quick_search_hotkey;
 pub use layers::{hide_peek_backdrop, set_focus_ring, show_peek_backdrop};
 pub use share::{copy_png, copy_text, mouse_point, save_png, shift_held};
+pub use video::brand_video_window;
 
 #[link(name = "dwmapi")]
 unsafe extern "system" {

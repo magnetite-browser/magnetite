@@ -91,6 +91,11 @@ impl Engine {
         if let Ok(media) = parse_report(json) {
             #[cfg(target_os = "macos")]
             crate::pip::follow(id, media.as_ref());
+            // Chromium's video window has a taskbar button of its own.
+            #[cfg(target_os = "windows")]
+            if media.as_ref().is_some_and(|m| m.pip) {
+                crate::win::brand_video_window();
+            }
             self.emit(EngineEvent::MediaChanged { id, media });
         }
     }
