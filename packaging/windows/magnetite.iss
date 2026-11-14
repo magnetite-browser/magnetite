@@ -57,7 +57,11 @@ ArchitecturesInstallIn64BitMode=arm64
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 #endif
-; A running Magnetite holds its files open: the installer asks to close it.
+; A running Magnetite holds only some of its files open: installing or
+; uninstalling under it leaves a window without its pages and icon. Both
+; ask to close it first, by the names it holds while it runs
+; (crates/engine/src/win/running.rs).
+AppMutex=MagnetiteRunning,Global\MagnetiteRunning
 CloseApplications=yes
 RestartApplications=no
 

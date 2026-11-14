@@ -55,6 +55,9 @@ pub fn run(config: EngineConfig, delegate: Arc<dyn EngineDelegate>) -> i32 {
     if code >= 0 {
         return code;
     }
+    // The browser process: the installer waits for it to close.
+    #[cfg(target_os = "windows")]
+    crate::win::mark_running();
 
     if let Err(e) = std::fs::create_dir_all(&config.data_dir) {
         crate::trace(&format!("cannot create {}: {e}", config.data_dir.display()));
