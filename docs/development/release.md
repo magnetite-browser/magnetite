@@ -286,8 +286,10 @@ tap stays for those who installed from it.
 - Windows: run the installer (`Magnetite-<version>-windows-x86_64-setup.exe`),
   start Magnetite from the Start menu, open a page. Neither the installer
   nor `magnetite.exe` is signed yet, so SmartScreen warns about the
-  download; an installed version does not update itself, it opens the
-  release page.
+  download. An installed older version updates itself with this installer
+  ("Restart to update"; Windows asks for an administrator when it is
+  installed for all users). A copy unpacked from the zip opens the release
+  page.
 - An installed older version offers the update once the release is public.
 - The release notes say what changed in words a user understands.
 

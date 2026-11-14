@@ -59,9 +59,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 #endif
 ; A running Magnetite holds only some of its files open: installing or
 ; uninstalling under it leaves a window without its pages and icon. Both
-; ask to close it first, by the names it holds while it runs
-; (crates/engine/src/win/running.rs).
-AppMutex=MagnetiteRunning,Global\MagnetiteRunning
+; ask to close it first ([Code] below), by the names it holds while it
+; runs (crates/engine/src/win/running.rs).
 CloseApplications=yes
 RestartApplications=no
 
@@ -106,3 +105,69 @@ Root: HKA; Subkey: "Software\RegisteredApplications"; ValueType: string; ValueNa
 
 [Run]
 Filename: "{app}\magnetite.exe"; Description: "{cm:LaunchProgram,Magnetite}"; Flags: nowait postinstall skipifsilent
+; An update started by Magnetite: back to where the user was. As the user
+; who runs Magnetite, also when the installer itself runs as an
+; administrator: a browser must never run with those rights.
+Filename: "{app}\magnetite.exe"; Flags: nowait runasoriginaluser; Check: IsUpdate
+
+[Code]
+// Magnetite updates itself by running this installer with
+//   /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /UPDATE=1
+// (crates/app/src/update.rs). The installer then says that it stands ready
+// (after Windows asked for an administrator, where the installed copy is
+// one for all users), Magnetite quits, and the installer goes on.
+
+const
+  // The names Magnetite holds while it runs.
+  RunningNames = 'MagnetiteRunning,Global\MagnetiteRunning';
+  // The name Magnetite looks for before it quits for an update.
+  ReadyName = 'MagnetiteUpdateReady';
+  // How long an update waits for Magnetite to quit, in milliseconds.
+  QuitWait = 60000;
+
+function IsUpdate: Boolean;
+begin
+  Result := ExpandConstant('{param:UPDATE|0}') = '1';
+end;
+
+function InitializeSetup: Boolean;
+var
+  Waited: Integer;
+begin
+  Result := True;
+  if IsUpdate then
+  begin
+    CreateMutex(ReadyName);
+    Waited := 0;
+    while CheckForMutexes(RunningNames) and (Waited < QuitWait) do
+    begin
+      Sleep(200);
+      Waited := Waited + 200;
+    end;
+    if CheckForMutexes(RunningNames) then
+      Result := False
+    else
+      // Its other processes end a moment after the window's.
+      Sleep(1000);
+    Exit;
+  end;
+  while CheckForMutexes(RunningNames) do
+    if SuppressibleMsgBox(FmtMessage(SetupMessage(msgSetupAppRunningError), ['Magnetite']),
+         mbError, MB_OKCANCEL, IDCANCEL) <> IDOK then
+    begin
+      Result := False;
+      Exit;
+    end;
+end;
+
+function InitializeUninstall: Boolean;
+begin
+  Result := True;
+  while CheckForMutexes(RunningNames) do
+    if SuppressibleMsgBox(FmtMessage(SetupMessage(msgUninstallAppRunningError), ['Magnetite']),
+         mbError, MB_OKCANCEL, IDCANCEL) <> IDOK then
+    begin
+      Result := False;
+      Exit;
+    end;
+end;

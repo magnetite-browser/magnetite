@@ -17,7 +17,7 @@ pub use dividers::{DividerKey, set_dividers};
 pub use edge::set_edge_zone;
 pub use hotkey::set_quick_search_hotkey;
 pub use layers::{hide_peek_backdrop, set_focus_ring, show_peek_backdrop};
-pub use running::mark_running;
+pub use running::{installer_ready, mark_running};
 pub use share::{copy_png, copy_text, mouse_point, save_png, shift_held};
 pub use video::brand_video_window;
 

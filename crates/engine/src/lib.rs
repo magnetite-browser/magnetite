@@ -86,6 +86,8 @@ pub use site::{SiteState, ZOOM_STEPS, zoom_step};
 pub use sitedata::{
     ClearReport, PermissionKind, PermissionRow, PermissionValue, in_domain, registrable_domain,
 };
+#[cfg(target_os = "windows")]
+pub use win::installer_ready;
 
 /// The Chromium and CEF versions Magnetite is built on (Settings → About).
 pub fn engine_versions() -> (String, String) {

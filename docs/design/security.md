@@ -232,9 +232,20 @@ panel instead of Chromium's bubble at the page's top left (`prompts.rs`).
 - macOS replaces the app only when the new bundle has the same bundle id,
   is signed by the same Apple developer team as the running app (a build
   without a team does not update itself) and Gatekeeper accepts it
-  (notarized); otherwise, and on Linux and Windows, the release page opens.
+  (notarized); otherwise, and on Linux, the release page opens.
   A failed install leaves the running app untouched; one install runs at a
   time.
+- Windows: a Magnetite put there by its installer downloads the release's
+  installer, checks it against the manifest and runs it without questions;
+  a copy unpacked from the zip opens the release page. The installer says
+  when it stands ready, and only then Magnetite quits. An installation for
+  all users makes Windows ask for an administrator each time (there is no
+  service that installs unasked); refused, nothing changes and Magnetite
+  stays open. The installer starts Magnetite again as the user, never
+  with the administrator's rights. The checked installer waits in the
+  user's temporary folder until it runs: a program already running as
+  that user could swap it before the administrator is asked, as it could
+  show any other request of its own.
 - Versions compare by semantic versioning (`1.0.0-beta.10` is newer than
   `beta.9`); an older signed release is never installed over a newer one.
 - Checks run at start and once a day, `https://` only, and can be turned
