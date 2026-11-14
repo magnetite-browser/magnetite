@@ -112,7 +112,7 @@ this device").
   a profile is private stays as this device has it. Which spaces are
   kept on this device alone, and which profiles were deleted here, is saved
   next to the sidebar and never synced.
-- Profile data: `<data-dir>/cef/default` for the default profile,
+- Profile data: `<data-dir>/cef/Default` for the default profile,
   `<data-dir>/cef/profile-<profile-id>` for each separate profile, nothing
   for a private one.
 
