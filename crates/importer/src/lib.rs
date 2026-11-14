@@ -126,14 +126,17 @@ pub struct Installed {
 }
 
 /// Browsers we know, with their data folders per platform: macOS below
-/// `~/Library/Application Support`, Linux below `~` and Windows below
-/// `%LOCALAPPDATA%` (or `%APPDATA%` where marked).
+/// `~/Library/Application Support`, Linux below `~` (or, installed as a
+/// Flatpak with one of the IDs in `flatpak`, below that app's own home) and
+/// Windows
+/// below `%LOCALAPPDATA%` (or `%APPDATA%` where marked).
 struct Known {
     key: &'static str,
     name: &'static str,
     kind: Kind,
     macos: &'static str,
     linux: &'static str,
+    flatpak: &'static [&'static str],
     windows: &'static str,
     windows_roaming: bool,
 }
@@ -145,6 +148,7 @@ const KNOWN: &[Known] = &[
         kind: Kind::Chromium,
         macos: "Google/Chrome",
         linux: ".config/google-chrome",
+        flatpak: &["com.google.Chrome"],
         windows: "Google/Chrome/User Data",
         windows_roaming: false,
     },
@@ -154,6 +158,7 @@ const KNOWN: &[Known] = &[
         kind: Kind::Chromium,
         macos: "BraveSoftware/Brave-Browser",
         linux: ".config/BraveSoftware/Brave-Browser",
+        flatpak: &["com.brave.Browser"],
         windows: "BraveSoftware/Brave-Browser/User Data",
         windows_roaming: false,
     },
@@ -163,6 +168,7 @@ const KNOWN: &[Known] = &[
         kind: Kind::Chromium,
         macos: "Microsoft Edge",
         linux: ".config/microsoft-edge",
+        flatpak: &["com.microsoft.Edge"],
         windows: "Microsoft/Edge/User Data",
         windows_roaming: false,
     },
@@ -172,6 +178,7 @@ const KNOWN: &[Known] = &[
         kind: Kind::Chromium,
         macos: "Vivaldi",
         linux: ".config/vivaldi",
+        flatpak: &["com.vivaldi.Vivaldi"],
         windows: "Vivaldi/User Data",
         windows_roaming: false,
     },
@@ -181,6 +188,7 @@ const KNOWN: &[Known] = &[
         kind: Kind::Chromium,
         macos: "com.operasoftware.Opera",
         linux: ".config/opera",
+        flatpak: &["com.opera.Opera"],
         windows: "Opera Software/Opera Stable",
         windows_roaming: true,
     },
@@ -190,6 +198,10 @@ const KNOWN: &[Known] = &[
         kind: Kind::Chromium,
         macos: "Chromium",
         linux: ".config/chromium",
+        flatpak: &[
+            "org.chromium.Chromium",
+            "io.github.ungoogled_software.ungoogled_chromium",
+        ],
         windows: "Chromium/User Data",
         windows_roaming: false,
     },
@@ -199,6 +211,7 @@ const KNOWN: &[Known] = &[
         kind: Kind::Zen,
         macos: "zen",
         linux: ".zen",
+        flatpak: &["app.zen_browser.zen"],
         windows: "zen",
         windows_roaming: true,
     },
@@ -208,25 +221,70 @@ const KNOWN: &[Known] = &[
         kind: Kind::Firefox,
         macos: "Firefox",
         linux: ".mozilla/firefox",
+        flatpak: &["org.mozilla.firefox"],
         windows: "Mozilla/Firefox",
+        windows_roaming: true,
+    },
+    Known {
+        key: "librewolf",
+        name: "LibreWolf",
+        kind: Kind::Firefox,
+        macos: "librewolf",
+        linux: ".librewolf",
+        flatpak: &["io.gitlab.librewolf-community"],
+        windows: "librewolf",
+        windows_roaming: true,
+    },
+    Known {
+        key: "waterfox",
+        name: "Waterfox",
+        kind: Kind::Firefox,
+        macos: "Waterfox",
+        linux: ".waterfox",
+        flatpak: &["net.waterfox.waterfox"],
+        windows: "Waterfox",
         windows_roaming: true,
     },
 ];
 
-fn data_folder(k: &Known) -> Option<PathBuf> {
+/// Where `k` may keep its data on this platform, the likeliest first.
+fn data_folders(k: &Known) -> Vec<PathBuf> {
     let home = || std::env::var_os("HOME").map(PathBuf::from);
     if cfg!(target_os = "macos") {
-        home().map(|h| h.join("Library/Application Support").join(k.macos))
+        home()
+            .map(|h| h.join("Library/Application Support").join(k.macos))
+            .into_iter()
+            .collect()
     } else if cfg!(target_os = "windows") {
         let var = if k.windows_roaming {
             "APPDATA"
         } else {
             "LOCALAPPDATA"
         };
-        std::env::var_os(var).map(|b| PathBuf::from(b).join(k.windows))
+        std::env::var_os(var)
+            .map(|b| PathBuf::from(b).join(k.windows))
+            .into_iter()
+            .collect()
     } else {
-        home().map(|h| h.join(k.linux))
+        home().map(|h| linux_folders(&h, k)).unwrap_or_default()
     }
+}
+
+/// `k`'s data folders on Linux: installed from a package first, then as
+/// each of its Flatpaks. A Flatpak's home is `~/.var/app/<ID>`, and its
+/// `config` folder is what `~/.config` is to other programs.
+fn linux_folders(home: &Path, k: &Known) -> Vec<PathBuf> {
+    let in_flatpak = k
+        .linux
+        .strip_prefix(".config/")
+        .map_or_else(|| k.linux.to_string(), |rest| format!("config/{rest}"));
+    let flatpaks = k
+        .flatpak
+        .iter()
+        .map(|id| home.join(".var/app").join(id).join(&in_flatpak));
+    std::iter::once(home.join(k.linux))
+        .chain(flatpaks)
+        .collect()
 }
 
 /// Browsers with importable data on this machine, Arc first. Only checks
@@ -241,13 +299,15 @@ pub fn installed() -> Vec<Installed> {
             path,
         });
     let others = KNOWN.iter().filter_map(|k| {
-        let path = data_folder(k)?;
         let marker = match k.kind {
             Kind::Chromium => "Local State",
             Kind::Firefox | Kind::Zen => "profiles.ini",
             Kind::Arc => return None,
         };
-        path.join(marker).is_file().then_some(Installed {
+        let path = data_folders(k)
+            .into_iter()
+            .find(|p| p.join(marker).is_file())?;
+        Some(Installed {
             key: k.key,
             name: k.name,
             kind: k.kind,
@@ -393,5 +453,53 @@ mod tests {
             std::io::ErrorKind::InvalidInput
         );
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A browser installed as a Flatpak keeps its data in the Flatpak's own
+    /// home, where `config` stands in for `~/.config`: looked for anywhere
+    /// else, the browser is not offered for import at all. A browser that
+    /// comes as several Flatpaks is looked for in each, in the order listed.
+    #[test]
+    fn linux_looks_below_home_first_and_then_in_the_flatpak() {
+        let home = std::path::Path::new("/home/u");
+        let folders = |key: &str| {
+            let known = super::KNOWN.iter().find(|k| k.key == key).unwrap();
+            super::linux_folders(home, known)
+        };
+        let expect =
+            |paths: &[&str]| -> Vec<_> { paths.iter().map(std::path::PathBuf::from).collect() };
+        assert_eq!(
+            folders("chrome"),
+            expect(&[
+                "/home/u/.config/google-chrome",
+                "/home/u/.var/app/com.google.Chrome/config/google-chrome",
+            ])
+        );
+        assert_eq!(
+            folders("chromium"),
+            expect(&[
+                "/home/u/.config/chromium",
+                "/home/u/.var/app/org.chromium.Chromium/config/chromium",
+                "/home/u/.var/app/io.github.ungoogled_software.ungoogled_chromium/config/chromium",
+            ])
+        );
+        assert_eq!(
+            folders("zen"),
+            expect(&["/home/u/.zen", "/home/u/.var/app/app.zen_browser.zen/.zen"])
+        );
+        assert_eq!(
+            folders("librewolf"),
+            expect(&[
+                "/home/u/.librewolf",
+                "/home/u/.var/app/io.gitlab.librewolf-community/.librewolf",
+            ])
+        );
+        assert_eq!(
+            folders("waterfox"),
+            expect(&[
+                "/home/u/.waterfox",
+                "/home/u/.var/app/net.waterfox.waterfox/.waterfox",
+            ])
+        );
     }
 }

@@ -2,7 +2,8 @@
 
 Magnetite imports spaces, open and pinned tabs, tab groups and bookmarks from
 other browsers on the same computer: Arc, Chromium-based browsers (Chrome,
-Brave, Edge, Vivaldi, Opera, Chromium), Firefox and Zen. It only reads their
+Brave, Edge, Vivaldi, Opera, Chromium), Firefox, LibreWolf, Waterfox and Zen.
+LibreWolf and Waterfox are read as Firefox is. It only reads their
 files, also while the other browser runs. Nothing is uploaded. Passwords,
 cookies and history are never read; extensions and settings do not come
 along.
@@ -73,7 +74,9 @@ along.
 | Zen | `profiles.ini` in the data folder | `zen-sessions.jsonlz4`, else `zen-sessions-backup/clean.jsonlz4`, else the session files as for Firefox; the newest bookmark backup |
 
 - Data folders are looked up below `~/Library/Application Support` (macOS),
-  the home folder (Linux) and `%LOCALAPPDATA%` or `%APPDATA%` (Windows).
+  the home folder (Linux) and `%LOCALAPPDATA%` or `%APPDATA%` (Windows). On
+  Linux also where the browser's Flatpak keeps them, `~/.var/app/<app ID>`;
+  data from a package wins over a Flatpak's. Snaps are not looked at.
 - Chromium session files are command logs (SNSS, versions 1 and 3) that the
   importer replays as Chromium does: tabs of normal windows, each with the
   page it shows. Encrypted session files are not read; the profile's
