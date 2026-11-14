@@ -88,7 +88,9 @@ jobs:
           APPLE_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
           APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
           APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
-        run: scripts/release/notarize-macos.sh dist/Magnetite.app "dist/Magnetite-$VERSION-${{ matrix.target }}.zip"
+        run: |
+          scripts/release/notarize-macos.sh dist/Magnetite.app \
+            "dist/Magnetite-$VERSION-${{ matrix.target }}.zip" "dist/Magnetite-$VERSION-${{ matrix.target }}.dmg"
 
       - name: Warn about an unnotarized app
         if: runner.os == 'macOS' && (env.HAS_APPLE_CERT != 'true' || env.HAS_APPLE_NOTARY != 'true')
@@ -136,7 +138,7 @@ jobs:
 
       - name: Checksums
         working-directory: dist
-        run: sha256sum -- *.zip *.tar.gz >SHA256SUMS
+        run: sha256sum -- *.zip *.dmg *.tar.gz >SHA256SUMS
 
       - name: Create the draft
         env:
@@ -144,4 +146,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
             --title "Magnetite $VERSION" --generate-notes \
-            dist/*.zip dist/*.tar.gz dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS
+            dist/*.zip dist/*.dmg dist/*.tar.gz dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS

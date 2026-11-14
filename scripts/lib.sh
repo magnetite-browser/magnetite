@@ -86,6 +86,39 @@ cef_dir() {
   printf '%s\n' "$dir"
 }
 
+# Run a command up to $1 times, a few seconds apart: for steps that fail now
+# and then for reasons outside the build (a busy disk image, Apple's servers).
+retry() {
+  local tries="$1" n=1
+  shift
+  until "$@"; do
+    ((n < tries)) || return 1
+    log "try $n of $tries failed: $1; trying again"
+    n=$((n + 1))
+    sleep 5
+  done
+}
+
+# Make the macOS disk image $2 of the app $1 (Magnetite.app): the app and a
+# link to /Applications to drag it onto, shown as packaging/macos/dmg.DS_Store
+# says (tools/dmg-layout.py). A Developer ID in MACOS_SIGN_IDENTITY signs the
+# image: Gatekeeper checks the image itself, apart from the app in it.
+make_dmg() {
+  local app="$1" dmg="$2" identity="${MACOS_SIGN_IDENTITY:--}" stage
+  stage="$(dirname "$dmg")/dmg-stage"
+  rm -rf "$stage" "$dmg"
+  mkdir -p "$stage"
+  # ditto keeps symbolic links and signatures intact.
+  ditto "$app" "$stage/Magnetite.app"
+  ln -s /Applications "$stage/Applications"
+  cp "$ROOT/packaging/macos/dmg.DS_Store" "$stage/.DS_Store"
+  # LZMA (macOS 10.15 and newer): a quarter smaller than the zip. hdiutil
+  # fails now and then with "Resource busy" on CI runners.
+  retry 3 hdiutil create -quiet -volname Magnetite -srcfolder "$stage" -fs HFS+ -format ULMO -ov "$dmg"
+  rm -rf "$stage"
+  if [[ $identity != - ]]; then codesign --force --sign "$identity" --timestamp "$dmg"; fi
+}
+
 # Lowercase hex SHA-256 of a file.
 sha256_of() {
   if command -v sha256sum >/dev/null; then

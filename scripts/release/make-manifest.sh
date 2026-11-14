@@ -7,7 +7,8 @@
 # <repository>/releases/latest/download/latest.json:
 #   {"version": "...", "notes_url": "...",
 #    "assets": {"<os>-<arch>": {"url": "...", "sha256": "<hex>", "size": <bytes>}}}
-# Only the packages found in <folder> are listed. The owner/repo comes from
+# Only the packages found in <folder> are listed; the macOS disk image is not
+# one (the updater takes the zip). The owner/repo comes from
 # GITHUB_REPOSITORY, or else from Cargo.toml.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"

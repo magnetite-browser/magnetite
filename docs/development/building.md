@@ -46,7 +46,8 @@ scripts/bundle.sh             # dev build -> target/bundle/Magnetite.app
 open target/bundle/Magnetite.app --args --mock-keychain
 ```
 
-`scripts/bundle.sh [--release]` is `scripts/build.sh` without the zip, into
+`scripts/bundle.sh [--release]` is `scripts/build.sh` without the zip and
+the disk image, into
 `target/bundle`. `--mock-keychain` avoids the macOS keychain prompt that
 unsigned dev builds trigger on every rebuild (cookies are then stored
 unencrypted in the dev profile). Other useful flags: `--load-extension <dir>`

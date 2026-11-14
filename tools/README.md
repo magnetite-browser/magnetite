@@ -43,3 +43,10 @@ Posting synthetic input requires Accessibility permission for the terminal
 that runs the tool. **Only run input scripts when nobody is using the
 machine**: the events go to whatever window is in front, including other
 apps.
+
+## Disk image layout (macOS)
+
+`tools/dmg-layout.py` writes `packaging/macos/dmg.DS_Store`: the window size,
+icon size and icon positions Finder uses for the release's disk image. The
+file is kept in the repository, so run the script only to change the layout
+(its header says how).

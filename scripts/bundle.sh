@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Development build into target/bundle/Magnetite.app (no zip), for running
+# Development build into target/bundle/Magnetite.app (no zip or disk image), for running
 # from the checkout. Same bundle as scripts/build.sh; see its --help.
 # Usage: scripts/bundle.sh [--release]
 set -euo pipefail

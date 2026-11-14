@@ -3,7 +3,7 @@
 #
 #   scripts/build.sh [--release] [--skip-ui] [--no-archive] [--out DIR]
 #
-#   macOS    dist/Magnetite.app        + Magnetite-<version>-macos-<arch>.zip
+#   macOS    dist/Magnetite.app        + Magnetite-<version>-macos-<arch>.zip and .dmg
 #   Linux    dist/magnetite-<version>/ + magnetite-<version>-linux-<arch>.tar.gz
 #   Windows  dist/magnetite-<version>/ + magnetite-<version>-windows-<arch>.zip
 #
@@ -124,6 +124,10 @@ package_macos() {
     # ditto keeps symbolic links and signatures intact; plain zip does not.
     ditto -c -k --keepParent "$app" "$zip"
     echo "$zip"
+    # The download for people: the zip is what the updater and Homebrew take.
+    local dmg="$out/Magnetite-$version-macos-$arch.dmg"
+    make_dmg "$app" "$dmg"
+    echo "$dmg"
   fi
 }
 
