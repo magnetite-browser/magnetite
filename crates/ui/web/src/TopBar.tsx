@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { AddressRow } from "./AddressRow";
 import { Back, Close, Forward, Maximize, Minus, Reload, SidebarIcon, SplitIcon } from "./Icons";
 import { PinnedExtensions } from "./PinnedExtensions";
-import { IS_MAC, applyAppearance, findTab, hostOf, send, subscribe, type UiState } from "./bridge";
+import { IS_MAC, accentCss, applyAppearance, findTab, hostOf, send, subscribe, type UiState } from "./bridge";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
 export function TopBar() {
@@ -29,10 +29,12 @@ export function TopBar() {
   // Back, forward and reload act on the page in front: the peek while one is open.
   const frontRt = state.peek ? state.peek.runtime : activeRt;
   const activeItem = state.active_tab ? findTab(state, state.active_tab) : null;
+  // Focus rings take the active space's colour, as in the sidebar.
+  const space = state.sidebar.spaces.find((s) => s.id === state.active_space);
   return (
     <div
       className="topbar titlebar-drag"
-      style={{ ["--bg" as string]: state.chrome, background: state.chrome }}
+      style={{ ["--space" as string]: accentCss(space?.accent), ["--bg" as string]: state.chrome, background: state.chrome }}
       onDoubleClick={(e) => e.target === e.currentTarget && send({ cmd: "window_maximize" })}
     >
       <div className={`flex shrink-0 items-center gap-0.5 ${IS_MAC ? "pl-[86px]" : "pl-2"}`}>
