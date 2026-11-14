@@ -29,8 +29,9 @@ name.
   typed input (`url_policy::Source::User`), checked like any. A mini
   window's page is a web page like a tab's (`Kind::Content`), never one of
   our privileged pages unless the user opened `magnetite://ui/` there.
-- The system-wide key is a Carbon hot key (`mac/hotkey.rs`): macOS reports
-  that one combination, not other typing, and Magnetite asks for no
+- The system-wide key is a Carbon hot key (`mac/hotkey.rs`) on macOS and a
+  registered hot key (`win/hotkey.rs`) on Windows: the system reports that
+  one combination, not other typing, and Magnetite asks for no
   accessibility or input-monitoring permission.
 
 ## Addresses by where they come from
@@ -57,7 +58,16 @@ are dropped (`state::drop_unsafe_tabs`).
 Magnetite asks the system to become the default browser only on the user's
 click (Settings → General, or the welcome page's switch once "Start
 browsing" is pressed), and macOS confirms with the user
-(`Engine::make_default_browser`).
+(`Engine::make_default_browser`); on Windows the user chooses in Windows'
+own Settings, which that click opens.
+
+On Windows another program hands over a link by starting Magnetite with it.
+The command registered for that is `magnetite.exe --single-argument %1`:
+what follows the marker is the link, whatever it looks like, for Chromium's
+command line and for ours (`split_link`). A link can therefore not pass
+options such as `--data-dir` or Chromium's switches. It then goes through
+the policy above as a link from another app, whether Magnetite was running
+(`on_already_running_app_relaunch`) or starts with it.
 
 A new tab or peek opened by a page, or by an extension, runs in the opener's
 profile (`OpenUrlRequested.context`), so a page in a private or separate

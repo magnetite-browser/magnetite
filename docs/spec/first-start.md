@@ -28,10 +28,10 @@ returns to the one before, and the bar at the bottom left shows the place.
   import takes the place of the starter space while nobody has used it, so
   an imported "Personal" keeps its name; further ones add their spaces
   (`import.md`). Magnetite then shows the first imported space.
-- "Make Magnetite the default browser" shows only on macOS, and only while
-  another app opens web links. Turning it on changes nothing yet: after
-  "Start browsing" Magnetite asks macOS, which asks the user to confirm
-  (Settings → General has the same, `Default browser` below).
+- "Make Magnetite the default browser" shows on macOS and on an installed
+  Magnetite on Windows, and only while another app opens web links.
+  Turning it on changes nothing yet: after "Start browsing" Magnetite asks
+  the system (Settings → General has the same, `Default browser` below).
 - If a chosen browser cannot be read, nothing is imported: the page stays,
   names the browser and the reason, and leaves it out of the next try.
 - With nothing chosen, and after "Skip", the page closes and the command
@@ -56,13 +56,21 @@ Settings → General shows whether Magnetite opens links from other apps
 macOS keeps the default by the app's identifier). While it does not, "Make default" asks
 macOS to make it the handler for `http` and `https`; macOS asks the user to
 confirm, and the card shows the outcome. Magnetite never asks on its own.
-Outside macOS, or when Magnetite does not run as an app bundle, the card is
-not shown.
+
+Windows lets no program make itself the default. The installer registers
+Magnetite as a browser for the current user, and "Make default" opens
+Windows' Settings at Magnetite's entry, where the user chooses it for
+`http` and `https`. The card shows how things were before that choice; it
+is current again the next time Settings open.
+
+On Linux, when Magnetite does not run as an app bundle on macOS, or when it
+is not installed on Windows (a build run from its folder), the card is not
+shown.
 
 ## Not built yet
 
 - A way to open the page again later.
-- The default browser question on Linux and Windows.
+- The default browser question on Linux.
 
 Code: `crates/ui/web/src/Welcome.tsx`, `crates/app/src/app/commands.rs`
 (`Ready`, `FinishWelcome`, `MakeDefaultBrowser`),

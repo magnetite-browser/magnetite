@@ -134,7 +134,9 @@ the row turns the icon into a back arrow that takes the page back.
 `Cmd+S` or the sidebar button hides the sidebar: the pages take the whole
 window and the keyboard. `Cmd+S` shows it again. In a window that is not
 full screen, a strip above the pages stays free for the window's close,
-minimize and zoom buttons. While it is hidden on macOS,
+minimize and zoom buttons. (On Windows and Linux those buttons are in a
+row above the pages at the top right, with or without the sidebar.) While
+it is hidden on macOS or Windows,
 moving the pointer to the window's left edge slides the sidebar out over the
 pages without taking the keyboard from the page. It leaves when the pointer
 does, or on Esc; its sidebar button or `Cmd+S` docks it again. The sidebar

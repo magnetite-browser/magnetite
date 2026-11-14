@@ -4,7 +4,9 @@ How Magnetite behaves, feature by feature. Each spec describes what is built
 today, checked against the code, and ends with what is not built yet. A change
 in behaviour changes its spec in the same pull request.
 
-Shortcuts are the macOS ones.
+Shortcuts are the macOS ones. On Windows and Linux `Cmd` is `Ctrl` and
+`Option` is `Alt`; where the keys differ more, the app's own labels say
+so (Settings → About lists them).
 
 | Spec | Covers |
 |---|---|
