@@ -129,6 +129,9 @@ pub struct Appearance {
     /// Navigation, the address and the window buttons in a bar across the
     /// top of the window, not at the top of the sidebar.
     pub top_bar: bool,
+    /// The system's title bar and window frame (Linux and Windows), in
+    /// place of Magnetite's window buttons. Counts from the next start.
+    pub system_title_bar: bool,
 }
 
 impl Default for Appearance {
@@ -138,6 +141,7 @@ impl Default for Appearance {
             density: Density::Comfortable,
             sidebar_width: 264,
             top_bar: false,
+            system_title_bar: false,
         }
     }
 }
@@ -492,10 +496,10 @@ mod tests {
         assert_eq!(fine.search_template, "https://kagi.com/search?q=%s");
     }
 
-    /// Appearance saved before the top bar existed keeps its values and
-    /// leaves the top bar off; a top bar turned on stays on once saved.
+    /// Appearance saved before the top bar and system title bar existed keeps
+    /// its values and leaves both off; both turned on stay on once saved.
     #[test]
-    fn appearance_saved_before_the_top_bar_loads_with_it_off() {
+    fn appearance_saved_before_the_layout_options_loads_with_them_off() {
         let older: Appearance =
             serde_json::from_str(r#"{"text_scale":110,"density":"compact","sidebar_width":300}"#)
                 .unwrap();
@@ -506,10 +510,12 @@ mod tests {
                 density: Density::Compact,
                 sidebar_width: 300,
                 top_bar: false,
+                system_title_bar: false,
             }
         );
         let on = Appearance {
             top_bar: true,
+            system_title_bar: true,
             ..older
         };
         let saved = serde_json::to_string(&on).unwrap();

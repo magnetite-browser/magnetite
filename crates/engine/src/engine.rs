@@ -79,6 +79,9 @@ pub(crate) struct Inner {
     pub sidebar_drag: Vec<DraggableRegion>,
     /// The top bar is on (`set_top_bar_visible`).
     pub top_bar_visible: bool,
+    /// The frame window has the system's title bar and frame
+    /// (`set_system_title_bar`), from its creation on.
+    pub system_title_bar: bool,
     /// Last draggable regions reported by the top bar page (window coordinates).
     pub top_bar_drag: Vec<DraggableRegion>,
     /// Where DevTools open, and the docked ones per page.
@@ -167,6 +170,7 @@ impl Engine {
                 chrome_toolbar: config.chrome_toolbar,
                 sidebar_drag: Vec::new(),
                 top_bar_visible: false,
+                system_title_bar: false,
                 top_bar_drag: Vec::new(),
                 devtools_dock: crate::DevToolsDock::default(),
                 docked: HashMap::new(),

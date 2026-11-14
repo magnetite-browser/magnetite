@@ -199,6 +199,13 @@ impl Engine {
         }
     }
 
+    /// Give the frame window the system's title bar and frame (Linux and
+    /// Windows), or none: Magnetite's top bar then has the window buttons.
+    /// Only before `create_frame`: a window keeps its frame for good.
+    pub fn set_system_title_bar(&self, on: bool) {
+        self.lock().system_title_bar = on;
+    }
+
     pub fn top_bar_visible(&self) -> bool {
         self.lock().top_bar_visible
     }
@@ -635,7 +642,10 @@ wrap_window_delegate! {
         fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
         fn can_maximize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
         fn can_minimize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
-        fn is_frameless(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
+        // macOS keeps its own frame and buttons either way.
+        fn is_frameless(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int {
+            i32::from(cfg!(target_os = "macos") || !Engine::global().lock().system_title_bar)
+        }
         fn with_standard_window_buttons(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
         fn titlebar_height(&self, _window: Option<&mut Window>, height: Option<&mut f32>) -> ::std::os::raw::c_int {
             if let Some(h) = height { *h = 42.0; }

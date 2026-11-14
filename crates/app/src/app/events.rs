@@ -33,6 +33,10 @@ impl EngineDelegate for MagnetiteApp {
                 engine.set_autofill(autofill);
                 engine.set_sidebar_width(width);
                 engine.set_top_bar_visible(self.with_state(|s| s.settings.appearance.top_bar));
+                // Before the frame window exists: it keeps its frame for good.
+                engine.set_system_title_bar(
+                    self.with_state(|s| s.settings.appearance.system_title_bar),
+                );
                 if toolbar {
                     engine.set_chrome_toolbar(true);
                 }

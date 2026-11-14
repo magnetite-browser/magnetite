@@ -1,7 +1,7 @@
 // Settings → Appearance: space colours, layout, text size, density, sidebar width.
 import { useRef, useState } from "react";
 import { SpaceGlyph } from "../Glyphs";
-import { DEFAULT_ACCENT, accentCss, applyAppearance, send, type Appearance, type Color } from "../bridge";
+import { DEFAULT_ACCENT, IS_MAC, accentCss, applyAppearance, send, type Appearance, type Color } from "../bridge";
 import { Field, Slider } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
@@ -76,6 +76,15 @@ export function AppearanceSection({ info, update, reload }: { info: Info; update
           ))}
         </div>
       </Field>
+      {!IS_MAC && (
+        <Field label="Title bar" hint="Magnetite's own window buttons, or the system's title bar and frame. From the next start.">
+          <div className="seg">
+            {([["Magnetite", false], ["System", true]] as const).map(([label, on]) => (
+              <button key={label} data-on={draft.system_title_bar === on || undefined} onClick={() => set({ system_title_bar: on }, true)}>{label}</button>
+            ))}
+          </div>
+        </Field>
+      )}
       <Field label="Text size" hint="The sidebar, the command bar and these pages. Web pages zoom on their own with ⌘+ and ⌘−.">
         <Slider value={draft.text_scale} min={85} max={130} step={5} unit="%" reset={100} onChange={(v, now) => set({ text_scale: v }, now)} />
       </Field>

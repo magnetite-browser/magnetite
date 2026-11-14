@@ -296,6 +296,8 @@ export interface Appearance {
   sidebar_width: number;
   /** Navigation, address and window buttons in a bar across the top. */
   top_bar: boolean;
+  /** The system's title bar and frame in place of Magnetite's window buttons (Linux, Windows; from the next start). */
+  system_title_bar: boolean;
 }
 
 /** Apply text size and row density to this page. */

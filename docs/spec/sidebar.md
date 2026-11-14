@@ -164,6 +164,14 @@ switches at once, without a restart.
   it still slides out over the pages, below the bar.
 - Empty space in the bar drags the window; a double-click maximizes it.
 
+Settings → Appearance → Title bar (Linux and Windows): **Magnetite** (the
+default) leaves the window without the system's title bar and frame, and
+the top bar has the window buttons; **System** gives the window the
+system's title bar and frame, and the top bar has no window buttons. It
+counts from the next start: a window keeps the frame it was made with.
+Under Wayland the system's title bar goes away only with a CEF that has
+Magnetite's `wayland-frameless.patch`.
+
 ## Keyboard
 
 | Action | Shortcut |

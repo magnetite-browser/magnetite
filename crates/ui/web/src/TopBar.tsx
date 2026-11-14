@@ -3,7 +3,7 @@
 // sidebar's top rows: the sidebar button, back, forward and reload, the
 // address, pinned extensions and, outside macOS, the window buttons.
 // Empty space drags the window; a double-click there maximizes it.
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AddressRow } from "./AddressRow";
 import { Back, Close, Forward, Maximize, Minus, Reload, SidebarIcon, SplitIcon } from "./Icons";
 import { PinnedExtensions } from "./PinnedExtensions";
@@ -23,6 +23,10 @@ export function TopBar() {
   }, [appearance]);
   // Its pop-ups are windows of their own (`TopBarPopup.tsx`): nothing opens in here.
   const openMenu = useCallback(() => {}, []);
+  // The window got its frame at start: a changed setting counts from the
+  // next one, so the buttons follow the setting as it was then.
+  const systemFrame = useRef<boolean | null>(null);
+  if (state && systemFrame.current === null) systemFrame.current = state.settings.appearance.system_title_bar;
 
   if (!state) return <div className="h-full" />;
   const activeRt = state.active_tab ? state.runtime[state.active_tab] : undefined;
@@ -58,7 +62,7 @@ export function TopBar() {
 
       <div className="flex shrink-0 items-center gap-0.5 pr-2">
         <PinnedExtensions state={state} openMenu={openMenu} popups />
-        {!IS_MAC && (
+        {!IS_MAC && !systemFrame.current && (
           <div className="ml-2 flex items-center gap-0.5">
             <button className="ib no-drag" onClick={() => send({ cmd: "window_minimize" })} title="Minimize" aria-label="Minimize"><Minus /></button>
             <button className="ib no-drag" onClick={() => send({ cmd: "window_maximize" })} title="Maximize" aria-label="Maximize"><Maximize /></button>
