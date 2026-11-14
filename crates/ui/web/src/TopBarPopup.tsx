@@ -53,7 +53,7 @@ export function TopBarPopup() {
     );
   }
   const extension = KIND === "extension" ? state.extensions.find((e) => e.id === ID) : undefined;
-  const items = KIND === "copy" ? COPY_ITEMS : extension ? extensionMenu(extension) : [];
+  const items = KIND === "copy" ? COPY_ITEMS : extension ? extensionMenu(extension, "Top Bar") : [];
   return (
     <div ref={root}>
       <ContextMenu x={0} y={0} items={items} onClose={close} />

@@ -1,7 +1,7 @@
 // Pinned extensions in the sidebar's top row, or in the top bar. A click
 // opens the extension (its popup) for the page in front; right-click offers
-// its options and taking it out of the sidebar. All extensions are in the
-// menu bar too.
+// its options and taking it out of the sidebar or the top bar. All extensions
+// are in the menu bar too.
 import { useEffect, useState } from "react";
 import type { MenuItem } from "./ContextMenu";
 import { extensionIcon, send, type ExtensionInfo, type UiState } from "./bridge";
@@ -35,11 +35,11 @@ export function PinnedExtensions({ state, openMenu, popups = false }: { state: U
   );
 }
 
-/** The items of extension `e`'s menu. */
-export function extensionMenu(e: ExtensionInfo): MenuItem[] {
+/** The items of extension `e`'s menu; `place` names where its icon sits. */
+export function extensionMenu(e: ExtensionInfo, place: "Sidebar" | "Top Bar"): MenuItem[] {
   return [
     ...(e.options_url ? [{ label: "Options", onClick: () => send({ cmd: "extension_options", id: e.id }) }] : []),
-    { label: "Remove from Sidebar", onClick: () => send({ cmd: "pin_extension", id: e.id, pinned: false }) },
+    { label: `Remove from ${place}`, onClick: () => send({ cmd: "pin_extension", id: e.id, pinned: false }) },
   ];
 }
 
@@ -59,7 +59,7 @@ function ExtensionButton({ extension: e, openMenu, popups }: { extension: Extens
     };
   }, [opening]);
   const menu = (x: number, y: number) => {
-    const items = extensionMenu(e);
+    const items = extensionMenu(e, popups ? "Top Bar" : "Sidebar");
     if (popups) send({ cmd: "top_bar_popup", popup: "extension", id: e.id, x, y, width: 208, height: 8 + items.length * 28 });
     else openMenu(x, y, items);
   };

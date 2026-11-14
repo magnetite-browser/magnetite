@@ -10,7 +10,7 @@ Settings.
 
 | Place | What it offers |
 |---|---|
-| Sidebar, top row | Pinned extensions, after the sidebar button. Click: open the extension. Right-click: "Options" (if it has some), "Remove from Sidebar" |
+| Sidebar, top row | Pinned extensions, after the sidebar button. Click: open the extension. Right-click: "Options" (if it has some), "Remove from Sidebar" ("Remove from Top Bar" while the top bar holds the icons) |
 | Menu bar → Extensions (macOS) | Every extension (click opens it), "Show in Sidebar" to pin or unpin each, "Manage Extensions…", "Chrome Web Store…" |
 | Settings → Extensions | An "In the sidebar" switch per extension, "Chrome Web Store", "Manage extensions", "Show the Chrome toolbar inside pages" |
 
