@@ -40,13 +40,14 @@ body:
         - macOS (Apple silicon)
         - macOS (Intel)
         - Linux
+        - Windows
     validations:
       required: true
   - type: input
     id: os-version
     attributes:
       label: OS version
-      placeholder: macOS 15.3, Ubuntu 24.04
+      placeholder: macOS 15.3, Ubuntu 24.04, Windows 11 24H2
   - type: textarea
     id: logs
     attributes:
