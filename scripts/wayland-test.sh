@@ -45,8 +45,10 @@ engine="${CONTAINER_ENGINE:-$(command -v podman || command -v docker || true)}"
 [[ -n $engine ]] || die "install Podman or Docker"
 toolchain="$(sed -n 's/^channel *= *"\(.*\)"/\1/p' "$ROOT/rust-toolchain.toml")"
 log "container image magnetite-wayland"
-"$engine" build -q -t magnetite-linux-builder --build-arg "RUST_TOOLCHAIN=$toolchain" "$ROOT/packaging/linux" >/dev/null
-"$engine" build -q -t magnetite-wayland "$ROOT/tools/wayland" >/dev/null
+# -f: Docker looks for a Dockerfile by itself, Podman for either name.
+"$engine" build -q -t magnetite-linux-builder --build-arg "RUST_TOOLCHAIN=$toolchain" \
+  -f "$ROOT/packaging/linux/Containerfile" "$ROOT/packaging/linux" >/dev/null
+"$engine" build -q -t magnetite-wayland -f "$ROOT/tools/wayland/Containerfile" "$ROOT/tools/wayland" >/dev/null
 
 mounts=(-v "$stage:/stage:ro" -v "$ROOT/tools:/tools:ro" -v "$out:/out")
 if [[ -n $steps ]]; then

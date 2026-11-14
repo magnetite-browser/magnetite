@@ -74,7 +74,7 @@ pointer.
    was tested; a release, aarch64 and pinning it in `scripts/cef.sh` are
    open. The crash fix goes to CEF upstream as well.
 3. **The engine under Wayland (done)**, tested with `scripts/wayland-test.sh
-   -- --ozone-platform=wayland`. One change was needed: CEF gives a Linux
+   <stage folder> -- --ozone-platform=wayland`. One change was needed: CEF gives a Linux
    window that cannot be resized its first size as minimum and maximum, and
    Chromium's Wayland backend holds every later size to them, so a page
    kept its first size. Under Wayland, pages and docked DevTools therefore
@@ -83,8 +83,9 @@ pointer.
    focus between the sidebar and pages needed nothing. Checked in headless
    sway: a page, a split, typing in a page and in the sidebar, the command
    bar, a peek, docked DevTools, the context menu and moving the frame.
-   Open: the frame cannot be resized by its edges (under X11 neither), and
-   no desktop compositor (GNOME, KDE, COSMIC) was tried.
+   A build with the patched CEF was also tested by hand on Fedora 45 in a
+   Wayland session. Open: the frame cannot be resized by its edges (under
+   X11 neither).
 4. **Wayland by default** where the CEF in use has the patch; XWayland
    stays the fallback for other CEF builds and behind `--ozone-platform=x11`.
    CI runs the smoke test in a Wayland session.
