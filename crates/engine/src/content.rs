@@ -785,10 +785,44 @@ pub(crate) fn peek_rect(area: &Rect) -> Rect {
 }
 
 /// Width the hidden toolbar is laid out at: narrow, so its extension
-/// buttons (where popups anchor) sit near the page's top-left corner.
+/// buttons (where popups anchor) sit near the page's top corner on the
+/// side of Magnetite's own extension buttons.
 const HIDDEN_TOOLBAR_WIDTH: i32 = 400;
 /// Chromium's toolbar height, to shift it just out of sight.
 const TOOLBAR_HEIGHT: i32 = 40;
+
+/// Lay out `row`, the hidden toolbar's row: its box at the left, near the
+/// sidebar's extension buttons, or with the top bar on at the right, below
+/// the top bar's. Popups open next to the button they came from.
+fn align_hidden_toolbar(row: &Panel, top_bar: bool) {
+    row.set_to_box_layout(Some(&BoxLayoutSettings {
+        horizontal: 1,
+        main_axis_alignment: if top_bar {
+            AxisAlignment::END
+        } else {
+            AxisAlignment::START
+        },
+        ..Default::default()
+    }));
+    row.layout();
+}
+
+impl Engine {
+    /// Move every page's hidden toolbar to the side the extension buttons
+    /// are on now (`align_hidden_toolbar`).
+    pub(crate) fn align_hidden_toolbars(&self) {
+        let top_bar = self.top_bar_visible();
+        let windows: Vec<Window> = (self.lock().contents.values())
+            .filter_map(|c| c.window.clone())
+            .collect();
+        for window in windows {
+            // A shown toolbar is a plain view, the hidden one's row a panel.
+            if let Some(row) = window.child_view_at(0).and_then(|v| v.as_panel()) {
+                align_hidden_toolbar(&row, top_bar);
+            }
+        }
+    }
+}
 
 /// Put page `view`'s Chrome toolbar into its window: a row above the page
 /// when `shown`, else out of sight. Runs from a posted task, once the view
@@ -808,16 +842,13 @@ fn attach_toolbar(view: &BrowserView, shown: bool) {
     // anchor to it. It stays in the window's own views (Chromium tears
     // it down with the window; elsewhere, closing crashes): a row one
     // point tall above the page holds a narrow box, so the toolbar's
-    // buttons sit near the page's top-left corner, and the box shifts
+    // buttons sit near a top corner of the page, and the box shifts
     // the toolbar up just out of sight. (Panels fill their children,
     // hence boxes instead of plain bounds.)
     let Some(row) = panel_create(Some(&mut ToolbarHost::new(1))) else {
         return;
     };
-    row.set_to_box_layout(Some(&BoxLayoutSettings {
-        horizontal: 1,
-        ..Default::default()
-    }));
+    align_hidden_toolbar(&row, Engine::global().top_bar_visible());
     let mut row_view = View::from(&row);
     window.add_child_view_at(Some(&mut row_view), 0);
     let Some(holder) = panel_create(Some(&mut ToolbarHost::new(HIDDEN_TOOLBAR_WIDTH))) else {

@@ -11,7 +11,8 @@
 //! (`devpipe.rs`), for the tab target of the page in front. Chromium anchors
 //! the popup to its own toolbar, which every page window has out of sight
 //! (`content.rs`), so the popup opens at the page's top-left corner, next to
-//! the sidebar.
+//! the sidebar, or with the top bar on at its top-right corner, below the top
+//! bar's buttons.
 
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};

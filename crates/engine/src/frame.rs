@@ -234,6 +234,7 @@ impl Engine {
         self.reposition_contents();
         self.apply_drag_regions();
         self.update_edge_zone();
+        self.align_hidden_toolbars();
     }
 
     /// The top bar's window buttons (Linux and Windows; macOS has its own).
