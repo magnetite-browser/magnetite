@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MenuItem } from "./ContextMenu";
 import { Check, LinkIcon, LockAlert, SiteIcon, SpeakerOff } from "./Icons";
 import { SitePanel } from "./SitePanel";
-import { hostOf, onCopied, onOpenSitePanel, send, type CopyResult, type LinkVariant, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { hostOf, keyLabel, onCopied, onOpenSitePanel, send, type CopyResult, type LinkVariant, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
 /** Every non-default state of a page, most important first. */
 export function siteStates(rt: TabRuntime | undefined): { key: string; label: string }[] {
@@ -81,20 +81,20 @@ export function AddressRow({ state, item, rt, onEdit, openMenu }: {
           className="addr-chip no-drag"
           data-state={top}
           aria-label={`Site controls${states.length ? `: ${states.map((s) => s.label).join(", ")}` : ""}`}
-          title={states.length ? states.map((s) => s.label).join(" · ") : "Site controls (⇧⌘O)"}
+          title={states.length ? states.map((s) => s.label).join(" · ") : `Site controls (${keyLabel("⇧⌘O")})`}
           aria-expanded={panel}
           onClick={() => setPanel((p) => !p)}
         >
           <ChipIcon state={top} />
         </button>
-        <button type="button" className="addr-text no-drag" onClick={onEdit} title={item.url} aria-label={`Address: ${item.url}. Edit (⌘L)`}>
+        <button type="button" className="addr-text no-drag" onClick={onEdit} title={item.url} aria-label={`Address: ${item.url}. Edit (${keyLabel("⌘L")})`}>
           <span className="truncate">{hostOf(item.url)}</span>
         </button>
         <button
           type="button"
           className="addr-copy no-drag"
-          aria-label="Copy link (⇧⌘C). Right-click for more."
-          title="Copy link (⇧⌘C)"
+          aria-label={`Copy link (${keyLabel("⇧⌘C")}). Right-click for more.`}
+          title={`Copy link (${keyLabel("⇧⌘C")})`}
           onClick={() => copy("clean")}
           onContextMenu={(e) => {
             e.preventDefault();

@@ -59,6 +59,8 @@ pub(crate) struct DockedDevTools {
     pub shown: bool,
     /// Device mode (`device.rs`), while on.
     pub device: Option<crate::device::DeviceMode>,
+    /// The element picker of these `DevTools` is on (`devtools_menu.js`).
+    pub inspecting: bool,
     pub browser_id: Option<i32>,
     /// A separate window, not docked beside the page.
     pub separate: bool,
@@ -202,6 +204,16 @@ impl Engine {
             }
             return true;
         }
+        if let Some(on) = match choice {
+            "inspect-on" => Some(true),
+            "inspect-off" => Some(false),
+            _ => None,
+        } {
+            if let Some(id) = id {
+                self.device_inspecting(id, on);
+            }
+            return true;
+        }
         let action = match choice {
             "close" => DevToolsAction::Close,
             dock => match DevToolsDock::from_str(dock) {
@@ -278,8 +290,9 @@ impl Engine {
     /// The divider beside page `id`'s docked `DevTools` was dragged to
     /// `pos` (screen DIP along the dock's axis), let go or double-clicked
     /// (back to the default size). Let go, the app keeps the size.
-    // The divider is a native view on macOS only (`mac/chrome.rs`).
-    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    // The divider is a native window on macOS (`mac/chrome.rs`) and
+    // Windows (`win/dividers.rs`).
+    #[cfg_attr(not(any(target_os = "macos", target_os = "windows")), allow(dead_code))]
     pub(crate) fn devtools_divider(&self, id: ContentId, action: DividerAction) {
         let (slot, dock) = {
             let inner = self.lock();
@@ -361,9 +374,14 @@ impl Engine {
         let page = self.device_rect(id, page);
         if let Some(w) = window {
             w.set_bounds(Some(&page));
+            // The rounded cut does not follow the new size.
+            #[cfg(target_os = "windows")]
+            crate::win::clip_page(w.window_handle());
         }
         if let (Some(w), Some((r, _))) = (tools_window, &tools) {
             w.set_bounds(Some(r));
+            #[cfg(target_os = "windows")]
+            crate::win::clip_page(w.window_handle());
         }
         if let Some(d) = self.lock().docked.get_mut(&id) {
             d.gap = tools.map(|(_, gap)| gap);
@@ -431,6 +449,7 @@ impl Engine {
                 gap: None,
                 shown: false,
                 device: None,
+                inspecting: false,
                 browser_id,
                 separate,
                 view: tools.clone(),
@@ -518,6 +537,8 @@ wrap_window_delegate! {
                 crate::mac::round_window_corners(window.window_handle(), 10.0, false);
                 crate::mac::pin_window(window.window_handle());
             }
+            #[cfg(target_os = "windows")]
+            crate::win::round_window_corners(window.window_handle(), false);
             if let Some(slot) = slot {
                 engine.place(self.id, &slot);
             }

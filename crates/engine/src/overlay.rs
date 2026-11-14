@@ -156,6 +156,21 @@ impl Engine {
         let _ = back;
     }
 
+    /// The keyboard went to a page while an overlay is open: its page is
+    /// told with a `blur`, which closes the palette as a click elsewhere
+    /// does on macOS. There the system sends it; Windows and Linux do not
+    /// when the click goes to another window of ours.
+    pub(crate) fn blur_overlay(&self) {
+        if cfg!(target_os = "macos") {
+            return;
+        }
+        let browser = (self.lock().overlay.as_ref())
+            .and_then(|w| w.child_view_at(0)?.as_browser_view()?.browser());
+        if let Some(frame) = browser.and_then(|b| b.main_frame()) {
+            self.eval_in_ui(&frame, "window.dispatchEvent(new Event('blur'))");
+        }
+    }
+
     /// Close the overlay window, if one is open.
     fn drop_overlay(&self) {
         let window = self.lock().overlay.take();
@@ -220,6 +235,8 @@ wrap_window_delegate! {
             window.set_bounds(Some(&self.bounds));
             #[cfg(target_os = "macos")]
             crate::mac::round_window_corners(window.window_handle(), self.radius, self.shadow);
+            #[cfg(target_os = "windows")]
+            crate::win::round_window_corners(window.window_handle(), self.shadow);
             *self.slot.get(&mut Engine::global().lock()) = Some(window.clone());
             if self.slot == Slot::Notifications {
                 crate::floatbar::show_quietly(window);
@@ -234,6 +251,22 @@ wrap_window_delegate! {
             if self.activate {
                 window.activate();
                 self.view.request_focus();
+            }
+            // Above the pages: on Windows a new window of the frame is not
+            // by itself above the page that had the keyboard (in a split,
+            // the palette opened behind it). macOS orders child windows.
+            #[cfg(not(target_os = "macos"))]
+            window.bring_to_top();
+        }
+        // Another program came to the front: the palette's page is told
+        // with a `blur`, as macOS does by itself. (A click into one of our
+        // pages is told by `blur_overlay`.)
+        fn on_window_activation_changed(&self, _window: Option<&mut Window>, active: ::std::os::raw::c_int) {
+            if active != 0 || cfg!(target_os = "macos") {
+                return;
+            }
+            if let Some(frame) = self.view.browser().and_then(|b| b.main_frame()) {
+                Engine::global().eval_in_ui(&frame, "window.dispatchEvent(new Event('blur'))");
             }
         }
         fn on_window_destroyed(&self, window: Option<&mut Window>) {

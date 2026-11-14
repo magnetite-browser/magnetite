@@ -283,9 +283,13 @@ tap stays for those who installed from it.
   the previous package gets this version from `sudo dnf upgrade` or
   `sudo apt update && sudo apt upgrade`. The running Magnetite then offers
   "Restart to update".
-- Windows: no build is made yet. `scripts/build.sh` and `packaging/windows/`
-  are prepared for one; CI and the release workflow get their Windows entry
-  back once a build has been tried.
+- Windows: run the installer (`Magnetite-<version>-windows-x86_64-setup.exe`),
+  start Magnetite from the Start menu, open a page. Neither the installer
+  nor `magnetite.exe` is signed yet, so SmartScreen warns about the
+  download. An installed older version updates itself with this installer
+  ("Restart to update"; Windows asks for an administrator when it is
+  installed for all users). A copy unpacked from the zip opens the release
+  page.
 - An installed older version offers the update once the release is public.
 - The release notes say what changed in words a user understands.
 

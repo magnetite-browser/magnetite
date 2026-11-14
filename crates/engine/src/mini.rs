@@ -133,7 +133,10 @@ impl MiniChrome {
 pub(crate) fn pointer_screen_area() -> Rect {
     #[cfg(target_os = "macos")]
     let display = display_get_nearest_point(Some(&crate::mac::mouse_point()), 0);
-    #[cfg(not(target_os = "macos"))]
+    // Windows tells the pointer's place in pixels, CEF's screens are in points.
+    #[cfg(target_os = "windows")]
+    let display = crate::win::mouse_point().and_then(|at| display_get_nearest_point(Some(&at), 1));
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     let display: Option<Display> = None;
     display.or_else(display_get_primary).map_or_else(
         || Rect {
@@ -302,6 +305,8 @@ impl Engine {
             crate::mac::round_window_corners(handle, 10.0, false);
             crate::mac::pin_window(handle);
         }
+        #[cfg(target_os = "windows")]
+        crate::win::round_window_corners(window.window_handle(), false);
     }
 
     /// Page window `id` was just shown: if it began as a mini window, make
@@ -314,17 +319,24 @@ impl Engine {
         if let (true, Some(frame)) = (adopted, frame) {
             crate::mac::attach_child(frame.window_handle(), window.window_handle());
         }
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        if let (true, Some(frame)) = (adopted, frame) {
+            crate::win::attach_child(frame.window_handle(), window.window_handle());
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = (adopted, frame, window);
     }
 
-    /// Register the system-wide quick search key (⌥⌘N; macOS only), or
-    /// let it go. Taken by another app, it stays unregistered (traced).
+    /// Register the system-wide quick search key (⌥⌘N on macOS, Ctrl+Alt+N
+    /// on Windows), or let it go. Taken by another app, it stays
+    /// unregistered (traced).
     #[allow(clippy::unused_self)] // an Engine method like its siblings
     pub fn set_quick_search_key(&self, on: bool) {
         #[cfg(target_os = "macos")]
         crate::mac::set_quick_search_hotkey(on);
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        crate::win::set_quick_search_hotkey(on);
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = on;
     }
 

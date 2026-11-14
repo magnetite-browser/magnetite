@@ -1,7 +1,7 @@
 // Settings → Appearance: space colours, text size, density, sidebar width.
 import { useRef, useState } from "react";
 import { SpaceGlyph } from "../Glyphs";
-import { DEFAULT_ACCENT, accentCss, applyAppearance, send, type Appearance, type Color } from "../bridge";
+import { DEFAULT_ACCENT, accentCss, applyAppearance, keyLabel, send, type Appearance, type Color } from "../bridge";
 import { Field, Slider } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
@@ -69,7 +69,7 @@ export function AppearanceSection({ info, update, reload }: { info: Info; update
           ))}
         </div>
       </Field>
-      <Field label="Text size" hint="The sidebar, the command bar and these pages. Web pages zoom on their own with ⌘+ and ⌘−.">
+      <Field label="Text size" hint={`The sidebar, the command bar and these pages. Web pages zoom on their own with ${keyLabel("⌘+", "Ctrl +")} and ${keyLabel("⌘−", "Ctrl −")}.`}>
         <Slider value={draft.text_scale} min={85} max={130} step={5} unit="%" reset={100} onChange={(v, now) => set({ text_scale: v }, now)} />
       </Field>
       <Field label="Density" hint="Height and spacing of the sidebar rows.">

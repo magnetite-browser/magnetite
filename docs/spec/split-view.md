@@ -73,9 +73,10 @@ fewer than four pages show.
 
 - Clicking into a page makes it the active tab, so the address row, the
   site panel and page shortcuts act on it. Developer tools docked to a page
-  count as that page. On macOS the focused page has a 2 pt outline in the
-  space colour.
-- On macOS each gap holds a divider with a grip that appears on hover.
+  count as that page. On macOS and Windows the focused page has a 2 pt
+  outline in the space colour.
+- On macOS and Windows each gap holds a divider (on macOS with a grip that
+  appears on hover).
   Dragging it resizes the two neighbours; each keeps at least 200 px. A
   double-click gives all pages of that row or column the same size. "Even
   out sizes" in the page's menu and "Even out split sizes" in the command

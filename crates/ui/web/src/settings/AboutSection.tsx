@@ -4,30 +4,30 @@ import { useEffect, useState } from "react";
 // live demo runs a copy of this code and builds it with Astro).
 import appIcon from "../assets/icon.png?url";
 import { BugIcon, CodeIcon, ExternalIcon, GlobeIcon, NotesIcon, PrivacyIcon, type IconComponent } from "../Icons";
-import { onUpdate, send, type UpdateInfo } from "../bridge";
+import { keyLabel, onUpdate, send, type UpdateInfo } from "../bridge";
 import { Field, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
 const WEBSITE = "https://magnetitebrowser.org";
 
 export const SHORTCUTS: [string, string][] = [
-  ["⌘T", "New tab, search, commands"],
-  ["⌘L", "Change the address"],
-  ["⌘W", "Close the tab (it moves to the archive)"],
-  ["⇧⌘T", "Reopen the last closed tab"],
-  ["⌘S", "Show or hide the sidebar"],
-  ["⌘D", "Pin or unpin the tab"],
-  ["⌃Tab", "Next tab"],
-  ["⌥⌘→  ⌥⌘←", "Next or previous space"],
-  ["⇧⌘N", "New space"],
-  ["⇧⌘=", "Split view"],
-  ["⇧⌘C", "Copy the link"],
-  ["⇧⌘2", "Capture the page"],
-  ["⌘Y", "History"],
-  ["⌥⌘L", "Downloads"],
-  ["⌘P", "Print the page"],
-  ["⌘,", "Settings"],
-  ["⇧ click", "Open a link in a peek"],
+  [keyLabel("⌘T"), "New tab, search, commands"],
+  [keyLabel("⌘L"), "Change the address"],
+  [keyLabel("⌘W"), "Close the tab (it moves to the archive)"],
+  [keyLabel("⇧⌘T"), "Reopen the last closed tab"],
+  [keyLabel("⌘S"), "Show or hide the sidebar"],
+  [keyLabel("⌘D"), "Pin or unpin the tab"],
+  [keyLabel("⌃Tab"), "Next tab"],
+  [`${keyLabel("⌥⌘→")}  ${keyLabel("⌥⌘←")}`, "Next or previous space"],
+  [keyLabel("⇧⌘N"), "New space"],
+  [keyLabel("⇧⌘="), "Split view"],
+  [keyLabel("⇧⌘C"), "Copy the link"],
+  [keyLabel("⇧⌘2"), "Capture the page"],
+  [keyLabel("⌘Y", "Ctrl+H"), "History"],
+  [keyLabel("⌥⌘L", "Ctrl+J"), "Downloads"],
+  [keyLabel("⌘P"), "Print the page"],
+  [keyLabel("⌘,"), "Settings"],
+  [keyLabel("⇧ click"), "Open a link in a peek"],
 ];
 
 /** Version and updates, project links, licences, shortcuts. */

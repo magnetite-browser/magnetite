@@ -21,9 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Windows is not built yet. Its steps here and in actions/setup stay
-        # for the day it joins: add `windows-latest`.
-        os: [macos-15, ubuntu-24.04]
+        os: [macos-15, ubuntu-24.04, windows-latest]
     runs-on: ${{ matrix.os }}
     # A stuck build must not run for GitHub's six hours.
     timeout-minutes: 90
@@ -54,7 +52,7 @@ jobs:
             sleep 1
           done
           DATABASE_URL=postgres://postgres@127.0.0.1:5432/postgres \
-            cargo test --locked -p magnetite --bin magnetite two_devices -- --ignored
+            cargo test --locked -p magnetite --lib two_devices -- --ignored
       # One platform is enough: the notices list no per-platform build
       # packages.
       - if: runner.os == 'macOS'

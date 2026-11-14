@@ -21,6 +21,7 @@
 mod autofill;
 mod blocker;
 mod bootstrap;
+mod caption;
 mod capture;
 mod cef_app;
 mod client;
@@ -58,10 +59,14 @@ mod site;
 mod sitedata;
 mod splitui;
 mod stray;
+#[cfg(target_os = "windows")]
+mod win;
 
 pub use autofill::AutofillPrefs;
 pub use blocker::{Filters, set_allowed_sites, set_filters};
-pub use bootstrap::{run, run_helper};
+#[cfg(target_os = "windows")]
+pub use bootstrap::set_sandbox_info;
+pub use bootstrap::{run, run_helper, started_by_bootstrap};
 pub use capture::{FrozenFrame, PageTiles};
 pub use client::host_of;
 pub use config::EngineConfig;
@@ -81,6 +86,8 @@ pub use site::{SiteState, ZOOM_STEPS, zoom_step};
 pub use sitedata::{
     ClearReport, PermissionKind, PermissionRow, PermissionValue, in_domain, registrable_domain,
 };
+#[cfg(target_os = "windows")]
+pub use win::installer_ready;
 
 /// The Chromium and CEF versions Magnetite is built on (Settings → About).
 pub fn engine_versions() -> (String, String) {

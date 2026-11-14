@@ -1,0 +1,19 @@
+[package]
+name = "magnetite-windows"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+# Windows only: Magnetite as the DLL that CEF's bootstrap.exe loads
+# (scripts/build.sh packages it as magnetite.dll). Empty on other systems.
+[lib]
+crate-type = ["cdylib"]
+
+[target.'cfg(windows)'.dependencies]
+magnetite = { path = "../app" }
+
+[lints]
+workspace = true

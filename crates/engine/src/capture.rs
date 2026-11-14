@@ -94,7 +94,11 @@ impl Engine {
         }
         #[cfg(target_os = "macos")]
         return crate::mac::copy_png(png);
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        return (self.frame_window()).is_some_and(|frame| {
+            crate::win::copy_png(cef::ImplWindow::window_handle(&frame), png)
+        });
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         false
     }
 
@@ -115,7 +119,13 @@ impl Engine {
     pub fn save_png(&self, png: &[u8], name: &str) -> Option<std::path::PathBuf> {
         #[cfg(target_os = "macos")]
         return crate::mac::save_png(png, name);
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        {
+            use cef::ImplWindow;
+            let frame = self.frame_window()?;
+            crate::win::save_png(frame.window_handle(), png, name)
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         {
             let _ = (png, name);
             None

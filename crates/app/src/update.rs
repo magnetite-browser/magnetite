@@ -12,8 +12,11 @@
 //!
 //! Installing: on macOS the app bundle is replaced in place when Magnetite
 //! may write next to it and Gatekeeper accepts the new bundle (Developer ID
-//! signed and notarized); then it restarts. Otherwise, and on Linux and
-//! Windows, the release page opens for a manual download.
+//! signed and notarized); then it restarts. On Windows a Magnetite put
+//! there by its installer downloads the new installer and runs it without
+//! questions; that one waits for Magnetite to quit, installs and starts
+//! it again (`fetch_installer`, `run_installer`). Otherwise, and on
+//! Linux, the release page opens for a manual download.
 //!
 //! The Linux rpm and deb packages are updated by the system's package
 //! manager from Magnetite's package repository (ADR-0011). Magnetite then
@@ -324,12 +327,95 @@ pub fn install(asset: &Asset, bundle: &Path) -> Result<PathBuf, String> {
     result.map(|()| staging)
 }
 
-fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), String> {
+/// The package `asset` names, if it is what the signed manifest says:
+/// its size and its SHA-256 (blocking).
+fn download(asset: &Asset) -> Result<Vec<u8>, String> {
     let data = get(&agent(local_feed(&asset.url)), &asset.url, asset.size)?;
     let hash = hex(&Sha256::digest(&data));
     if data.len() as u64 != asset.size || !hash.eq_ignore_ascii_case(asset.sha256.trim()) {
         return Err("The download does not match the signed update.".into());
     }
+    Ok(data)
+}
+
+/// Whether this Magnetite was put where it is by its Windows installer,
+/// which can then update it: the installer leaves its uninstaller next to
+/// the program. A copy unpacked from the zip has none.
+pub fn installed_by_setup() -> bool {
+    cfg!(target_os = "windows")
+        && std::env::current_exe()
+            .ok()
+            .and_then(|exe| Some(exe.parent()?.join("unins000.exe").exists()))
+            .unwrap_or(false)
+}
+
+/// Whether Magnetite can install an update by itself here.
+pub fn can_install() -> bool {
+    replaceable_bundle().is_some() || installed_by_setup()
+}
+
+/// Windows: download the installer `asset` names, check it against the
+/// signed manifest and save it (blocking). Returns where it is.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+pub fn fetch_installer(asset: &Asset) -> Result<PathBuf, String> {
+    let data = download(asset)?;
+    // One folder for every try: the last installer does not pile up.
+    let dir = std::env::temp_dir().join("magnetite-update");
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Cannot prepare the update: {e}"))?;
+    let path = dir.join("Magnetite-setup.exe");
+    std::fs::write(&path, &data).map_err(|e| format!("Cannot save the update: {e}"))?;
+    Ok(path)
+}
+
+/// How long the installer may take to stand ready: Windows may be asking
+/// for an administrator meanwhile, and waits for an answer.
+#[cfg(target_os = "windows")]
+const INSTALLER_WAIT: Duration = Duration::from_secs(600);
+
+/// Windows: start `installer` as an update (no questions, the folder and
+/// the users of the installed copy) and wait until it stands ready
+/// (blocking). Then Magnetite must quit: the installer waits for that,
+/// installs and starts Magnetite again.
+///
+/// Magnetite quits only once the installer runs with the rights it needs.
+/// An installation for all users makes Windows ask for an administrator
+/// first; refused, the installer ends and Magnetite stays open.
+#[cfg(target_os = "windows")]
+pub fn run_installer(installer: &Path) -> Result<(), String> {
+    let mut child = std::process::Command::new(installer)
+        .args([
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+            "/UPDATE=1",
+        ])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map_err(|e| format!("Cannot start the update: {e}"))?;
+    let started = std::time::Instant::now();
+    let mut ended = None;
+    while started.elapsed() < INSTALLER_WAIT {
+        if magnetite_engine::installer_ready() {
+            return Ok(());
+        }
+        // The installer that asked for an administrator hands over to a
+        // second one and may end before that one stands ready.
+        if matches!(child.try_wait(), Ok(Some(_)) | Err(_)) {
+            let since = *ended.get_or_insert_with(std::time::Instant::now);
+            if since.elapsed() > Duration::from_secs(5) {
+                return Err("The update was not installed. Try again, and allow the installer to make changes when Windows asks.".into());
+            }
+        }
+        std::thread::sleep(Duration::from_millis(200));
+    }
+    Err("The update did not start.".into())
+}
+
+fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), String> {
+    let data = download(asset)?;
     let zip = staging.join("update.zip");
     std::fs::write(&zip, &data).map_err(|e| format!("Cannot save the update: {e}"))?;
     let unpacked = staging.join("new");
@@ -529,6 +615,21 @@ mod tests {
         path
     }
 
+    /// One at a time for the tests that write a fake binary and run it.
+    /// While one test has its file open for writing, another test's start
+    /// of a process copies that open file into the new process, and Linux
+    /// then refuses to run the file ("Text file busy"): the version read
+    /// came back empty now and then.
+    #[cfg(unix)]
+    static FAKE_BINARIES: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[cfg(unix)]
+    fn one_at_a_time() -> std::sync::MutexGuard<'static, ()> {
+        FAKE_BINARIES
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
     /// Watching a binary as `SystemBinary::detect` would at start.
     #[cfg(unix)]
     fn watching(path: PathBuf) -> SystemBinary {
@@ -539,6 +640,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn a_replaced_newer_binary_is_reported_once_per_change() {
+        let _turn = one_at_a_time();
         let dir = crate::files::test_dir("system-binary-newer");
         std::fs::create_dir_all(&dir).unwrap();
         let mut binary = watching(fake_binary(&dir, "magnetite 9.9.9", 1_000));
@@ -556,6 +658,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn a_replaced_binary_that_is_not_newer_is_ignored_for_that_change() {
+        let _turn = one_at_a_time();
         let dir = crate::files::test_dir("system-binary-not-newer");
         std::fs::create_dir_all(&dir).unwrap();
         let mut binary = watching(fake_binary(&dir, "magnetite 9.9.9", 1_000));
@@ -577,6 +680,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn a_replaced_binary_without_a_version_is_tried_again() {
+        let _turn = one_at_a_time();
         let dir = crate::files::test_dir("system-binary-retry");
         std::fs::create_dir_all(&dir).unwrap();
         let mut binary = watching(fake_binary(&dir, "magnetite 0.0.1", 1_000));

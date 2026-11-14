@@ -157,8 +157,8 @@ impl MagnetiteApp {
             u.found = None;
             u.status = match result {
                 Ok(m) if update::newer(&m.version, env!("CARGO_PKG_VERSION")) => {
-                    let installable = update::replaceable_bundle().is_some()
-                        && m.assets.contains_key(&update::platform());
+                    let installable =
+                        update::can_install() && m.assets.contains_key(&update::platform());
                     let status = update::Status::Available {
                         version: m.version.clone(),
                         notes_url: m.notes_url.clone(),
@@ -193,9 +193,10 @@ impl MagnetiteApp {
         self.show_update(engine);
     }
 
-    /// Replace the app with the release found and restart (macOS), restart
-    /// into what the package manager installed (Linux packages), else open
-    /// the release page.
+    /// Replace the app with the release found and restart (macOS), run the
+    /// release's installer (Windows, a copy its installer put there),
+    /// restart into what the package manager installed (Linux packages),
+    /// else open the release page.
     pub(super) fn install_update(&self, engine: &Engine) {
         let restarted = self.with_updater(|u| {
             let system = u.system.as_ref().filter(|_| u.found.is_some())?;
@@ -224,35 +225,53 @@ impl MagnetiteApp {
         let found = self.with_updater(|u| u.found.clone());
         let Some(m) = found else { return };
         let asset = m.assets.get(&update::platform()).cloned();
+        let installing = |app: &Self| {
+            app.with_updater(|u| {
+                u.status = update::Status::Installing {
+                    version: m.version.clone(),
+                };
+            });
+            app.show_update(engine);
+        };
+        // Windows: the installer does it, once Magnetite has quit.
+        #[cfg(target_os = "windows")]
+        if let Some(asset) = asset.clone().filter(|_| update::installed_by_setup()) {
+            installing(self);
+            std::thread::spawn(move || {
+                let result = update::fetch_installer(&asset)
+                    .and_then(|installer| update::run_installer(&installer));
+                Engine::post(Box::new(move || Self::update_installed(result)));
+            });
+            return;
+        }
         let (Some(asset), Some(bundle)) = (asset, update::replaceable_bundle()) else {
             self.open_update_page(engine);
             return;
         };
-        self.with_updater(|u| {
-            u.status = update::Status::Installing {
-                version: m.version.clone(),
-            };
-        });
-        self.show_update(engine);
+        installing(self);
         std::thread::spawn(move || {
             let result = update::install(&asset, &bundle)
                 .and_then(|cleanup| update::relaunch_after_exit(&bundle, &cleanup));
-            Engine::post(Box::new(move || {
-                let Some(app) = global() else { return };
-                let engine = Engine::global();
-                match result {
-                    Ok(()) => {
-                        app.with_state(|s| s.persist());
-                        engine.quit();
-                    }
-                    Err(error) => {
-                        app.with_updater(|u| u.status = update::Status::Failed { error });
-                        engine.ensure_notifications();
-                        app.show_update(engine);
-                    }
-                }
-            }));
+            Engine::post(Box::new(move || Self::update_installed(result)));
         });
+    }
+
+    /// The install is ready for Magnetite to quit (what starts it again is
+    /// already waiting), or it failed and says why.
+    fn update_installed(result: Result<(), String>) {
+        let Some(app) = global() else { return };
+        let engine = Engine::global();
+        match result {
+            Ok(()) => {
+                app.with_state(|s| s.persist());
+                engine.quit();
+            }
+            Err(error) => {
+                app.with_updater(|u| u.status = update::Status::Failed { error });
+                engine.ensure_notifications();
+                app.show_update(engine);
+            }
+        }
     }
 
     /// The release notes of the update found, in a new tab.

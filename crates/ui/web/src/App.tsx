@@ -13,7 +13,7 @@ import { MediaBar, type MediaEntry } from "./MediaBar";
 import { NewMenu } from "./NewMenu";
 import { PinnedExtensions } from "./PinnedExtensions";
 import { FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, type RowContext } from "./Rows";
-import { accentCss, applyAppearance, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
+import { accentCss, applyAppearance, findTab, findTabInSpace, hostOf, IS_MAC, keyLabel, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
 import { IconPicker, SpaceGlyph } from "./Glyphs";
 import { SpaceSwitcher } from "./SpaceSwitcher";
 import { dragging, endDrag, indexAfterTaking } from "./dnd";
@@ -155,14 +155,16 @@ export function App() {
   return (
     <div className="flex flex-col h-full" style={spaceVars} onWheel={swipe.onWheel} data-float={FLOAT || undefined} key={FLOAT ? shownAt : undefined}>
       {!FLOAT && <SidebarResizer />}
-      {/* Traffic-light band: sidebar toggle left, navigation right. Empty space drags the window. */}
-      <div className={`titlebar-drag hdr flex h-[42px] shrink-0 items-center gap-0.5 ${FLOAT ? "pl-2" : "pl-[86px]"} pr-2`}>
-        <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={FLOAT ? "Keep the sidebar open (⌘S)" : "Hide sidebar (⌘S)"}><SidebarIcon /></button>
+      {/* Traffic-light band: sidebar toggle left, navigation right. Empty space drags the window.
+          macOS draws its traffic lights into the room on the left; elsewhere the window's buttons
+          are at the top right, above the pages (the engine's caption.rs). */}
+      <div className={`titlebar-drag hdr flex h-[42px] shrink-0 items-center gap-0.5 ${FLOAT || !IS_MAC ? "pl-2" : "pl-[86px]"} pr-2`}>
+        <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={`${FLOAT ? "Keep the sidebar open" : "Hide sidebar"} (${keyLabel("⌘S")})`}><SidebarIcon /></button>
         <PinnedExtensions state={state} openMenu={openMenu} />
         <span className="flex-1" />
-        <button className="ib no-drag" disabled={!frontRt?.can_go_back} onClick={() => send({ cmd: "go_back" })} title="Back (⌘[)"><Back /></button>
-        <button className="ib no-drag" disabled={!frontRt?.can_go_forward} onClick={() => send({ cmd: "go_forward" })} title="Forward (⌘])"><Forward /></button>
-        <button className="ib no-drag" disabled={!activeItem && !state.peek} onClick={() => send({ cmd: "reload" })} title="Reload (⌘R)"><Reload /></button>
+        <button className="ib no-drag" disabled={!frontRt?.can_go_back} onClick={() => send({ cmd: "go_back" })} title={`Back (${keyLabel("⌘[", "Alt+←")})`}><Back /></button>
+        <button className="ib no-drag" disabled={!frontRt?.can_go_forward} onClick={() => send({ cmd: "go_forward" })} title={`Forward (${keyLabel("⌘]", "Alt+→")})`}><Forward /></button>
+        <button className="ib no-drag" disabled={!activeItem && !state.peek} onClick={() => send({ cmd: "reload" })} title={`Reload (${keyLabel("⌘R")})`}><Reload /></button>
       </div>
 
       {/* Address field, or the peek pill in the same slot so nothing moves */}
@@ -170,7 +172,7 @@ export function App() {
         {state.peek ? (
           <div className="urlbar no-drag" data-peek>
             <span className="min-w-0 flex-1 truncate"><span className="text-[var(--muted)]">Peek · </span>{state.peek.title || hostOf(state.peek.url)}</span>
-            <button className="h-6 shrink-0 rounded-md bg-white/10 px-2 text-[12px] font-medium hover:bg-white/15" title="Keep as tab (⌘O)" onClick={() => send({ cmd: "peek_to_tab" })}>Keep</button>
+            <button className="h-6 shrink-0 rounded-md bg-white/10 px-2 text-[12px] font-medium hover:bg-white/15" title={`Keep as tab (${keyLabel("⌘O")})`} onClick={() => send({ cmd: "peek_to_tab" })}>Keep</button>
             <button className="ib sm shrink-0" title="Open in split view" aria-label="Open in split view" onClick={() => send({ cmd: "peek_to_split" })}><SplitIcon width={14} height={14} /></button>
             <button className="ib sm shrink-0" title="Close (Esc)" onClick={() => send({ cmd: "close_peek" })}><Close width={14} height={14} /></button>
           </div>
@@ -210,7 +212,7 @@ export function App() {
           onDragOver={(e) => dragging()?.kind === "tab" && e.preventDefault()}
           onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); dropToday(space.today.length); endDrag(); }}
         >
-          <button className="row newtab w-full" onClick={() => send({ cmd: "open_palette", mode: "new" })} title="New tab (⌘T)">
+          <button className="row newtab w-full" onClick={() => send({ cmd: "open_palette", mode: "new" })} title={`New tab (${keyLabel("⌘T")})`}>
             <span className="icon-slot"><Plus width={15} height={15} /></span>
             <span className="title text-left">New Tab</span>
           </button>
@@ -244,13 +246,13 @@ export function App() {
           onClose={closeNewMenu}
           groups={[
             [
-              { id: "space", label: "New Space", Icon: SpacePlus, shortcut: "⇧⌘N", run: () => send({ cmd: "open_palette", mode: "new_space" }) },
+              { id: "space", label: "New Space", Icon: SpacePlus, shortcut: keyLabel("⇧⌘N"), run: () => send({ cmd: "open_palette", mode: "new_space" }) },
               { id: "folder", label: "New Folder", Icon: FolderIcon, run: () => send({ cmd: "new_folder", title: "" }) },
               { id: "smart", label: "New Smart Folder", Icon: SmartFolderIcon, run: () => send({ cmd: "smart_folder_dialog" }) },
             ],
             [
               { id: "split", label: "New Split", Icon: SplitIcon, disabled: !activeItem, run: () => send({ cmd: "open_palette", mode: "split" }) },
-              { id: "tab", label: "New Tab", Icon: TabPlus, shortcut: "⌘T", run: () => send({ cmd: "open_palette", mode: "new" }) },
+              { id: "tab", label: "New Tab", Icon: TabPlus, shortcut: keyLabel("⌘T"), run: () => send({ cmd: "open_palette", mode: "new" }) },
             ],
           ]}
         />

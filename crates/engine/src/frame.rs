@@ -13,6 +13,9 @@ pub(crate) struct FrameState {
     pub sidebar_browser: Option<Browser>,
     /// The hint in the content panel for a window without a page.
     pub empty: Option<crate::empty::EmptyHint>,
+    /// The window's own buttons in a row above the content panel, where
+    /// the system draws none (`caption.rs`).
+    pub caption: Option<crate::caption::Caption>,
 }
 
 impl Engine {
@@ -89,7 +92,7 @@ impl Engine {
     /// the room for the traffic lights when no sidebar holds them (a full
     /// screen window has none).
     pub fn content_rect(&self) -> Rect {
-        let (r, buttons) = {
+        let (r, buttons, fullscreen) = {
             let inner = self.lock();
             let frame = inner.frame.as_ref();
             (
@@ -97,10 +100,19 @@ impl Engine {
                     .map(|f| f.content_panel.bounds_in_screen())
                     .unwrap_or_default(),
                 !inner.sidebar_visible && frame.is_some_and(|f| f.window.is_fullscreen() == 0),
+                frame.is_some_and(|f| f.window.is_fullscreen() != 0),
             )
         };
         let i = Self::CONTENT_INSET;
-        let top = if buttons { Self::BUTTONS_BAR } else { i };
+        let top = if crate::caption::Caption::wanted() {
+            // The row of our own buttons is the gap above the pages
+            // (`caption.rs`); a full screen window has no row.
+            if fullscreen { i } else { 0 }
+        } else if buttons {
+            Self::BUTTONS_BAR
+        } else {
+            i
+        };
         Rect {
             x: r.x + i,
             y: r.y + top,
@@ -114,7 +126,7 @@ impl Engine {
     /// the panel, so only the gaps around them (top edge, sides, split
     /// gutters) end up moving the window.
     pub(crate) fn apply_drag_regions(&self) {
-        let (window, panel, sidebar) = {
+        let (window, panel, sidebar, caption) = {
             let inner = self.lock();
             let Some(f) = inner.frame.as_ref() else {
                 return;
@@ -124,12 +136,38 @@ impl Engine {
             } else {
                 Vec::new()
             };
-            (f.window.clone(), f.content_panel.clone(), sidebar)
+            (
+                f.window.clone(),
+                f.content_panel.clone(),
+                sidebar,
+                f.caption.as_ref().map(crate::caption::Caption::regions),
+            )
         };
-        let mut regions = vec![DraggableRegion {
-            bounds: panel.bounds(),
-            draggable: 1,
-        }];
+        // The regions are in the frame window's coordinates: the content
+        // panel is the frame's child, or below the buttons' row in a
+        // column that is.
+        let mut area = panel.bounds();
+        let mut regions = Vec::new();
+        if let Some((row, buttons)) = caption {
+            area.x += row.x;
+            area.y += row.y;
+            regions.push(DraggableRegion {
+                bounds: row,
+                draggable: 1,
+            });
+            // The window's buttons take clicks.
+            regions.push(DraggableRegion {
+                bounds: buttons,
+                draggable: 0,
+            });
+        }
+        regions.insert(
+            0,
+            DraggableRegion {
+                bounds: area,
+                draggable: 1,
+            },
+        );
         regions.extend(sidebar);
         window.set_draggable_regions(Some(&regions));
     }
@@ -144,6 +182,47 @@ impl Engine {
         }
         #[cfg(not(target_os = "macos"))]
         let _ = (window, url, x, y);
+    }
+
+    /// The buttons' row follows the window: maximised or not, and none in
+    /// full screen.
+    pub(crate) fn sync_caption(&self) {
+        // Not under the lock: a new layout asks the views' delegates,
+        // which ask the engine.
+        let frame = {
+            let inner = self.lock();
+            (inner.frame.as_ref()).and_then(|f| Some((f.window.clone(), f.caption.clone()?)))
+        };
+        if let Some((window, caption)) = frame {
+            caption.sync(window.is_maximized() != 0, window.is_fullscreen() != 0);
+        }
+    }
+
+    /// Minimise the frame window: our own button, where the system draws
+    /// no window buttons into a frameless window (`caption.rs`).
+    pub fn minimize_frame(&self) {
+        if let Some(window) = self.frame_window() {
+            window.minimize();
+        }
+    }
+
+    /// Maximise the frame window, or bring it back to its size before.
+    pub fn toggle_maximize_frame(&self) {
+        if let Some(window) = self.frame_window() {
+            if window.is_maximized() == 0 {
+                window.maximize();
+            } else {
+                window.restore();
+            }
+        }
+    }
+
+    /// Close the frame window as its close button would: the app is asked
+    /// first and quits in order (`can_close`).
+    pub fn close_frame(&self) {
+        if let Some(window) = self.frame_window() {
+            window.close();
+        }
     }
 
     pub fn set_sidebar_visible(&self, visible: bool) {
@@ -203,6 +282,11 @@ impl Engine {
             panel.set_background_color(argb);
         }
         self.colour_empty_hint(argb);
+        // Not under the lock: the buttons' callbacks read the colour.
+        let caption = (self.lock().frame.as_ref()).and_then(|f| f.caption.clone());
+        if let Some(caption) = caption {
+            caption.set_background(argb);
+        }
     }
 
     pub fn sidebar_visible(&self) -> bool {
@@ -292,10 +376,16 @@ wrap_browser_view_delegate! {
     }
 }
 
+/// The smallest page area the frame can be resized to.
+const MIN_PAGE: Size = Size {
+    width: 320,
+    height: 240,
+};
+
 wrap_panel_delegate! {
     struct ContentPanelDelegate {}
     impl ViewDelegate {
-        fn minimum_size(&self, _view: Option<&mut View>) -> Size { Size { width: 320, height: 240 } }
+        fn minimum_size(&self, _view: Option<&mut View>) -> Size { MIN_PAGE }
     }
     impl PanelDelegate {}
 }
@@ -305,6 +395,13 @@ wrap_window_delegate! {
 
     impl ViewDelegate {
         fn preferred_size(&self, _view: Option<&mut View>) -> Size { Size { width: 1280, height: 860 } }
+        // The pages are windows of their own: in a frame narrower than the
+        // sidebar and a page, they would hang beside it.
+        fn minimum_size(&self, _view: Option<&mut View>) -> Size {
+            let engine = Engine::global();
+            let sidebar = if engine.sidebar_visible() { engine.sidebar_width() } else { 0 };
+            Size { width: sidebar + MIN_PAGE.width, height: MIN_PAGE.height + 40 }
+        }
     }
     impl PanelDelegate {}
     impl WindowDelegate {
@@ -336,12 +433,26 @@ wrap_window_delegate! {
             )
             .expect("sidebar view");
 
+            // Where the system draws no window buttons, ours sit in a row
+            // above the content panel.
+            let caption = if crate::caption::Caption::wanted() {
+                crate::caption::Caption::new(&content)
+            } else {
+                None
+            };
             let mut sv = View::from(&sidebar);
-            let mut cv = View::from(&content);
+            let mut cv = caption.as_ref().map_or_else(|| View::from(&content), crate::caption::Caption::view);
             window.add_child_view(Some(&mut sv));
             window.add_child_view(Some(&mut cv));
             layout.set_flex_for_view(Some(&mut cv), 1);
-            window.set_title(Some(&CefString::from("magnetite")));
+            window.set_title(Some(&CefString::from("Magnetite")));
+            // The taskbar, its preview and Alt+Tab show the window's own
+            // icon: Chromium's, unless it is set. macOS shows the app's.
+            #[cfg(not(target_os = "macos"))]
+            if let Some(icon) = crate::empty::app_icon() {
+                window.set_window_icon(Some(&mut icon.clone()));
+                window.set_window_app_icon(Some(&mut icon.clone()));
+            }
             window.center_window(Some(&Size { width: 1280, height: 860 }));
             window.show();
             window.layout();
@@ -352,15 +463,24 @@ wrap_window_delegate! {
                 window: window.clone(),
                 sidebar_view: sidebar,
                 empty: crate::empty::EmptyHint::new(&content),
+                caption,
                 content_panel: content,
                 sidebar_browser,
             });
             drop(inner);
+            // Windows ignores `show` while the window is still being created
+            // (the call above): the frame stayed invisible under its pages.
+            #[cfg(target_os = "windows")]
+            {
+                let window = window.clone();
+                Engine::post(Box::new(move || window.show()));
+            }
             engine.emit(EngineEvent::FrameCreated);
         }
 
         fn on_window_bounds_changed(&self, _window: Option<&mut Window>, _new_bounds: Option<&Rect>) {
             let engine = Engine::global();
+            engine.sync_caption();
             engine.reposition_contents();
             engine.apply_drag_regions();
             engine.update_edge_zone();
@@ -373,6 +493,7 @@ wrap_window_delegate! {
         // Entering or leaving full screen changes the room above the pages.
         fn on_window_fullscreen_transition(&self, _window: Option<&mut Window>, is_completed: ::std::os::raw::c_int) {
             if is_completed != 0 {
+                Engine::global().sync_caption();
                 Engine::global().reposition_contents();
             }
         }

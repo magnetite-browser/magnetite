@@ -34,9 +34,9 @@ are left out. Enter opens the pick in a new mini window. `Shift+Enter` and
 closes it; opened from another app and closed without a pick, that app gets
 the keyboard back.
 
-- The key works while another app is in front. macOS hands Magnetite this
-  one combination only; no accessibility permission is needed, and no other
-  typing reaches Magnetite.
+- The key works while another app is in front. The system hands Magnetite
+  this one combination only; no accessibility permission is needed, and no
+  other typing reaches Magnetite. On Windows the key is `Ctrl+Alt+N`.
 - Settings → General → "Quick search from anywhere (⌥⌘N)" turns it on or
   off; it is on by default. When another app already holds the combination,
   Magnetite does without it; File → New Mini Window still works while
@@ -101,7 +101,7 @@ search switch is `settings.quick_search`, this device's own.
 - The link preview at the bottom of the page (`site-controls.md`) and the
   address row's site panel are the main window's: a mini window has
   neither.
-- macOS only for the system-wide key.
+- No system-wide key on Linux.
 
 Code: `crates/app/src/app/mini.rs` (`open_mini`, `mini_to_tab`,
 `mini_shortcut`), `events.rs` (`Ask::target`), `crates/app/src/state/tabs.rs`

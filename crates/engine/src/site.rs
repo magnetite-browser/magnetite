@@ -116,7 +116,10 @@ impl Engine {
         }
         #[cfg(target_os = "macos")]
         return crate::mac::copy_text(text);
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        return (self.frame_window())
+            .is_some_and(|frame| crate::win::copy_text(frame.window_handle(), text));
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         {
             let _ = text;
             false

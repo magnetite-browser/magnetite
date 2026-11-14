@@ -49,8 +49,9 @@ focus returns to the chip.
   untrusted), "Local file", "Magnetite page", "Loading…" until the first
   load has finished, or "Unavailable" for other pages without a network
   origin. A page in a profile other than the default adds "Profile: name".
-- **Tools:** Capture, Share (the macOS share menu for the page's URL) and
-  Developer tools. Magnetite's own pages offer Share only, and nothing below.
+- **Tools:** Capture, Share (the macOS share menu for the page's URL; macOS
+  only) and Developer tools. Magnetite's own pages offer Share only, and
+  nothing below.
 - **Zoom:** − and + move through Chromium's zoom steps, 25 % to 500 %; a
   click on the value resets it to 100 %.
 - **Block ads:** shown while the ad blocker is on (`ad-blocking.md`). Off
@@ -168,9 +169,9 @@ port is opened, and DevTools need not be open.
 
 The result appears at the bottom of the sidebar and stays until it is
 dismissed or the next capture replaces it: size, thumbnail, and Copy, Save…,
-Share… and Retake. Copy puts a PNG on the clipboard, Save… opens the macOS
-save dialog (suggested name `Magnetite capture YYYY-MM-DD at HH.MM.SS.png`)
-and Share… the macOS share menu. While the result has focus, Return copies
+Share… and Retake. Copy puts a PNG on the clipboard, Save… opens the
+system's save dialog (suggested name `Magnetite capture YYYY-MM-DD at HH.MM.SS.png`)
+and Share… the macOS share menu (macOS only). While the result has focus, Return copies
 and Esc dismisses. The command bar has "Copy last capture". Nothing is copied
 or written without one of these actions.
 

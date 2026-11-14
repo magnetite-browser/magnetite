@@ -30,7 +30,8 @@ it as a tab, or put it beside the current tab in split view.
 
 - The peek sits centred over the page area at 86 % of its width (less in a
   narrow window, to leave room for the buttons) and 90 % of its height. On
-  macOS the pages behind it are dimmed.
+  macOS and Windows the pages behind it are dimmed; a click on them closes
+  the peek.
 - There is one peek at a time. A new one replaces the open one. Opening a
   tab in front or switching tabs closes it.
 - The peek runs in the profile of the page that opened it. A link from
@@ -55,7 +56,8 @@ it as a tab, or put it beside the current tab in split view.
 | Keep as tab | `Cmd+O`, "Open as tab", "Keep" in the sidebar | A Today tab at the top of the active space |
 | Open in split view | The split button | A Today tab right of the current tab |
 
-- On macOS the buttons are a column of round buttons right of the peek.
+- On macOS the buttons are a column of round buttons right of the peek;
+  elsewhere they are in the sidebar only.
   The sidebar shows "Peek ·" and the page title in place of the address
   field, with the same three actions.
 - `Esc` and `Cmd+O` count while the keyboard is in the peek.

@@ -4,7 +4,7 @@ import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, SmartFolderI
 import { ago, findFolder } from "./smart";
 import { Glyph, glyphFor } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, overRowMiddle, sideOf, splittable, startDrag } from "./dnd";
-import { findTab, hostOf, send, splitIds, type FavoriteList, type Folder, type SidebarNode, type Side, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { findTab, hostOf, IS_MAC, send, splitIds, type FavoriteList, type Folder, type SidebarNode, type Side, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 
 export type Section = "favorites" | "pinned" | "today";
@@ -35,7 +35,8 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   const onScreen = ctx.state.panes.includes(tab.id);
   const inSplit = ctx.inSplit.has(tab.id);
   if (ctx.state.runtime[tab.id]?.loaded) items.push({ label: "Reload", onClick: () => send({ cmd: "reload", id: tab.id }) });
-  items.push({ label: "Share…", onClick: () => send({ cmd: "share", id: tab.id, x: at.x, y: at.y }) });
+  // The system's share menu: only macOS has one here.
+  if (IS_MAC) items.push({ label: "Share…", onClick: () => send({ cmd: "share", id: tab.id, x: at.x, y: at.y }) });
   items.push({ label: "Copy link", onClick: () => navigator.clipboard?.writeText(tab.url) });
   items.push(SEPARATOR);
   if (section === "today") items.push({ label: "Pin tab", onClick: () => send({ cmd: "pin", id: tab.id }) });

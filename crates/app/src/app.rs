@@ -52,6 +52,9 @@ pub struct MagnetiteApp {
     data_dir: PathBuf,
     import: ArcImport,
     open_on_start: Option<String>,
+    /// A link another program started Magnetite with (Windows: it is the
+    /// default browser and was not running).
+    link_on_start: Option<String>,
     sync: OnceLock<SyncClient>,
     /// A sync chain is being started or joined: a second request would make
     /// a second chain and replace the stored sync code.
@@ -187,7 +190,12 @@ impl PaletteMode {
 }
 
 impl MagnetiteApp {
-    pub fn new(data_dir: PathBuf, import: ArcImport, open_on_start: Option<String>) -> Self {
+    pub fn new(
+        data_dir: PathBuf,
+        import: ArcImport,
+        open_on_start: Option<String>,
+        link_on_start: Option<String>,
+    ) -> Self {
         let state = AppState::load_or_default(&data_dir, import);
         let blocker = adblocking::Blocker::start(&data_dir, &state.settings.adblock);
         Self {
@@ -195,6 +203,7 @@ impl MagnetiteApp {
             data_dir,
             import,
             open_on_start,
+            link_on_start,
             sync: OnceLock::new(),
             sync_connecting: AtomicBool::new(false),
             visible: Mutex::new(Vec::new()),
