@@ -336,6 +336,26 @@ fn place_ring(ring: &mut Ring) {
 /// Paint the outline of a page of `size` pixels into the window `hwnd` and
 /// put it at `at`.
 fn draw_ring(hwnd: Hwnd, at: (i32, i32), size: (i32, i32), argb: u32, dpi: i32) -> bool {
+    paint_layer(hwnd, at, size, |pixels| {
+        ring_pixels(
+            pixels,
+            size,
+            PAGE_RADIUS * dpi / 96,
+            RING_WIDTH * dpi / 96,
+            argb,
+        );
+    })
+}
+
+/// Put the layered window `hwnd` at `at` (screen pixels) with a picture of
+/// `size` pixels that `fill` paints: BGRA, the first row on top, the
+/// colours already multiplied by the alpha.
+pub(super) fn paint_layer(
+    hwnd: Hwnd,
+    at: (i32, i32),
+    size: (i32, i32),
+    fill: impl FnOnce(&mut [u8]),
+) -> bool {
     let Ok(len) = usize::try_from(size.0 * size.1 * 4) else {
         return false;
     };
@@ -374,13 +394,7 @@ fn draw_ring(hwnd: Hwnd, at: (i32, i32), size: (i32, i32), argb: u32, dpi: i32) 
             DeleteDC(dc);
             return false;
         }
-        ring_pixels(
-            std::slice::from_raw_parts_mut(bits, len),
-            size,
-            PAGE_RADIUS * dpi / 96,
-            RING_WIDTH * dpi / 96,
-            argb,
-        );
+        fill(std::slice::from_raw_parts_mut(bits, len));
         let position = Point { x: at.0, y: at.1 };
         let extent = Extent {
             width: size.0,

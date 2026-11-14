@@ -4,8 +4,11 @@
 //! `MagnetiteDividerView` in `mac/chrome.rs` does).
 //!
 //! Each divider is a small window of the frame, all but invisible, that
-//! only takes the mouse: the gap behind it shows the frame's chrome. The
-//! frame itself cannot take it there, because its page area drags the window.
+//! takes the mouse: the gap behind it shows the frame's chrome. The frame
+//! itself cannot take it there, because its page area drags the window.
+//! Under the pointer it shows a short line (a grip), longer and in brass
+//! while dragged, as on macOS; the handles of a page in device mode show
+//! theirs faintly all the time, so that they can be found.
 
 use std::cell::RefCell;
 use std::ffi::c_void;
@@ -56,7 +59,8 @@ unsafe extern "system" {
     fn DefWindowProcW(hwnd: Hwnd, message: u32, wparam: usize, lparam: isize) -> isize;
     fn DestroyWindow(hwnd: Hwnd) -> i32;
     fn SetWindowPos(hwnd: Hwnd, after: Hwnd, x: i32, y: i32, w: i32, h: i32, flags: u32) -> i32;
-    fn SetLayeredWindowAttributes(hwnd: Hwnd, key: u32, alpha: u8, flags: u32) -> i32;
+    fn GetDpiForWindow(hwnd: Hwnd) -> u32;
+    fn TrackMouseEvent(track: *mut TrackMouse) -> i32;
     fn LoadCursorW(instance: *mut c_void, name: *const u16) -> *mut c_void;
     fn SetCursor(cursor: *mut c_void) -> *mut c_void;
     fn SetCapture(hwnd: Hwnd) -> Hwnd;
@@ -75,7 +79,11 @@ const CS_DBLCLKS: u32 = 0x8;
 const WS_POPUP: u32 = 0x8000_0000;
 /// See-through by an alpha of its own, never active, not in the taskbar.
 const EX_STYLE: u32 = 0x0008_0000 | 0x0800_0000 | 0x80;
-const LWA_ALPHA: u32 = 2;
+const SWP_NOSIZE: u32 = 0x1;
+const SWP_NOMOVE: u32 = 0x2;
+const SWP_NOZORDER: u32 = 0x4;
+const TME_LEAVE: u32 = 2;
+const WM_MOUSELEAVE: u32 = 0x2A3;
 const SWP_NOACTIVATE: u32 = 0x10;
 const SWP_SHOWWINDOW: u32 = 0x40;
 const WM_SETCURSOR: u32 = 0x20;
@@ -130,11 +138,106 @@ impl DividerKey {
     }
 }
 
+/// `TRACKMOUSEEVENT`.
+#[repr(C)]
+struct TrackMouse {
+    size: u32,
+    flags: u32,
+    hwnd: Hwnd,
+    hover_time: u32,
+}
+
+/// How a divider's grip shows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Look {
+    Hidden,
+    /// A handle in device mode, away from the pointer.
+    Faint,
+    Hover,
+    Dragging,
+}
+
 struct Divider {
     hwnd: Hwnd,
     key: DividerKey,
+    /// Where it is on screen: x, y, width, height in pixels.
+    at: [i32; 4],
     /// The mouse button went down on it and is still held.
     dragging: bool,
+    /// The pointer is on it.
+    hovering: bool,
+}
+
+impl Divider {
+    fn look(&self) -> Look {
+        if self.dragging {
+            Look::Dragging
+        } else if self.hovering {
+            Look::Hover
+        } else if matches!(self.key, DividerKey::Device { .. }) {
+            Look::Faint
+        } else {
+            Look::Hidden
+        }
+    }
+}
+
+/// Thickness and length of the grip in points: longer while dragged.
+const GRIP: i32 = 2;
+const GRIP_LONG: i32 = 32;
+const GRIP_DRAGGED: i32 = 56;
+/// The corner handle shows a dot of this size.
+const GRIP_DOT: i32 = 4;
+
+/// Fill `pixels` (BGRA with the colours already multiplied by the alpha,
+/// `size` wide and high) with the grip of a divider: a line in the middle,
+/// along the divider. The rest has an alpha of 1 of 255: nothing to see,
+/// yet the window takes the mouse there (a fully clear one does not).
+fn grip_pixels(pixels: &mut [u8], size: (i32, i32), key: &DividerKey, look: Look, dpi: i32) {
+    let scaled = |points: i32| (points * dpi / 96).max(1);
+    let long = scaled(if look == Look::Dragging {
+        GRIP_DRAGGED
+    } else {
+        GRIP_LONG
+    });
+    let (width, height) = match key {
+        DividerKey::Device {
+            edge: Edge::Corner, ..
+        } => (scaled(GRIP_DOT), scaled(GRIP_DOT)),
+        _ if key.row() => (scaled(GRIP), long),
+        _ => (long, scaled(GRIP)),
+    };
+    let (width, height) = (width.min(size.0), height.min(size.1));
+    let (left, top) = ((size.0 - width) / 2, (size.1 - height) / 2);
+    // White at 35 % (20 % when faint), brass while dragged.
+    let colour = match look {
+        Look::Hidden => [0, 0, 0, 1],
+        Look::Faint => [51, 51, 51, 51],
+        Look::Hover => [89, 89, 89, 89],
+        Look::Dragging => [102, 166, 214, 255],
+    };
+    let columns = usize::try_from(size.0).unwrap_or(0).max(1);
+    for (i, pixel) in pixels.as_chunks_mut::<4>().0.iter_mut().enumerate() {
+        let x = i32::try_from(i % columns).unwrap_or(i32::MAX);
+        let y = i32::try_from(i / columns).unwrap_or(i32::MAX);
+        let inside = x >= left && x < left + width && y >= top && y < top + height;
+        *pixel = if inside { colour } else { [0, 0, 0, 1] };
+    }
+}
+
+/// Paint the divider `hwnd` as it is now, where it is.
+fn paint(hwnd: Hwnd) {
+    let Some((key, look, at)) = with_divider(hwnd, |d| (d.key.clone(), d.look(), d.at)) else {
+        return;
+    };
+    // SAFETY: a plain query on our own window.
+    let dpi = i32::try_from(unsafe { GetDpiForWindow(hwnd) })
+        .unwrap_or(96)
+        .max(96);
+    let size = (at[2], at[3]);
+    super::layers::paint_layer(hwnd, (at[0], at[1]), size, |pixels| {
+        grip_pixels(pixels, size, &key, look, dpi);
+    });
 }
 
 thread_local! {
@@ -182,9 +285,10 @@ pub fn set_dividers(frame: cef::sys::cef_window_handle_t, dividers: &[(Rect, Div
         while list.len() > dividers.len() {
             gone.extend(list.pop().map(|d| d.hwnd));
         }
-        for (i, (_, key)) in dividers.iter().enumerate() {
+        for (i, (at, key)) in dividers.iter().enumerate() {
             if let Some(d) = list.get_mut(i) {
                 d.key = key.clone();
+                d.at = [at.x, at.y, at.width, at.height];
                 continue;
             }
             // SAFETY: a window of our class, owned by the live frame.
@@ -207,29 +311,30 @@ pub fn set_dividers(frame: cef::sys::cef_window_handle_t, dividers: &[(Rect, Div
             if hwnd.is_null() {
                 break;
             }
-            // SAFETY: our own window. An alpha of 1 of 255: nothing to
-            // see, yet it takes the mouse (a fully clear window does not).
-            unsafe { SetLayeredWindowAttributes(hwnd, 0, 1, LWA_ALPHA) };
             list.push(Divider {
                 hwnd,
                 key: key.clone(),
+                at: [at.x, at.y, at.width, at.height],
                 dragging: false,
+                hovering: false,
             });
         }
     });
     let windows: Vec<Hwnd> = DIVIDERS.with_borrow(|list| list.iter().map(|d| d.hwnd).collect());
-    for (hwnd, (at, _)) in windows.into_iter().zip(dividers) {
-        // SAFETY: our own windows; moving one may call `on_message`, which
-        // finds the list free.
+    for hwnd in windows {
+        // Painting places the window as well.
+        paint(hwnd);
+        // SAFETY: our own windows; showing one may call `on_message`,
+        // which finds the list free.
         unsafe {
             SetWindowPos(
                 hwnd,
                 std::ptr::null_mut(),
-                at.x,
-                at.y,
-                at.width,
-                at.height,
-                SWP_NOACTIVATE | SWP_SHOWWINDOW,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW,
             );
         }
     }
@@ -243,15 +348,48 @@ pub fn set_dividers(frame: cef::sys::cef_window_handle_t, dividers: &[(Rect, Div
 /// `dragging` set to `dragging` if given. `None` for a window not on the
 /// list, or while `set_dividers` works on the list.
 fn divider(hwnd: Hwnd, dragging: Option<bool>) -> Option<(DividerKey, bool)> {
-    DIVIDERS.with(|list| {
-        let mut list = list.try_borrow_mut().ok()?;
-        let d = list.iter_mut().find(|d| d.hwnd == hwnd)?;
+    let found = with_divider(hwnd, |d| {
         let was = d.dragging;
         if let Some(now) = dragging {
             d.dragging = now;
         }
-        Some((d.key.clone(), was))
+        (d.key.clone(), was)
+    });
+    // The grip is longer and in brass while dragged.
+    if let (Some((_, was)), Some(now)) = (&found, dragging)
+        && *was != now
+    {
+        paint(hwnd);
+    }
+    found
+}
+
+/// Read or change the divider `hwnd`. `None` for a window not on the list,
+/// or while `set_dividers` works on the list.
+fn with_divider<R>(hwnd: Hwnd, work: impl FnOnce(&mut Divider) -> R) -> Option<R> {
+    DIVIDERS.with(|list| {
+        let mut list = list.try_borrow_mut().ok()?;
+        list.iter_mut().find(|d| d.hwnd == hwnd).map(work)
     })
+}
+
+/// The pointer came onto the divider `hwnd` or left it: its grip shows or
+/// goes, and Windows is asked to say when the pointer leaves.
+fn hover(hwnd: Hwnd, on: bool) {
+    if with_divider(hwnd, |d| std::mem::replace(&mut d.hovering, on)) != Some(!on) {
+        return;
+    }
+    if on {
+        let mut track = TrackMouse {
+            size: 24,
+            flags: TME_LEAVE,
+            hwnd,
+            hover_time: 0,
+        };
+        // SAFETY: a `TRACKMOUSEEVENT` of its stated size for our own window.
+        unsafe { TrackMouseEvent(&raw mut track) };
+    }
+    paint(hwnd);
 }
 
 fn report(key: DividerKey, action: DividerAction) {
@@ -304,7 +442,12 @@ unsafe extern "system" fn on_message(
             }
             return 0;
         }
+        WM_MOUSELEAVE => {
+            hover(hwnd, false);
+            return 0;
+        }
         WM_MOUSEMOVE => {
+            hover(hwnd, true);
             // SAFETY: plain queries; `at` is a POINT.
             let mut at = [0i32; 2];
             let ours = unsafe { GetCapture() == hwnd && GetCursorPos(&raw mut at) != 0 };
