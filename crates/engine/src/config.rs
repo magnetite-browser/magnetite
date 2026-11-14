@@ -34,9 +34,11 @@ impl EngineConfig {
         self.data_dir.join("cef")
     }
 
-    /// Chromium's folder for the default context.
+    /// Chromium's folder for the default context. Chromium always keeps it in
+    /// `Default`: CEF ignores any other child folder given as `cache_path`.
+    /// The capital matters on case-sensitive file systems (Linux).
     pub(crate) fn default_profile_dir(&self) -> PathBuf {
-        self.cef_root().join("default")
+        self.cef_root().join("Default")
     }
 
     /// Chromium's folder for profile `id`: directly below the root, the only
@@ -87,10 +89,10 @@ mod tests {
             assert!(names[i + 1..].iter().all(|b| a != b), "{a} twice");
         }
         let config = config("/data".into());
-        // Where existing installations keep the default profile's data.
+        // Where Chromium keeps the default profile's data, capital D included.
         assert_eq!(
             config.default_profile_dir(),
-            std::path::Path::new("/data/cef/default")
+            std::path::Path::new("/data/cef/Default")
         );
         // Directly below Chromium's root: only there a profile reaches the disk.
         assert_eq!(
