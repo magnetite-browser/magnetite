@@ -645,5 +645,34 @@ wrap_window_delegate! {
         // lives in child windows. A Chrome-style frame without a Chrome-style view
         // never finishes initialising (stays fully transparent on macOS).
         fn window_runtime_style(&self) -> RuntimeStyle { RuntimeStyle::ALLOY }
+        fn linux_window_properties(&self, _window: Option<&mut Window>, properties: Option<&mut LinuxWindowProperties>) -> ::std::os::raw::c_int {
+            set_linux_window_properties(properties)
+        }
     }
+}
+
+/// Name our windows `magnetite` for the desktop: the Wayland app ID and the
+/// X11 window class, so docks and task bars match them to
+/// `magnetite.desktop` (its `StartupWMClass`) and show its icon. Without
+/// them CEF leaves Chromium's defaults. For `linux_window_properties`.
+pub(crate) fn set_linux_window_properties(
+    properties: Option<&mut LinuxWindowProperties>,
+) -> ::std::os::raw::c_int {
+    let Some(p) = properties else { return 0 };
+    p.wayland_app_id = cef_owned("magnetite");
+    p.wm_class_class = cef_owned("magnetite");
+    p.wm_class_name = cef_owned("magnetite");
+    1
+}
+
+/// `text` as a string CEF allocates and frees itself, for a struct handed
+/// back to CEF. The binding passes only such borrowed strings through: one
+/// made with `CefString::from(&str)` reaches CEF empty and is freed again by
+/// Rust (a clone of it twice: a double free).
+fn cef_owned(text: &str) -> CefString {
+    // SAFETY: an all-zero cef_string_t is the documented empty string; the
+    // conversion gives it a buffer and the function that frees it.
+    let mut raw: sys::_cef_string_utf16_t = unsafe { std::mem::zeroed() };
+    unsafe { sys::cef_string_utf8_to_utf16(text.as_ptr().cast(), text.len(), &mut raw) };
+    CefString::from(raw)
 }

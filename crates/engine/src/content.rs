@@ -768,6 +768,10 @@ wrap_window_delegate! {
         // (macOS would otherwise spend it on activating the window).
         fn accepts_first_mouse(&self, _window: Option<&mut Window>) -> State { State::ENABLED }
         fn window_runtime_style(&self) -> RuntimeStyle { RuntimeStyle::CHROME }
+        // Mini windows are windows of their own on the desktop.
+        fn linux_window_properties(&self, _window: Option<&mut Window>, properties: Option<&mut LinuxWindowProperties>) -> ::std::os::raw::c_int {
+            crate::frame::set_linux_window_properties(properties)
+        }
     }
 }
 
