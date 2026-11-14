@@ -115,6 +115,7 @@ unsafe extern "system" {
 unsafe extern "system" {
     fn GetStockObject(object: i32) -> *mut c_void;
     fn CreateRoundRectRgn(x1: i32, y1: i32, x2: i32, y2: i32, w: i32, h: i32) -> *mut c_void;
+    fn CombineRgn(to: *mut c_void, a: *mut c_void, b: *mut c_void, mode: i32) -> i32;
     fn CreateCompatibleDC(dc: *mut c_void) -> *mut c_void;
     fn CreateDIBSection(
         dc: *mut c_void,
@@ -130,6 +131,8 @@ unsafe extern "system" {
 }
 
 const BLACK_BRUSH: i32 = 4;
+/// What is in the first region and not in the second.
+const RGN_DIFF: i32 = 4;
 /// The window right above in the stacking order.
 const GW_HWNDPREV: u32 = 3;
 const GW_OWNER: u32 = 4;
@@ -172,8 +175,9 @@ struct Ring {
 
 thread_local! {
     static RING: RefCell<Option<Ring>> = const { RefCell::new(None) };
-    /// The window that dims the pages behind a peek, and its size.
-    static BACKDROP: Cell<(isize, (i32, i32))> = const { Cell::new((0, (0, 0))) };
+    /// The window that dims the pages behind a peek, and the shape it was
+    /// cut to: its size, and the hole for the peek.
+    static BACKDROP: Cell<(isize, [i32; 6])> = const { Cell::new((0, [0; 6])) };
     static CLASS: Cell<bool> = const { Cell::new(false) };
 }
 
@@ -435,19 +439,24 @@ fn ring_pixels(pixels: &mut [u8], size: (i32, i32), radius: i32, width: i32, arg
     }
 }
 
-/// Dim `area` (the pages, in screen pixels) behind the peek window `peek`:
-/// a window of the frame `frame` right below the peek. A click on it closes
-/// the peek.
+/// Dim `area` (the pages) around the peek window `peek`, which is at `hole`
+/// (both in screen pixels): a window of the frame `frame`. A click on it
+/// closes the peek.
+///
+/// The window has a hole where the peek is. Placing it below the peek is
+/// not enough: right after a peek opened, it was above the peek all the
+/// same and dimmed that too.
 pub fn show_peek_backdrop(
     frame: cef::sys::cef_window_handle_t,
     peek: cef::sys::cef_window_handle_t,
     area: &Rect,
+    hole: &Rect,
 ) {
     let (frame, peek): (Hwnd, Hwnd) = (frame.0.cast(), peek.0.cast());
     if frame.is_null() || peek.is_null() {
         return;
     }
-    let (mut hwnd, mut size) = BACKDROP.get();
+    let (mut hwnd, mut shape) = BACKDROP.get();
     if hwnd == 0 {
         let made = layer(frame, false);
         if made.is_null() {
@@ -457,17 +466,39 @@ pub fn show_peek_backdrop(
         unsafe { SetLayeredWindowAttributes(made, 0, DIM_ALPHA, LWA_ALPHA) };
         hwnd = made as isize;
     }
-    // SAFETY: our own window, placed after the live peek window; the system
-    // owns the region once `SetWindowRgn` took it.
+    // The hole, as seen from the window's top left corner.
+    let wanted = [
+        area.width,
+        area.height,
+        hole.x - area.x,
+        hole.y - area.y,
+        hole.width,
+        hole.height,
+    ];
+    // SAFETY: our own window, placed after the live peek window; regions
+    // made here are freed here, but for the one `SetWindowRgn` takes.
     unsafe {
-        if size != (area.width, area.height) {
-            size = (area.width, area.height);
+        if shape != wanted {
+            shape = wanted;
             let dpi = i32::try_from(GetDpiForWindow(frame)).unwrap_or(96).max(96);
-            let diameter = 2 * PAGE_RADIUS * dpi / 96;
-            let region = CreateRoundRectRgn(0, 0, size.0 + 1, size.1 + 1, diameter, diameter);
+            let round = 2 * PAGE_RADIUS * dpi / 96;
+            let [width, height, left, top, hole_width, hole_height] = wanted;
+            let region = CreateRoundRectRgn(0, 0, width + 1, height + 1, round, round);
+            let cut = CreateRoundRectRgn(
+                left,
+                top,
+                left + hole_width + 1,
+                top + hole_height + 1,
+                round,
+                round,
+            );
             if !region.is_null() {
+                if !cut.is_null() {
+                    CombineRgn(region, region, cut, RGN_DIFF);
+                }
                 SetWindowRgn(hwnd as Hwnd, region, 1);
             }
+            DeleteObject(cut);
         }
         SetWindowPos(
             hwnd as Hwnd,
@@ -479,7 +510,7 @@ pub fn show_peek_backdrop(
             SWP_NOACTIVATE | SWP_SHOWWINDOW,
         );
     }
-    BACKDROP.set((hwnd, size));
+    BACKDROP.set((hwnd, shape));
 }
 
 /// Remove the peek backdrop (the peek closed or became a tab).

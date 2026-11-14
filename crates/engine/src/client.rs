@@ -225,6 +225,7 @@ wrap_life_span_handler! {
             _extra_info: Option<&mut Option<DictionaryValue>>,
             _no_javascript_access: Option<&mut ::std::os::raw::c_int>,
         ) -> ::std::os::raw::c_int {
+            crate::trace(&format!("popup asked: disposition {}", target_disposition.get_raw()));
             // A page's popup window (`window.open` with window features)
             // opens as a real window, as in other browsers: sign-in popups
             // ("Sign in with Google") talk back to their opener and fail
@@ -472,18 +473,28 @@ wrap_request_handler! {
             target_disposition: WindowOpenDisposition,
             _user_gesture: ::std::os::raw::c_int,
         ) -> ::std::os::raw::c_int {
+            crate::trace(&format!("open from tab: disposition {}", target_disposition.get_raw()));
             // "Open Link in Incognito Window": Magnetite has no such window,
             // and an ordinary tab in the same profile would be the opposite.
             if target_disposition == WindowOpenDisposition::OFF_THE_RECORD {
                 return 1;
             }
+            // "Open Link in New Window" asks for a window of its own. On
+            // Windows a Shift+click arrives here looking the same (on macOS
+            // it is a popup request): with Shift held it is the click, which
+            // asks for a new window as a page does and so gets a peek.
+            let window = target_disposition == WindowOpenDisposition::NEW_WINDOW;
+            #[cfg(target_os = "windows")]
+            let click = window && crate::win::shift_held();
+            #[cfg(not(target_os = "windows"))]
+            let click = false;
             Engine::global().request_open(
                 browser.as_deref(),
                 target_url.map(CefString::to_string).unwrap_or_default(),
                 url_source(self.kind),
                 target_disposition == WindowOpenDisposition::NEW_BACKGROUND_TAB,
-                false,
-                target_disposition == WindowOpenDisposition::NEW_WINDOW,
+                click,
+                window && !click,
             );
             1
         }

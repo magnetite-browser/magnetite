@@ -341,6 +341,7 @@ impl Engine {
             window.window_handle(),
             // Windows places its windows in pixels.
             &display_convert_screen_rect_to_pixels(Some(&self.content_rect())),
+            &display_convert_screen_rect_to_pixels(Some(&window.bounds())),
         );
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = (frame, window);
