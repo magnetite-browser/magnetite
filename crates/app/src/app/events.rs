@@ -405,9 +405,17 @@ impl EngineDelegate for MagnetiteApp {
 
 impl MagnetiteApp {
     /// Open `urls` as links from another app: as macOS hands them over,
-    /// following the setting for links from outside.
+    /// following the setting for links from outside. There is one peek, and
+    /// opening it closes the one before: of several addresses the last gets
+    /// it, the others become background tabs.
     pub(super) fn open_from_other_app(&self, engine: &Engine, urls: Vec<String>) {
-        for url in urls {
+        let peek = self.with_state(|s| s.settings.external_links == "peek");
+        let last = urls.len().saturating_sub(1);
+        for (i, url) in urls.into_iter().enumerate() {
+            if peek && i < last {
+                self.open_url_from(engine, &url, true, url_policy::Source::OtherApp, None);
+                continue;
+            }
             self.on_event(
                 engine,
                 EngineEvent::OpenUrlRequested {
