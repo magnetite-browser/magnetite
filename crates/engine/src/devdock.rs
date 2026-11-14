@@ -59,6 +59,8 @@ pub(crate) struct DockedDevTools {
     pub shown: bool,
     /// Device mode (`device.rs`), while on.
     pub device: Option<crate::device::DeviceMode>,
+    /// The element picker of these `DevTools` is on (`devtools_menu.js`).
+    pub inspecting: bool,
     pub browser_id: Option<i32>,
     /// A separate window, not docked beside the page.
     pub separate: bool,
@@ -199,6 +201,16 @@ impl Engine {
         if choice == "device" {
             if let Some(id) = id {
                 self.toggle_device(id);
+            }
+            return true;
+        }
+        if let Some(on) = match choice {
+            "inspect-on" => Some(true),
+            "inspect-off" => Some(false),
+            _ => None,
+        } {
+            if let Some(id) = id {
+                self.device_inspecting(id, on);
             }
             return true;
         }
@@ -437,6 +449,7 @@ impl Engine {
                 gap: None,
                 shown: false,
                 device: None,
+                inspecting: false,
                 browser_id,
                 separate,
                 view: tools.clone(),
