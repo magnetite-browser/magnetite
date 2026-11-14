@@ -529,6 +529,21 @@ mod tests {
         path
     }
 
+    /// One at a time for the tests that write a fake binary and run it.
+    /// While one test has its file open for writing, another test's start
+    /// of a process copies that open file into the new process, and Linux
+    /// then refuses to run the file ("Text file busy"): the version read
+    /// came back empty now and then.
+    #[cfg(unix)]
+    static FAKE_BINARIES: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    #[cfg(unix)]
+    fn one_at_a_time() -> std::sync::MutexGuard<'static, ()> {
+        FAKE_BINARIES
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
     /// Watching a binary as `SystemBinary::detect` would at start.
     #[cfg(unix)]
     fn watching(path: PathBuf) -> SystemBinary {
@@ -539,6 +554,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn a_replaced_newer_binary_is_reported_once_per_change() {
+        let _turn = one_at_a_time();
         let dir = crate::files::test_dir("system-binary-newer");
         std::fs::create_dir_all(&dir).unwrap();
         let mut binary = watching(fake_binary(&dir, "magnetite 9.9.9", 1_000));
@@ -556,6 +572,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn a_replaced_binary_that_is_not_newer_is_ignored_for_that_change() {
+        let _turn = one_at_a_time();
         let dir = crate::files::test_dir("system-binary-not-newer");
         std::fs::create_dir_all(&dir).unwrap();
         let mut binary = watching(fake_binary(&dir, "magnetite 9.9.9", 1_000));
@@ -577,6 +594,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn a_replaced_binary_without_a_version_is_tried_again() {
+        let _turn = one_at_a_time();
         let dir = crate::files::test_dir("system-binary-retry");
         std::fs::create_dir_all(&dir).unwrap();
         let mut binary = watching(fake_binary(&dir, "magnetite 0.0.1", 1_000));
