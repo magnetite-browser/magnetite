@@ -18,7 +18,10 @@ export function useSidebarShortcuts(float: boolean, onEscape: () => void) {
         e.preventDefault();
         send({ cmd: "shortcut", shortcut });
       };
-      const cmd = { meta: true };
+      // The main modifier: Cmd on macOS, Ctrl elsewhere, as the app's own
+      // key handling has it (keys.rs) and as the labels say.
+      const cmd: Mods = IS_MAC ? { meta: true } : { ctrl: true };
+      const main = IS_MAC ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
       if (is("t", cmd)) return fire("new_tab");
       if (is("l", cmd)) return fire("focus_address");
       if (is("w", cmd)) return fire("close_tab");
@@ -26,15 +29,15 @@ export function useSidebarShortcuts(float: boolean, onEscape: () => void) {
       if (is("d", cmd)) return fire("toggle_pin");
       if (is("p", cmd)) return fire("print");
       if (is("y", cmd)) return fire("history");
-      if (is("t", { meta: true, shift: true })) return fire("reopen_closed");
-      if ((e.key === "+" || e.key === "=") && e.metaKey && e.shiftKey && !e.altKey && !e.ctrlKey) {
+      if (is("t", { ...cmd, shift: true })) return fire("reopen_closed");
+      if ((e.key === "+" || e.key === "=") && main && e.shiftKey && !e.altKey) {
         e.preventDefault();
         send({ cmd: "open_palette", mode: "split", side: "right" });
         return;
       }
-      if (is("n", { meta: true, shift: true })) return fire("new_space");
-      if (is("ArrowRight", { meta: true, alt: true })) return fire("next_space");
-      if (is("ArrowLeft", { meta: true, alt: true })) return fire("prev_space");
+      if (is("n", { ...cmd, shift: true })) return fire("new_space");
+      if (is("ArrowRight", { ...cmd, alt: true })) return fire("next_space");
+      if (is("ArrowLeft", { ...cmd, alt: true })) return fire("prev_space");
       if (is("Tab", { ctrl: true })) return fire("next_tab");
       if (is("Tab", { ctrl: true, shift: true })) return fire("prev_tab");
       if (/^[1-9]$/.test(e.key) && is(e.key, cmd)) return fire({ select_tab: Number(e.key) });
