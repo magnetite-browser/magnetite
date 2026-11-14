@@ -67,6 +67,11 @@ button offers all four and, below a line, Settings.
 The downloads list every file a page downloads, except the package of an
 extension being installed from the Chrome Web Store: that is part of the
 install, as in Chrome, and Chromium deletes it once the extension is in.
+A click on a finished download opens the file; a right click offers "Copy
+file", "Copy file path" (both on macOS) and showing it in the file manager,
+which the icon at the end of the row does too. "All downloads…" stays above
+the list and opens the same entries as a page (`magnetite://ui/downloads`)
+with a search by file name.
 
 ## Data
 

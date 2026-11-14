@@ -7,7 +7,7 @@ use magnetite_engine::{ContentId, Engine, MemoryPressure, host_of};
 use crate::state::{AppState, folder_in_tree_mut, now};
 use crate::{lock, trace, url_policy};
 
-use super::{MagnetiteApp, WELCOME_URL};
+use super::{DOWNLOADS_URL, MagnetiteApp, WELCOME_URL};
 
 /// Drag and drop: put tab `id` at `index` of `section` (of space
 /// `space_id`); `folder` places it inside a pinned folder of that space.
@@ -310,6 +310,8 @@ impl MagnetiteApp {
             "Settings".to_string()
         } else if url.starts_with(WELCOME_URL) {
             "Welcome".to_string()
+        } else if url.starts_with(DOWNLOADS_URL) {
+            "Downloads".to_string()
         } else {
             url.clone()
         };

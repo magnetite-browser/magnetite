@@ -1,7 +1,7 @@
-//! The sidebar's download list, newest first. Chromium keeps its own full
+//! Magnetite's download list, newest first. Chromium keeps its own full
 //! history (`chrome://downloads`); this list is what the Downloads button
-//! shows, and the only files Magnetite opens or reveals for the UI: the UI
-//! names a list entry, never a path.
+//! and the "All downloads" page show, and the only files Magnetite opens,
+//! reveals or copies for the UI: the UI names a list entry, never a path.
 //!
 //! Saved in `state.json`: at most `KEEP` entries, with file name, place,
 //! size, status and start time (no addresses). Downloads of private profiles

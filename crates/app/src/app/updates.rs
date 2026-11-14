@@ -2,7 +2,7 @@
 //! Settings and the notification panel, and the install. Checking a release
 //! and replacing the app are `update.rs`.
 
-use magnetite_engine::{ContentId, Engine, ReplyTicket};
+use magnetite_engine::{Engine, ReplyTicket};
 use serde_json::{Value, json};
 
 use super::{MagnetiteApp, global};
@@ -276,14 +276,7 @@ impl MagnetiteApp {
             self.update_json()
         );
         engine.notifications_eval(&js);
-        let settings_tabs: Vec<ContentId> = self.with_state(|s| {
-            s.sidebar
-                .all_tabs()
-                .filter(|t| t.url.starts_with("magnetite://ui/settings"))
-                .filter_map(|t| s.runtime.get(&t.id)?.content)
-                .collect()
-        });
-        for page in settings_tabs {
+        for page in self.own_page_tabs("magnetite://ui/settings") {
             engine.content_ui_eval(page, &js);
         }
     }

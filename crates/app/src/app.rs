@@ -109,6 +109,8 @@ const PROMPT_SETTLE: std::time::Duration = std::time::Duration::from_secs(1);
 
 /// The page of the first start: sync, import, a few keys (`Welcome.tsx`).
 const WELCOME_URL: &str = "magnetite://ui/welcome";
+/// The page behind "All downloads" (`DownloadsPage.tsx`).
+const DOWNLOADS_URL: &str = "magnetite://ui/downloads";
 
 /// A sidebar tab being dragged over the page area (drop-zone overlay).
 #[derive(Default)]
@@ -338,12 +340,28 @@ impl MagnetiteApp {
         self.show_prompts(engine);
     }
 
-    /// Send the download list to both sidebars and the notification panel.
+    /// Send the download list to both sidebars, the notification panel and
+    /// open "All downloads" tabs.
     fn show_downloads(&self, engine: &Engine) {
         let list = self.with_state(|s| s.downloads.for_ui());
         let js = format!("window.__magnetite && window.__magnetite.downloads({list})");
         engine.ui_eval_all(&js);
         engine.notifications_eval(&js);
+        for page in self.own_page_tabs(DOWNLOADS_URL) {
+            engine.content_ui_eval(page, &js);
+        }
+    }
+
+    /// The loaded tabs showing Magnetite's own page `url`: news such a page
+    /// shows but does not ask for goes to them.
+    fn own_page_tabs(&self, url: &str) -> Vec<ContentId> {
+        self.with_state(|s| {
+            s.sidebar
+                .all_tabs()
+                .filter(|t| t.url.starts_with(url))
+                .filter_map(|t| s.runtime.get(&t.id)?.content)
+                .collect()
+        })
     }
 
     fn ui_call(engine: &Engine, method: &str, arg: &Value) {

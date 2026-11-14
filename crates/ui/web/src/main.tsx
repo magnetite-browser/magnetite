@@ -5,6 +5,7 @@ import { App } from "./App";
 import { CaptureOverlay } from "./CaptureOverlay";
 import { CommandPalette } from "./CommandPalette";
 import { DeviceBar } from "./DeviceBar";
+import { DownloadsPage } from "./DownloadsPage";
 import { Licenses } from "./Licenses";
 import { Notifications } from "./Notifications";
 import { SplitDrop } from "./SplitDrop";
@@ -14,11 +15,12 @@ import { TopBar } from "./TopBar";
 import { TopBarPopup } from "./TopBarPopup";
 import { Welcome } from "./Welcome";
 
-/** Each magnetite://ui page: the sidebar, the top bar, settings, the welcome page, and the small windows over the page area. */
+/** Each magnetite://ui page: the sidebar, the top bar, settings, all downloads, the welcome page, and the small windows over the page area. */
 function Route() {
   const path = location.pathname;
   if (path.startsWith("/settings")) return <SettingsPage />;
   if (path.startsWith("/welcome")) return <Welcome />;
+  if (path.startsWith("/downloads")) return <DownloadsPage />;
   if (path.startsWith("/licenses")) return <Licenses />;
   if (path.startsWith("/capture")) return <CaptureOverlay />;
   if (path.startsWith("/command")) return <CommandPalette />;

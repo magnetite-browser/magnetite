@@ -122,6 +122,22 @@ impl Engine {
             false
         }
     }
+
+    /// Put the file at `path` on the system clipboard, to paste it in the
+    /// file manager or another app. `MAGNETITE_CLIPBOARD_FILE` gets the path
+    /// instead, as for `copy_text`.
+    pub fn copy_file(&self, path: &std::path::Path) -> bool {
+        if let Some(to) = std::env::var_os("MAGNETITE_CLIPBOARD_FILE") {
+            return std::fs::write(to, path.as_os_str().as_encoded_bytes()).is_ok();
+        }
+        #[cfg(target_os = "macos")]
+        return crate::mac::copy_file(path);
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = path;
+            false
+        }
+    }
 }
 
 #[cfg(test)]

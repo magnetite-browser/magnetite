@@ -34,7 +34,7 @@ pub use default_browser::{handles, set_handler};
 pub use hotkey::set_quick_search_hotkey;
 pub use pill::{hide_status_pill, set_status_pill};
 pub use pressure::watch_memory_pressure;
-pub use share::{copy_png, copy_text, save_png, share_png, show_share_picker};
+pub use share::{copy_file, copy_png, copy_text, save_png, share_png, show_share_picker};
 
 use crate::engine::Engine;
 use crate::events::EngineEvent;

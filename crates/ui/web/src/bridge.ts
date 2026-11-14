@@ -446,6 +446,8 @@ export type Command =
   | { cmd: "show_archive" }
   | { cmd: "downloads" }
   | { cmd: "open_download"; id: Id; reveal?: boolean }
+  /** Put a finished download's file, or its path as text, on the clipboard. */
+  | { cmd: "copy_download"; id: Id; what: "file" | "path" }
   | { cmd: "clear_downloads" }
   | { cmd: "show_downloads" }
   /** One of Chromium's own pages (saved passwords, addresses, cards) as a peek, in the logins of `profile`. */

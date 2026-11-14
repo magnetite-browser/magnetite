@@ -84,6 +84,23 @@ pub fn copy_text(text: &str) -> bool {
     pb.setString_forType(&NSString::from_str(text), unsafe { NSPasteboardTypeString })
 }
 
+/// Put the file at `path` on the general pasteboard, as Finder's Copy does:
+/// pasting in Finder copies the file, pasting in a text field its name.
+pub fn copy_file(path: &std::path::Path) -> bool {
+    use objc2_app_kit::{NSPasteboard, NSPasteboardTypeFileURL};
+    use objc2_foundation::{NSString, NSURL};
+    let Some(path) = path.to_str() else {
+        return false;
+    };
+    let Some(url) = NSURL::fileURLWithPath(&NSString::from_str(path)).absoluteString() else {
+        return false;
+    };
+    let pb = NSPasteboard::generalPasteboard();
+    pb.clearContents();
+    // SAFETY: NSPasteboardTypeFileURL is an immutable AppKit constant.
+    pb.setString_forType(&url, unsafe { NSPasteboardTypeFileURL })
+}
+
 /// Put a PNG image on the general pasteboard.
 pub fn copy_png(png: &[u8]) -> bool {
     use objc2_app_kit::{NSPasteboard, NSPasteboardTypePNG};

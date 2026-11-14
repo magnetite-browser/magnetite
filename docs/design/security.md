@@ -212,6 +212,8 @@ panel instead of Chromium's bubble at the page's top left (`prompts.rs`).
   Private profiles' downloads are listed while Magnetite runs, never saved.
 - The UI names a list entry, never a path: Magnetite opens or reveals only
   files Chromium reported as downloaded, through the system's own opener.
+  Copying a file or its path goes the same way: the app puts it on the
+  clipboard, the page does not get it.
 
 ## Updates
 
