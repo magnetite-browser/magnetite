@@ -57,6 +57,15 @@ jobs:
       run:
         shell: bash
     steps:
+      # A release never carries an ad hoc signed Mac app or disk image:
+      # Gatekeeper blocks them after download. Checked first, before the
+      # long build.
+      - name: Require the Apple secrets
+        if: runner.os == 'macOS' && (env.HAS_APPLE_CERT != 'true' || env.HAS_APPLE_NOTARY != 'true')
+        run: |
+          echo "::error::the Apple signing or notarization secrets are missing from the release environment"
+          exit 1
+
       - if: runner.os == 'Windows'
         run: git config --global core.autocrlf false
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -74,7 +83,7 @@ jobs:
           cargo build --locked --profile release -p magnetite --bins
 
       - name: Developer ID certificate
-        if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true'
+        if: runner.os == 'macOS'
         env:
           APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -92,16 +101,14 @@ jobs:
           scripts/linux-packages.sh "dist/magnetite-$VERSION"
 
       - name: Notarize
-        if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true' && env.HAS_APPLE_NOTARY == 'true'
+        if: runner.os == 'macOS'
         env:
           APPLE_NOTARY_KEY: ${{ secrets.APPLE_NOTARY_KEY }}
           APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
           APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
-        run: scripts/release/notarize-macos.sh dist/Magnetite.app "dist/Magnetite-$VERSION-${{ matrix.target }}.zip"
-
-      - name: Warn about an unnotarized app
-        if: runner.os == 'macOS' && (env.HAS_APPLE_CERT != 'true' || env.HAS_APPLE_NOTARY != 'true')
-        run: echo "::warning::${{ matrix.target }} is ad hoc signed, not notarized; Gatekeeper will block it after download"
+        run: |
+          scripts/release/notarize-macos.sh dist/Magnetite.app \
+            "dist/Magnetite-$VERSION-${{ matrix.target }}.zip" "dist/Magnetite-$VERSION-${{ matrix.target }}.dmg"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -152,7 +159,7 @@ jobs:
 
       - name: Checksums
         working-directory: dist
-        run: sha256sum -- *.zip *.tar.gz *.rpm *.deb >SHA256SUMS
+        run: sha256sum -- *.zip *.dmg *.tar.gz *.rpm *.deb >SHA256SUMS
 
       - name: Create the draft
         env:
@@ -160,4 +167,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
             --title "Magnetite $VERSION" --generate-notes \
-            dist/*.zip dist/*.tar.gz dist/*.rpm dist/*.deb dist/*.deb.asc dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS
+            dist/*.zip dist/*.dmg dist/*.tar.gz dist/*.rpm dist/*.deb dist/*.deb.asc dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS

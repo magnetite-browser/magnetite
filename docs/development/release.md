@@ -47,9 +47,10 @@ publishes it by hand. Publishing is what makes installed apps update.
 |---|---|
 | `MAGNETITE_UPDATE_PUBLIC_KEY` | the public key the app embeds; the workflow refuses to sign with any other key |
 
-Without the Apple secrets the macOS apps are signed ad hoc and the workflow
-warns. Without `MAGNETITE_UPDATE_KEY` the last job fails: an unsigned manifest
-is never published.
+Without the Apple secrets the macOS jobs fail before they build: an app or
+disk image that is only signed ad hoc is never published. Without
+`MAGNETITE_UPDATE_KEY` the last job fails: an unsigned manifest is never
+published.
 
 ## The update key
 
@@ -146,8 +147,19 @@ without exceptions. The bundle id is `org.magnetitebrowser.magnetite`
 and so on. Never change it after a release: the keychain entry for cookie
 encryption, macOS preferences and Homebrew's zap list depend on it.
 
+macOS gets two files per CPU: a zip, which the updater and Homebrew take,
+and a disk image (`.dmg`) for people, with the app and a link to
+`/Applications` to drag it onto. `make_dmg` in `scripts/lib.sh` builds the
+image without Finder; how its window looks (size, icon size, where the two
+icons sit) is `packaging/macos/dmg.DS_Store`, written once by
+`tools/dmg-layout.py`.
+
 `scripts/release/notarize-macos.sh` submits the zip, waits, staples the
 ticket to the app, checks it with `spctl` and zips the stapled app again.
+It then builds the disk image again with the stapled app, signs it with the
+Developer ID, submits it too and staples its own ticket: Gatekeeper checks
+the image and the app in it apart, and with both stapled also without a
+network. Stapling asks Apple's servers and is tried up to three times.
 
 A build signed with the Developer ID on a developer's Mac starts, opens its
 window and keeps its GPU, network and renderer processes running. Not
@@ -259,9 +271,9 @@ tap stays for those who installed from it.
 
 ## Before publishing the draft
 
-- The draft has four packages (zip and tarball), an rpm and a deb with its
-  signature (`.deb.asc`) for each Linux CPU, `latest.json`, `latest.json.sig`, `magnetite.rb` and
-  `SHA256SUMS`.
+- The draft has four packages (zip and tarball), the two macOS disk images,
+  an rpm and a deb with its signature (`.deb.asc`) for each Linux CPU,
+  `latest.json`, `latest.json.sig`, `magnetite.rb` and `SHA256SUMS`.
 - The signature checks out with the app's key:
 
   ```sh
@@ -275,6 +287,10 @@ tap stays for those who installed from it.
   quarantined, unzip, open. `spctl -a -vv Magnetite.app` says "Notarized
   Developer ID". `Contents/Resources` holds `LICENSE`,
   `THIRD_PARTY_NOTICES.md` and `CREDITS.html`.
+- The disk image, downloaded the same way, opens with the app on the left
+  and Applications on the right; the app starts after dragging it over.
+  `spctl -a -vv -t open --context context:primary-signature <dmg>` says
+  "Notarized Developer ID".
 - Linux: unpack, set up the sandbox as its `README.md` says, start it, open a
   page. Install the rpm (Fedora) and the deb (Ubuntu) and start
   `magnetite`; `rpm -K` on the rpm says "signatures OK" once the key is
