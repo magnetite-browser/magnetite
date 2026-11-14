@@ -14,5 +14,6 @@
 
 - [ ] The title is a conventional commit with a short subject, e.g. `fix(engine): …`
 - [ ] `scripts/test.sh` passes (or explain what you could not run)
+- [ ] A screenshot is attached if this changes what the user sees
 - [ ] No real user data in fixtures, screenshots or logs
 - [ ] Docs and comments updated where behaviour changed

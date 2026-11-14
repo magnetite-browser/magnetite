@@ -62,6 +62,9 @@ scripts/linux-container.sh test   # the Linux run, in Podman or Docker
 - One topic per pull request. Architecture decisions go into `docs/adr/`,
   feature behaviour into `docs/spec/`: a change in behaviour changes its
   spec in the same pull request.
+- A change to what the user sees needs a screenshot in the pull request
+  (before and after where that helps, a short recording for motion). Without
+  one it is not merged.
 
 ## Testing the running app
 
