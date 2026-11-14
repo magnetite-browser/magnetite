@@ -16,7 +16,7 @@ type TimerProc = unsafe extern "system" fn(hwnd: Hwnd, message: u32, id: usize, 
 
 #[link(name = "user32")]
 unsafe extern "system" {
-    fn SetTimer(hwnd: Hwnd, id: usize, milliseconds: u32, callback: Option<TimerProc>) -> usize;
+    fn SetTimer(hwnd: Hwnd, id: usize, milliseconds: u32, callback: TimerProc) -> usize;
     fn GetCursorPos(point: *mut [i32; 2]) -> i32;
     fn GetWindowRect(hwnd: Hwnd, rect: *mut [i32; 4]) -> i32;
     fn GetDpiForWindow(hwnd: Hwnd) -> u32;
@@ -68,7 +68,7 @@ pub fn set_edge_zone(frame: cef::sys::cef_window_handle_t, zone: Option<(i32, i3
         // SAFETY: a timer of this thread without a window: Windows calls
         // `look` from this thread's message loop. It runs for the life of
         // the process and does nothing while there is no zone.
-        unsafe { SetTimer(std::ptr::null_mut(), 0, EVERY_MS, Some(look)) };
+        unsafe { SetTimer(std::ptr::null_mut(), 0, EVERY_MS, look) };
     }
 }
 

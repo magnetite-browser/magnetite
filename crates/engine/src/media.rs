@@ -91,8 +91,6 @@ impl Engine {
         if let Ok(media) = parse_report(json) {
             #[cfg(target_os = "macos")]
             crate::pip::follow(id, media.as_ref());
-            #[cfg(target_os = "windows")]
-            crate::win::pip::follow(id, media.as_ref());
             self.emit(EngineEvent::MediaChanged { id, media });
         }
     }
@@ -139,17 +137,13 @@ impl Engine {
         if enter {
             crate::pip::requested(id);
         }
-        #[cfg(target_os = "windows")]
-        if enter {
-            crate::win::pip::requested(id);
-        }
         // Only entering needs the user's gesture; leaving must not hand the
         // page one.
         self.evaluate_in_page(id, if enter { ENTER } else { LEAVE }, enter);
     }
 
     /// Leave picture-in-picture and pause the video (Close on its controls).
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    #[cfg(target_os = "macos")]
     pub(crate) fn content_close_picture_in_picture(&self, id: ContentId) {
         const CLOSE: &str = "(() => { const v = document.pictureInPictureElement; if (!v) return false; \
             return document.exitPictureInPicture().then(() => { v.pause(); return true; }, () => false); })()";

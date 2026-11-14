@@ -8,7 +8,6 @@ mod dividers;
 mod edge;
 mod hotkey;
 mod layers;
-pub(crate) mod pip;
 mod share;
 
 pub use default_browser::{handles, open_default_apps};

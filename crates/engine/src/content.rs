@@ -532,8 +532,7 @@ impl Engine {
     }
 
     /// Whether page `id`'s window is on screen.
-    // Used by the picture-in-picture controls.
-    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    #[cfg(target_os = "macos")] // used by the picture-in-picture controls
     pub(crate) fn content_shown(&self, id: ContentId) -> bool {
         self.lock()
             .contents

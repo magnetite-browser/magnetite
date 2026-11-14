@@ -9,16 +9,16 @@ use crate::engine::Engine;
 use crate::events::EngineEvent;
 use crate::{router, scheme};
 
-/// Our picture-in-picture controls (pip.rs, win/pip.rs) cover Chromium's video window,
+/// Our picture-in-picture controls (pip.rs) cover Chromium's video window,
 /// which shows the page's address until the user clicks into it; under our
 /// controls that click never arrives. Treating every video as trusted keeps
 /// the address off, as Safari's and Firefox's players do. Chromium marks the
 /// feature as one for debugging, so a future version may drop it.
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(target_os = "macos")]
 const PIP_WITHOUT_ADDRESS: &str = "VideoPipForceTrustedForMediaPlaybackForTesting";
 
 /// Add `feature` to `--enable-features`, keeping features already listed.
-#[cfg(any(target_os = "macos", target_os = "windows"))]
+#[cfg(target_os = "macos")]
 fn enable_feature(cmd: &mut CommandLine, feature: &str) {
     add_to_list(cmd, "enable-features", feature);
 }
@@ -80,7 +80,7 @@ wrap_app! {
                     .join(",");
                 cmd.append_switch_with_value(Some(&CefString::from("load-extension")), Some(&CefString::from(list.as_str())));
             }
-            #[cfg(any(target_os = "macos", target_os = "windows"))]
+            #[cfg(target_os = "macos")]
             enable_feature(cmd, PIP_WITHOUT_ADDRESS);
             // Our private DevTools session (`devpipe.rs`): fds 3 and 4.
             if crate::devpipe::is_open() {
