@@ -108,6 +108,10 @@ Once:
    workflow deploys from release tags.
 3. **DNS.** A `CNAME` record from `packages.magnetitebrowser.org` to
    `magnetite-browser.github.io`.
+4. **Immutable releases.** Settings > General > Releases > "Enable release
+   immutability": a published release's files can then no longer be
+   replaced. The repository workflow also checks each package's signature
+   before it lists the package, so a replaced file would stop it.
 
 To publish a release's packages again (a failed run, a new host), run
 "Linux repository" by hand with "Use workflow from" set to its tag. Moving
@@ -255,8 +259,8 @@ tap stays for those who installed from it.
 
 ## Before publishing the draft
 
-- The draft has four packages (zip and tarball), an rpm and a deb for each
-  Linux CPU, `latest.json`, `latest.json.sig`, `magnetite.rb` and
+- The draft has four packages (zip and tarball), an rpm and a deb with its
+  signature (`.deb.asc`) for each Linux CPU, `latest.json`, `latest.json.sig`, `magnetite.rb` and
   `SHA256SUMS`.
 - The signature checks out with the app's key:
 

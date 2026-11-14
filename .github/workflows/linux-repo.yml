@@ -37,7 +37,7 @@ jobs:
       - name: Download the packages
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release download "$TAG" --pattern '*.rpm' --pattern '*.deb' --dir packages
+        run: gh release download "$TAG" --pattern '*.rpm' --pattern '*.deb' --pattern '*.deb.asc' --dir packages
       - name: Build and sign
         env:
           MAGNETITE_REPO_KEY: ${{ secrets.MAGNETITE_REPO_KEY }}

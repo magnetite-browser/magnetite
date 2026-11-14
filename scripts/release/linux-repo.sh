@@ -13,6 +13,9 @@
 # https://packages.magnetitebrowser.org is the host (ADR-0011). It holds one
 # release, the latest; installed systems only ever need that one.
 #
+# <packages> holds the rpm packages, signed, and each deb with its signature
+# file (<deb>.asc), as scripts/release/sign-packages.sh leaves them.
+#
 # Needs createrepo_c (Debian/Ubuntu: createrepo-c), apt-ftparchive
 # (apt-utils) and gpg.
 set -euo pipefail
@@ -42,6 +45,9 @@ createrepo_c --quiet "$out/rpm"
 sign --armor --detach-sign "$out/rpm/repodata/repomd.xml"
 
 log "apt repository"
+# apt trusts whatever the signed index lists: only packages that release.yml
+# signed get into it, not ones swapped in the release afterwards.
+check_deb_signatures "$tmp" "${debs[@]}"
 cp "${debs[@]}" "$out/deb/"
 (
   cd "$out/deb"

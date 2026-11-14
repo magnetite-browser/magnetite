@@ -140,12 +140,12 @@ jobs:
           scripts/release/sign-manifest.sh dist/latest.json
           cat dist/latest.json
 
-      - name: Sign the rpm packages
+      - name: Sign the rpm and deb packages
         env:
           MAGNETITE_REPO_KEY: ${{ secrets.MAGNETITE_REPO_KEY }}
         run: |
           sudo apt-get install -y -q --no-install-recommends -o Acquire::Retries=5 rpm
-          scripts/release/sign-rpms.sh dist/*.rpm
+          scripts/release/sign-packages.sh dist/*.rpm dist/*.deb
 
       - name: Homebrew cask
         run: scripts/release/render-cask.sh "$VERSION" dist >dist/magnetite.rb
@@ -160,4 +160,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
             --title "Magnetite $VERSION" --generate-notes \
-            dist/*.zip dist/*.tar.gz dist/*.rpm dist/*.deb dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS
+            dist/*.zip dist/*.tar.gz dist/*.rpm dist/*.deb dist/*.deb.asc dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS

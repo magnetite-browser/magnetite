@@ -39,7 +39,9 @@ repository with its key.
   `scripts/release/linux-repo.sh`: `rpm/` (createrepo metadata, the signed
   `repomd.xml`) and `deb/` (a flat apt repository with a signed `InRelease`).
   It holds the latest release only. Installed systems need nothing older.
-- **Signatures.** One GPG key signs the rpm packages, `repomd.xml` and apt's
+- **Signatures.** One GPG key signs the rpm packages, each deb (a `.deb.asc`
+  file in the release, checked before the repository lists the deb),
+  `repomd.xml` and apt's
   `Release`. Its public half is committed (`packaging/linux/repo-key.asc`)
   and ships in the packages, so trust comes from the package the user
   installed, not from a download. The scripts refuse a signing key that is

@@ -140,3 +140,17 @@ check_rpm_signatures() {
     rpm --dbpath "$db" --checksig "$rpm" >/dev/null || die "$rpm is not signed with the repository key"
   done
 }
+
+# Fail unless every deb given has a signature by the packages' key next to
+# it (<deb>.asc, from scripts/release/sign-packages.sh). Checks against a
+# throwaway keyring under $1 that knows only that key.
+check_deb_signatures() {
+  local keyring="$1/deb-keyring.gpg" deb
+  shift
+  gpg --batch --yes --dearmor --output "$keyring" "$ROOT/packaging/linux/repo-key.asc"
+  for deb in "$@"; do
+    [[ -f $deb.asc ]] || die "$deb has no signature ($deb.asc)"
+    gpg --batch --no-default-keyring --keyring "$keyring" --verify "$deb.asc" "$deb" 2>/dev/null ||
+      die "$deb is not signed with the repository key"
+  done
+}
