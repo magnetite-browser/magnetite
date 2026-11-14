@@ -36,6 +36,7 @@ publishes it by hand. Publishing is what makes installed apps update.
 | Secret (environment `release`) | Needed | What |
 |---|---|---|
 | `MAGNETITE_UPDATE_KEY` | yes | Ed25519 private key (PEM) that signs `latest.json` |
+| `MAGNETITE_REPO_KEY` | yes | GPG private key (armored) that signs the rpm packages and the Linux package repository |
 | `APPLE_CERTIFICATE_P12_BASE64` | macOS signing | base64 of the Developer ID Application certificate and key (`.p12`) |
 | `APPLE_CERTIFICATE_PASSWORD` | macOS signing | password of that `.p12` |
 | `APPLE_NOTARY_KEY` | notarization | contents of the App Store Connect API key (`AuthKey_<id>.p8`) |
@@ -77,6 +78,45 @@ refuses to write it inside the repository.
 Files in the release: `latest.json` (the manifest, format in
 `scripts/release/make-manifest.sh`) and `latest.json.sig` (base64 of the raw
 64-byte Ed25519 signature over the exact bytes of `latest.json`, one line).
+
+## The Linux package repository
+
+The rpm and deb packages update from Magnetite's dnf and apt repository at
+`https://packages.magnetitebrowser.org` (why and how:
+`docs/adr/0011-linux-packages.md`). Publishing a release (not a
+pre-release) runs the "Linux repository" workflow, which fills the repository
+with that release's packages and puts it on GitHub Pages.
+
+Once:
+
+1. **Key.** On a trusted computer, in a throwaway `GNUPGHOME`. RSA rather
+   than Ed25519, so older rpm releases (RHEL 8) can check it. It does not
+   expire: a new key reaches installed systems only through a package.
+
+   ```sh
+   export GNUPGHOME="$(mktemp -d)"
+   gpg --batch --passphrase '' --quick-gen-key "Magnetite packages <support@magnetitebrowser.org>" rsa4096 sign never
+   gpg --armor --export >packaging/linux/repo-key.asc       # commit this
+   gpg --armor --export-secret-keys | gh secret set MAGNETITE_REPO_KEY --env release
+   ```
+
+   Keep an offline copy of the private key (a password manager), then
+   delete `$GNUPGHOME`. Releases fail until `repo-key.asc` is committed and
+   the secret is set: packages are never published unsigned.
+2. **GitHub Pages.** Settings > Pages > Source "GitHub Actions"; custom
+   domain `packages.magnetitebrowser.org`, "Enforce HTTPS". Under
+   Settings > Environments > `github-pages`, add the tag rule `v*`: the
+   workflow deploys from release tags.
+3. **DNS.** A `CNAME` record from `packages.magnetitebrowser.org` to
+   `magnetite-browser.github.io`.
+4. **Immutable releases.** Settings > General > Releases > "Enable release
+   immutability": a published release's files can then no longer be
+   replaced. The repository workflow also checks each package's signature
+   before it lists the package, so a replaced file would stop it.
+
+To publish a release's packages again (a failed run, a new host), run
+"Linux repository" by hand with "Use workflow from" set to its tag. Moving
+the repository to Stackforge's servers is planned in ADR-0011.
 
 ## macOS signing and notarization
 
@@ -231,8 +271,9 @@ tap stays for those who installed from it.
 
 ## Before publishing the draft
 
-- The draft has four packages, the two macOS disk images, `latest.json`,
-  `latest.json.sig`, `magnetite.rb` and `SHA256SUMS`.
+- The draft has four packages (zip and tarball), the two macOS disk images,
+  an rpm and a deb with its signature (`.deb.asc`) for each Linux CPU,
+  `latest.json`, `latest.json.sig`, `magnetite.rb` and `SHA256SUMS`.
 - The signature checks out with the app's key:
 
   ```sh
@@ -251,7 +292,13 @@ tap stays for those who installed from it.
   `spctl -a -vv -t open --context context:primary-signature <dmg>` says
   "Notarized Developer ID".
 - Linux: unpack, set up the sandbox as its `README.md` says, start it, open a
-  page.
+  page. Install the rpm (Fedora) and the deb (Ubuntu) and start
+  `magnetite`; `rpm -K` on the rpm says "signatures OK" once the key is
+  imported.
+- After publishing: the "Linux repository" run is green, and a computer with
+  the previous package gets this version from `sudo dnf upgrade` or
+  `sudo apt update && sudo apt upgrade`. The running Magnetite then offers
+  "Restart to update".
 - Windows: no build is made yet. `scripts/build.sh` and `packaging/windows/`
   are prepared for one; CI and the release workflow get their Windows entry
   back once a build has been tried.

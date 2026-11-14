@@ -675,6 +675,8 @@ export interface PermissionPrompt {
 export type UpdateStatus =
   | { state: "idle" }
   | { state: "unavailable" }
+  /** An rpm or deb install: the system's package manager updates it. */
+  | { state: "system" }
   | { state: "checking" }
   | { state: "up_to_date"; checked_at: number }
   | { state: "available"; version: string; notes_url: string; installable: boolean }
@@ -683,6 +685,8 @@ export type UpdateStatus =
 
 export interface UpdateInfo {
   status: UpdateStatus;
+  /** An rpm or deb install, also once `status` has moved on from "system". */
+  system: boolean;
   /** The running version. */
   version: string;
 }

@@ -20,6 +20,15 @@ and a peek, moves and removes things through the sidebar's own commands and
 waits for one minute tick, then reports what broke (its header says how to
 start it). Run it after changes to how tabs, windows or the state behave.
 
+## A Wayland session without a desktop (Linux)
+
+`scripts/wayland-test.sh <stage folder>` starts a container build of
+Magnetite in a headless Wayland session (sway with XWayland, `tools/wayland/`)
+and runs `tools/smoke.mjs` there. With `--steps <file>` it runs your own
+script in place of the smoke test, with a pointer (`at`, `click`), keys
+(`wtype`) and screenshots (`grim`): input that reaches no other window than
+the session's own. Its `--help` has the details.
+
 ## Swift utilities (macOS)
 
 Small Swift utilities for measuring the app and, only where the DevTools
