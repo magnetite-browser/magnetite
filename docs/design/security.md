@@ -231,3 +231,9 @@ panel instead of Chromium's bubble at the page's top left (`prompts.rs`).
   off (Settings → About). Development builds may read a signed feed from
   this computer (`MAGNETITE_UPDATE_FEED`, `MAGNETITE_UPDATE_KEY`); release
   builds ignore both.
+- A Magnetite installed from the rpm or deb (the `system-package` file next
+  to its binary) never asks for updates itself: the system's package manager
+  fetches them from Magnetite's package repository and checks them against
+  the GPG key the package installed (ADR-0011). Magnetite only watches its
+  own binary, which only root can replace; once the file changed, it runs
+  it with `--version` and offers a restart if that version is newer.
