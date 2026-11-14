@@ -163,6 +163,8 @@ repo_signing_key() {
 
 # Fail unless every rpm given is signed by the packages' key. Checks against
 # a throwaway rpm database under $1 that knows only that key.
+# _pkgverify_level: by itself, rpm 4 accepts a package without a signature
+# ("digests OK", exit code 0).
 check_rpm_signatures() {
   local db="$1/rpmdb" rpm
   shift
@@ -170,7 +172,8 @@ check_rpm_signatures() {
   rpm --dbpath "$db" --initdb
   rpm --dbpath "$db" --import "$ROOT/packaging/linux/repo-key.asc"
   for rpm in "$@"; do
-    rpm --dbpath "$db" --checksig "$rpm" >/dev/null || die "$rpm is not signed with the repository key"
+    rpm --dbpath "$db" --define '_pkgverify_level signature' --checksig "$rpm" >/dev/null ||
+      die "$rpm is not signed with the repository key"
   done
 }
 
