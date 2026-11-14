@@ -445,7 +445,14 @@ wrap_window_delegate! {
             window.add_child_view(Some(&mut sv));
             window.add_child_view(Some(&mut cv));
             layout.set_flex_for_view(Some(&mut cv), 1);
-            window.set_title(Some(&CefString::from("magnetite")));
+            window.set_title(Some(&CefString::from("Magnetite")));
+            // The taskbar, its preview and Alt+Tab show the window's own
+            // icon: Chromium's, unless it is set. macOS shows the app's.
+            #[cfg(not(target_os = "macos"))]
+            if let Some(icon) = crate::empty::app_icon() {
+                window.set_window_icon(Some(&mut icon.clone()));
+                window.set_window_app_icon(Some(&mut icon.clone()));
+            }
             window.center_window(Some(&Size { width: 1280, height: 860 }));
             window.show();
             window.layout();

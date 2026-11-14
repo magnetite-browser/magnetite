@@ -167,10 +167,13 @@ package_folder() {
     # and for Chromium's other processes alike: no helper executable.
     [[ -f $cef/bootstrap.exe ]] || die "no bootstrap.exe in $cef"
     cp "$cef/bootstrap.exe" "$stage/magnetite.exe"
-    # It comes with CEF's icon; Explorer and the taskbar show the file's.
+    # It comes with CEF's icon and calls itself "CEF Bootstrap Application":
+    # Explorer, the taskbar, Task Manager and the list of default apps show
+    # what the file says.
     powershell.exe -NoProfile -ExecutionPolicy Bypass \
-      -File "$(cygpath -w "$ROOT/scripts/windows/set-icon.ps1")" \
-      "$(cygpath -w "$stage/magnetite.exe")" "$(cygpath -w "$ROOT/packaging/windows/magnetite.ico")" >&2
+      -File "$(cygpath -w "$ROOT/scripts/windows/brand-exe.ps1")" \
+      "$(cygpath -w "$stage/magnetite.exe")" "$(cygpath -w "$ROOT/packaging/windows/magnetite.ico")" \
+      "$version" >&2
     cp "$bin/magnetite_windows.dll" "$stage/magnetite.dll"
   else
     cp "$bin/magnetite" "$bin/magnetite-helper" "$stage/"

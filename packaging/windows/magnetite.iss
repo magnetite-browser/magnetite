@@ -76,6 +76,10 @@ Name: "{autodesktop}\Magnetite"; Filename: "{app}\magnetite.exe"; IconFilename: 
 Root: HKCU; Subkey: "Software\Classes\MagnetiteURL"; ValueType: string; ValueData: "Magnetite URL"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\MagnetiteURL"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
 Root: HKCU; Subkey: "Software\Classes\MagnetiteURL\DefaultIcon"; ValueType: string; ValueData: "{app}\magnetite.exe,0"
+; What Windows calls the program in its list of default apps.
+Root: HKCU; Subkey: "Software\Classes\MagnetiteURL\Application"; ValueType: string; ValueName: "ApplicationName"; ValueData: "Magnetite"
+Root: HKCU; Subkey: "Software\Classes\MagnetiteURL\Application"; ValueType: string; ValueName: "ApplicationIcon"; ValueData: "{app}\magnetite.exe,0"
+Root: HKCU; Subkey: "Software\Classes\MagnetiteURL\Application"; ValueType: string; ValueName: "ApplicationDescription"; ValueData: "A fast, open-source browser built around a sidebar."
 Root: HKCU; Subkey: "Software\Classes\MagnetiteURL\shell\open\command"; ValueType: string; ValueData: """{app}\magnetite.exe"" --single-argument %1"
 Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite"; ValueType: string; ValueData: "Magnetite"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Clients\StartMenuInternet\Magnetite\DefaultIcon"; ValueType: string; ValueData: "{app}\magnetite.exe,0"

@@ -17,6 +17,13 @@ const HINT: &str = if cfg!(target_os = "macos") {
     "Press Ctrl+T to open a tab"
 };
 
+/// The app icon as an image for a window (taskbar, Alt+Tab).
+#[cfg(not(target_os = "macos"))]
+pub(crate) fn app_icon() -> Option<Image> {
+    let image = image_create()?;
+    (image.add_png(1.0, Some(LOGO_PNG)) != 0).then_some(image)
+}
+
 /// The labels in the content panel.
 pub(crate) struct EmptyHint {
     logo: LabelButton,
