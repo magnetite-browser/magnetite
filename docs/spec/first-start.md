@@ -58,7 +58,8 @@ macOS to make it the handler for `http` and `https`; macOS asks the user to
 confirm, and the card shows the outcome. Magnetite never asks on its own.
 
 Windows lets no program make itself the default. The installer registers
-Magnetite as a browser for the current user, and "Make default" opens
+Magnetite as a browser (for all users or the current one, as it was asked
+to install), and "Make default" opens
 Windows' Settings at Magnetite's entry, where the user chooses it for
 `http` and `https`. The card shows how things were before that choice; it
 is current again the next time Settings open.

@@ -101,7 +101,10 @@ drawn without the graphics card.
 The installer (`Magnetite-<version>-windows-<arch>-setup.exe`) is made when
 [Inno Setup 6](https://jrsoftware.org/isinfo.php) is installed
 (`winget install JRSoftware.InnoSetup`), from `packaging/windows/magnetite.iss`.
-It installs for the current user, without administrator rights.
+It asks whether to install for all users (the default: administrator rights,
+`Program Files`) or for the current user only (no rights needed,
+`%LOCALAPPDATA%\Programs`), and then for the folder. Without questions:
+`/VERYSILENT` with `/ALLUSERS` or `/CURRENTUSER`, and `/DIR=<folder>`.
 
 Windows builds start, show pages and pass the tests. The window's buttons
 (minimise, maximise, close) are at the top right, in a row above the page

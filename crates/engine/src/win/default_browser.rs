@@ -1,7 +1,8 @@
 //! Whether Magnetite is Windows' default browser, and asking for it (what
 //! `mac/default_browser.rs` does through Launch Services).
 //!
-//! The installer registers Magnetite as a browser for the current user
+//! The installer registers Magnetite as a browser, for the current user or
+//! for all users as it was asked to install
 //! (`packaging/windows/magnetite.iss`). Windows lets no program make itself
 //! the default: the user chooses in Settings, which is opened at Magnetite's
 //! entry.
@@ -35,6 +36,8 @@ unsafe extern "system" {
 
 /// `HKEY_CURRENT_USER`.
 const CURRENT_USER: isize = 0x8000_0001_u32.cast_signed() as isize;
+/// `HKEY_LOCAL_MACHINE`.
+const LOCAL_MACHINE: isize = 0x8000_0002_u32.cast_signed() as isize;
 /// Only a string will do.
 const RRF_RT_REG_SZ: u32 = 0x2;
 const SW_SHOWNORMAL: i32 = 1;
@@ -45,15 +48,15 @@ fn wide(text: &str) -> Vec<u16> {
     text.encode_utf16().chain([0]).collect()
 }
 
-/// A string of the current user's registry, `None` if it is not there.
-fn user_string(subkey: &str, value: &str) -> Option<String> {
+/// A string of the registry under `root`, `None` if it is not there.
+fn string(root: isize, subkey: &str, value: &str) -> Option<String> {
     let (subkey, value) = (wide(subkey), wide(value));
     let mut data = [0u16; 512];
     let mut size = u32::try_from(size_of_val(&data)).ok()?;
     // SAFETY: NUL-terminated names, and `size` bytes of room for the data.
     let status = unsafe {
         RegGetValueW(
-            CURRENT_USER,
+            root,
             subkey.as_ptr(),
             value.as_ptr(),
             RRF_RT_REG_SZ,
@@ -69,15 +72,34 @@ fn user_string(subkey: &str, value: &str) -> Option<String> {
     Some(String::from_utf16_lossy(&data[..end]))
 }
 
+/// Whom Magnetite is registered as a browser for.
+#[derive(Clone, Copy)]
+enum Registered {
+    User,
+    Machine,
+}
+
+/// Where the installer registered Magnetite: `None` when it did not (not
+/// installed: a build run from its folder). An installation for the user
+/// counts before one for all users, as Windows reads it.
+fn registered() -> Option<Registered> {
+    let command = format!("Software\\Classes\\{PROG_ID}\\shell\\open\\command");
+    if string(CURRENT_USER, &command, "").is_some() {
+        Some(Registered::User)
+    } else if string(LOCAL_MACHINE, &command, "").is_some() {
+        Some(Registered::Machine)
+    } else {
+        None
+    }
+}
+
 /// Whether links of `scheme` ("http", "https") from other programs open in
-/// Magnetite: `None` when Magnetite is not registered as a browser (not
-/// installed: a build run from its folder).
+/// Magnetite: `None` when Magnetite is not registered as a browser. The
+/// choice is always the user's own.
 pub fn handles(scheme: &str) -> Option<bool> {
-    user_string(
-        &format!("Software\\Classes\\{PROG_ID}\\shell\\open\\command"),
-        "",
-    )?;
-    let choice = user_string(
+    registered()?;
+    let choice = string(
+        CURRENT_USER,
         &format!(
             "Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\{scheme}\\UserChoice"
         ),
@@ -88,10 +110,12 @@ pub fn handles(scheme: &str) -> Option<bool> {
 
 /// Open Windows' Settings where the user makes Magnetite the default browser.
 pub fn open_default_apps() {
-    let (open, page) = (
-        wide("open"),
-        wide("ms-settings:defaultapps?registeredAppUser=Magnetite"),
-    );
+    // Settings finds the entry by where it is registered.
+    let page = match registered() {
+        Some(Registered::Machine) => "ms-settings:defaultapps?registeredAppMachine=Magnetite",
+        _ => "ms-settings:defaultapps?registeredAppUser=Magnetite",
+    };
+    let (open, page) = (wide("open"), wide(page));
     // SAFETY: NUL-terminated strings; Windows starts its own Settings.
     unsafe {
         ShellExecuteW(
