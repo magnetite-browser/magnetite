@@ -261,6 +261,13 @@ wrap_window_delegate! {
         fn is_frameless(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
         fn with_standard_window_buttons(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 0 }
         fn can_close(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
+        // Outside macOS a window that cannot be resized keeps its first size
+        // as its largest: the command bar could shrink to fit its content but
+        // never grow, and showed one row of results. macOS sizes it anyway,
+        // and there it would also become resizable at its edges.
+        fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int {
+            i32::from(!cfg!(target_os = "macos"))
+        }
         // Not key, yet clickable at once: the first press is a real click
         // (macOS would otherwise spend it on activating the window).
         fn accepts_first_mouse(&self, _window: Option<&mut Window>) -> State { State::ENABLED }
