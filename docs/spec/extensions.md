@@ -32,7 +32,8 @@ Settings.
 
 - A click runs the extension's action for the page in front: the open peek,
   else the active tab (in a split, the focused page). Its popup opens at
-  that page's top-left corner, next to the sidebar, and acts on that page:
+  that page's top-left corner, next to the sidebar (with the top bar on, at
+  its top-right corner, below the top bar's buttons), and acts on that page:
   a password manager fills it, a blocker's switch applies to its site.
 - With no page open, a notice asks to open one first.
 - "Options" opens the extension's options page as a tab, in the profile of
@@ -95,8 +96,8 @@ Settings.
 
 ## Limits
 
-- Popup placement follows Chromium: at the page's top-left corner, not
-  under the sidebar icon.
+- Popup placement follows Chromium: at a top corner of the page, not
+  under the icon itself.
 - Popups open two seconds or more late: CEF holds each popup's page until a
   timeout ([CEF #4350](https://github.com/chromiumembedded/cef/issues/4350),
   see `docs/development/upstream.md`). A second click during the wait would
