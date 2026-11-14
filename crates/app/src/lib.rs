@@ -94,11 +94,21 @@ pub fn run_helper() -> i32 {
 #[cfg(windows)]
 pub fn run_from_bootstrap(sandbox_info: *mut std::ffi::c_void) -> i32 {
     magnetite_engine::set_sandbox_info(sandbox_info);
-    if std::env::args().any(|a| a.starts_with("--type=")) {
+    if is_helper(std::env::args()) {
         run_helper()
     } else {
         run()
     }
+}
+
+/// Whether Chromium started this process as one of its helpers
+/// (`--type=…`). What follows `--single-argument` is a link from another
+/// program and never says so: a link that reads `--type=renderer` must
+/// start the browser, which then refuses it as an address.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn is_helper(args: impl Iterator<Item = String>) -> bool {
+    args.take_while(|a| a != SINGLE_ARGUMENT)
+        .any(|a| a.starts_with("--type="))
 }
 
 /// Run the browser. Blocks until it quits; returns the process exit code.
@@ -250,7 +260,19 @@ fn default_ui_dir() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_cli, split_link};
+    use super::{is_helper, parse_cli, split_link};
+
+    #[test]
+    fn a_link_never_makes_the_process_a_helper() {
+        let args = |list: &[&str]| list.iter().map(|a| (*a).to_string()).collect::<Vec<_>>();
+        assert!(is_helper(
+            args(&["magnetite", "--type=renderer"]).into_iter()
+        ));
+        assert!(!is_helper(args(&["magnetite", "--no-import"]).into_iter()));
+        assert!(!is_helper(
+            args(&["magnetite", "--single-argument", "--type=renderer"]).into_iter()
+        ));
+    }
 
     #[test]
     fn a_link_from_another_program_is_never_an_option() {
