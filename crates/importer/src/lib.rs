@@ -135,7 +135,8 @@ struct Known {
     name: &'static str,
     kind: Kind,
     macos: &'static str,
-    linux: &'static str,
+    /// The likeliest first.
+    linux: &'static [&'static str],
     flatpak: &'static [&'static str],
     windows: &'static str,
     windows_roaming: bool,
@@ -147,7 +148,7 @@ const KNOWN: &[Known] = &[
         name: "Google Chrome",
         kind: Kind::Chromium,
         macos: "Google/Chrome",
-        linux: ".config/google-chrome",
+        linux: &[".config/google-chrome"],
         flatpak: &["com.google.Chrome"],
         windows: "Google/Chrome/User Data",
         windows_roaming: false,
@@ -157,7 +158,7 @@ const KNOWN: &[Known] = &[
         name: "Brave",
         kind: Kind::Chromium,
         macos: "BraveSoftware/Brave-Browser",
-        linux: ".config/BraveSoftware/Brave-Browser",
+        linux: &[".config/BraveSoftware/Brave-Browser"],
         flatpak: &["com.brave.Browser"],
         windows: "BraveSoftware/Brave-Browser/User Data",
         windows_roaming: false,
@@ -167,7 +168,7 @@ const KNOWN: &[Known] = &[
         name: "Microsoft Edge",
         kind: Kind::Chromium,
         macos: "Microsoft Edge",
-        linux: ".config/microsoft-edge",
+        linux: &[".config/microsoft-edge"],
         flatpak: &["com.microsoft.Edge"],
         windows: "Microsoft/Edge/User Data",
         windows_roaming: false,
@@ -177,7 +178,7 @@ const KNOWN: &[Known] = &[
         name: "Vivaldi",
         kind: Kind::Chromium,
         macos: "Vivaldi",
-        linux: ".config/vivaldi",
+        linux: &[".config/vivaldi"],
         flatpak: &["com.vivaldi.Vivaldi"],
         windows: "Vivaldi/User Data",
         windows_roaming: false,
@@ -187,7 +188,7 @@ const KNOWN: &[Known] = &[
         name: "Opera",
         kind: Kind::Chromium,
         macos: "com.operasoftware.Opera",
-        linux: ".config/opera",
+        linux: &[".config/opera"],
         flatpak: &["com.opera.Opera"],
         windows: "Opera Software/Opera Stable",
         windows_roaming: true,
@@ -197,7 +198,7 @@ const KNOWN: &[Known] = &[
         name: "Chromium",
         kind: Kind::Chromium,
         macos: "Chromium",
-        linux: ".config/chromium",
+        linux: &[".config/chromium"],
         flatpak: &[
             "org.chromium.Chromium",
             "io.github.ungoogled_software.ungoogled_chromium",
@@ -210,7 +211,7 @@ const KNOWN: &[Known] = &[
         name: "Zen",
         kind: Kind::Zen,
         macos: "zen",
-        linux: ".zen",
+        linux: &[".zen"],
         flatpak: &["app.zen_browser.zen"],
         windows: "zen",
         windows_roaming: true,
@@ -220,7 +221,9 @@ const KNOWN: &[Known] = &[
         name: "Firefox",
         kind: Kind::Firefox,
         macos: "Firefox",
-        linux: ".mozilla/firefox",
+        // Firefox keeps using `~/.mozilla` where it exists; new installs
+        // (Firefox 147 and later) start below `~/.config` instead.
+        linux: &[".mozilla/firefox", ".config/mozilla/firefox"],
         flatpak: &["org.mozilla.firefox"],
         windows: "Mozilla/Firefox",
         windows_roaming: true,
@@ -230,7 +233,7 @@ const KNOWN: &[Known] = &[
         name: "LibreWolf",
         kind: Kind::Firefox,
         macos: "librewolf",
-        linux: ".librewolf",
+        linux: &[".librewolf"],
         flatpak: &["io.gitlab.librewolf-community"],
         windows: "librewolf",
         windows_roaming: true,
@@ -240,7 +243,7 @@ const KNOWN: &[Known] = &[
         name: "Waterfox",
         kind: Kind::Firefox,
         macos: "Waterfox",
-        linux: ".waterfox",
+        linux: &[".waterfox"],
         flatpak: &["net.waterfox.waterfox"],
         windows: "Waterfox",
         windows_roaming: true,
@@ -271,20 +274,20 @@ fn data_folders(k: &Known) -> Vec<PathBuf> {
 }
 
 /// `k`'s data folders on Linux: installed from a package first, then as
-/// each of its Flatpaks. A Flatpak's home is `~/.var/app/<ID>`, and its
-/// `config` folder is what `~/.config` is to other programs.
+/// each of its Flatpaks, each in `k.linux`'s order. A Flatpak's home is
+/// `~/.var/app/<ID>`, and its `config` folder is what `~/.config` is to
+/// other programs.
 fn linux_folders(home: &Path, k: &Known) -> Vec<PathBuf> {
-    let in_flatpak = k
-        .linux
-        .strip_prefix(".config/")
-        .map_or_else(|| k.linux.to_string(), |rest| format!("config/{rest}"));
-    let flatpaks = k
-        .flatpak
-        .iter()
-        .map(|id| home.join(".var/app").join(id).join(&in_flatpak));
-    std::iter::once(home.join(k.linux))
-        .chain(flatpaks)
-        .collect()
+    let in_flatpak = |rel: &str| {
+        rel.strip_prefix(".config/")
+            .map_or_else(|| rel.to_string(), |rest| format!("config/{rest}"))
+    };
+    let packaged = k.linux.iter().map(|rel| home.join(rel));
+    let flatpaks = k.flatpak.iter().flat_map(|id| {
+        let app = home.join(".var/app").join(id);
+        k.linux.iter().map(move |rel| app.join(in_flatpak(rel)))
+    });
+    packaged.chain(flatpaks).collect()
 }
 
 /// Browsers with importable data on this machine, Arc first. Only checks
@@ -458,7 +461,9 @@ mod tests {
     /// A browser installed as a Flatpak keeps its data in the Flatpak's own
     /// home, where `config` stands in for `~/.config`: looked for anywhere
     /// else, the browser is not offered for import at all. A browser that
-    /// comes as several Flatpaks is looked for in each, in the order listed.
+    /// comes as several Flatpaks is looked for in each, in the order listed,
+    /// and a browser that has several folders (Firefox moved to `~/.config`
+    /// but keeps using `~/.mozilla` where it exists) in each, old one first.
     #[test]
     fn linux_looks_below_home_first_and_then_in_the_flatpak() {
         let home = std::path::Path::new("/home/u");
@@ -481,6 +486,15 @@ mod tests {
                 "/home/u/.config/chromium",
                 "/home/u/.var/app/org.chromium.Chromium/config/chromium",
                 "/home/u/.var/app/io.github.ungoogled_software.ungoogled_chromium/config/chromium",
+            ])
+        );
+        assert_eq!(
+            folders("firefox"),
+            expect(&[
+                "/home/u/.mozilla/firefox",
+                "/home/u/.config/mozilla/firefox",
+                "/home/u/.var/app/org.mozilla.firefox/.mozilla/firefox",
+                "/home/u/.var/app/org.mozilla.firefox/config/mozilla/firefox",
             ])
         );
         assert_eq!(
