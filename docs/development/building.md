@@ -83,8 +83,8 @@ In a Wayland session Magnetite runs as an X11 client, through XWayland, until
 its child windows work under Wayland (`docs/adr/0012-wayland.md`);
 `--ozone-platform=wayland` runs it as a Wayland client all the same, which
 needs a CEF with Magnetite's Wayland patch: with the official CEF of the
-build above it stops at the first page. A session without XWayland cannot
-run Magnetite yet. To test
+build above it stops at the first page. A session without XWayland
+therefore needs that CEF. To test
 either without a desktop, `scripts/wayland-test.sh` runs a container build in
 a headless Wayland session:
 
