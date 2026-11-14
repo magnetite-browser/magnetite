@@ -109,6 +109,7 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
     : st.state === "up_to_date" ? `Magnetite is up to date. Last checked ${new Date(st.checked_at * 1000).toLocaleString()}.`
     : st.state === "available" ? `Magnetite ${st.version} is available.`
     : st.state === "installing" ? `Installing Magnetite ${st.version}… Magnetite restarts when it is ready.`
+    : u?.system ? st.error
     : `The last check failed: ${st.error}`;
   return (
     <>
@@ -124,12 +125,12 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
               <button className="btn primary" onClick={() => send({ cmd: "install_update" })}>{st.installable ? "Restart to update" : "Download"}</button>
             </div>
           ) : (
-            <button className="btn shrink-0" disabled={st?.state === "checking" || st?.state === "installing" || st?.state === "unavailable" || st?.state === "system"} onClick={checkNow}>Check now</button>
+            <button className="btn shrink-0" disabled={st?.state === "checking" || st?.state === "installing" || st?.state === "unavailable" || u?.system} onClick={checkNow}>Check now</button>
           )}
         </div>
       </div>
       {/* A system package never asks GitHub: the switch would do nothing. */}
-      {st?.state !== "system" && <Toggle
+      {!u?.system && <Toggle
         label="Check for updates automatically"
         hint="At start and once a day Magnetite asks the project's release page on GitHub whether a new version exists. Only that request is sent: no identifiers, no usage data. Updates are signed; Magnetite installs only what the project's release key signed."
         checked={checkUpdates}

@@ -207,7 +207,8 @@ impl MagnetiteApp {
                 engine.quit();
                 return;
             }
-            Some(Err(error)) => {
+            Some(Err(e)) => {
+                let error = format!("Cannot restart: {e}");
                 self.with_updater(|u| u.status = update::Status::Failed { error });
                 engine.ensure_notifications();
                 self.show_update(engine);
@@ -263,8 +264,8 @@ impl MagnetiteApp {
     }
 
     pub(super) fn update_json(&self) -> Value {
-        let status = self.with_updater(|u| u.status.clone());
-        json!({ "status": status, "version": env!("CARGO_PKG_VERSION") })
+        let (status, system) = self.with_updater(|u| (u.status.clone(), u.system.is_some()));
+        json!({ "status": status, "system": system, "version": env!("CARGO_PKG_VERSION") })
     }
 
     /// Send the update status to the notification panel and to open

@@ -273,7 +273,7 @@ impl SystemBinary {
 
     /// Start the binary again with this run's arguments once Magnetite has
     /// quit.
-    pub fn restart_after_exit(&self) -> Result<(), String> {
+    pub fn restart_after_exit(&self) -> std::io::Result<()> {
         let script =
             r#"pid=$1; shift; while kill -0 "$pid" 2>/dev/null; do sleep 0.2; done; exec "$@""#;
         let mut cmd = std::process::Command::new("/bin/sh");
@@ -286,9 +286,7 @@ impl SystemBinary {
         // Its own process group: it must outlive Magnetite's.
         #[cfg(unix)]
         std::os::unix::process::CommandExt::process_group(&mut cmd, 0);
-        cmd.spawn()
-            .map(drop)
-            .map_err(|e| format!("Cannot restart: {e}"))
+        cmd.spawn().map(drop)
     }
 }
 

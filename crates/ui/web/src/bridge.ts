@@ -646,6 +646,8 @@ export type UpdateStatus =
 
 export interface UpdateInfo {
   status: UpdateStatus;
+  /** An rpm or deb install, also once `status` has moved on from "system". */
+  system: boolean;
   /** The running version. */
   version: string;
 }
