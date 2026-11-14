@@ -89,6 +89,13 @@ pub fn round_window_corners(handle: cef::sys::cef_window_handle_t, shadow: bool)
     }
 }
 
+/// A frameless window that stays a plain rectangle (the device bar above a
+/// page): Windows 11 would round it and draw a line around it.
+pub fn square_window(handle: cef::sys::cef_window_handle_t) {
+    set(handle, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND);
+    set(handle, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE);
+}
+
 /// Cut a page's window to a rounded rectangle of its present size. The
 /// region does not follow the window: call again after every resize.
 pub fn clip_page(handle: cef::sys::cef_window_handle_t) {

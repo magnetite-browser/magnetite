@@ -471,7 +471,7 @@ impl Engine {
     /// A resize handle of page `id` was dragged to `(x, y)` (screen DIP):
     /// "Responsive" takes the new size, and the bar shows it. Let go, the
     /// scale held during the drag is free again.
-    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    #[cfg_attr(not(any(target_os = "macos", target_os = "windows")), allow(dead_code))]
     pub(crate) fn device_handle(
         &self,
         id: ContentId,
@@ -584,6 +584,10 @@ wrap_window_delegate! {
             window.add_child_view(Some(&mut v));
             #[cfg(target_os = "macos")]
             crate::mac::pin_window(window.window_handle());
+            // A plain bar: Windows neither rounds it nor draws a line
+            // around it.
+            #[cfg(target_os = "windows")]
+            crate::win::square_window(window.window_handle());
             let engine = Engine::global();
             let shown = {
                 let mut inner = engine.lock();

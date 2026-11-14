@@ -27,8 +27,8 @@ impl Engine {
     }
 
     /// Show the split dividers and one beside each docked `DevTools` on
-    /// screen (native windows on macOS; on Windows the split dividers
-    /// only; Linux has none yet).
+    /// screen, and the resize handles of pages in device mode (native
+    /// windows on macOS and Windows; Linux has none yet).
     #[cfg_attr(
         not(any(target_os = "macos", target_os = "windows")),
         allow(clippy::unused_self)
@@ -72,25 +72,42 @@ impl Engine {
                 crate::mac::set_dividers(frame.window_handle(), &wanted);
             }
         }
-        // Windows: the split dividers only; the docked DevTools and the
-        // device mode have no handles there yet.
         #[cfg(target_os = "windows")]
         {
             let (wanted, frame) = {
                 let inner = self.lock();
-                let wanted: Vec<_> = (inner.split_dividers.iter())
-                    .map(|d| {
-                        let key = crate::win::DividerKey {
-                            row: d.axis == Axis::Row,
-                            path: d.path.clone(),
-                            index: d.index,
-                        };
-                        // Windows places its windows in pixels.
-                        (
-                            display_convert_screen_rect_to_pixels(Some(&rect_of(d.bounds))),
-                            key,
-                        )
-                    })
+                let row = inner.devtools_dock != crate::DevToolsDock::Bottom;
+                let split = inner.split_dividers.iter().map(|d| {
+                    let key = crate::win::DividerKey::Split {
+                        row: d.axis == Axis::Row,
+                        path: d.path.clone(),
+                        index: d.index,
+                    };
+                    (rect_of(d.bounds), key)
+                });
+                let devtools = (inner.docked.iter())
+                    .filter(|(_, d)| d.shown && !d.separate)
+                    .filter_map(|(id, d)| {
+                        Some((
+                            d.gap.clone()?,
+                            crate::win::DividerKey::DevTools { id: *id, row },
+                        ))
+                    });
+                // The resize handles of pages in device mode ("Responsive").
+                let handles = (inner.docked.iter())
+                    .filter(|(_, d)| d.shown)
+                    .filter_map(|(id, d)| Some((*id, d.device.as_ref()?)))
+                    .flat_map(|(id, m)| {
+                        let key = move |edge| crate::win::DividerKey::Device { id, edge };
+                        m.handles
+                            .iter()
+                            .map(move |(r, edge)| (r.clone(), key(*edge)))
+                    });
+                // Windows places its windows in pixels.
+                let wanted: Vec<_> = split
+                    .chain(devtools)
+                    .chain(handles)
+                    .map(|(r, key)| (display_convert_screen_rect_to_pixels(Some(&r)), key))
                     .collect();
                 (wanted, inner.frame.as_ref().map(|f| f.window.clone()))
             };

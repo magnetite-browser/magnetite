@@ -1,5 +1,7 @@
-//! Dividers in the gaps between split pages: drag to resize, double-click
-//! to even out (what `MagnetiteDividerView` in `mac/chrome.rs` does).
+//! Dividers in the gaps between split pages, between a page and its docked
+//! `DevTools`, and the resize handles of a page in device mode: drag to
+//! resize, double-click to even out or go back to the default size (what
+//! `MagnetiteDividerView` in `mac/chrome.rs` does).
 //!
 //! Each divider is a small window of the frame, all but invisible, that
 //! only takes the mouse: the gap behind it shows the frame's chrome. The
@@ -10,8 +12,9 @@ use std::ffi::c_void;
 
 use cef::{Point, Rect, display_convert_screen_point_from_pixels};
 
+use crate::device::Edge;
 use crate::engine::Engine;
-use crate::events::{DividerAction, EngineEvent};
+use crate::events::{ContentId, DividerAction, EngineEvent};
 
 type Hwnd = *mut c_void;
 
@@ -87,13 +90,44 @@ const MA_NOACTIVATE: isize = 3;
 const IDC_SIZEWE: usize = 32644;
 const IDC_SIZENS: usize = 32645;
 
-/// Which divider a window is: as `magnetite_core::split::Divider`.
+/// The system's arrows for resizing both ways at once.
+const IDC_SIZENWSE: usize = 32642;
+
+/// Which divider a window is (as `mac::DividerKey`). `row`: the panes on
+/// its two sides are side by side (a vertical divider); else stacked.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DividerKey {
-    pub path: Vec<usize>,
-    pub index: usize,
-    /// Pages side by side (a vertical divider); else stacked.
-    pub row: bool,
+pub enum DividerKey {
+    /// Between split pages: as `magnetite_core::split::Divider`.
+    Split {
+        path: Vec<usize>,
+        index: usize,
+        row: bool,
+    },
+    /// Between page `id` and its docked `DevTools` (`devdock.rs`).
+    DevTools { id: ContentId, row: bool },
+    /// Beside page `id` in device mode, to resize it (`device.rs`).
+    Device { id: ContentId, edge: Edge },
+}
+
+impl DividerKey {
+    /// Whether it moves across (a vertical bar); the corner moves both ways.
+    fn row(&self) -> bool {
+        match self {
+            Self::Split { row, .. } | Self::DevTools { row, .. } => *row,
+            Self::Device { edge, .. } => *edge != Edge::Bottom,
+        }
+    }
+
+    /// The system's cursor that shows which way it moves.
+    fn cursor(&self) -> usize {
+        match self {
+            Self::Device {
+                edge: Edge::Corner, ..
+            } => IDC_SIZENWSE,
+            _ if self.row() => IDC_SIZEWE,
+            _ => IDC_SIZENS,
+        }
+    }
 }
 
 struct Divider {
@@ -221,11 +255,18 @@ fn divider(hwnd: Hwnd, dragging: Option<bool>) -> Option<(DividerKey, bool)> {
 }
 
 fn report(key: DividerKey, action: DividerAction) {
-    Engine::global().emit(EngineEvent::SplitDivider {
-        path: key.path,
-        index: key.index,
-        action,
-    });
+    let engine = Engine::global();
+    match key {
+        DividerKey::Split { path, index, .. } => engine.emit(EngineEvent::SplitDivider {
+            path,
+            index,
+            action,
+        }),
+        DividerKey::DevTools { id, .. } => engine.devtools_divider(id, action),
+        // Device handles move with both coordinates (`WM_MOUSEMOVE`); here
+        // only letting go counts.
+        DividerKey::Device { id, edge } => engine.device_handle(id, edge, 0, 0, action),
+    }
 }
 
 unsafe extern "system" fn on_message(
@@ -239,9 +280,13 @@ unsafe extern "system" fn on_message(
         WM_MOUSEACTIVATE => return MA_NOACTIVATE,
         WM_SETCURSOR => {
             if let Some((key, _)) = divider(hwnd, None) {
-                let arrows = if key.row { IDC_SIZEWE } else { IDC_SIZENS };
                 // SAFETY: one of the system's own cursors, named by number.
-                unsafe { SetCursor(LoadCursorW(std::ptr::null_mut(), arrows as *const u16)) };
+                unsafe {
+                    SetCursor(LoadCursorW(
+                        std::ptr::null_mut(),
+                        key.cursor() as *const u16,
+                    ))
+                };
                 return 1;
             }
         }
@@ -267,10 +312,14 @@ unsafe extern "system" fn on_message(
                 // The app counts in points, Windows in pixels.
                 let at =
                     display_convert_screen_point_from_pixels(Some(&Point { x: at[0], y: at[1] }));
-                report(
-                    key.clone(),
-                    DividerAction::Move(if key.row { at.x } else { at.y }),
-                );
+                // A resize handle in device mode takes both; a divider its axis.
+                if let DividerKey::Device { id, edge } = key {
+                    let action = DividerAction::Move(at.x);
+                    Engine::global().device_handle(id, edge, at.x, at.y, action);
+                    return 0;
+                }
+                let along = if key.row() { at.x } else { at.y };
+                report(key, DividerAction::Move(along));
             }
             return 0;
         }
