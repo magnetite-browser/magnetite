@@ -74,13 +74,15 @@ fn wide(text: &str) -> Vec<u16> {
     text.encode_utf16().chain([0]).collect()
 }
 
-/// Replace the clipboard's content by `formats`, each a format and its bytes.
-fn put(formats: &[(u32, &[u8])]) -> bool {
+/// Replace the clipboard's content by `formats`, each a format and its
+/// bytes, for the window `owner`. Windows documents that data cannot be
+/// set on a clipboard that was opened and emptied for no window.
+fn put(owner: cef::sys::cef_window_handle_t, formats: &[(u32, &[u8])]) -> bool {
     // SAFETY: the clipboard is opened and closed here. Each block of global
     // memory is as long as its bytes; the clipboard owns it once
     // `SetClipboardData` took it, and it is freed here if not.
     unsafe {
-        if OpenClipboard(std::ptr::null_mut()) == 0 {
+        if OpenClipboard(owner.0.cast()) == 0 {
             return false;
         }
         EmptyClipboard();
@@ -111,15 +113,16 @@ fn put(formats: &[(u32, &[u8])]) -> bool {
     }
 }
 
-/// Put `text` on the clipboard.
-pub fn copy_text(text: &str) -> bool {
+/// Put `text` on the clipboard, for the window `owner`.
+pub fn copy_text(owner: cef::sys::cef_window_handle_t, text: &str) -> bool {
     let bytes: Vec<u8> = wide(text).into_iter().flat_map(u16::to_le_bytes).collect();
-    put(&[(CF_UNICODETEXT, &bytes)])
+    put(owner, &[(CF_UNICODETEXT, &bytes)])
 }
 
 /// Put a PNG on the clipboard: as PNG for the programs that take it so
-/// (browsers, office programs) and as a plain bitmap for the rest.
-pub fn copy_png(png: &[u8]) -> bool {
+/// (browsers, office programs) and as a plain bitmap for the rest. For the
+/// window `owner`.
+pub fn copy_png(owner: cef::sys::cef_window_handle_t, png: &[u8]) -> bool {
     // SAFETY: a NUL-terminated name; Windows hands out the same number for
     // it in every program.
     let png_format = unsafe { RegisterClipboardFormatW(wide("PNG").as_ptr()) };
@@ -131,7 +134,7 @@ pub fn copy_png(png: &[u8]) -> bool {
     if let Some(bitmap) = bitmap.as_deref() {
         formats.push((CF_DIB, bitmap));
     }
-    !formats.is_empty() && put(&formats)
+    !formats.is_empty() && put(owner, &formats)
 }
 
 /// `png` as a device-independent bitmap (`CF_DIB`): a 40-byte header and

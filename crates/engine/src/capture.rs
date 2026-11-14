@@ -95,7 +95,9 @@ impl Engine {
         #[cfg(target_os = "macos")]
         return crate::mac::copy_png(png);
         #[cfg(target_os = "windows")]
-        return crate::win::copy_png(png);
+        return (self.frame_window()).is_some_and(|frame| {
+            crate::win::copy_png(cef::ImplWindow::window_handle(&frame), png)
+        });
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         false
     }
