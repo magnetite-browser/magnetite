@@ -47,7 +47,10 @@ runs:
     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: 22
-        cache: pnpm
+        # Not on Windows: a job that installs no packages (CI's Rust job)
+        # has no pnpm store there, and saving the cache then ends with an
+        # error.
+        cache: ${{ runner.os != 'Windows' && 'pnpm' || '' }}
         cache-dependency-path: crates/ui/web/pnpm-lock.yaml
 
     - name: CEF version
