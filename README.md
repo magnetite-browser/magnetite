@@ -80,7 +80,7 @@ Magnetite started as a new home for the workflow of the Arc browser and has grow
 
 ## Status
 
-Magnetite is developed and used daily on macOS (Apple silicon). Linux builds start and pass the tests; in a Wayland session Magnetite runs through XWayland by default, which the session must have; running as a Wayland client needs a CEF build with Magnetite's patch ([ADR-0012](docs/adr/0012-wayland.md)). Windows has not been built yet.
+Magnetite is developed and used daily on macOS (Apple silicon). Linux builds start and pass the tests; in a Wayland session Magnetite runs as a Wayland client when built with Magnetite's CEF build, and through XWayland with the official CEF, as the Linux releases still are ([ADR-0012](docs/adr/0012-wayland.md)). Windows has not been built yet.
 
 There are no releases yet, so for now you [build it yourself](#build-it-yourself). Expect breaking changes, including to the data format on disk.
 

@@ -93,12 +93,13 @@ Never run with `--no-sandbox`.
 From macOS (or anywhere with Podman or Docker), build and test for Linux in a
 container: `scripts/linux-container.sh build` or `scripts/linux-container.sh test`.
 
-In a Wayland session Magnetite runs as an X11 client, through XWayland, until
-its child windows work under Wayland (`docs/adr/0012-wayland.md`);
-`--ozone-platform=wayland` runs it as a Wayland client all the same, which
-needs a CEF with Magnetite's Wayland patch: with the official CEF of the
-build above it stops at the first page. A session without XWayland
-therefore needs that CEF. To test
+In a Wayland session Magnetite runs as a Wayland client if its CEF has
+Magnetite's Wayland patch (`docs/adr/0012-wayland.md`): the package then
+holds `magnetite-patches.txt`, from Magnetite's CEF build, which names it.
+With the official CEF of the build above it runs as an X11 client, through
+XWayland, and `--ozone-platform=wayland` stops it at the first page; a
+session without XWayland therefore needs Magnetite's CEF.
+`--ozone-platform=x11` or `=wayland` picks one by hand. To test
 either without a desktop, `scripts/wayland-test.sh` runs a container build in
 a headless Wayland session:
 
