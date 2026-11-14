@@ -110,3 +110,47 @@ openssl3() {
   done
   die "OpenSSL 3 not found (macOS: brew install openssl@3, or set OPENSSL)"
 }
+
+# Load the package repository's signing key (MAGNETITE_REPO_KEY, an armored
+# GPG secret key) into $GNUPGHOME, which the caller points at a fresh
+# folder, and print its fingerprint.
+# It must be the key whose public half the packages carry
+# (packaging/linux/repo-key.asc): anything else would sign packages that
+# installed systems reject.
+repo_signing_key() {
+  [[ -n ${MAGNETITE_REPO_KEY:-} ]] || die "MAGNETITE_REPO_KEY is not set: refusing to publish unsigned packages"
+  [[ -n ${GNUPGHOME:-} ]] || die "repo_signing_key: GNUPGHOME is not set"
+  printf '%s\n' "$MAGNETITE_REPO_KEY" | gpg --batch --quiet --import 2>/dev/null
+  local fpr shipped
+  fpr="$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" { print $10; exit }')"
+  shipped="$(gpg --batch --with-colons --show-keys "$ROOT/packaging/linux/repo-key.asc" | awk -F: '$1 == "fpr" { print $10; exit }')"
+  [[ -n $fpr && $fpr == "$shipped" ]] || die "signing key ${fpr:-none} is not the packages' key $shipped"
+  printf '%s\n' "$fpr"
+}
+
+# Fail unless every rpm given is signed by the packages' key. Checks against
+# a throwaway rpm database under $1 that knows only that key.
+check_rpm_signatures() {
+  local db="$1/rpmdb" rpm
+  shift
+  mkdir -p "$db"
+  rpm --dbpath "$db" --initdb
+  rpm --dbpath "$db" --import "$ROOT/packaging/linux/repo-key.asc"
+  for rpm in "$@"; do
+    rpm --dbpath "$db" --checksig "$rpm" >/dev/null || die "$rpm is not signed with the repository key"
+  done
+}
+
+# Fail unless every deb given has a signature by the packages' key next to
+# it (<deb>.asc, from scripts/release/sign-packages.sh). Checks against a
+# throwaway keyring under $1 that knows only that key.
+check_deb_signatures() {
+  local keyring="$1/deb-keyring.gpg" deb
+  shift
+  gpg --batch --yes --dearmor --output "$keyring" "$ROOT/packaging/linux/repo-key.asc"
+  for deb in "$@"; do
+    [[ -f $deb.asc ]] || die "$deb has no signature ($deb.asc)"
+    gpg --batch --no-default-keyring --keyring "$keyring" --verify "$deb.asc" "$deb" 2>/dev/null ||
+      die "$deb is not signed with the repository key"
+  done
+}

@@ -1,0 +1,62 @@
+# Refreshes the dnf and apt repository the rpm and deb packages update from,
+# with the packages of a published release (docs/adr/0011-linux-packages.md).
+# Pre-releases never reach it. Run it by hand on a release tag ("Use workflow
+# from") to publish that release again, e.g. after moving the host.
+#
+# Building the repository (scripts/release/linux-repo.sh) knows no host; only
+# the `deploy` job is GitHub Pages. Moving to another host replaces that job.
+name: Linux repository
+
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-repo
+
+jobs:
+  build:
+    name: Build the repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # The repository key lives with the release secrets (v* tags only).
+    environment: release
+    env:
+      TAG: ${{ github.event.release.tag_name || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: |
+          sudo apt-get update -q -o Acquire::Retries=5
+          sudo apt-get install -y -q --no-install-recommends -o Acquire::Retries=5 rpm createrepo-c apt-utils
+      - name: Download the packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$TAG" --pattern '*.rpm' --pattern '*.deb' --pattern '*.deb.asc' --dir packages
+      - name: Build and sign
+        env:
+          MAGNETITE_REPO_KEY: ${{ secrets.MAGNETITE_REPO_KEY }}
+        run: scripts/release/linux-repo.sh packages site
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

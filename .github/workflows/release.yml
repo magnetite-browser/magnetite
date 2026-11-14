@@ -1,6 +1,7 @@
 # Builds the packages for a v* tag and creates a draft GitHub release with
 # them, the signed update manifest and the Homebrew cask. Publishing the draft
-# is a manual step: docs/development/release.md. The sync server is released
+# is a manual step: docs/development/release.md. Publishing it also refreshes
+# the Linux package repository (linux-repo.yml). The sync server is released
 # from its own repository (magnetite-browser/magnetite-sync).
 name: Release
 
@@ -82,6 +83,14 @@ jobs:
       - name: Package and sign
         run: scripts/build.sh --release --skip-ui
 
+      # rpm and deb next to the tarball; signed in the publish job, which
+      # alone holds the repository key.
+      - name: Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y -q --no-install-recommends -o Acquire::Retries=5 rpm
+          scripts/linux-packages.sh "dist/magnetite-$VERSION"
+
       - name: Notarize
         if: runner.os == 'macOS' && env.HAS_APPLE_CERT == 'true' && env.HAS_APPLE_NOTARY == 'true'
         env:
@@ -131,12 +140,19 @@ jobs:
           scripts/release/sign-manifest.sh dist/latest.json
           cat dist/latest.json
 
+      - name: Sign the rpm and deb packages
+        env:
+          MAGNETITE_REPO_KEY: ${{ secrets.MAGNETITE_REPO_KEY }}
+        run: |
+          sudo apt-get install -y -q --no-install-recommends -o Acquire::Retries=5 rpm
+          scripts/release/sign-packages.sh dist/*.rpm dist/*.deb
+
       - name: Homebrew cask
         run: scripts/release/render-cask.sh "$VERSION" dist >dist/magnetite.rb
 
       - name: Checksums
         working-directory: dist
-        run: sha256sum -- *.zip *.tar.gz >SHA256SUMS
+        run: sha256sum -- *.zip *.tar.gz *.rpm *.deb >SHA256SUMS
 
       - name: Create the draft
         env:
@@ -144,4 +160,4 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
             --title "Magnetite $VERSION" --generate-notes \
-            dist/*.zip dist/*.tar.gz dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS
+            dist/*.zip dist/*.tar.gz dist/*.rpm dist/*.deb dist/*.deb.asc dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS

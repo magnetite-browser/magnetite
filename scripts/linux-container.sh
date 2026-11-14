@@ -28,7 +28,9 @@ log "container image $image (Rust $toolchain)"
 
 mkdir -p "$ROOT/dist"
 vol=magnetite-linux
-"$engine" run --rm -i \
+# label=disable: SELinux hosts (Fedora) would deny the container the bind
+# mounts; relabelling them (:z) would change the checkout's labels instead.
+"$engine" run --rm -i --security-opt label=disable \
   -v "$ROOT:/src:ro" \
   -v "$ROOT/dist:/out" \
   -v "$vol-target:/work/target" \

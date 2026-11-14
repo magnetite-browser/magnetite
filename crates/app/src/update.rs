@@ -14,11 +14,16 @@
 //! may write next to it and Gatekeeper accepts the new bundle (Developer ID
 //! signed and notarized); then it restarts. Otherwise, and on Linux and
 //! Windows, the release page opens for a manual download.
+//!
+//! The Linux rpm and deb packages are updated by the system's package
+//! manager from Magnetite's package repository (ADR-0011). Magnetite then
+//! never asks the release host; it only notices that its binary was
+//! replaced and offers a restart (`SystemBinary`).
 
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use base64::Engine as _;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
@@ -67,6 +72,8 @@ pub enum Status {
     Idle,
     /// This build has no release key or no repository: no updates.
     Unavailable,
+    /// The system's package manager updates this Magnetite (rpm, deb).
+    System,
     Checking,
     UpToDate {
         checked_at: i64,
@@ -209,6 +216,82 @@ pub fn replaceable_bundle() -> Option<PathBuf> {
     let parent = bundle.parent()?;
     let writable = tempfile_in(parent).is_some();
     (bundle.extension()? == "app" && writable).then_some(bundle)
+}
+
+/// The file the rpm and deb packages install next to the binary
+/// (`scripts/linux-packages.sh`): the package manager updates this copy.
+const SYSTEM_PACKAGE_MARKER: &str = "system-package";
+
+/// The binary of a Magnetite installed from an rpm or deb package, as it
+/// was at start. The package manager replaces it while Magnetite runs.
+pub struct SystemBinary {
+    path: PathBuf,
+    modified: Option<SystemTime>,
+}
+
+impl SystemBinary {
+    /// Linux, and the package marker next to the binary; read at start,
+    /// before an update can replace the binary.
+    pub fn detect() -> Option<Self> {
+        if !cfg!(target_os = "linux") {
+            return None;
+        }
+        let path = std::env::current_exe().ok()?.canonicalize().ok()?;
+        path.parent()?
+            .join(SYSTEM_PACKAGE_MARKER)
+            .exists()
+            .then(|| {
+                let modified = modified(&path);
+                Self { path, modified }
+            })
+    }
+
+    /// The version now at the binary's path, once it has been replaced by a
+    /// newer one. Runs the new binary (`--version`) only after its file
+    /// changed, once per change. A run that gives no version (the package
+    /// manager is still swapping the libraries next to it) is tried again
+    /// on the next call.
+    pub fn replaced(&mut self) -> Option<String> {
+        let now = modified(&self.path);
+        if now.is_none() || now == self.modified {
+            return None;
+        }
+        let out = std::process::Command::new(&self.path)
+            .arg("--version")
+            .stdin(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .output()
+            .ok()?;
+        // clap prints "magnetite 0.3.0".
+        let version = String::from_utf8_lossy(&out.stdout)
+            .trim()
+            .strip_prefix("magnetite ")?
+            .to_string();
+        self.modified = now;
+        newer(&version, env!("CARGO_PKG_VERSION")).then_some(version)
+    }
+
+    /// Start the binary again with this run's arguments once Magnetite has
+    /// quit.
+    pub fn restart_after_exit(&self) -> std::io::Result<()> {
+        let script =
+            r#"pid=$1; shift; while kill -0 "$pid" 2>/dev/null; do sleep 0.2; done; exec "$@""#;
+        let mut cmd = std::process::Command::new("/bin/sh");
+        cmd.args(["-c", script, "sh", &std::process::id().to_string()])
+            .arg(&self.path)
+            .args(std::env::args_os().skip(1))
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null());
+        // Its own process group: it must outlive Magnetite's.
+        #[cfg(unix)]
+        std::os::unix::process::CommandExt::process_group(&mut cmd, 0);
+        cmd.spawn().map(drop)
+    }
+}
+
+fn modified(path: &Path) -> Option<SystemTime> {
+    std::fs::metadata(path).and_then(|m| m.modified()).ok()
 }
 
 /// Probe that `dir` takes new files.
@@ -425,5 +508,86 @@ mod tests {
     #[test]
     fn hashes_print_as_lowercase_hex() {
         assert_eq!(hex(&Sha256::digest(b"abc"))[..8], *"ba7816bf");
+    }
+
+    /// A stand-in binary at `dir/magnetite` that prints `line` for
+    /// `--version`, its mtime set to `at` seconds past the epoch: explicit
+    /// times, so a change never hides in the filesystem's mtime granularity.
+    #[cfg(unix)]
+    fn fake_binary(dir: &Path, line: &str, at: u64) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+        let path = dir.join("magnetite");
+        std::fs::write(&path, format!("#!/bin/sh\necho \"{line}\"\n")).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let time = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(at);
+        std::fs::File::options()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_modified(time)
+            .unwrap();
+        path
+    }
+
+    /// Watching a binary as `SystemBinary::detect` would at start.
+    #[cfg(unix)]
+    fn watching(path: PathBuf) -> SystemBinary {
+        let modified = modified(&path);
+        SystemBinary { path, modified }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_replaced_newer_binary_is_reported_once_per_change() {
+        let dir = crate::files::test_dir("system-binary-newer");
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut binary = watching(fake_binary(&dir, "magnetite 9.9.9", 1_000));
+        assert_eq!(binary.replaced(), None, "unchanged since start");
+
+        fake_binary(&dir, "magnetite 9.9.9", 2_000);
+        assert_eq!(binary.replaced().as_deref(), Some("9.9.9"));
+        assert_eq!(binary.replaced(), None, "no change since the last look");
+
+        fake_binary(&dir, "magnetite 10.0.0", 3_000);
+        assert_eq!(binary.replaced().as_deref(), Some("10.0.0"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_replaced_binary_that_is_not_newer_is_ignored_for_that_change() {
+        let dir = crate::files::test_dir("system-binary-not-newer");
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut binary = watching(fake_binary(&dir, "magnetite 9.9.9", 1_000));
+        let lines = [
+            "magnetite 0.0.1",
+            concat!("magnetite ", env!("CARGO_PKG_VERSION")),
+        ];
+        for (at, line) in (2_000..).step_by(1_000).zip(lines) {
+            fake_binary(&dir, line, at);
+            assert_eq!(binary.replaced(), None, "{line}");
+            // Same mtime, so no new change: the version read is recorded and
+            // the binary is not run again.
+            fake_binary(&dir, "magnetite 9.9.9", at);
+            assert_eq!(binary.replaced(), None, "{line} was recorded");
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_replaced_binary_without_a_version_is_tried_again() {
+        let dir = crate::files::test_dir("system-binary-retry");
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut binary = watching(fake_binary(&dir, "magnetite 0.0.1", 1_000));
+        // Mid-upgrade: the file changed but does not answer as Magnetite yet.
+        for line in ["", "something-else 9.9.9"] {
+            fake_binary(&dir, line, 2_000);
+            assert_eq!(binary.replaced(), None, "{line:?}");
+        }
+        // Finished without touching the mtime again: still picked up.
+        fake_binary(&dir, "magnetite 9.9.9", 2_000);
+        assert_eq!(binary.replaced().as_deref(), Some("9.9.9"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
