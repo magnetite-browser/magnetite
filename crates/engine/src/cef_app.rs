@@ -197,6 +197,8 @@ wrap_browser_process_handler! {
             #[cfg(target_os = "macos")]
             crate::mac::clear_tooltips_without_keyboard();
             #[cfg(target_os = "macos")]
+            crate::mac::watch_covered_pages();
+            #[cfg(target_os = "macos")]
             crate::mac::watch_memory_pressure();
             engine.emit(EngineEvent::Ready);
         }

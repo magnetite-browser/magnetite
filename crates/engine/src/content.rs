@@ -523,6 +523,22 @@ impl Engine {
             .is_some_and(|w| w.is_visible() != 0)
     }
 
+    /// Pages on screen that Chromium wrongly holds for covered, and so for
+    /// hidden, come back to life (`mac::uncover_page`).
+    #[cfg(target_os = "macos")]
+    pub(crate) fn uncover_shown_pages(&self) {
+        let shown: Vec<(ContentId, Window)> = (self.lock().contents.iter())
+            .filter_map(|(id, c)| Some((*id, c.window.clone()?)))
+            .collect();
+        for (id, window) in shown {
+            if window.is_visible() != 0 && crate::mac::uncover_page(window.window_handle()) {
+                crate::trace(&format!(
+                    "page #{id} was marked covered while on screen: mark removed"
+                ));
+            }
+        }
+    }
+
     /// Give page `id` keyboard focus (its window comes forward).
     pub fn focus_content(&self, id: ContentId) {
         if let Some((window, view)) = self.content_handles(id) {

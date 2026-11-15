@@ -6,7 +6,8 @@
 //! `cefsimple` example (Apache-2.0 OR MIT). Next to them: tweaks to CEF's
 //! own windows (pinned, rounded corners, the focus ring of a split page,
 //! hidden or shown, shown without taking focus), the watch on two-finger
-//! swipes, stale tooltips, and helpers for the child modules:
+//! swipes, stale tooltips, pages wrongly marked covered, and helpers for the
+//! child modules:
 //!
 //! - `chrome`: our child windows over the page area (drag strip, peek
 //!   backdrop, the hidden sidebar's edge, split dividers);
@@ -410,6 +411,104 @@ fn clear_tooltips(view: &objc2_app_kit::NSView) {
     }
     for child in view.subviews() {
         clear_tooltips(&child);
+    }
+}
+
+/// Chromium marks a window "covered" (`WebContentsOcclusionCheckerMac`) and
+/// treats its page as hidden: nothing is drawn, no input is taken. Its check
+/// judges our page windows (child windows of the frame) one by one from what
+/// macOS reports for each, and those reports lag the frame's. A mark that
+/// stays on a page on screen leaves it dead until its tab is shown again.
+///
+/// Take the mark off the page window whose content view is `handle` if it
+/// cannot be right: the window is on screen above a frame macOS reports as
+/// visible, and macOS reports the page as visible too or Magnetite is the app
+/// in front. True if there was a mark to take off.
+pub fn uncover_page(handle: cef::sys::cef_window_handle_t) -> bool {
+    use objc2_app_kit::{NSView, NSWindowOcclusionState};
+    let Some(mtm) = MainThreadMarker::new() else {
+        return false;
+    };
+    if handle.is_null() {
+        return false;
+    }
+    // SAFETY: CEF hands us a live NSView; we are on the main thread.
+    let view: &NSView = unsafe { &*handle.cast::<NSView>() };
+    let Some(window) = view.window() else {
+        return false;
+    };
+    let Some(frame) = window.parentWindow() else {
+        return false;
+    };
+    let seen = |w: &NSWindow| w.occlusionState().contains(NSWindowOcclusionState::Visible);
+    if !window.isVisible() || !seen(&frame) {
+        return false;
+    }
+    if !seen(&window) && !NSApplication::sharedApplication(mtm).isActive() {
+        return false;
+    }
+    // Chromium's own accessors for the mark (a category on NSWindow); the
+    // setter tells the page's view, which shows the page again.
+    if !window.respondsToSelector(sel!(isOccluded))
+        || !window.respondsToSelector(sel!(setOccluded:))
+    {
+        return false;
+    }
+    // SAFETY: the window implements both selectors, a BOOL getter and setter.
+    unsafe {
+        let covered: Bool = msg_send![&*window, isOccluded];
+        if !covered.as_bool() {
+            return false;
+        }
+        let _: () = msg_send![&*window, setOccluded: Bool::NO];
+    }
+    true
+}
+
+/// Look for pages wrongly marked covered (`uncover_page`) whenever a window's
+/// occlusion changes or Magnetite comes to the front. Installed once on the
+/// UI (main) thread; the housekeeping poll looks too, for a mark that came
+/// without either.
+pub fn watch_covered_pages() {
+    use block2::RcBlock;
+    use objc2_app_kit::{
+        NSApplicationDidBecomeActiveNotification, NSWindowDidChangeOcclusionStateNotification,
+    };
+    use objc2_foundation::{NSNotification, NSNotificationCenter};
+    use std::ptr::NonNull;
+
+    thread_local! {
+        /// A look is already on its way: notifications come in bursts.
+        static PENDING: Cell<bool> = const { Cell::new(false) };
+    }
+    let changed = RcBlock::new(|_: NonNull<NSNotification>| {
+        if PENDING.replace(true) {
+            return;
+        }
+        // Not from inside the notification: taking a mark off posts one too.
+        Engine::post(Box::new(|| {
+            PENDING.set(false);
+            Engine::global().uncover_shown_pages();
+        }));
+    });
+    // SAFETY: AppKit notification names; the block runs on the main thread,
+    // where windows and the application post them.
+    for name in unsafe {
+        [
+            NSWindowDidChangeOcclusionStateNotification,
+            NSApplicationDidBecomeActiveNotification,
+        ]
+    } {
+        let observer = unsafe {
+            NSNotificationCenter::defaultCenter().addObserverForName_object_queue_usingBlock(
+                Some(name),
+                None,
+                None,
+                &changed,
+            )
+        };
+        // The observer lives as long as the app.
+        std::mem::forget(observer);
     }
 }
 

@@ -545,7 +545,8 @@ fn schedule_tick(delay_ms: i64) {
     Engine::post_delayed(Box::new(tick), delay_ms);
 }
 
-/// Poll the signal flag often; emit the housekeeping tick once a minute.
+/// Poll the signal flag often, and on macOS look for pages wrongly marked
+/// covered; emit the housekeeping tick once a minute.
 fn tick() {
     let engine = Engine::global();
     if engine.is_quitting() {
@@ -555,6 +556,8 @@ fn tick() {
         engine.emit(EngineEvent::QuitRequested);
         return;
     }
+    #[cfg(target_os = "macos")]
+    engine.uncover_shown_pages();
     static POLLS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
     if POLLS
         .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
