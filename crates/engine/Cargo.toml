@@ -15,7 +15,9 @@ dox = ["cef/dox"]
 
 [dependencies]
 magnetite-core.workspace = true
-cef = { version = "156.4.0", default-features = false }
+# Our fork of cef-rs: its bindings follow the CEF version magnetite-cef
+# builds, not the one upstream has published (docs/adr/0001-cef-bindings.md).
+cef = { git = "https://github.com/magnetite-browser/cef-rs", rev = "d02cf0401baf79e6a24b6d175e024983d59c7f0e", default-features = false }
 serde.workspace = true
 serde_json.workspace = true
 base64.workspace = true

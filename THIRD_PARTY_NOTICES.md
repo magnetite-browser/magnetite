@@ -80,8 +80,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Shipped with the app (macOS, Windows, Linux)
 
-- **CEF and Chromium**: CEF 156.0.26 (commit `8ea0c73`) with Chromium
-  156.0.8078.88. That is the CEF library (`Chromium Embedded Framework.framework`
+- **CEF and Chromium**: CEF 156.0.30 (commit `6028375`) with Chromium
+  156.0.8078.96. That is the CEF library (`Chromium Embedded Framework.framework`
   on macOS, `libcef.dll` on Windows, `libcef.so` on Linux) and the files next
   to it (`.pak` resources, `icudtl.dat`, the V8 snapshot, SwiftShader and the
   Vulkan loader). CEF is BSD-3-Clause (above). Chromium and its ~490
@@ -92,10 +92,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   LGPL-2.0/2.1), the MPL (for example symphonia, Eigen, hunspell, and
   Mozilla's URL parser and certificate code) and, on macOS, the Apple Public
   Source License. Magnetite ships the CEF library unmodified, as a separate
-  dynamic library. Its corresponding source is Chromium 156.0.8078.88
-  (<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.88>)
-  with CEF commit `8ea0c73b5dbed1389c8dafb911a98c41246bb8cb`
-  (<https://github.com/chromiumembedded/cef/tree/8ea0c73b5dbed1389c8dafb911a98c41246bb8cb>).
+  dynamic library. Its corresponding source is Chromium 156.0.8078.96
+  (<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.96>)
+  with CEF commit `6028375a4532fb89d23b58635f5c0d3a82c93959`
+  (<https://github.com/chromiumembedded/cef/tree/6028375a4532fb89d23b58635f5c0d3a82c93959>).
   For at least three years after we last distribute this version, we give
   anyone who asks a copy of that source, for no more than the cost of
   distribution. Ask through the project's issue tracker.

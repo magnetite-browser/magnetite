@@ -19,9 +19,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 # The release this version of Magnetite builds with. A new one is pinned here
 # after it was checked (magnetite-cef's README, "Checking a release").
-RELEASE=156.0.26
-ARCHIVE="cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_macosarm64_minimal.tar.bz2"
-SHA256=7ef4159f1538cefac609d0bcc0df2f76a58f01827c829ae067a128e9e67ef310
+RELEASE=156.0.30
+ARCHIVE="cef_binary_156.0.30+g6028375+chromium-156.0.8078.96_macosarm64_minimal.tar.bz2"
+SHA256=b1ff403e74e42904e23f25d6191dccb29d704535f565efc346ce613ad857725a
 
 case ${1:-} in
   "" | -h | --help) sed -n '/^set -euo/q; 2,$p' "$0"; exit 0 ;;
@@ -29,7 +29,7 @@ esac
 [[ "$(host_os)-$(host_arch)" == macos-aarch64 ]] ||
   die "Magnetite's own CEF build is for macOS on Apple silicon only"
 
-# The CEF version the Rust bindings are made for: "156.4.0+156.0.26" -> 156.0.26.
+# The CEF version the Rust bindings are made for: "156.5.0+156.0.30" -> 156.0.30.
 wanted="$(grep -A1 '^name = "cef-dll-sys"$' "$ROOT/Cargo.lock" | sed -n 's/^version = ".*+\(.*\)"$/\1/p')"
 [[ ${ARCHIVE#cef_binary_} == "$wanted+"* ]] ||
   die "Cargo.lock wants CEF $wanted, the pinned build is $RELEASE: build that version in magnetite-cef and pin it in scripts/cef.sh"

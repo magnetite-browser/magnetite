@@ -35,5 +35,9 @@ allow-wildcard-paths = true
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
-# The sync protocol and (for a test) the sync server, from a release tag.
-allow-git = ["https://github.com/magnetite-browser/magnetite-sync"]
+# The sync protocol and (for a test) the sync server, from a release tag;
+# our fork of the CEF bindings, from a commit.
+allow-git = [
+    "https://github.com/magnetite-browser/magnetite-sync",
+    "https://github.com/magnetite-browser/cef-rs",
+]

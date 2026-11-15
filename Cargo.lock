@@ -308,9 +308,8 @@ dependencies = [
 
 [[package]]
 name = "cef"
-version = "156.4.0+156.0.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f48d6e78916f115e21933b44c39bd20de0bd25c753fb86b61fb4e2b84b001877"
+version = "156.5.0+156.0.30"
+source = "git+https://github.com/magnetite-browser/cef-rs?rev=d02cf0401baf79e6a24b6d175e024983d59c7f0e#d02cf0401baf79e6a24b6d175e024983d59c7f0e"
 dependencies = [
  "cef-dll-sys",
  "libloading",
@@ -320,9 +319,8 @@ dependencies = [
 
 [[package]]
 name = "cef-dll-sys"
-version = "156.4.0+156.0.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a29dddf938de892feea7601d6a8aee3ae2ff8c8d6a3fe30022c1356097fa8e6"
+version = "156.5.0+156.0.30"
+source = "git+https://github.com/magnetite-browser/cef-rs?rev=d02cf0401baf79e6a24b6d175e024983d59c7f0e#d02cf0401baf79e6a24b6d175e024983d59c7f0e"
 dependencies = [
  "anyhow",
  "cc",
@@ -660,9 +658,8 @@ checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
 name = "download-cef"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05ee509499d14dc47da5f824e4bb1bd558ceb259adc5475956265d48787a80da"
+version = "3.0.1"
+source = "git+https://github.com/magnetite-browser/cef-rs?rev=d02cf0401baf79e6a24b6d175e024983d59c7f0e#d02cf0401baf79e6a24b6d175e024983d59c7f0e"
 dependencies = [
  "bzip2",
  "clap",
