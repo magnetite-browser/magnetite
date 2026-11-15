@@ -1,6 +1,7 @@
 //! The ad blocker: the filter lists the user subscribed to, compiled by
-//! adblock-rust, checked for every request a web page makes. Only requests
-//! (network rules): hiding page elements and scriptlets are not built yet.
+//! adblock-rust, checked for every request a web page makes (network
+//! rules), and the scriptlets the lists ask for in a page (`scriptlets.rs`
+//! puts them there). Hiding page elements is not built yet.
 //!
 //! The app compiles the lists (`Filters::compile`, slow: off the main
 //! thread) and hands them over (`set_filters`); CEF asks on its IO thread
@@ -13,27 +14,90 @@ use std::sync::{Arc, RwLock};
 use ::adblock::Engine as FilterEngine;
 use ::adblock::lists::{FilterSet, ParseOptions, RuleTypes};
 use ::adblock::request::Request as FilterRequest;
+use ::adblock::resources::{PermissionMask, Resource};
 use cef::*;
 
 use crate::client::host_of;
 use crate::sitedata::registrable_domain;
 
+/// The text of a filter list (Adblock Plus syntax).
+pub struct List {
+    pub text: String,
+    /// Whether its rules may use the scriptlets that need trust
+    /// (`TRUSTED`): they can do a page anything, so only the lists of the
+    /// scriptlets' own makers may.
+    pub trusted: bool,
+}
+
+/// What a scriptlet marked as needing trust asks of the list using it, and
+/// what a trusted list has: the first of adblock-rust's permission bits.
+const TRUSTED: PermissionMask = PermissionMask::from_bits(1);
+
 /// Compiled filter lists, ready for `set_filters`.
-pub struct Filters(FilterEngine);
+pub struct Filters {
+    engine: FilterEngine,
+    /// The lists' scriptlet rules are in use: `page_script` has something
+    /// to say.
+    scriptlets: bool,
+}
 
 impl Filters {
-    /// Compile the text of filter lists (Adblock Plus syntax). Rules the
-    /// blocker cannot use are skipped, so is anything that is no rule.
-    pub fn compile(lists: impl IntoIterator<Item = String>) -> Self {
+    /// Compile filter lists. Rules the blocker cannot use are skipped, so
+    /// is anything that is no rule. `scriptlets` is the code the lists'
+    /// scriptlet rules (`##+js(…)`) refer to: resources as adblock-rust
+    /// reads them (JSON), a scriptlet that needs trust marked with
+    /// permission 1. Without it, and when it cannot be read, the scriptlet
+    /// rules are left out.
+    pub fn compile(lists: impl IntoIterator<Item = List>, scriptlets: Option<&str>) -> Self {
+        let resources =
+            scriptlets.and_then(|json| serde_json::from_str::<Vec<Resource>>(json).ok());
         let mut set = FilterSet::new(false);
-        let options = ParseOptions {
-            rule_types: RuleTypes::NetworkOnly,
-            ..ParseOptions::default()
-        };
-        for text in lists {
+        for List { text, trusted } in lists {
+            let permissions = if trusted {
+                TRUSTED
+            } else {
+                PermissionMask::default()
+            };
+            if resources.is_some() {
+                // Of the rules for a page's content only the scriptlets:
+                // nothing here hides elements yet, and their rules are many.
+                let rules: Vec<&str> = text.lines().filter(|l| l.contains("#+js(")).collect();
+                let rules = rules.join("\n");
+                let options = ParseOptions {
+                    rule_types: RuleTypes::CosmeticOnly,
+                    permissions,
+                    ..ParseOptions::default()
+                };
+                set.add_filter_list(rules, options);
+            }
+            let options = ParseOptions {
+                rule_types: RuleTypes::NetworkOnly,
+                permissions,
+                ..ParseOptions::default()
+            };
             set.add_filter_list(text, options);
         }
-        Self(FilterEngine::new_with_filter_set(set))
+        let mut engine = FilterEngine::new_with_filter_set(set);
+        let scriptlets = resources.is_some();
+        if let Some(resources) = resources {
+            engine.use_resources(resources);
+        }
+        Self { engine, scriptlets }
+    }
+
+    /// The script a page at `url` is to run before its own: the scriptlets
+    /// the lists have for it, in a scope of their own. Empty for none.
+    fn page_script(&self, url: &str) -> String {
+        if !self.scriptlets {
+            return String::new();
+        }
+        let scriptlets = self.engine.url_cosmetic_resources(url).injected_script;
+        if scriptlets.is_empty() {
+            return scriptlets;
+        }
+        // `scriptletGlobals` is what uBlock Origin's scriptlets share state
+        // through; it must exist.
+        format!("(function() {{\nconst scriptletGlobals = {{}};\n{scriptlets}}})();")
     }
 
     /// What to do with a `method` request for `url` of type `kind`
@@ -43,7 +107,7 @@ impl Filters {
         let Ok(request) = FilterRequest::new(url, source, kind, method) else {
             return Verdict::Load;
         };
-        let result = self.0.check_network_request(&request);
+        let result = self.engine.check_network_request(&request);
         if result.should_block() {
             Verdict::Block
         } else if let Some(url) = result.rewritten_url {
@@ -105,46 +169,65 @@ fn kind_name(kind: ResourceType) -> Option<&'static str> {
     })
 }
 
-/// What to do with a `method` request for `url` of type `kind` from a page
-/// at `source`, with the filters and allowed sites in use. Only web pages'
-/// requests for web addresses are checked: not Magnetite's own pages,
-/// extensions or DevTools.
-fn decide(url: &str, source: &str, kind: ResourceType, method: &str) -> Verdict {
-    let web = |u: &str| u.starts_with("https://") || u.starts_with("http://");
-    let Some(kind) = kind_name(kind).filter(|_| web(url) && web(source)) else {
-        return Verdict::Load;
-    };
-    let Some(filters) = FILTERS.read().ok().and_then(|f| f.clone()) else {
-        return Verdict::Load;
-    };
+fn is_web(url: &str) -> bool {
+    url.starts_with("https://") || url.starts_with("http://")
+}
+
+/// The filters in use, unless the user let the site of the page at `page`
+/// load everything.
+fn filters_for(page: &str) -> Option<Arc<Filters>> {
+    let filters = FILTERS.read().ok().and_then(|f| f.clone())?;
     let allowed = ALLOWED.read().is_ok_and(|sites| {
-        let site = host_of(source).map(|h| registrable_domain(&h));
+        let site = host_of(page).map(|h| registrable_domain(&h));
         sites
             .as_ref()
             .zip(site)
             .is_some_and(|(sites, site)| sites.contains(&site))
     });
-    if allowed {
+    (!allowed).then_some(filters)
+}
+
+/// What to do with a `method` request for `url` of type `kind` from a page
+/// at `source`, with the filters and allowed sites in use. Only web pages'
+/// requests for web addresses are checked: not Magnetite's own pages,
+/// extensions or DevTools.
+fn decide(url: &str, source: &str, kind: ResourceType, method: &str) -> Verdict {
+    let Some(kind) = kind_name(kind).filter(|_| is_web(url) && is_web(source)) else {
         return Verdict::Load;
+    };
+    filters_for(source).map_or(Verdict::Load, |f| f.verdict(url, source, kind, method))
+}
+
+/// The script a page at `url` is to run before its own, with the filters
+/// and allowed sites in use: the lists' scriptlets for it. Empty for none,
+/// as for every page that is no web page.
+fn page_script(url: &str) -> String {
+    if !is_web(url) {
+        return String::new();
     }
-    filters.verdict(url, source, kind, method)
+    filters_for(url).map_or_else(String::new, |f| f.page_script(url))
 }
 
 /// The handler for a request a browser (`browser`, if any: service workers
 /// have none) is about to make, when the blocker stops or changes it. The
 /// page counts as the source, so a site's own exceptions and the user's
 /// allowed sites hold for everything in it, also its frames; without a
-/// page, the request's initiator.
+/// page, the request's initiator. The request for a page's document itself
+/// is never stopped: it is where the page's scriptlets are seen to.
 pub(crate) fn resource_request_handler(
     browser: Option<&Browser>,
     request: Option<&Request>,
     initiator: Option<&CefString>,
 ) -> Option<ResourceRequestHandler> {
     // Nothing to ask while the blocker is off: the common case stays cheap.
-    if FILTERS.read().ok().is_none_or(|f| f.is_none()) {
-        return None;
-    }
+    let filters = FILTERS.read().ok().and_then(|f| f.clone());
     let request = request?;
+    if request.resource_type() == ResourceType::MAIN_FRAME {
+        // Also with the blocker off again: a page may still have a script.
+        let scriptlets = filters.is_some_and(|f| f.scriptlets) || crate::scriptlets::in_use();
+        return (scriptlets && browser.is_some()).then(|| crate::scriptlets::exchange(page_script));
+    }
+    filters?;
     let url = CefString::from(&request.url()).to_string();
     let page = browser
         .and_then(ImplBrowser::main_frame)
@@ -198,9 +281,16 @@ mod tests {
 ||beacon.example^$method=post
 ";
 
+    fn list(text: &str) -> List {
+        List {
+            text: text.to_string(),
+            trusted: false,
+        }
+    }
+
     #[test]
     fn requests_are_blocked_by_the_lists_rules() {
-        let filters = Filters::compile([LIST.to_string()]);
+        let filters = Filters::compile([list(LIST)], None);
         let check =
             |url: &str, kind: &str| filters.verdict(url, "https://news.example/", kind, "GET");
         assert_eq!(
@@ -248,10 +338,85 @@ mod tests {
         );
     }
 
+    /// Scriptlets as adblock-rust reads them: `hello` for any list, and
+    /// `trusted-hello` for trusted lists only.
+    fn scriptlets() -> String {
+        use base64::Engine as _;
+        let code = |js: &str| base64::engine::general_purpose::STANDARD.encode(js);
+        serde_json::json!([
+            {
+                "name": "hello.js",
+                "aliases": ["hi.js"],
+                "kind": { "mime": "application/javascript" },
+                "content": code("function hello(a) { window.hello = a; }"),
+            },
+            {
+                "name": "trusted-hello.js",
+                "aliases": [],
+                "kind": { "mime": "application/javascript" },
+                "content": code("function trustedHello(a) { window.trusted = a; }"),
+                "permission": 1,
+            },
+        ])
+        .to_string()
+    }
+
+    const SCRIPTLET_RULES: &str = "\
+||ads.example^
+news.example##+js(hi, 1)
+news.example##+js(trusted-hello, 2)
+news.example##.ad-banner
+";
+
+    #[test]
+    fn a_page_gets_the_scriptlets_the_lists_have_for_it() {
+        let rules = |trusted| List {
+            text: SCRIPTLET_RULES.to_string(),
+            trusted,
+        };
+        let filters = Filters::compile([rules(false)], Some(&scriptlets()));
+        let script = filters.page_script("https://www.news.example/article");
+        // In a scope of its own, with what uBlock Origin's scriptlets expect.
+        assert!(script.starts_with("(function() {\nconst scriptletGlobals = {};\n"));
+        assert!(script.ends_with("})();"));
+        assert!(script.contains("function hello(a)"));
+        assert!(script.contains("hello(\"1\")"));
+        // A scriptlet that needs trust, asked for by a list that has none.
+        assert!(!script.contains("trustedHello"));
+        assert_eq!(filters.page_script("https://other.example/"), "");
+        // The network rules of the same list still hold.
+        assert_eq!(
+            filters.verdict(
+                "https://ads.example/a.js",
+                "https://news.example/",
+                "script",
+                "GET"
+            ),
+            Verdict::Block
+        );
+
+        let trusted = Filters::compile([rules(true)], Some(&scriptlets()));
+        let script = trusted.page_script("https://news.example/");
+        assert!(script.contains("hello(\"1\")") && script.contains("trustedHello(\"2\")"));
+
+        // Without the scriptlets' code, or with code that cannot be read,
+        // no page gets a script.
+        for code in [None, Some("no json")] {
+            let none = Filters::compile([rules(true)], code);
+            assert_eq!(none.page_script("https://news.example/"), "");
+        }
+    }
+
     #[test]
     fn only_web_pages_requests_count_and_allowed_sites_load_everything() {
-        set_filters(Some(Filters::compile([LIST.to_string()])));
+        let lists = [
+            list(LIST),
+            list("news.example,other.example##+js(hello, 1)"),
+        ];
+        set_filters(Some(Filters::compile(lists, Some(&scriptlets()))));
         let ad = "https://ads.example/banner.js";
+        assert_ne!(page_script("https://news.example/"), "");
+        assert_eq!(page_script("magnetite://ui/sidebar"), "");
         assert_eq!(
             decide(
                 ad,
@@ -294,7 +459,11 @@ mod tests {
             decide(ad, "https://other.example/", ResourceType::SCRIPT, "GET"),
             Verdict::Block
         );
+        // An allowed site gets no scriptlets either.
+        assert_eq!(page_script("https://www.news.example/a"), "");
+        assert_ne!(page_script("https://other.example/"), "");
         set_filters(None);
+        assert_eq!(page_script("https://other.example/"), "");
         assert_eq!(
             decide(ad, "https://other.example/", ResourceType::SCRIPT, "GET"),
             Verdict::Load

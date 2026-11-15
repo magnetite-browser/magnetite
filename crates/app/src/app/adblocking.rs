@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::SystemTime;
 
-use magnetite_engine::{Engine, Filters, host_of, registrable_domain};
+use magnetite_engine::{Engine, FilterList, Filters, host_of, registrable_domain};
 use serde_json::{Value, json};
 
 use super::MagnetiteApp;
@@ -73,7 +73,13 @@ impl Blocker {
     /// Compile `lists` and block with them, unless the settings changed
     /// since `generation`.
     fn compile_and_hand_over(&self, generation: u64, dir: &Path, lists: &[String]) {
-        let filters = Filters::compile(adblock::load(dir, lists));
+        // No list is trusted and no scriptlets are handed over yet: the
+        // lists' scriptlet rules stay unused.
+        let lists = (adblock::load(dir, lists).into_iter()).map(|text| FilterList {
+            text,
+            trusted: false,
+        });
+        let filters = Filters::compile(lists, None);
         let current = lock(&self.generation);
         if *current == generation {
             magnetite_engine::set_filters(Some(filters));

@@ -1,7 +1,7 @@
 //! One DevTools-protocol channel per page, in process. Requests carry our own
 //! message ids; replies arrive on the UI thread through an observer that is
 //! registered the first time a page is used. Pages never see any of this:
-//! no domain they could detect (`Runtime`, `Network`) is ever enabled.
+//! the one domain a page could detect, `Runtime`, is never enabled.
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
