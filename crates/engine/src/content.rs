@@ -546,11 +546,15 @@ impl Engine {
 
     /// Which content window owns `browser`, by browser identifier.
     pub(crate) fn content_id_for(&self, browser: Option<&Browser>) -> Option<ContentId> {
-        let ident = browser?.identifier();
+        self.content_id_of(browser?.identifier())
+    }
+
+    /// The page whose browser has `identifier`.
+    pub(crate) fn content_id_of(&self, identifier: i32) -> Option<ContentId> {
         self.lock()
             .contents
             .iter()
-            .find(|(_, c)| c.browser.as_ref().is_some_and(|b| b.identifier() == ident))
+            .find(|(_, c)| c.browser.as_ref().is_some_and(|b| b.identifier() == identifier))
             .map(|(id, _)| *id)
     }
 

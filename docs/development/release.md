@@ -139,10 +139,11 @@ app) with the hardened runtime and a timestamp
 | `app.entitlements` | `Magnetite.app` | camera, microphone, location (pages ask through Chromium) |
 | `helper-renderer.entitlements` | `magnetite Helper (Renderer)` | JIT for V8 |
 | `helper-gpu.entitlements` | `magnetite Helper (GPU)` | JIT for SwiftShader (software WebGL) |
-| `helper-plugin.entitlements` | `magnetite Helper (Plugin)` | unsigned executable memory, other libraries (as Chromium) |
+| `helper.entitlements` | `magnetite Helper` | libraries signed by others: the Widevine module for protected video, which Chromium loads in this helper |
 
-`magnetite Helper` and `magnetite Helper (Alerts)` get the hardened runtime
-without exceptions. The bundle id is `org.magnetitebrowser.magnetite`
+`magnetite Helper (Plugin)` and `magnetite Helper (Alerts)` get the hardened
+runtime without exceptions (Chromium 156 no longer starts anything in the
+plugin helper; CEF's bundle layout still lists it). The bundle id is `org.magnetitebrowser.magnetite`
 (`BUNDLE_ID` in `scripts/lib.sh`); the helpers add `.helper`, `.helper.gpu`
 and so on. Never change it after a release: the keychain entry for cookie
 encryption, macOS preferences and Homebrew's zap list depend on it.

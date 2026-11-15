@@ -76,7 +76,7 @@ sign_macos() {
     case $item in
       *"(Renderer).app") codesign "${flags[@]}" --entitlements "$ent/helper-renderer.entitlements" "$item" ;;
       *"(GPU).app") codesign "${flags[@]}" --entitlements "$ent/helper-gpu.entitlements" "$item" ;;
-      *"(Plugin).app") codesign "${flags[@]}" --entitlements "$ent/helper-plugin.entitlements" "$item" ;;
+      *"Helper.app") codesign "${flags[@]}" --entitlements "$ent/helper.entitlements" "$item" ;;
       *) codesign "${flags[@]}" "$item" ;;
     esac
   done
