@@ -33,8 +33,10 @@ Without that, the build uses the official CEF and everything but those
 formats works the same.
 
 All systems need [Rust](https://rustup.rs) (`rust-toolchain.toml` picks the
-version), CMake, Ninja, Node 22 and pnpm 10 (`corepack enable`, or
-`npm install -g pnpm@10`).
+version), CMake, Ninja, git, Node 22 and pnpm 10 (`corepack enable`, or
+`npm install -g pnpm@10`). Besides CEF, a build fetches uBlock Origin's
+source at a pinned commit once, for the ad blocker's scriptlets
+(`scripts/scriptlets.sh`).
 
 ## macOS
 

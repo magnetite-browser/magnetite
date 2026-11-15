@@ -14,7 +14,8 @@ This is an engineering review, not legal advice.
 Nothing found is incompatible with publishing Magnetite's source and binaries
 under the EUPL-1.2. Everything compiled into our own binaries is permissive.
 The copyleft code we ship (LGPL, MPL, APSL) lives inside the CEF library,
-which keeps its own licences. We ship it unmodified, except on macOS with
+which keeps its own licences, and in one data file of the ad blocker
+(GPL-3.0, "Ad blocker's scriptlets"). We ship it unmodified, except on macOS with
 Apple silicon, where we build it ourselves with public changes ("CEF and
 Chromium").
 
@@ -290,6 +291,44 @@ there follows the same policy (`deny.toml`): no GPL or LGPL code.
   says so under "Name and logo".
 - **`InfoPlist.strings`**, `devtools_menu.js`, `media_hook.js`: our own code.
 
+## Ad blocker's scriptlets
+
+Every package carries a folder `scriptlets/` with three files
+(`scripts/scriptlets.sh` makes it):
+
+- `scriptlets.json`: the scriptlets of
+  [uBlock Origin](https://github.com/gorhill/uBlock), GPL-3.0, from the
+  release pinned in the script. Each scriptlet is one JavaScript function,
+  taken unchanged as text.
+- `LICENSE.txt`: the GPL-3.0, uBlock Origin's own copy.
+- `README.txt`: what the file is, the repository and commit it is from, the
+  copyright holders.
+
+Why this does not make Magnetite a GPL work:
+
+- Nothing of the file is compiled into our binaries or linked with them.
+  The ad blocker reads it at run time as data and hands the scriptlets a
+  filter list asks for to Chromium, which runs them in the web page, next
+  to the page's own scripts. Magnetite runs without the file (a run from
+  the checkout has none); the file works with any program that reads
+  adblock-rust's resource format.
+- The two are separate works distributed together. The GPL calls that an
+  aggregate and leaves the other works' licences alone (GPL-3.0 section 5,
+  last paragraph); the EUPL's copyleft covers derivative works of
+  Magnetite, which the file is not.
+- `deny.toml` still keeps GPL code out of what is compiled: the file is not
+  a crate and never passes through cargo.
+
+Duties, met by the folder itself: the licence text goes along (section 4),
+the file is the source in its preferred form (section 6: JavaScript
+functions as text, with the commit they are from), and no term of ours
+restricts it.
+
+This reading has not been checked by a lawyer.
+
+The filter lists are not distributed by us: each user's copy is downloaded
+from its publisher.
+
 ## CI and tools (used, not distributed)
 
 No duties, because none of these is distributed:
@@ -316,6 +355,8 @@ Source files for packaging:
 - [ ] `Contents/Resources/THIRD_PARTY_NOTICES.md`
 - [ ] `Contents/Resources/CREDITS.html`
 - [ ] `Contents/Resources/COPYRIGHT-library.html`
+- [ ] `Contents/Resources/scriptlets/` with `scriptlets.json`, `LICENSE.txt`
+      and `README.txt` ("Ad blocker's scriptlets")
 - [ ] CEF framework unmodified (re-signing is fine); on Apple silicon the
       one from the magnetite-cef release pinned in `scripts/cef.sh`
 - [ ] Patent question for H.264, AAC and HEVC decided ("CEF and Chromium")
@@ -332,6 +373,7 @@ Source files for packaging:
 - [ ] Next to `magnetite.exe`: `LICENSE.txt` (copy of `LICENSE`),
       `THIRD_PARTY_NOTICES.md`, `CREDITS.html` (Windows CEF distribution),
       `COPYRIGHT-library.html`
+- [ ] The folder `scriptlets` next to `magnetite.exe`, with its three files
 - [ ] CEF files unmodified, including `d3dcompiler_47.dll` and
       `dxcompiler.dll`. If `dxil.dll` is present, add it to the notices.
 - [ ] MSVC runtime: static (`+crt-static`), or Microsoft's redistribution terms
@@ -342,7 +384,9 @@ Source files for packaging:
 
 **Linux build**:
 
-- [ ] Tarball: the four files at the top level, next to the binary
+- [ ] Tarball: the four files at the top level, next to the binary, and the
+      folder `scriptlets` with its three files (the `.deb` and `.rpm` carry
+      it in `/opt/magnetite/`)
 - [ ] `.deb`/`.rpm`: the four files in `/usr/share/doc/magnetite/`. For
       `.deb`, also a `copyright` file there that names EUPL-1.2 and points to
       the notices.

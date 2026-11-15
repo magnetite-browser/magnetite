@@ -7,8 +7,9 @@
 #   Linux    dist/magnetite-<version>/ + magnetite-<version>-linux-<arch>.tar.gz
 #   Windows  dist/magnetite-<version>/ + magnetite-<version>-windows-<arch>.zip
 #
-# Needs Rust (rust-toolchain.toml), cmake, Ninja, Node 22 and pnpm 10. The first
-# build downloads CEF (350 MB and more); set CEF_PATH to keep it outside target/.
+# Needs Rust (rust-toolchain.toml), cmake, Ninja, git, Node 22 and pnpm 10. The
+# first build downloads CEF (350 MB and more; set CEF_PATH to keep it outside
+# target/) and the ad blocker's scriptlets (scripts/scriptlets.sh).
 # macOS signing: MACOS_SIGN_IDENTITY, default "-" (ad hoc, for this computer).
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -39,6 +40,8 @@ if ((ui)); then
   (cd "$ROOT/crates/ui/web" && pnpm install --frozen-lockfile && pnpm build) >&2
 fi
 [[ -f $ui_dist/index.html ]] || die "no sidebar UI in $ui_dist (drop --skip-ui)"
+# The ad blocker's scriptlets: a folder of its own in every package.
+scriptlets="$("$ROOT/scripts/scriptlets.sh")"
 
 log "magnetite $version ($profile_dir) for $os-$arch"
 cargo build --locked --profile "$profile" -p magnetite --bins
@@ -98,6 +101,7 @@ package_macos() {
     [[ $(basename "$entry") == ui ]] || cp -R "$entry" "$app/Contents/Resources/"
   done
   cp -R "$ui_dist" "$app/Contents/Resources/ui"
+  cp -R "$scriptlets" "$app/Contents/Resources/scriptlets"
   copy_licences "$app/Contents/Resources"
   ditto "$fw" "$app/Contents/Frameworks/Chromium Embedded Framework.framework"
 
@@ -150,6 +154,7 @@ package_folder() {
   done
   cp -R "$cef/locales" "$stage/locales"
   cp -R "$ui_dist" "$stage/ui"
+  cp -R "$scriptlets" "$stage/scriptlets"
   copy_licences "$stage"
 
   if [[ $os == linux ]]; then

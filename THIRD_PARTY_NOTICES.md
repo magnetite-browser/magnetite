@@ -8,6 +8,14 @@ checks them); they name packages without versions, which `Cargo.lock` and
 `crates/ui/web/pnpm-lock.yaml` record. Which files go into which package, and why:
 `docs/legal/license-compatibility.md`.
 
+## Next to the app, not part of it
+
+Every package has a folder `scriptlets` with the scriptlets of
+[uBlock Origin](https://github.com/gorhill/uBlock), which the ad blocker
+reads when it loads filter lists. They are under the GNU General Public
+License, version 3: the folder holds the licence text (`LICENSE.txt`) and
+names the source and its copyright holders (`README.txt`).
+
 ## In this repository
 
 | Path | Origin | Licence |

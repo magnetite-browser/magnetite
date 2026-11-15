@@ -122,6 +122,7 @@ fn main() {
         .collect();
     let delegate = Arc::new(app::MagnetiteApp::new(
         data_dir,
+        packaged_scriptlets(),
         import,
         cli.open,
         launch_urls,
@@ -201,22 +202,28 @@ fn helper_path() -> Option<PathBuf> {
     helper.is_file().then_some(helper)
 }
 
-/// macOS bundle: `<App>.app/Contents/Resources/ui`. Linux and Windows
-/// packages: `ui` next to the executable. Dev: `crates/ui/web/dist`.
+/// The folder a package keeps `name` in: `<App>.app/Contents/Resources` in
+/// the macOS bundle, next to the executable in Linux and Windows packages.
+fn packaged(name: &str) -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let dir = exe.parent()?;
+    Some(if cfg!(target_os = "macos") {
+        dir.join("../Resources").join(name)
+    } else {
+        dir.join(name)
+    })
+}
+
+/// The package's `ui` folder. Dev: `crates/ui/web/dist`.
 fn default_ui_dir() -> PathBuf {
-    if let Ok(exe) = std::env::current_exe()
-        && let Some(dir) = exe.parent()
-    {
-        let packaged = if cfg!(target_os = "macos") {
-            dir.join("../Resources/ui")
-        } else {
-            dir.join("ui")
-        };
-        if packaged.is_dir() {
-            return packaged;
-        }
-    }
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../ui/web/dist")
+    (packaged("ui").filter(|dir| dir.is_dir()))
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../ui/web/dist"))
+}
+
+/// The scriptlets' code for the ad blocker (`adblock.rs`), a file of its
+/// own in every package. A run from the checkout has none.
+fn packaged_scriptlets() -> Option<PathBuf> {
+    packaged("scriptlets/scriptlets.json").filter(|file| file.is_file())
 }
 
 #[cfg(test)]

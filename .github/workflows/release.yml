@@ -74,13 +74,15 @@ jobs:
       - uses: ./.github/actions/setup
 
       # Everything that runs other people's code (crate build scripts and
-      # macros, npm's build tools) runs before the Developer ID certificate
-      # is in the keychain; after it, build.sh only packages and signs (its
-      # cargo build finds nothing left to do).
+      # macros, npm's build tools, uBlock Origin's scriptlet modules) runs
+      # before the Developer ID certificate is in the keychain; after it,
+      # build.sh only packages and signs (its cargo build finds nothing left
+      # to do, and the scriptlets are made).
       - name: Build
         run: |
           (cd crates/ui/web && pnpm install --frozen-lockfile && pnpm build)
           cargo build --locked --profile release -p magnetite --bins
+          scripts/scriptlets.sh
 
       - name: Developer ID certificate
         if: runner.os == 'macOS'

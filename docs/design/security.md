@@ -137,9 +137,15 @@ from a context Magnetite did not make is not opened.
   of the first start, which shows the same controls, may read the code or
   change the chain. Details in `docs/spec/sync.md` and ADR-0005.
 - Ad blocking: the filter lists the user chose, and nothing while it is off.
-  `https://` only, at most 5 redirects, 16 MB per list, a web page in place
+  `https://` only, at most 5 redirects, 16 MB per file, a web page in place
   of a list is refused. Only the download is sent; what pages are opened
   and what is blocked stays on this computer (`docs/spec/ad-blocking.md`).
+  A list can make pages run scriptlets, but only code that came with the
+  package (`scriptlets/scriptlets.json`, uBlock Origin's at a pinned
+  commit): a list names a scriptlet and its arguments, it cannot bring
+  script of its own. The scriptlets that can do a page anything are open to
+  uBlock Origin's lists alone, so whoever publishes those lists is trusted
+  with the pages of users who chose them.
 - Sync server: lives in the magnetite-sync repository, with its own
   security notes (README "Limits", `docs/design.md`,
   `docs/public-instance.md`).

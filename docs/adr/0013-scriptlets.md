@@ -1,8 +1,7 @@
 # ADR-0013: Scriptlets reach a page through its DevTools channel
 
-- Status: accepted (2026-11-15). The way into the page is built and checked
-  in a running build; the scriptlets themselves and lists that use them are
-  not shipped yet (`docs/spec/ad-blocking.md`, "Not built yet").
+- Status: accepted (2026-11-15), built and checked in a running build
+  (`docs/spec/ad-blocking.md`, "Scriptlets").
 
 ## Context
 
