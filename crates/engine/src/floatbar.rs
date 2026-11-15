@@ -70,6 +70,7 @@ impl Engine {
     /// hear of it: wheel events do not say where one swipe ends and the next
     /// begins, and the momentum of a swipe outlasts the fingers
     /// (`useSpaceSwipe.ts`).
+    #[cfg(target_os = "macos")]
     pub(crate) fn swipe_began(&self) {
         let docked = self
             .lock()
