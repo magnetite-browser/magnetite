@@ -73,10 +73,7 @@ impl Blocker {
     /// Compile `lists` and block with them, unless the settings changed
     /// since `generation`.
     fn compile_and_hand_over(&self, generation: u64, dir: &Path, lists: &[String]) {
-        // SPIKE: scriptlets from a file named by the environment.
-        let scriptlets = std::env::var_os("MAGNETITE_SCRIPTLETS").and_then(|p| std::fs::read_to_string(p).ok());
-        let texts = adblock::load(dir, lists).into_iter().map(|text| magnetite_engine::FilterList { text, trusted: true });
-        let filters = Filters::compile(texts, scriptlets.as_deref());
+        let filters = Filters::compile(adblock::load(dir, lists));
         let current = lock(&self.generation);
         if *current == generation {
             magnetite_engine::set_filters(Some(filters));

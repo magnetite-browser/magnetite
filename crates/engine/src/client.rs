@@ -271,9 +271,6 @@ wrap_life_span_handler! {
             if let Some(r) = engine.lock().router.clone() {
                 r.on_before_close(browser.as_deref().cloned());
             }
-            if let Some(b) = browser.as_deref() {
-                crate::scriptlets::page_closed(b.identifier());
-            }
             engine.on_browser_closed(self.kind, browser.as_deref());
         }
     }
