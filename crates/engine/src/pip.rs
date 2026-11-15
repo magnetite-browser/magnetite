@@ -440,7 +440,7 @@ pub(crate) fn follow(id: ContentId, media: Option<&MediaState>) {
 }
 
 /// The floating video window `window` stands for: itself, or the video
-/// under our panel. For gestures on the video (`mac::install_pip_swipe`).
+/// under our panel. For gestures on the video (`mac::install_swipe_monitor`).
 pub(crate) fn video_window_for(window: &NSWindow) -> Option<Retained<NSWindow>> {
     if is_video_window(window) {
         return Some(window.retain());

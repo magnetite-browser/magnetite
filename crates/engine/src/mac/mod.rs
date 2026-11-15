@@ -5,8 +5,8 @@
 //! it installs our menu bar, `menubar.rs`), adapted from the cef-rs
 //! `cefsimple` example (Apache-2.0 OR MIT). Next to them: tweaks to CEF's
 //! own windows (pinned, rounded corners, the focus ring of a split page,
-//! hidden or shown, shown without taking focus), swipes that fling the
-//! floating video to a screen edge, and helpers for the child modules:
+//! hidden or shown, shown without taking focus), the watch on two-finger
+//! swipes, stale tooltips, and helpers for the child modules:
 //!
 //! - `chrome`: our child windows over the page area (drag strip, peek
 //!   backdrop, the hidden sidebar's edge, split dividers);
@@ -329,17 +329,25 @@ pub fn round_window_corners(handle: cef::sys::cef_window_handle_t, radius: f64, 
     }
 }
 
-/// Two-finger swipes on the floating video window (picture-in-picture) fling
-/// it to the screen edge in the swipe's direction; diagonal swipes reach a
-/// corner. Quicker than dragging. Installed once on the UI (main) thread.
-pub fn install_pip_swipe() {
+/// Watches two-finger swipes, once, on the UI (main) thread:
+///
+/// - each one that begins is reported to the sidebars (`Engine::swipe_began`),
+///   which cannot tell a new swipe from the momentum of the last one;
+/// - on the floating video window (picture-in-picture) a swipe flings it to
+///   the screen edge in the swipe's direction; diagonal swipes reach a
+///   corner. Quicker than dragging.
+pub fn install_swipe_monitor() {
     use block2::RcBlock;
-    use objc2_app_kit::{NSEvent, NSEventMask};
+    use objc2_app_kit::{NSEvent, NSEventMask, NSEventPhase};
     use std::ptr::NonNull;
 
     let handler = RcBlock::new(|event: NonNull<NSEvent>| -> *mut NSEvent {
         // SAFETY: AppKit passes a live event for the duration of the call.
         let ev = unsafe { event.as_ref() };
+        if ev.phase().contains(NSEventPhase::Began) {
+            // Not from inside an AppKit callback.
+            Engine::post(Box::new(|| Engine::global().swipe_began()));
+        }
         if let Some(mtm) = MainThreadMarker::new()
             && let Some(window) = ev.window(mtm)
             && let Some(video) = crate::pip::video_window_for(&window)
@@ -354,6 +362,55 @@ pub fn install_pip_swipe() {
     };
     // The monitor lives as long as the app.
     std::mem::forget(monitor);
+}
+
+/// A window that loses the keyboard loses the tooltips of its pages.
+/// Chromium takes a page's tooltip changes only while its window has the
+/// keyboard and drops the rest, also the change that takes a tooltip away.
+/// A tooltip set just before (by the click in the floating sidebar that
+/// shows a tab, say) stayed for good, and showed wherever the pointer
+/// rested on that page. Installed once on the UI (main) thread.
+pub fn clear_tooltips_without_keyboard() {
+    use block2::RcBlock;
+    use objc2_app_kit::{NSWindow, NSWindowDidResignKeyNotification};
+    use objc2_foundation::{NSNotification, NSNotificationCenter};
+    use std::ptr::NonNull;
+
+    let resigned = RcBlock::new(|notification: NonNull<NSNotification>| {
+        // SAFETY: AppKit passes a live notification for the duration of the call.
+        let window = unsafe { notification.as_ref() }
+            .object()
+            .and_then(|o| o.downcast::<NSWindow>().ok());
+        if let Some(root) = window.and_then(|w| w.contentView()) {
+            clear_tooltips(&root);
+        }
+    });
+    // SAFETY: an AppKit notification name; the block runs on the main thread,
+    // where windows post it.
+    let observer = unsafe {
+        NSNotificationCenter::defaultCenter().addObserverForName_object_queue_usingBlock(
+            Some(NSWindowDidResignKeyNotification),
+            None,
+            None,
+            &resigned,
+        )
+    };
+    // The observer lives as long as the app.
+    std::mem::forget(observer);
+}
+
+/// Take the tooltip off every Chromium page view below `view`.
+fn clear_tooltips(view: &objc2_app_kit::NSView) {
+    use objc2_foundation::NSString;
+    // Chromium's own way to set a page view's tooltip (`ToolTipBaseView`).
+    if view.respondsToSelector(sel!(setToolTipAtMousePoint:)) {
+        let none: Option<&NSString> = None;
+        // SAFETY: the view implements the selector; it takes a nullable string.
+        let _: () = unsafe { msg_send![view, setToolTipAtMousePoint: none] };
+    }
+    for child in view.subviews() {
+        clear_tooltips(&child);
+    }
 }
 
 thread_local! {

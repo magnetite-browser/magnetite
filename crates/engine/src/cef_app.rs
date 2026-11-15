@@ -193,7 +193,9 @@ wrap_browser_process_handler! {
             engine.lock().router = Some(router::create_browser_router());
             engine.start_tick();
             #[cfg(target_os = "macos")]
-            crate::mac::install_pip_swipe();
+            crate::mac::install_swipe_monitor();
+            #[cfg(target_os = "macos")]
+            crate::mac::clear_tooltips_without_keyboard();
             #[cfg(target_os = "macos")]
             crate::mac::watch_memory_pressure();
             engine.emit(EngineEvent::Ready);

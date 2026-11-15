@@ -611,6 +611,8 @@ declare global {
       captureReady: (r: CaptureInfo) => void;
       captureFailed: (r: { error: string }) => void;
       captureBusy: (r: { what: string }) => void;
+      /** macOS: a two-finger swipe began somewhere in the app. */
+      swipeBegan: () => void;
     };
   }
 }
@@ -759,6 +761,7 @@ const prompts = cached(() => send({ cmd: "permission_prompts" }).then((r) => r.i
 const updates = cached(() => send({ cmd: "update_status" }).then((u) => (u.status ? u : undefined)));
 const notices = signal<string>();
 const captures = signal<CaptureEvent>();
+const swipes = signal();
 
 window.__magnetite = {
   setState: states.emit,
@@ -776,6 +779,7 @@ window.__magnetite = {
   captureReady: (info) => captures.emit({ kind: "ready", info }),
   captureFailed: ({ error }) => captures.emit({ kind: "failed", error }),
   captureBusy: ({ what }) => captures.emit({ kind: "busy", what }),
+  swipeBegan: swipes.emit,
 };
 
 /** The UI state, now (once the app sent it) and on every push. */
@@ -798,6 +802,8 @@ export const onOpenHistory = historyOpens.on;
 export const onOpenArchive = archiveOpens.on;
 /** Results of the capture tool, for the sidebar toast. */
 export const onCapture = captures.on;
+/** macOS: each two-finger swipe as it begins, anywhere in the app. */
+export const onSwipeBegan = swipes.on;
 export const onSiteDataCleared = clearReports.on;
 /** Copy results from keyboard shortcuts pressed in a page window. */
 export const onCopied = copies.on;
