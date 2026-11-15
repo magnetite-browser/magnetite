@@ -81,7 +81,9 @@ fn want(browser: i32, script: String, hold: Hold) -> bool {
     let mut pages = pages();
     let known = pages.as_ref().and_then(|p| p.get(&browser));
     let same = match known {
-        Some(page) => page.wanted == script && page.applied == script,
+        // Not while an exchange is under way: `applied` is what Chromium
+        // had before it.
+        Some(page) => !page.busy && page.wanted == script && page.applied == script,
         None => script.is_empty(),
     };
     if same {
@@ -157,18 +159,31 @@ fn apply(browser: i32) {
     }
 }
 
-/// Chromium answered: it has `script` for page `browser` now, under
-/// `identifier`. An error counts as well, or the exchange would be tried
-/// forever: removing a script answers "Script not found" although the
-/// script is gone afterwards (CEF 156).
+/// Chromium answered the exchange to `script` for page `browser`: it has
+/// the script under `identifier`. Without one, an added script was not
+/// taken and the page has none, the old one being removed. That is not
+/// tried again at once, or a page Chromium refuses would be asked forever:
+/// the next request for a document does. Removing answers "Script not
+/// found" although the script is gone afterwards (CEF 156), so the answer
+/// to a removal is not looked at.
 fn exchanged(browser: i32, script: String, identifier: Option<String>) {
-    if let Some(page) = pages().as_mut().and_then(|p| p.get_mut(&browser)) {
-        page.applied = script;
-        page.identifier = identifier;
+    let given_up = {
+        let mut pages = pages();
+        let Some(page) = pages.as_mut().and_then(|p| p.get_mut(&browser)) else {
+            return;
+        };
+        let failed = identifier.is_none() && !script.is_empty();
         page.busy = false;
+        page.identifier = identifier;
+        let still_wanted = page.wanted == script;
+        page.applied = if failed { String::new() } else { script };
+        (failed && still_wanted).then(|| std::mem::take(&mut page.waiting))
+    };
+    match given_up {
+        Some(waiting) => waiting.iter().for_each(Hold::release),
+        // Wanted may have changed meanwhile.
+        None => apply(browser),
     }
-    // Wanted may have changed meanwhile.
-    apply(browser);
 }
 
 /// Page `browser` closed: its requests still waiting are let go.
