@@ -161,10 +161,16 @@ jobs:
         working-directory: dist
         run: sha256sum -- *.zip *.dmg *.tar.gz *.rpm *.deb >SHA256SUMS
 
+      # The notes: GitHub's list of the pull requests since the last
+      # release, for a maintainer to rewrite, then the install table.
       - name: Create the draft
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$GITHUB_REF_NAME" --jq .body >"$RUNNER_TEMP/notes.md"
+          echo >>"$RUNNER_TEMP/notes.md"
+          scripts/release/release-notes.sh "$VERSION" dist >>"$RUNNER_TEMP/notes.md"
           gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
-            --title "Magnetite $VERSION" --generate-notes \
+            --title "Magnetite $VERSION" --notes-file "$RUNNER_TEMP/notes.md" \
             dist/*.zip dist/*.dmg dist/*.tar.gz dist/*.rpm dist/*.deb dist/*.deb.asc dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS

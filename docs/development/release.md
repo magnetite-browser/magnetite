@@ -303,7 +303,12 @@ tap stays for those who installed from it.
   are prepared for one; CI and the release workflow get their Windows entry
   back once a build has been tried.
 - An installed older version offers the update once the release is public.
-- The release notes say what changed in words a user understands.
+- The release notes say what changed in words a user understands. The draft
+  starts with GitHub's list of the pull requests since the last release:
+  rewrite that part ("Fixed", "New", with links to the issues) and add what
+  users should know about this version. The "Install" section below it is
+  made from the release's packages (`scripts/release/release-notes.sh`);
+  leave it as it is.
 
 Then publish (not as a pre-release, unless it is one) and run "Update cask"
 in the tap (above).
