@@ -48,9 +48,9 @@ Quirks found during the spike (documented so nobody re-discovers them):
 
 ## Decision
 
-Adopt `cef-rs`. Pin the exact `cef` version in `Cargo.toml`; a CEF security
-update is a one-line bump plus CI run. Contribute fixes upstream where we hit
-binding bugs.
+Adopt `cef-rs`. Pin the exact `cef` version in `Cargo.toml`. Contribute fixes
+upstream where we hit binding bugs. What a CEF update takes is described
+under "Our fork".
 
 ## Our fork
 
