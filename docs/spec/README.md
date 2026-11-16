@@ -19,7 +19,7 @@ changes them ([shortcuts.md](shortcuts.md)).
 | [split-view.md](split-view.md) | several pages side by side |
 | [peek.md](peek.md) | a link opened over the page, without leaving it |
 | [mini-window.md](mini-window.md) | a page in a small window of its own, for links from other apps and the quick search from anywhere |
-| [site-controls.md](site-controls.md) | address row, site panel, permissions, DevTools, capture |
+| [site-controls.md](site-controls.md) | address row, site panel, permissions, own CSS and JavaScript per site, DevTools, capture |
 | [shortcuts.md](shortcuts.md) | giving the shortcuts other keys, which ones are fixed, how they sync |
 | [ad-blocking.md](ad-blocking.md) | blocking ads and trackers with filter lists the user chooses |
 | [passwords-and-autofill.md](passwords-and-autofill.md) | Chromium's password manager and autofill: switches, saved lists, what stays local |

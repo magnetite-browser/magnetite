@@ -1,8 +1,8 @@
 // The welcome page (magnetite://ui/welcome): the app opens it once, as a tab,
 // at the first start. It asks what to bring along: sync with other devices,
 // tabs from another browser, which search engine to use, whether to block
-// ads and with which lists, what happens to tabs left alone, whether
-// Magnetite should be the default browser.
+// ads and with which lists, what happens to tabs left alone, where links
+// from other apps open and whether Magnetite should be the default browser.
 // Nothing is read, sent or changed before the user chooses; the chosen
 // browsers are read and the system asked about the default browser at the
 // end, with "Start browsing". Everything here is in Settings too.
@@ -12,6 +12,7 @@ import { send, type ImportSource } from "./bridge";
 import { AdblockChoice } from "./settings/AdblockSection";
 import { Toggle } from "./settings/fields";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
+import { EXTERNAL_LINKS } from "./settings/externalLinks";
 import { keysLabel, SHORTCUT_LABEL, type ShortcutAction } from "./settings/shortcutKeys";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
@@ -179,13 +180,13 @@ export function Welcome() {
                 Magnetite tidies up behind you. Both can be changed later in Settings → Tabs &amp; archive.
               </Heading>
               <div className="set-card flex flex-col gap-5">
-                <Times
+                <Choices
                   title="Unload a page that has been off screen for"
                   hint="An unloaded page uses no memory and loads again when you open its tab. Shorter saves memory, longer keeps more pages ready. Favorites stay loaded."
                   options={UNLOAD_AFTER.map((t) => ({ label: t.label, on: info.settings.unload_minutes === t.minutes, patch: { unload_minutes: t.minutes } }))}
                   choose={choose}
                 />
-                <Times
+                <Choices
                   title="Archive a Today tab not used for"
                   hint="Archived tabs leave the sidebar and can be found again in the archive. Pinned tabs and favorites are never archived."
                   options={ARCHIVE_AFTER.map((t) => ({ label: t.label, on: info.settings.auto_archive_hours === t.hours, patch: { auto_archive_hours: t.hours } }))}
@@ -210,6 +211,14 @@ export function Welcome() {
                     </div>
                   ))}
                 </div>
+              </div>
+              <div className="set-card">
+                <Choices
+                  title="Open links from other apps in"
+                  hint="Links from Mail, Slack and other apps, when Magnetite is your default browser. A mini window is a small window of its own; one click moves its page into a space."
+                  options={EXTERNAL_LINKS.map((o) => ({ label: o.label, on: info.settings.external_links === o.value, patch: { external_links: o.value } }))}
+                  choose={choose}
+                />
               </div>
               {info.default_browser === "no" && (
                 <Toggle
@@ -248,8 +257,8 @@ export function Welcome() {
   );
 }
 
-/** One question of the tabs step: a row of times to choose from. */
-function Times({ title, hint, options, choose }: { title: string; hint: string; options: { label: string; on: boolean; patch: SettingsPatch }[]; choose: (patch: SettingsPatch) => void }) {
+/** One question with a row of answers to choose from. */
+function Choices({ title, hint, options, choose }: { title: string; hint: string; options: { label: string; on: boolean; patch: SettingsPatch }[]; choose: (patch: SettingsPatch) => void }) {
   return (
     <div>
       <div className="text-[14px] font-medium">{title}</div>

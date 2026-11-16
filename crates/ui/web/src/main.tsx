@@ -11,6 +11,7 @@ import { Notifications } from "./Notifications";
 import { SplitDrop } from "./SplitDrop";
 import { SettingsPage } from "./SettingsPage";
 import { SmartFolderDialog } from "./SmartFolderDialog";
+import { Switcher } from "./Switcher";
 import { TopBar } from "./TopBar";
 import { TopBarPopup } from "./TopBarPopup";
 import { Welcome } from "./Welcome";
@@ -26,6 +27,7 @@ function Route() {
   if (path.startsWith("/command")) return <CommandPalette />;
   if (path.startsWith("/notifications")) return <Notifications />;
   if (path.startsWith("/splitdrop")) return <SplitDrop />;
+  if (path.startsWith("/switcher")) return <Switcher />;
   if (path.startsWith("/device")) return <DeviceBar />;
   if (path.startsWith("/smart-folder")) return <SmartFolderDialog />;
   if (path.startsWith("/topbar")) return <TopBar />;

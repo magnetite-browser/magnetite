@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # CI only: put the Developer ID certificate into a temporary keychain and
-# export its identity as MACOS_SIGN_IDENTITY for scripts/build.sh.
+# export its identity as MACOS_SIGN_IDENTITY for scripts/build.sh. With a
+# provisioning profile, write it to a file and export its path as
+# MACOS_PROVISIONING_PROFILE.
 #
 # Env: APPLE_CERTIFICATE_P12_BASE64  base64 of the .p12 (certificate + private key)
 #      APPLE_CERTIFICATE_PASSWORD    the .p12's password
+#      APPLE_PROVISIONING_PROFILE_BASE64  optional: base64 of the Developer ID
+#                                    provisioning profile (passkeys)
 #      RUNNER_TEMP, GITHUB_ENV       set by GitHub Actions
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"
@@ -28,3 +32,10 @@ identity="$(security find-identity -v -p codesigning "$keychain" | awk '/Develop
 [[ -n $identity ]] || die "no Developer ID Application identity in the certificate"
 echo "MACOS_SIGN_IDENTITY=$identity" >>"$GITHUB_ENV"
 log "signing identity $identity"
+
+if [[ -n ${APPLE_PROVISIONING_PROFILE_BASE64:-} ]]; then
+  profile="$RUNNER_TEMP/magnetite.provisionprofile"
+  printf '%s' "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 --decode >"$profile"
+  echo "MACOS_PROVISIONING_PROFILE=$profile" >>"$GITHUB_ENV"
+  log "provisioning profile for passkeys"
+fi

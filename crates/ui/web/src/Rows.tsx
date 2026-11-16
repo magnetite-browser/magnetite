@@ -3,7 +3,7 @@ import { Favicon } from "./Favicon";
 import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, SmartFolderIcon, Speaker, SpeakerOff, WarningIcon } from "./Icons";
 import { ago, findFolder } from "./smart";
 import { Glyph, glyphFor } from "./Glyphs";
-import { dragging, dropIndex, endDrag, indexAfterTaking, overRowMiddle, sideOf, splittable, startDrag } from "./dnd";
+import { dragging, dropIndex, endDrag, indexAfterTaking, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
 import { findTab, hostOf, send, splitIds, type FavoriteList, type Folder, type SidebarNode, type Side, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 
@@ -226,8 +226,8 @@ const TabRowInner = memo(
         onDragOver={(e) => {
           const d = dragging();
           if (!d || d.id === tab.id) return;
-          // A folder is placed among the top-level pinned items only.
-          if (d.kind === "folder" && (section !== "pinned" || folderId)) return;
+          // A folder goes among pinned items, but not into itself.
+          if (d.kind === "folder" && (section !== "pinned" || (folderId && !takesFolder(ctx.state, folderId, d.id)))) return;
           e.preventDefault();
           // Middle of another tab: preview the pair, the new tab on the half
           // under the pointer. Edges: reorder.
@@ -349,9 +349,22 @@ export function RenameInput({ value, onCommit, onCancel }: { value: string; onCo
   );
 }
 
-export function FolderRow({ ctx, folder, index, depth, onDropAt }: { ctx: RowContext; folder: Folder; index: number; depth: number; onDropAt: (index: number) => void }) {
+/**
+ * May folder `dragged` go into folder `target`? Not into itself or a folder
+ * inside it, and not into a smart folder, which lists what its service has.
+ */
+function takesFolder(state: UiState, target: string, dragged: string): boolean {
+  if (target === dragged) return false;
+  const holds = (nodes: SidebarNode[]): boolean => nodes.some((n) => n.kind === "folder" && (n.id === target || holds(n.children)));
+  const moved = findFolder(state, dragged)?.folder;
+  return !findFolder(state, target)?.folder.smart && !(moved && holds(moved.children));
+}
+
+/** A folder's row with what it holds below; `parentId`: the folder it is in. */
+export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { ctx: RowContext; folder: Folder; index: number; depth: number; parentId?: string; onDropAt: (index: number) => void }) {
   const [open, setOpen] = useState(() => localStorage.getItem("folder:" + folder.id) !== "closed");
-  const [overInside, setOverInside] = useState(false);
+  // Where a dragged tab or folder would go: into this folder, or beside it.
+  const [over, setOver] = useState<"before" | "inside" | "after" | null>(null);
   // Where the menu opened: the icon picker opens there too.
   const menuAt = useRef({ x: 0, y: 0 });
   const renaming = ctx.renaming === folder.id;
@@ -388,6 +401,13 @@ export function FolderRow({ ctx, folder, index, depth, onDropAt }: { ctx: RowCon
         { label: "Rename folder", onClick: () => ctx.setRenaming(folder.id) },
         { label: "Change icon…", onClick: () => changeIcon(menuAt.current.x, menuAt.current.y) },
         { label: open ? "Collapse" : "Expand", onClick: toggle },
+        {
+          label: "New folder inside",
+          onClick: () => {
+            send({ cmd: "new_folder", title: "", parent: folder.id });
+            if (!open) toggle();
+          },
+        },
         SEPARATOR,
         { label: "Turn into smart folder…", onClick: settings },
         SEPARATOR,
@@ -399,8 +419,10 @@ export function FolderRow({ ctx, folder, index, depth, onDropAt }: { ctx: RowCon
   return (
     <div>
       <div
-        className="row"
-        data-active={overInside || undefined}
+        className="row drop"
+        data-active={over === "inside" || undefined}
+        data-before={over === "before" || undefined}
+        data-after={over === "after" || undefined}
         title={title}
         draggable={!renaming}
         onDragStart={(e) => startDrag(e, { kind: "folder", id: folder.id })}
@@ -408,17 +430,32 @@ export function FolderRow({ ctx, folder, index, depth, onDropAt }: { ctx: RowCon
         onDragOver={(e) => {
           const d = dragging();
           if (!d || d.id === folder.id) return;
+          if (d.kind === "tab") {
+            e.preventDefault();
+            return setOver("inside");
+          }
+          // A folder: the edges place it beside this one, the middle inside.
+          // Below an open folder's row its first item follows, so the lower
+          // edge means inside as well.
+          const inside = takesFolder(ctx.state, folder.id, d.id);
+          let zone = rowZone(e);
+          if (zone === "after" && open && folder.children.length > 0) zone = "inside";
+          if (zone === "inside" && !inside) return setOver(null);
+          // Beside this folder is inside its parent, which may be the dragged one.
+          if (zone !== "inside" && parentId && !takesFolder(ctx.state, parentId, d.id)) return setOver(null);
           e.preventDefault();
-          setOverInside(d.kind === "tab");
+          setOver(zone);
         }}
-        onDragLeave={() => setOverInside(false)}
+        onDragLeave={() => setOver(null)}
         onDrop={(e) => {
           e.preventDefault();
           const d = dragging();
-          setOverInside(false);
-          if (!d) return;
+          const zone = over;
+          setOver(null);
+          if (!d || !zone) return;
           if (d.kind === "tab") send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "pinned", index: 0, folder: folder.id });
-          else onDropAt(dropIndex(e, index));
+          else if (zone === "inside") send({ cmd: "move_folder", id: d.id, index: 0, folder: folder.id });
+          else onDropAt(zone === "before" ? index : index + 1);
           endDrag();
         }}
         onClick={() => {
@@ -472,8 +509,7 @@ export function NodeList({ ctx, nodes, depth, folderId }: { ctx: RowContext; nod
     if (!d) return;
     const at = indexAfterTaking(nodes, d.id, index);
     if (d.kind === "tab") send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "pinned", index: at, folder: folderId });
-    // A folder is placed among the top-level items only (`move_folder` counts there).
-    else if (!folderId) send({ cmd: "move_folder", id: d.id, index: at });
+    else send({ cmd: "move_folder", id: d.id, index: at, folder: folderId });
   };
   return (
     <>
@@ -481,7 +517,7 @@ export function NodeList({ ctx, nodes, depth, folderId }: { ctx: RowContext; nod
         n.kind === "tab" ? (
           <TabRow key={n.id} ctx={ctx} tab={n} section="pinned" index={i} folderId={folderId} onDropAt={dropTab} />
         ) : (
-          <FolderRow key={n.id} ctx={ctx} folder={n} index={i} depth={depth} onDropAt={dropTab} />
+          <FolderRow key={n.id} ctx={ctx} folder={n} index={i} depth={depth} parentId={folderId} onDropAt={dropTab} />
         ),
       )}
     </>

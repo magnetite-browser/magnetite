@@ -20,9 +20,11 @@ it as a tab, or put it beside the current tab in split view.
   lock follows the pin state within a minute.
 - Links opened in the background (`Cmd`+click, middle click) become
   background Today tabs, never a peek.
-- Settings → General → "Open links from other apps in" offers "a new tab in
-  the current space" (the default), "a peek window" and "a mini window"
-  (`mini-window.md`).
+- Settings → General → "Open links from other apps in" offers "a mini
+  window" (the default, `mini-window.md`), "a new tab in the current space"
+  and "a peek window".
+- A rule can send the links to a site to a space of their own
+  (`spaces.md`, "Links from other apps").
 - An address Magnetite does not open from that source, such as
   `javascript:` or `data:`, opens nothing.
 
@@ -35,7 +37,8 @@ it as a tab, or put it beside the current tab in split view.
   tab in front or switching tabs closes it.
 - The peek runs in the profile of the page that opened it. A link from
   another app, or one picked in the command bar, runs in the active
-  space's profile.
+  space's profile; a link from another app to a site with a rule runs in
+  the profile of the rule's space (`spaces.md`, "Links from other apps").
 - A link inside the peek navigates the peek. A link there that asks for a
   new tab or window opens as a Today tab, and the peek closes.
 - While a peek is open, reload, back and forward (the sidebar's buttons and

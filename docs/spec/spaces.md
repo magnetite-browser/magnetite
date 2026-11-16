@@ -104,6 +104,33 @@ device"). A separate profile that only such spaces use stays there with
 them and is marked "only on this device" in the list (`sync.md`, "Only on
 this device").
 
+## Links from other apps
+
+A link from another app opens in the space in front, unless a rule names
+another space for its site.
+
+| Setting | Values |
+|---|---|
+| Settings → General → "Links to these sites open in a space of their own" | a list of rules: a site and a space |
+
+- A site is a host (`github.com`) or a host and the start of a path
+  (`github.com/acme`). Typed as a whole address, its host and path are
+  kept, in lower case and without `www.`.
+- A rule fits a link on its host or a subdomain of it, under its path:
+  `github.com/acme` fits `github.com/acme/app`, not `github.com/acmecorp`.
+  Of several rules that fit, the one with the longest host counts, then
+  the longest path.
+- Where the link opens stays what Settings → General → "Open links from
+  other apps in" says (`peek.md`, `mini-window.md`): as a new tab it opens
+  in the rule's space, which comes to the front; as a peek or a mini
+  window it opens with the logins of that space's profile. Of several
+  links handed over at once as peeks, only the last is one; the others
+  become background tabs, each in the space its rule names.
+- A rule whose space is gone does nothing, and a less exact rule that fits
+  counts in its place; Settings marks it until another space is chosen or
+  the rule removed.
+- At most 100 rules, one per site. They stay on the device.
+
 ## Data
 
 - `<data-dir>/state.json`: spaces (in display order) and profiles as part

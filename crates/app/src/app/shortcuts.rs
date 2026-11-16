@@ -190,11 +190,7 @@ impl MagnetiteApp {
                 self.push_state(engine);
             }
             Shortcut::NextTab | Shortcut::PrevTab => {
-                let forward = shortcut == Shortcut::NextTab;
-                let target = self.with_state(|s| s.cycle_tab(forward));
-                if let Some(t) = target {
-                    self.activate_tab(engine, &t);
-                }
+                self.cycle_tab(engine, shortcut == Shortcut::NextTab);
             }
             Shortcut::SelectTab(n) => {
                 // Tabs count from 1; a 0 from a page names none.

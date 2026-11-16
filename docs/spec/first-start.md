@@ -18,7 +18,7 @@ returns to the one before, and the bar at the bottom left shows the place.
 | Search | the search engines of Settings → Search, the current one (DuckDuckGo at first) marked; a choice takes effect at once | "Continue" |
 | Ads | "Block ads and trackers" (off) and, once on, the filter lists to choose from, none chosen: the controls of Settings → Ad blocking (`ad-blocking.md`); a choice takes effect at once | "Continue" |
 | Tabs | when a page off screen is unloaded (4 hours at first, or never) and when an unused Today tab is archived (12 hours at first), the times of Settings → Tabs & archive; a choice takes effect at once | "Continue" |
-| Done | which browsers will be imported, five keys for the first day, and "Make Magnetite the default browser" (off) | "Start browsing" |
+| Done | which browsers will be imported, five keys for the first day, where links from other apps open (a mini window at first, a new tab or a peek window; a choice takes effect at once) and "Make Magnetite the default browser" (off) | "Start browsing" |
 
 - Sync comes before the import because a device that joins a chain takes
   the chain's sidebar in place of its own: what was imported before would

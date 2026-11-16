@@ -43,6 +43,8 @@ pub(super) fn state() -> AppState {
         deleted_profiles: vec![],
         unsynced_spaces: std::collections::BTreeSet::new(),
         first_start: false,
+        recent_tabs: Vec::new(),
+        switcher: None,
         synced_sidebar: None,
         settings: Settings::default(),
         sidebar_visible: true,

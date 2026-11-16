@@ -212,7 +212,7 @@ export function App() {
         </div>
 
         {/* Pinned tabs and folders, then one divider, then Today. No labels: position says it. */}
-        <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: space.pinned.length }); endDrag(); }}>
+        <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: space.pinned.length }); else if (d) send({ cmd: "move_folder", id: d.id, index: indexAfterTaking(space.pinned, d.id, space.pinned.length) }); endDrag(); }}>
           <NodeList ctx={ctx} nodes={space.pinned} depth={0} />
         </div>
 
@@ -321,8 +321,12 @@ function useFloatLifecycle(): number {
     if (!FLOAT) return;
     let timer: number | undefined;
     const root = document.documentElement;
-    const leave = () => (timer = window.setTimeout(() => send({ cmd: "float_sidebar", show: false }), 280));
     const enter = () => window.clearTimeout(timer);
+    // One timer at most: a second leave without an enter must not leave one behind that hides the sidebar under the pointer.
+    const leave = () => {
+      enter();
+      timer = window.setTimeout(() => send({ cmd: "float_sidebar", show: false }), 280);
+    };
     const visible = () => document.visibilityState === "visible" && setShownAt(Date.now());
     root.addEventListener("mouseleave", leave);
     root.addEventListener("mouseenter", enter);

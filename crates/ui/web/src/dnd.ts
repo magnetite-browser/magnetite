@@ -47,6 +47,16 @@ export function overRowMiddle(e: React.DragEvent): boolean {
   return y > 0.3 && y < 0.7;
 }
 
+/**
+ * Where over a folder's row the pointer is: its edges place a dragged folder
+ * before or after it, the middle puts it inside.
+ */
+export function rowZone(e: React.DragEvent): "before" | "inside" | "after" {
+  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const y = (e.clientY - rect.top) / rect.height;
+  return y < 0.3 ? "before" : y > 0.7 ? "after" : "inside";
+}
+
 /** Index before/after the hovered row depending on pointer position. */
 export function dropIndex(e: React.DragEvent, index: number): number {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();

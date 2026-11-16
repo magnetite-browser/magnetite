@@ -173,8 +173,11 @@ pub(super) enum UiCommand {
         id: String,
         index: usize,
     },
+    /// A new folder inside folder `parent`, else at the top of Pinned.
     NewFolder {
         title: String,
+        #[serde(default)]
+        parent: Option<String>,
     },
     RenameFolder {
         id: String,
@@ -202,9 +205,13 @@ pub(super) enum UiCommand {
         #[serde(default)]
         profile: Option<String>,
     },
+    /// Put folder `id` at `index` (counted without it) of folder `folder`,
+    /// else of the top level of Pinned.
     MoveFolder {
         id: String,
         index: usize,
+        #[serde(default)]
+        folder: Option<String>,
     },
     /// Show tab `id` beside the active tab (`side`, default right).
     AddSplit {
@@ -867,26 +874,8 @@ impl MagnetiteApp {
                 self.with_state(|s| s.move_space(&id, index));
                 self.push_state(engine);
             }
-            UiCommand::NewFolder { title } => {
-                self.with_state(|s| {
-                    let space = s.active_space.clone();
-                    if let Some(sp) = s.space_mut(&space) {
-                        sp.pinned.insert(
-                            0,
-                            magnetite_core::SidebarNode::Folder(magnetite_core::Folder {
-                                id: new_id(),
-                                title: if title.trim().is_empty() {
-                                    "Untitled".into()
-                                } else {
-                                    title.trim().into()
-                                },
-                                icon: None,
-                                children: vec![],
-                                smart: None,
-                            }),
-                        );
-                    }
-                });
+            UiCommand::NewFolder { title, parent } => {
+                self.with_state(|s| s.new_folder(&title, parent.as_deref()));
                 self.push_state(engine);
             }
             UiCommand::RenameFolder { id, title } => {
@@ -961,18 +950,10 @@ impl MagnetiteApp {
                     self.push_state(engine);
                 }
             }
-            UiCommand::MoveFolder { id, index } => {
-                self.with_state(|s| {
-                    let space = s.active_space.clone();
-                    if let Some(sp) = s.space_mut(&space)
-                        && let Some(node) =
-                            magnetite_core::sidebar::remove_from_tree(&mut sp.pinned, &id)
-                    {
-                        let i = index.min(sp.pinned.len());
-                        sp.pinned.insert(i, node);
-                    }
-                });
-                self.push_state(engine);
+            UiCommand::MoveFolder { id, index, folder } => {
+                if self.with_state(|s| s.move_folder(&id, folder.as_deref(), index)) {
+                    self.push_state(engine);
+                }
             }
             UiCommand::AddSplit { id, side } => {
                 self.split_add(engine, None, &id, side.unwrap_or(Side::Right));
@@ -1378,6 +1359,7 @@ impl MagnetiteApp {
             }
             UiCommand::SetSettings { settings: patch } => {
                 let before = self.with_state(|s| s.settings.adblock.clone());
+                let code_before = self.with_state(|s| s.settings.site_code.clone());
                 let settings = self.with_state(|s| {
                     let settings = s.settings.patched(patch)?;
                     s.settings = settings.clone();
@@ -1394,6 +1376,10 @@ impl MagnetiteApp {
                 Self::apply_devtools_dock(engine, settings.devtools_dock);
                 engine.set_autofill(settings.autofill);
                 engine.set_quick_search_key(settings.quick_search);
+                // Open pages get changed CSS at once.
+                if settings.site_code != code_before {
+                    engine.set_site_code(settings.site_code.clone());
+                }
                 // Lists are fetched and compiled only when they changed.
                 let after = &settings.adblock;
                 if (after.enabled, &after.lists) != (before.enabled, &before.lists) {

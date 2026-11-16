@@ -1,11 +1,34 @@
 //! Folders of the pinned tabs, and which smart folders may fetch on this
 //! device.
 
+use magnetite_core::sidebar::remove_from_tree;
 use magnetite_core::smart::SmartFolder;
 use magnetite_core::{Folder, Id, SidebarNode};
 use magnetite_engine::ContentId;
 
-use super::AppState;
+use super::bookmarks::find;
+use super::{AppState, new_id};
+
+/// How many folders may stand inside one another, as in an import.
+const MAX_DEPTH: usize = 32;
+
+/// Folder `id` in `nodes` and how many folders deep it stands: 1 at the top
+/// level.
+fn find_folder<'a>(nodes: &'a [SidebarNode], id: &str) -> Option<(&'a Folder, usize)> {
+    nodes.iter().find_map(|node| match node {
+        SidebarNode::Folder(f) if f.id == id => Some((f, 1)),
+        SidebarNode::Folder(f) => find_folder(&f.children, id).map(|(f, depth)| (f, depth + 1)),
+        SidebarNode::Tab(_) => None,
+    })
+}
+
+/// The levels of folders in `node`, itself included: 0 for a tab.
+fn height(node: &SidebarNode) -> usize {
+    match node {
+        SidebarNode::Folder(f) => 1 + f.children.iter().map(height).max().unwrap_or(0),
+        SidebarNode::Tab(_) => 0,
+    }
+}
 
 /// Folder `id` in a pinned tree, at any depth.
 pub(crate) fn folder_in_tree_mut<'a>(
@@ -86,6 +109,74 @@ impl AppState {
             .spaces
             .iter_mut()
             .find_map(|s| parent_folder_mut(&mut s.pinned, tab))
+    }
+
+    /// A new, empty folder at the top of folder `parent`, else at the top of
+    /// the active space's pinned tabs (also when `parent` is gone or already
+    /// `MAX_DEPTH` deep). An empty `title` gives "Untitled".
+    pub fn new_folder(&mut self, title: &str, parent: Option<&str>) {
+        let title = match title.trim() {
+            "" => "Untitled",
+            title => title,
+        };
+        let folder = SidebarNode::Folder(Folder {
+            id: new_id(),
+            title: title.into(),
+            icon: None,
+            children: vec![],
+            smart: None,
+        });
+        let takes_one = |s: &Self, p: &str| {
+            (s.sidebar.spaces.iter())
+                .find_map(|sp| find_folder(&sp.pinned, p))
+                .is_some_and(|(parent, depth)| parent.smart.is_none() && depth < MAX_DEPTH)
+        };
+        let parent = parent.filter(|p| takes_one(self, p));
+        if let Some(parent) = parent.and_then(|p| self.folder_mut(p)) {
+            parent.children.insert(0, folder);
+        } else {
+            let space = self.active_space.clone();
+            if let Some(sp) = self.space_mut(&space) {
+                sp.pinned.insert(0, folder);
+            }
+        }
+    }
+
+    /// Move folder `id` of the active space to place `index` of folder
+    /// `parent`, else of the top level of Pinned. `index` counts the list
+    /// without the moved folder; one past the end is the end. A folder does
+    /// not go into itself, into a smart folder (that one lists what its
+    /// service has) or deeper than `MAX_DEPTH`. False if nothing moved.
+    pub fn move_folder(&mut self, id: &str, parent: Option<&str>, index: usize) -> bool {
+        let space = self.active_space.clone();
+        let Some(sp) = self.space_mut(&space) else {
+            return false;
+        };
+        let Some(moved @ SidebarNode::Folder(_)) = sp.pinned.iter().find_map(|n| find(n, id))
+        else {
+            return false;
+        };
+        let depth = match parent {
+            Some(p) if find(moved, p).is_some() => return false,
+            Some(p) => match find_folder(&sp.pinned, p) {
+                Some((parent, depth)) if parent.smart.is_none() => depth,
+                _ => return false,
+            },
+            None => 0,
+        };
+        if depth + height(moved) > MAX_DEPTH {
+            return false;
+        }
+        let Some(node) = remove_from_tree(&mut sp.pinned, id) else {
+            return false;
+        };
+        // Checked above: `parent` is there, outside `node`.
+        let list = match parent.and_then(|p| folder_in_tree_mut(&mut sp.pinned, p)) {
+            Some(parent) => &mut parent.children,
+            None => &mut sp.pinned,
+        };
+        list.insert(index.min(list.len()), node);
+        true
     }
 
     /// May smart folder `id` fetch on this device (see `Settings::smart_allowed`)?
@@ -202,6 +293,100 @@ mod tests {
             .collect();
         assert_eq!(ids, ["p", "notes"]);
         assert!(s.find_tab("pr1").is_none());
+    }
+
+    fn folder(id: &str, children: Vec<SidebarNode>) -> SidebarNode {
+        SidebarNode::Folder(magnetite_core::Folder {
+            id: id.into(),
+            title: id.into(),
+            icon: None,
+            children,
+            smart: None,
+        })
+    }
+
+    /// The pinned items of the first space as text: `p, f[x, g[]]`.
+    fn outline(s: &AppState) -> String {
+        fn nodes(list: &[SidebarNode]) -> String {
+            let parts: Vec<String> = list
+                .iter()
+                .map(|n| match n {
+                    SidebarNode::Tab(t) => t.id.clone(),
+                    SidebarNode::Folder(f) => format!("{}[{}]", f.id, nodes(&f.children)),
+                })
+                .collect();
+            parts.join(", ")
+        }
+        nodes(&s.sidebar.spaces[0].pinned)
+    }
+
+    #[test]
+    fn a_folder_moves_into_another_and_out_again() {
+        let mut s = state();
+        let pinned = &mut s.sidebar.spaces[0].pinned;
+        pinned.push(folder("f", vec![SidebarNode::Tab(tab("x"))]));
+        pinned.push(folder("g", vec![]));
+        assert!(s.move_folder("g", Some("f"), 1));
+        assert_eq!(outline(&s), "p, f[x, g[]]");
+        assert!(s.move_folder("g", None, 0));
+        assert_eq!(outline(&s), "g[], p, f[x]");
+    }
+
+    #[test]
+    fn a_folder_does_not_go_into_itself_or_below_itself() {
+        let mut s = state();
+        (s.sidebar.spaces[0].pinned).push(folder("f", vec![folder("g", vec![])]));
+        assert!(!s.move_folder("f", Some("f"), 0));
+        assert!(!s.move_folder("f", Some("g"), 0));
+        assert!(!s.move_folder("f", Some("gone"), 0));
+        assert!(!s.move_folder("p", Some("f"), 0), "a tab is not a folder");
+        assert_eq!(outline(&s), "p, f[g[]]");
+        // A smart folder lists what its service has.
+        use magnetite_core::smart::{SmartFolder, SmartSource};
+        let source = SmartSource::YouTrack {
+            url: "https://youtrack.example.org".into(),
+            query: String::new(),
+        };
+        s.folder_mut("f").unwrap().smart = Some(SmartFolder::new(source));
+        assert!(s.move_folder("g", None, 0));
+        assert!(!s.move_folder("g", Some("f"), 0));
+        s.new_folder("", Some("f"));
+        assert_eq!(
+            s.sidebar.spaces[0].pinned.len(),
+            4,
+            "the new one is beside it"
+        );
+    }
+
+    #[test]
+    fn folders_do_not_nest_deeper_than_an_import_allows() {
+        let mut s = state();
+        let chain = (0..MAX_DEPTH)
+            .rev()
+            .fold(vec![], |inner, n| vec![folder(&format!("d{n}"), inner)]);
+        let pinned = &mut s.sidebar.spaces[0].pinned;
+        pinned.extend(chain);
+        pinned.push(folder("g", vec![]));
+        let deepest = format!("d{}", MAX_DEPTH - 1);
+        assert!(!s.move_folder("g", Some(&deepest), 0));
+        assert!(s.move_folder("g", Some(&format!("d{}", MAX_DEPTH - 2)), 0));
+        // No room below the deepest folder: the new one goes to the top.
+        s.new_folder("", Some(&deepest));
+        assert!(
+            matches!(&s.sidebar.spaces[0].pinned[0], SidebarNode::Folder(f) if f.title == "Untitled")
+        );
+    }
+
+    #[test]
+    fn a_new_folder_goes_to_the_top_of_its_parent() {
+        let mut s = state();
+        (s.sidebar.spaces[0].pinned).push(folder("f", vec![SidebarNode::Tab(tab("x"))]));
+        s.new_folder(" Work ", Some("f"));
+        let SidebarNode::Folder(f) = &s.sidebar.spaces[0].pinned[1] else {
+            panic!("f is a folder");
+        };
+        assert!(matches!(&f.children[0], SidebarNode::Folder(new) if new.title == "Work"));
+        assert_eq!(f.children.len(), 2);
     }
 
     #[test]

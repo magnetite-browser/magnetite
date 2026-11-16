@@ -665,6 +665,88 @@ pub fn without_taking_focus(f: impl FnOnce()) {
     }
 }
 
+thread_local! {
+    /// The windows `hover_without_focus` was asked for, by address.
+    static HOVER_WINDOWS: std::cell::RefCell<std::collections::HashSet<usize>> =
+        std::cell::RefCell::new(std::collections::HashSet::new());
+}
+
+/// `isMainWindow` as CEF's window class had it before `hover_without_focus`.
+static IS_MAIN_WINDOW: std::sync::OnceLock<objc2::runtime::Imp> = std::sync::OnceLock::new();
+
+type IsMainWindow = unsafe extern "C-unwind" fn(&AnyObject, objc2::runtime::Sel) -> Bool;
+
+/// `isMainWindow` of CEF's windows: yes for the windows of
+/// `hover_without_focus`, else what the class answered before.
+extern "C-unwind" fn main_for_the_pointer(window: &AnyObject, cmd: objc2::runtime::Sel) -> Bool {
+    if HOVER_WINDOWS.with(|w| w.borrow().contains(&std::ptr::from_ref(window).addr())) {
+        return Bool::YES;
+    }
+    let Some(before) = IS_MAIN_WINDOW.get() else {
+        return Bool::NO;
+    };
+    // SAFETY: the implementation this one took the place of, with its type.
+    unsafe { std::mem::transmute::<objc2::runtime::Imp, IsMainWindow>(*before)(window, cmd) }
+}
+
+/// Let the window holding the view `handle` take pointer movement while
+/// another window has the keyboard. Chromium drops mouse moves in a window
+/// that is neither key nor main and tells its page the pointer left
+/// (`-[RenderWidgetHostViewCocoa shouldIgnoreMouseEvent:]`): a panel shown
+/// `without_taking_focus` then shows no hover, and the floating sidebar,
+/// which leaves with the pointer, hides on the first move.
+///
+/// From now on the window answers `isMainWindow` with yes. Which window is
+/// key or main for AppKit does not change. The answer comes from a method
+/// added to the window's class (CEF's, which inherits AppKit's); the window
+/// cannot get a class of its own, since key-value observing already gave it
+/// one.
+pub fn hover_without_focus(handle: cef::sys::cef_window_handle_t) {
+    use objc2::runtime::{AnyClass, Imp};
+    use objc2_app_kit::NSView;
+    if handle.is_null() || MainThreadMarker::new().is_none() {
+        return;
+    }
+    // SAFETY: CEF hands us a live NSView; we are on the main thread.
+    let view: &NSView = unsafe { &*handle.cast::<NSView>() };
+    let Some(window) = view.window() else {
+        return;
+    };
+    let ours = main_for_the_pointer as IsMainWindow;
+    // SAFETY: same calling convention; called only through the runtime.
+    let ours: Imp = unsafe { std::mem::transmute::<IsMainWindow, Imp>(ours) };
+    // SAFETY: `class` returns the class the window was made with, not the
+    // one key-value observing put in front of it.
+    let class: &AnyClass = unsafe { msg_send![&*window, class] };
+    let Some(method) = class.instance_method(sel!(isMainWindow)) else {
+        return;
+    };
+    let before = method.implementation();
+    if !std::ptr::fn_addr_eq(before, ours) {
+        // One class of windows only: what it answered before is kept once.
+        if !std::ptr::fn_addr_eq(*IS_MAIN_WINDOW.get_or_init(|| before), before) {
+            crate::trace("hover without focus: a second window class, left as it is");
+            return;
+        }
+        // SAFETY: adds a method with the type of the inherited one to a
+        // class that does not define it itself; the main thread, where
+        // AppKit sends it.
+        let added = unsafe {
+            objc2::ffi::class_addMethod(
+                std::ptr::from_ref(class).cast_mut(),
+                sel!(isMainWindow),
+                ours,
+                objc2::ffi::method_getTypeEncoding(method),
+            )
+        };
+        if !added.as_bool() {
+            crate::trace("hover without focus: the window class has its own isMainWindow");
+            return;
+        }
+    }
+    HOVER_WINDOWS.with(|w| w.borrow_mut().insert(Retained::as_ptr(&window).addr()));
+}
+
 /// The corner radius a page window shows: macOS rounds titled windows itself
 /// (16 pt since macOS 26) and that clips more than our layer's `own` radius
 /// when it is larger. The window's radius has no public API, so it is read
@@ -878,6 +960,24 @@ pub fn attach_child(frame: cef::sys::cef_window_handle_t, child: cef::sys::cef_w
 /// Whether Magnetite is the app in front.
 pub fn app_is_active() -> bool {
     MainThreadMarker::new().is_some_and(|mtm| NSApplication::sharedApplication(mtm).isActive())
+}
+
+/// Whether those of Cmd, Control and Option that are asked for are all down
+/// right now, whichever app has the keyboard (the keyboard's state, not
+/// that of the last event).
+pub fn modifiers_held(command: bool, control: bool, option: bool) -> bool {
+    use objc2_app_kit::NSEventModifierFlags as Flags;
+    let mut wanted = Flags::empty();
+    for (asked, flag) in [
+        (command, Flags::Command),
+        (control, Flags::Control),
+        (option, Flags::Option),
+    ] {
+        if asked {
+            wanted |= flag;
+        }
+    }
+    NSEvent::modifierFlags_class().contains(wanted)
 }
 
 /// Hand the keyboard back to the app that was in front before Magnetite.

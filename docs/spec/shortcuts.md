@@ -48,6 +48,10 @@ belongs to the shortcut, not to its keys.
 With the sidebar (docked or floating) or the top bar in focus, a shortcut
 runs as in a page.
 
+The round of "Next tab" by last use (`sidebar.md`, "Keyboard") lasts while
+the modifiers of its keys are held, whichever keys it has. With keys that
+have no Cmd, Ctrl or Option (a function key), each press switches at once.
+
 ## Sync and other systems
 
 - Changed shortcuts are part of the synced settings (`sync.md`), so they

@@ -4,10 +4,21 @@
 use magnetite_core::sidebar::Section;
 use magnetite_engine::{ContentId, Engine, MemoryPressure, host_of};
 
-use crate::state::{AppState, folder_in_tree_mut, now};
+use crate::state::{AppState, TabOrder, folder_in_tree_mut, now};
 use crate::{lock, trace, url_policy};
 
-use super::{DOWNLOADS_URL, MagnetiteApp, WELCOME_URL};
+use super::{DOWNLOADS_URL, MagnetiteApp, WELCOME_URL, global};
+
+/// The list of the tabs `Ctrl+Tab` goes through (`Switcher.tsx`).
+const SWITCHER_URL: &str = "magnetite://ui/switcher";
+/// Its width and the height of one of its rows, in points at the normal
+/// text size (`.switcher .result`).
+const SWITCHER_WIDTH: f64 = 440.0;
+const SWITCHER_ROW: f64 = 40.0;
+/// How long the modifier is held before the list shows.
+const SWITCHER_DELAY_MS: i64 = 150;
+/// How often a round looks whether the modifier is still held.
+const SWITCHER_WATCH_MS: i64 = 30;
 
 /// Drag and drop: put tab `id` at `index` of `section` (of space
 /// `space_id`); `folder` places it inside a pinned folder of that space.
@@ -113,15 +124,109 @@ impl MagnetiteApp {
             return;
         };
 
-        self.with_state(|s| {
+        let switching = self.with_state(|s| {
             s.active_space.clone_from(&space_id);
             s.active_tab.insert(space_id, tab_id.to_string());
+            s.note_tab_use(tab_id);
             if let Some(t) = s.find_tab_mut(tab_id) {
                 t.last_active_at = Some(now());
                 t.unread = false;
             }
+            // Chosen some other way while Ctrl is held: the round is over.
+            s.switcher.take().is_some()
         });
+        if switching {
+            engine.close_overlay();
+        }
         self.present(engine);
+    }
+
+    /// One press of `Ctrl+Tab` or `Ctrl+Shift+Tab` in the order Settings
+    /// say. By last use the first press begins a round, which lasts while
+    /// the modifier is held (`watch_tab_switch`): the tab changes when it
+    /// is let go, and a round longer than `SWITCHER_DELAY_MS` shows its
+    /// list.
+    pub(super) fn cycle_tab(&self, engine: &Engine, forward: bool) {
+        if self.with_state(|s| s.settings.tab_order) == TabOrder::Sidebar {
+            if let Some(t) = self.with_state(|s| s.cycle_tab(forward)) {
+                self.activate_tab(engine, &t);
+            }
+            return;
+        }
+        // The round a first press began, if this was one.
+        let began = self.with_state(|s| {
+            let began = s.switcher.is_none();
+            if !s.switch_tab(forward) {
+                return None;
+            }
+            let round = s.switcher.as_ref()?.round;
+            Some(began.then_some(round))
+        });
+        match began {
+            Some(Some(round)) => {
+                Self::watch_tab_switch();
+                // A quick press and release just switches, without the list:
+                // it shows only if this round is still on after the delay.
+                Engine::post_delayed(
+                    Box::new(move || {
+                        let Some(app) = global() else { return };
+                        let size = app.with_state(|s| {
+                            let on = s.switcher.as_ref().filter(|r| r.round == round)?;
+                            // The page zooms with the text size; so must its window.
+                            let scale =
+                                f64::from(s.settings.appearance.clone().clamped().text_scale)
+                                    / 100.0;
+                            let rows = f64::from(u32::try_from(on.tabs.len()).unwrap_or(1));
+                            let points = |n: f64| (n * scale).ceil();
+                            Some((points(SWITCHER_WIDTH), points(SWITCHER_ROW * rows + 12.0)))
+                        });
+                        if let Some((width, height)) = size {
+                            #[allow(clippy::cast_possible_truncation)] // a few hundred points
+                            Engine::global().open_panel(SWITCHER_URL, width as i32, height as i32);
+                        }
+                    }),
+                    SWITCHER_DELAY_MS,
+                );
+            }
+            // The list follows the round.
+            Some(None) => self.show_state(engine),
+            None => {}
+        }
+    }
+
+    /// Look every `SWITCHER_WATCH_MS` whether Ctrl (the modifiers of the
+    /// shortcut's keys, should the user have changed them) is still held,
+    /// and end the round of `Ctrl+Tab` once it is not. Where
+    /// the system does not say, the round ends at once: every press
+    /// switches to the tab used before.
+    fn watch_tab_switch() {
+        Engine::post_delayed(
+            Box::new(|| {
+                let Some(app) = global() else { return };
+                let engine = Engine::global();
+                if app.with_state(|s| s.switcher.is_none()) {
+                    return;
+                }
+                if engine.tab_switch_keys_held() == Some(true) {
+                    Self::watch_tab_switch();
+                } else {
+                    app.end_tab_switch(engine);
+                }
+            }),
+            SWITCHER_WATCH_MS,
+        );
+    }
+
+    /// Ctrl was let go: the tab the round of `Ctrl+Tab` stands on is chosen.
+    fn end_tab_switch(&self, engine: &Engine) {
+        let Some(chosen) = self.with_state(|s| s.switcher.is_some().then(|| s.end_tab_switch()))
+        else {
+            return;
+        };
+        engine.close_overlay();
+        if let Some(tab) = chosen {
+            self.activate_tab(engine, &tab);
+        }
     }
 
     /// Make the content windows match the state: the current window shows
@@ -279,8 +384,12 @@ impl MagnetiteApp {
         match switched {
             Some(Some(tab)) => self.activate_tab(engine, &tab),
             // A space without tabs: every page leaves the screen, the other
-            // pages of a split and a peek included.
+            // pages of a split and a peek included. A round of `Ctrl+Tab`
+            // is over, as when a tab is chosen.
             Some(None) => {
+                if self.with_state(|s| s.switcher.take().is_some()) {
+                    engine.close_overlay();
+                }
                 self.close_peek(engine);
                 self.present(engine);
             }
@@ -389,6 +498,24 @@ impl MagnetiteApp {
             engine.content_load_url(c, &url);
         }
         Some(id)
+    }
+
+    /// Open `url`, a link from another app, as a background Today tab of
+    /// space `space` (the one a link rule names), which stays where it is:
+    /// the tab is marked unread and runs in that space's profile.
+    pub(super) fn open_background_in_space(&self, engine: &Engine, url: &str, space: &str) {
+        let url = url.trim();
+        if !url_policy::allowed(url, url_policy::Source::OtherApp) {
+            trace(|| "not opening an address from another app with this scheme".to_string());
+            return;
+        }
+        self.with_state(|s| {
+            let id = s.new_today_tab(space, url, url);
+            if let Some(t) = s.find_tab_mut(&id) {
+                t.unread = true;
+            }
+        });
+        self.push_state(engine);
     }
 
     /// Load `url` in the page of tab `tab_id`. Magnetite's own pages are

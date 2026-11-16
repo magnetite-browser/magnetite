@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use magnetite_core::UnixSeconds;
+use magnetite_core::{Id, UnixSeconds};
 use serde::{Deserialize, Serialize};
 
 /// The longest the archive may keep a tab: ten years.
@@ -38,10 +38,16 @@ pub struct Settings {
     pub search_template: String,
     /// Keywords that search one site from the command bar (`gh rust`).
     pub site_searches: Vec<SiteSearch>,
-    /// Links from other apps: "tab", "peek" or "mini" (a mini window).
-    /// Synced: a version that does not know a value takes "tab"
-    /// (`sanitised`).
+    /// Links from other apps: "mini" (a mini window, the default), "tab" or
+    /// "peek". Synced: a version that does not know a value takes the
+    /// default (`sanitised`).
     pub external_links: String,
+    /// Which space a link from another app opens in, by its site
+    /// (`LinkRule`). This device's own, never synced.
+    pub link_rules: Vec<LinkRule>,
+    /// The user's own CSS and JavaScript per site (Settings → Custom CSS &
+    /// JS). This device's own, never synced.
+    pub site_code: Vec<magnetite_engine::SiteCode>,
     /// The shortcuts the user gave other keys, or none (Settings →
     /// Shortcuts); the rest have their default keys. Synced.
     pub shortcuts: magnetite_engine::Overrides,
@@ -76,6 +82,9 @@ pub struct Settings {
     pub check_updates: bool,
     /// What a click on the sidebar's archive and downloads button opens.
     pub library_opens: LibraryView,
+    /// The order `Ctrl+Tab` goes through the tabs in. This device's own
+    /// choice, never synced.
+    pub tab_order: TabOrder,
     /// Chromium's password manager and autofill: which parts are on. Not
     /// synced: what a device saves is that device's.
     pub autofill: magnetite_engine::AutofillPrefs,
@@ -172,6 +181,17 @@ pub enum Density {
     Spacious,
 }
 
+/// The order `Ctrl+Tab` and `Ctrl+Shift+Tab` go through the tabs in.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum TabOrder {
+    /// By last use: one press goes to the tab used before this one.
+    #[default]
+    Recent,
+    /// As the sidebar lists them.
+    Sidebar,
+}
+
 /// A view behind the sidebar's archive and downloads button. While something
 /// downloads, a click opens Downloads whatever the setting says.
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -257,6 +277,105 @@ impl SiteSearch {
     }
 }
 
+/// A rule for links from other apps: one to `site` opens in space `space`.
+/// `site` is a host, or a host and the start of a path (`github.com/acme`),
+/// in lower case without `www.`; it stands for its subdomains too.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LinkRule {
+    pub site: String,
+    pub space: Id,
+}
+
+/// The most link rules kept.
+const MAX_LINK_RULES: usize = 100;
+
+/// The host of an http(s) address or of a rule's site, without `www.`, and
+/// the path after it (up to `?` or `#`, without the `/` at its end).
+fn host_and_path(address: &str) -> Option<(String, &str)> {
+    // A scheme stands at the very start; "://" further in belongs to a path.
+    let scheme = |s: &str| {
+        !s.is_empty()
+            && s.chars()
+                .all(|c| c.is_ascii_alphanumeric() || "+.-".contains(c))
+    };
+    let rest = match address.split_once("://") {
+        Some((before, rest)) if scheme(before) => rest,
+        _ => address,
+    };
+    let rest = rest.split(['?', '#']).next()?;
+    let (authority, path) = match rest.find('/') {
+        Some(at) => rest.split_at(at),
+        None => (rest, ""),
+    };
+    let host = authority.rsplit('@').next()?.split(':').next()?;
+    let host = host.to_ascii_lowercase();
+    let host = host.trim_start_matches("www.").to_string();
+    let fine = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.';
+    (host.contains('.') && host.chars().all(fine)).then(|| (host, path.trim_end_matches('/')))
+}
+
+impl LinkRule {
+    /// This rule as Magnetite keeps it, or `None` without a site: what was
+    /// typed may be a whole address (`https://www.GitHub.com/acme/`), of
+    /// which the host and the path stay (`github.com/acme`).
+    fn sanitised(self) -> Option<Self> {
+        let (host, path) = host_and_path(self.site.trim())?;
+        Some(Self {
+            site: format!("{host}{path}"),
+            space: self.space,
+        })
+    }
+
+    /// How closely the rule fits `url`, if it does: the lengths of its host
+    /// and its path. It fits an http(s) address on its host or a subdomain
+    /// of it, under its path.
+    fn fit(&self, url: &str) -> Option<(usize, usize)> {
+        if !(url.starts_with("https://") || url.starts_with("http://")) {
+            return None;
+        }
+        let (host, path) = host_and_path(url)?;
+        let (site, under) = host_and_path(&self.site)?;
+        let on_host = host == site || host.ends_with(&format!(".{site}"));
+        // `/acme` is above `/acme/app`, not above `/acmecorp`.
+        let below = path
+            .strip_prefix(under)
+            .is_some_and(|rest| rest.is_empty() || rest.starts_with('/'));
+        (on_host && below).then_some((site.len(), under.len()))
+    }
+}
+
+impl Settings {
+    /// The space a link from another app to `url` opens in, if a rule says
+    /// so: of several rules that fit, the one with the longest host, then
+    /// the longest path. Only rules whose space `exists` count: one whose
+    /// space is gone must not stand in the way of a less exact rule.
+    pub fn link_space(&self, url: &str, exists: impl Fn(&Id) -> bool) -> Option<&Id> {
+        (self.link_rules.iter())
+            .filter(|rule| exists(&rule.space))
+            .filter_map(|rule| Some((rule.fit(url)?, rule)))
+            .max_by_key(|(fit, _)| *fit)
+            .map(|(_, rule)| &rule.space)
+    }
+}
+
+/// The most sites with CSS and JavaScript of the user's own, and the most
+/// bytes of either for one site.
+const MAX_CODE_SITES: usize = 200;
+const MAX_SITE_CODE: usize = 256 * 1024;
+
+/// The host a site was named by, in lower case and without `www.`: what
+/// was typed may be a whole address. `None` if it names no host.
+fn site_host(typed: &str) -> Option<String> {
+    let rest = typed.trim();
+    let rest = rest.split_once("://").map_or(rest, |(_, rest)| rest);
+    let authority = rest.split(['/', '?', '#']).next()?;
+    let host = authority.rsplit('@').next()?.split(':').next()?;
+    let host = host.to_ascii_lowercase();
+    let host = host.trim_start_matches("www.");
+    let fine = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.';
+    (host.contains('.') && host.chars().all(fine)).then(|| host.to_string())
+}
+
 /// Sync configuration. Keys are kept out of `state.json` (see `sync.rs`).
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
@@ -277,7 +396,10 @@ impl Settings {
     /// or from another device: archiving after at least an hour, retention
     /// periods in range, appearance in range, search addresses on https with
     /// `%s` in them (site searches that are not, or repeat a keyword, are
-    /// dropped), a known choice for external links.
+    /// dropped), a known choice for external links, link rules with a site
+    /// each (one per site), own CSS and JavaScript only for sites named by
+    /// their host (one entry per site, each part at most `MAX_SITE_CODE`
+    /// long).
     pub fn sanitised(mut self) -> Self {
         let defaults = Self::default();
         self.auto_archive_hours = self.auto_archive_hours.max(1);
@@ -301,6 +423,29 @@ impl Settings {
         if !matches!(self.external_links.as_str(), "tab" | "peek" | "mini") {
             self.external_links = defaults.external_links;
         }
+        let mut rules: Vec<LinkRule> = Vec::new();
+        for rule in std::mem::take(&mut self.link_rules) {
+            if let Some(rule) = rule.sanitised()
+                && !rules.iter().any(|r| r.site == rule.site)
+                && rules.len() < MAX_LINK_RULES
+            {
+                rules.push(rule);
+            }
+        }
+        self.link_rules = rules;
+        let mut code: Vec<magnetite_engine::SiteCode> = Vec::new();
+        for mut entry in std::mem::take(&mut self.site_code) {
+            let small = entry.css.len() <= MAX_SITE_CODE && entry.js.len() <= MAX_SITE_CODE;
+            if let Some(site) = site_host(&entry.site)
+                && small
+                && !code.iter().any(|c| c.site == site)
+                && code.len() < MAX_CODE_SITES
+            {
+                entry.site = site;
+                code.push(entry);
+            }
+        }
+        self.site_code = code;
         self.shortcuts = self.shortcuts.sanitised();
         self
     }
@@ -370,7 +515,9 @@ impl Default for Settings {
             defaults: DEFAULTS,
             search_template: "https://duckduckgo.com/?q=%s".into(),
             site_searches: builtin_site_searches(),
-            external_links: "tab".into(),
+            external_links: "mini".into(),
+            link_rules: Vec::new(),
+            site_code: Vec::new(),
             shortcuts: magnetite_engine::Overrides::default(),
             quick_search: true,
             chrome_toolbar: false,
@@ -385,6 +532,7 @@ impl Default for Settings {
             chromium_pins_seen: HashMap::new(),
             check_updates: true,
             library_opens: LibraryView::Archive,
+            tab_order: TabOrder::Recent,
             autofill: magnetite_engine::AutofillPrefs::default(),
             smart_allowed: None,
             adblock: AdblockSettings::default(),
@@ -395,6 +543,83 @@ impl Default for Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn rule(site: &str, space: &str) -> LinkRule {
+        LinkRule {
+            site: site.into(),
+            space: space.into(),
+        }
+    }
+
+    #[test]
+    fn a_link_goes_to_the_space_of_the_rule_that_fits_it_best() {
+        let settings = Settings {
+            link_rules: vec![
+                rule("github.com", "personal"),
+                rule("github.com/acme", "work"),
+                rule("mail.example.org", "mail"),
+            ],
+            ..Settings::default()
+        };
+        let space = |url: &str| settings.link_space(url, |_| true).map(String::as_str);
+        assert_eq!(
+            space("https://github.com/acme/app/pull/1?x=1"),
+            Some("work")
+        );
+        assert_eq!(space("https://github.com/acme"), Some("work"));
+        assert_eq!(space("https://github.com/acmecorp/app"), Some("personal"));
+        assert_eq!(space("https://www.github.com/"), Some("personal"));
+        assert_eq!(space("https://gist.github.com/someone"), Some("personal"));
+        assert_eq!(space("http://mail.example.org:8080/inbox"), Some("mail"));
+        assert_eq!(space("https://example.org/"), None);
+        assert_eq!(space("https://notgithub.com/acme"), None);
+        assert_eq!(space("file:///github.com/acme"), None);
+        // The space of the closest rule is gone: the next one counts.
+        let without_work = settings.link_space("https://github.com/acme/app", |id| id != "work");
+        assert_eq!(without_work.map(String::as_str), Some("personal"));
+    }
+
+    #[test]
+    fn link_rules_keep_a_site_each_as_host_and_path() {
+        let kept = Settings {
+            link_rules: vec![
+                rule(" https://WWW.GitHub.com/acme/ ", "work"),
+                rule("github.com/acme", "again"),
+                rule("not a site", "x"),
+                rule("", "x"),
+            ],
+            ..Settings::default()
+        }
+        .sanitised();
+        assert_eq!(kept.link_rules, [rule("github.com/acme", "work")]);
+        // An address inside a path is part of the path.
+        let nested = rule("archive.example/https://target.example", "x").sanitised();
+        assert_eq!(
+            nested.unwrap().site,
+            "archive.example/https://target.example"
+        );
+    }
+
+    #[test]
+    fn own_code_is_kept_per_host_and_within_limits() {
+        let code = |site: &str, css: &str| magnetite_engine::SiteCode {
+            site: site.into(),
+            css: css.into(),
+            js: String::new(),
+            enabled: true,
+        };
+        let kept = Settings {
+            site_code: vec![
+                code(" https://WWW.Example.org/some/page ", "a"),
+                code("example.org", "again"),
+                code("not a site", "x"),
+                code("example.net", &"x".repeat(MAX_SITE_CODE + 1)),
+            ],
+            ..Settings::default()
+        }
+        .sanitised();
+        assert_eq!(kept.site_code, [code("example.org", "a")]);
+    }
 
     #[test]
     fn autofill_switches_start_safe_and_change_one_at_a_time() {
@@ -490,7 +715,7 @@ mod tests {
         .sanitised();
         assert_eq!(bad.auto_archive_hours, 1);
         assert_eq!(bad.search_template, Settings::default().search_template);
-        assert_eq!(bad.external_links, "tab");
+        assert_eq!(bad.external_links, "mini");
         for known in ["tab", "peek", "mini"] {
             let s = Settings {
                 external_links: known.into(),
