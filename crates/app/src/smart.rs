@@ -126,6 +126,14 @@ pub fn whoami(service: Service, host: &str, token: &str) -> Result<(String, Stri
 /// Most items one request to a service asks for.
 pub const MOST_ITEMS: u32 = 100;
 
+/// What a source answered.
+pub struct Fetched {
+    pub items: Vec<SmartItem>,
+    /// `items` is everything the source lists, not only its first items.
+    /// False when that is not known.
+    pub complete: bool,
+}
+
 /// What `source` lists now, best first, at most `limit` items (and never
 /// more than `MOST_ITEMS`). `login` is the account's user name (GitLab
 /// review requests are asked by name).
@@ -134,9 +142,13 @@ pub fn fetch(
     token: &str,
     login: &str,
     limit: u32,
-) -> Result<Vec<SmartItem>, String> {
+) -> Result<Fetched, String> {
     let n = limit.clamp(1, MOST_ITEMS);
     let auth = authorization(source.service(), token);
+    // GitHub, GitLab and YouTrack fill a page while they have more, so a
+    // page with room left is the end of the list.
+    let has_room = |count: usize| count < n as usize;
+    let mut complete = true;
     let items = match source {
         SmartSource::GitHub { host, show, filter } => {
             let api = github_api(host)?;
@@ -146,14 +158,18 @@ pub fn fetch(
                     "{api}/search/issues?q={}&sort=updated&order=desc&per_page={n}",
                     encode(&q)
                 );
-                found.extend(parse_github(&get_json(&url, &auth)?));
+                let page = parse_github(&get_json(&url, &auth)?);
+                complete &= has_room(page.len());
+                found.extend(page);
             }
             newest_first(found)
         }
         SmartSource::GitLab { host, show, group } => {
             let mut found = Vec::new();
             for url in gitlab_requests(&base_url(host)?, *show, group, login, n) {
-                found.extend(parse_gitlab(&get_json(&url, &auth)?));
+                let page = parse_gitlab(&get_json(&url, &auth)?);
+                complete &= has_room(page.len());
+                found.extend(page);
             }
             newest_first(found)
         }
@@ -169,7 +185,10 @@ pub fn fetch(
                 "{base}/{path}?jql={}&fields=summary&maxResults={n}",
                 encode(jql)
             );
-            parse_jira(&get_json(&request, &auth)?, &base)
+            let answer = get_json(&request, &auth)?;
+            let issues = parse_jira(&answer, &base);
+            complete = jira_is_all(&answer, issues.len());
+            issues
         }
         SmartSource::YouTrack { url, query } => {
             let base = base_url(url)?;
@@ -177,17 +196,32 @@ pub fn fetch(
                 "{base}/api/issues?query={}&fields=idReadable,summary&$top={n}",
                 encode(query)
             );
-            parse_youtrack(&get_json(&request, &auth)?, &base)
+            let issues = parse_youtrack(&get_json(&request, &auth)?, &base);
+            complete = has_room(issues.len());
+            issues
         }
     };
-    Ok(items
+    let complete = complete && items.len() <= limit as usize;
+    let items = items
         .into_iter()
         .take(limit as usize)
         .map(|mut item| {
             cut_title(&mut item.title);
             item
         })
-        .collect())
+        .collect();
+    Ok(Fetched { items, complete })
+}
+
+/// Whether a Jira search answer with `count` issues holds every match. A
+/// Jira server may send fewer issues than asked for while it has more, so
+/// only its own word counts: `isLast` (Jira Cloud) or `total` (Data Center).
+fn jira_is_all(answer: &Value, count: usize) -> bool {
+    match (answer.get("isLast"), answer.get("total")) {
+        (Some(last), _) => last.as_bool().unwrap_or(false),
+        (None, Some(total)) => total.as_u64().is_some_and(|total| total <= count as u64),
+        (None, None) => false,
+    }
 }
 
 /// Longest title kept for an item, in characters: the sidebar shows a line
@@ -685,9 +719,10 @@ mod tests {
             show: ReviewShow::PullRequests,
             filter: String::new(),
         };
-        let items = fetch(&source, "tok", "me", 10).unwrap();
-        let titles: Vec<_> = items.iter().map(|i| i.title.as_str()).collect();
+        let fetched = fetch(&source, "tok", "me", 10).unwrap();
+        let titles: Vec<_> = fetched.items.iter().map(|i| i.title.as_str()).collect();
         assert_eq!(titles, vec!["Review · x#2", "Mine · x#1"]);
+        assert!(fetched.complete, "both searches had room left");
         assert!(
             server
                 .join()
@@ -695,5 +730,16 @@ mod tests {
                 .iter()
                 .all(|l| l.starts_with("GET /api/v3/search/issues?q="))
         );
+    }
+
+    #[test]
+    fn only_jira_itself_says_that_a_page_is_the_whole_list() {
+        let all = |answer: &str| jira_is_all(&serde_json::from_str(answer).unwrap(), 2);
+        assert!(all(r#"{"isLast":true}"#));
+        assert!(!all(r#"{"isLast":false}"#));
+        assert!(all(r#"{"total":2}"#));
+        // A server that caps its pages: two came, five match.
+        assert!(!all(r#"{"total":5}"#));
+        assert!(!all("{}"));
     }
 }

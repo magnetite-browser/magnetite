@@ -1,7 +1,7 @@
 //! Smart folders: connecting an account, saving a folder and fetching its
 //! items.
 
-use magnetite_core::smart::{Service, SmartFolder, SmartItem, SmartSource, item_key};
+use magnetite_core::smart::{Service, SmartFolder, SmartSource, item_key};
 use magnetite_core::{SidebarNode, UnixSeconds};
 use magnetite_engine::Engine;
 use serde_json::json;
@@ -80,7 +80,7 @@ impl MagnetiteApp {
         };
         std::thread::spawn(move || {
             let result = smart::fetch(&source, &token, &account.login, 6)
-                .map(|items| json!(items).to_string());
+                .map(|fetched| json!(fetched.items).to_string());
             Engine::post(Box::new(move || {
                 Engine::global().finish_reply(ticket, result);
             }));
@@ -235,11 +235,7 @@ impl MagnetiteApp {
         let snoozed = u32::try_from(sf.snoozed.len()).unwrap_or(u32::MAX);
         let asked = sf.limit.saturating_add(snoozed).min(smart::MOST_ITEMS);
         std::thread::spawn(move || {
-            let result = smart::fetch(&sf.source, &token, &login, asked).map(|items| {
-                // Fewer than asked for: that is all the source has.
-                let complete = u32::try_from(items.len()).is_ok_and(|n| n < asked);
-                (items, complete)
-            });
+            let result = smart::fetch(&sf.source, &token, &login, asked);
             Engine::post(Box::new(move || {
                 if let Some(app) = global() {
                     app.smart_fetched(Engine::global(), &id, result);
@@ -248,20 +244,23 @@ impl MagnetiteApp {
         });
     }
 
-    /// On the UI thread: put fetched items into folder `id`, with whether
-    /// they are all the source has. Open tabs the source dropped stay until
-    /// closed; failures keep the items shown.
+    /// On the UI thread: put what the source answered into folder `id`.
+    /// Open tabs the source dropped stay until closed; failures keep the
+    /// items shown.
     pub(super) fn smart_fetched(
         &self,
         engine: &Engine,
         id: &str,
-        result: Result<(Vec<SmartItem>, bool), String>,
+        result: Result<smart::Fetched, String>,
     ) {
         let changed = self.with_state(|s| {
             let st = s.smart_status.entry(id.to_string()).or_default();
             st.fetching = false;
             let (items, complete) = match result {
-                Ok((mut items, complete)) => {
+                Ok(smart::Fetched {
+                    mut items,
+                    complete,
+                }) => {
                     st.error = None;
                     st.updated_at = Some(now());
                     // Results come from a server: web addresses only.

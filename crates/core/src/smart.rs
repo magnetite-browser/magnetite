@@ -218,8 +218,15 @@ impl Folder {
         // Due items come back below as new ones; the rest follow the
         // source's titles while it lists them.
         smart.snoozed.retain_mut(|s| {
-            let listed = title_of(&s.url).map(|title| s.title.clone_from(title));
-            (listed.is_some() || !complete) && !s.is_due(now)
+            match title_of(&s.url) {
+                Some(title) => {
+                    s.title.clone_from(title);
+                    !s.is_due(now)
+                }
+                // Not in a list cut short: it may be further down. It
+                // stays, also when due: `wake` brings it back.
+                None => !complete,
+            }
         });
         let listed: Vec<&SmartItem> = items
             .iter()
@@ -472,6 +479,10 @@ mod tests {
         assert!(f.snooze("t2", None));
         // Only the first items came: PR 2 may still be listed further down.
         f.apply_smart(&[item(3)], false, |_| false, &mut ids, 0);
+        assert_eq!(f.smart.as_ref().unwrap().snoozed.len(), 1);
+        // Also once its time has come: it waits for `wake`.
+        f.smart.as_mut().unwrap().snoozed[0].until = Some(5);
+        f.apply_smart(&[item(3)], false, |_| false, &mut ids, 10);
         assert_eq!(f.smart.as_ref().unwrap().snoozed.len(), 1);
         // The whole list without it: the source dropped it.
         f.apply_smart(&[item(3)], true, |_| false, &mut ids, 0);
