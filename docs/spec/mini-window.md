@@ -63,7 +63,7 @@ A row above the page holds, from left to right:
   follows the rules for pages (`peek.md`): it opens in the main window, as
   a peek or a tab, and the main window comes to the front.
 - In the page, `Cmd+W` closes the mini window; `Esc` belongs to the page.
-  Reload, back, forward, zoom, Copy Link, Print and developer tools, by key
+  Reload, back, forward, zoom, find, Copy Link, Print and developer tools, by key
   or from the menu bar, act on the mini window's page. Developer tools open
   in a window of their own. Every other Magnetite shortcut brings the main
   window to the front and acts there.

@@ -60,6 +60,12 @@ pub enum Shortcut {
     ZoomReset,
     /// `Cmd+P`: print the page in front (the page may claim the key).
     Print,
+    /// `Cmd+F`: find in the page in front (the page may claim the key).
+    Find,
+    /// `Cmd+G` / `Cmd+Shift+G`: the next or previous match (the page may
+    /// claim the keys).
+    FindNext,
+    FindPrevious,
     /// Menu bar, `Cmd+Y`: the history view in the sidebar.
     History,
     /// `Cmd+Option+N`, system-wide or from the menu bar: the quick search,

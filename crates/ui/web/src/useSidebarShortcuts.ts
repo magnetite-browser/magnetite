@@ -27,6 +27,9 @@ export function useSidebarShortcuts(float: boolean, onEscape: () => void) {
       if (is("s", cmd)) return fire("toggle_sidebar");
       if (is("d", cmd)) return fire("toggle_pin");
       if (is("p", cmd)) return fire("print");
+      if (is("f", cmd)) return fire("find");
+      if (is("g", cmd)) return fire("find_next");
+      if (is("g", { meta: true, shift: true })) return fire("find_previous");
       if (is("y", cmd)) return fire("history");
       if (is("t", { meta: true, shift: true })) return fire("reopen_closed");
       if ((e.key === "+" || e.key === "=") && e.metaKey && e.shiftKey && !e.altKey && !e.ctrlKey) {

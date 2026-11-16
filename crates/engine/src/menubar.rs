@@ -343,6 +343,10 @@ pub fn install(mtm: MainThreadMarker) {
     b.standard("Select All", sel!(selectAll:), "a", CMD);
     b.separator();
     b.command("Copy Link", "c", SHIFT_CMD, S::CopyLink);
+    b.separator();
+    b.command("Find…", "f", CMD, S::Find);
+    b.command("Find Next", "g", CMD, S::FindNext);
+    b.command("Find Previous", "g", SHIFT_CMD, S::FindPrevious);
 
     b.menu("View");
     b.command("Toggle Sidebar", "s", CMD, S::ToggleSidebar);

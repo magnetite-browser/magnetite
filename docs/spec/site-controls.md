@@ -184,6 +184,8 @@ or written without one of these actions.
 | `Cmd+Shift+2` | Capture | the page keeps it |
 | `Cmd+Option+I` | Open or close DevTools | Chromium's own command |
 | `Cmd+P` | Print the page (Chromium's print preview); also File → Print… and the command "Print page" | the page keeps it |
+| `Cmd+F` | Find in the page: Chromium's find bar at the page's top right, with the number of matches; also Edit → Find… and the command "Find in page…". `Esc` closes it | the page keeps it |
+| `Cmd+G`, `Cmd+Shift+G` | Next or previous match of the last search; also Enter and Shift+Enter in the find bar | the page keeps it |
 | `Cmd++`, `Cmd+-`, `Cmd+0` | Zoom in, out, 100 % | Chromium's own command |
 
 ## What is stored

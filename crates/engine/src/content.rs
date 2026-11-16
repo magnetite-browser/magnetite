@@ -7,7 +7,7 @@ use magnetite_core::split::{Bounds, SplitNode};
 
 use crate::client::{Kind, MagnetiteClient};
 use crate::engine::Engine;
-use crate::events::{ContentId, EngineEvent};
+use crate::events::{ContentId, EngineEvent, Shortcut};
 
 pub(crate) struct ContentState {
     /// The window the page lives in: its frame is the page window's parent.
@@ -592,6 +592,24 @@ impl Engine {
     pub fn content_print(&self, id: ContentId) {
         if let Some(host) = self.content_browser_host(id) {
             host.print();
+        }
+    }
+    /// Find in page `id` with Chromium's find bar: open it (`Find`), or go
+    /// to the next or previous match of what was searched last. Chromium
+    /// binds these keys through its own main menu on macOS, which ours
+    /// replaces, so the commands are run by hand.
+    pub fn content_find(&self, id: ContentId, shortcut: Shortcut) {
+        let name = match shortcut {
+            Shortcut::Find => "IDC_FIND",
+            Shortcut::FindNext => "IDC_FIND_NEXT",
+            Shortcut::FindPrevious => "IDC_FIND_PREVIOUS",
+            _ => return,
+        };
+        if let (Some(host), Some(command)) = (
+            self.content_browser_host(id),
+            crate::keys::command_id_for(name),
+        ) {
+            host.execute_chrome_command(command, WindowOpenDisposition::CURRENT_TAB);
         }
     }
     pub fn content_stop(&self, id: ContentId) {

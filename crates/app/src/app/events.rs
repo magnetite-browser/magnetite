@@ -260,6 +260,14 @@ impl EngineDelegate for MagnetiteApp {
                 }
             }
             EngineEvent::Shortcut {
+                shortcut: shortcut @ (Shortcut::Find | Shortcut::FindNext | Shortcut::FindPrevious),
+                from,
+            } => {
+                if let Some(c) = self.focused_content(from) {
+                    engine.content_find(c, shortcut);
+                }
+            }
+            EngineEvent::Shortcut {
                 shortcut: Shortcut::OpenDevTools,
                 from,
             } => {

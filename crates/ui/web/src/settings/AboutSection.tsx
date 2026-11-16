@@ -25,6 +25,7 @@ export const SHORTCUTS: [string, string][] = [
   ["⇧⌘2", "Capture the page"],
   ["⌘Y", "History"],
   ["⌥⌘L", "Downloads"],
+  ["⌘F", "Find in the page"],
   ["⌘P", "Print the page"],
   ["⌘,", "Settings"],
   ["⇧ click", "Open a link in a peek"],

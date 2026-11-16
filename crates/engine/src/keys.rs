@@ -81,6 +81,9 @@ pub fn yieldable_shortcut(event: &KeyEvent) -> Option<Shortcut> {
         (m, k) if m == (CMD | SHIFT) && k == 'C' as i32 => Some(Shortcut::CopyLink),
         (m, k) if m == (CMD | SHIFT) && k == 'O' as i32 => Some(Shortcut::SitePanel),
         (m, k) if m == (CMD | SHIFT) && k == '2' as i32 => Some(Shortcut::Capture),
+        (m, k) if m == CMD && k == 'F' as i32 => Some(Shortcut::Find),
+        (m, k) if m == CMD && k == 'G' as i32 => Some(Shortcut::FindNext),
+        (m, k) if m == (CMD | SHIFT) && k == 'G' as i32 => Some(Shortcut::FindPrevious),
         _ => None,
     }
 }

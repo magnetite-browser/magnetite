@@ -86,7 +86,10 @@ impl MagnetiteApp {
             | Shortcut::Forward
             | Shortcut::ZoomIn
             | Shortcut::ZoomOut
-            | Shortcut::ZoomReset => Self::page_command_on(engine, id, shortcut),
+            | Shortcut::ZoomReset
+            | Shortcut::Find
+            | Shortcut::FindNext
+            | Shortcut::FindPrevious => Self::page_command_on(engine, id, shortcut),
             Shortcut::CopyLink => {
                 let result = self.copy_link(engine, Some(id), LinkVariant::Clean);
                 Self::ui_call(engine, "copied", &result);

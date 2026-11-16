@@ -32,14 +32,14 @@ impl MagnetiteApp {
         }
     }
 
-    /// Reload, history and zoom for the page in front (menu bar items).
+    /// Reload, history, zoom and find for the page in front (menu bar items).
     pub(super) fn page_command(&self, engine: &Engine, shortcut: Shortcut) {
         if let Some(c) = self.focused_content(None) {
             Self::page_command_on(engine, c, shortcut);
         }
     }
 
-    /// Reload, history and zoom for page `c`.
+    /// Reload, history, zoom and find for page `c`.
     pub(super) fn page_command_on(engine: &Engine, c: ContentId, shortcut: Shortcut) {
         let zoom = || engine.content_site_state(c).map_or(100, |s| s.zoom);
         match shortcut {
@@ -51,6 +51,9 @@ impl MagnetiteApp {
                 engine.set_content_zoom(c, magnetite_engine::zoom_step(zoom(), up));
             }
             Shortcut::ZoomReset => engine.set_content_zoom(c, 100),
+            Shortcut::Find | Shortcut::FindNext | Shortcut::FindPrevious => {
+                engine.content_find(c, shortcut);
+            }
             _ => {}
         }
     }
@@ -83,7 +86,10 @@ impl MagnetiteApp {
             | Shortcut::Forward
             | Shortcut::ZoomIn
             | Shortcut::ZoomOut
-            | Shortcut::ZoomReset => self.page_command(engine, shortcut),
+            | Shortcut::ZoomReset
+            | Shortcut::Find
+            | Shortcut::FindNext
+            | Shortcut::FindPrevious => self.page_command(engine, shortcut),
             Shortcut::OpenDevTools => {
                 if let Some(c) = self.focused_content(None) {
                     engine.content_show_devtools(c);

@@ -40,6 +40,7 @@ const ACTIONS: Action[] = [
   { id: "devtools", title: "Toggle developer tools", keywords: ["devtools", "developer", "console", "inspect", "f12"], cmd: { cmd: "toggle_devtools" } },
   { id: "capture", title: "Capture page…", keywords: ["capture", "screenshot", "snap"], cmd: { cmd: "capture_start" } },
   { id: "capture_copy", title: "Copy last capture", keywords: ["capture", "screenshot", "copy"], cmd: { cmd: "capture_copy", notify: true } },
+  { id: "find", title: "Find in page…", keywords: ["find", "search", "text"], cmd: { cmd: "shortcut", shortcut: "find" } },
   { id: "print", title: "Print page", keywords: ["print", "pdf"], cmd: { cmd: "shortcut", shortcut: "print" } },
   { id: "history", title: "Open history", keywords: ["history", "visited"], cmd: { cmd: "show_history" } },
 ];
