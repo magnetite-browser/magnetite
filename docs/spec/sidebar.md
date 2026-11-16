@@ -59,7 +59,8 @@ the row turns the icon into a back arrow that takes the page back.
   at the system's warning the half that was off screen the longest, at its
   critical level all of them.
 - While no page is on screen (every tab closed, or a new space), the page
-  area shows the logo and "Press ⌘T to open a tab".
+  area shows the logo and "Press ⌘T to open a tab", or the picture chosen
+  for the space's empty window (`spaces.md`, "Look").
 - **Favorites and pinned tabs stay loaded** once opened, until they are
   closed, also when the system runs short of memory.
 - Closing a favorite or a pinned tab unloads it and takes it back to its

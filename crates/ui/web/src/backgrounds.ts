@@ -1,0 +1,88 @@
+// Backgrounds from Settings → Appearance, each space its own: the effect or
+// own image over the sidebar's colour, and the user's own images (stored by
+// the app, served at /user-images/<slot>-<space>).
+import type { CSSProperties } from "react";
+import { DEFAULT_ACCENT, accentCss, send, type Color, type Id, type SpaceLook } from "./bridge";
+
+export type ImageSlot = "empty" | "sidebar";
+
+/** Address of space `space`'s stored image for `slot`; `stamp` changes with every new image. */
+export const userImageUrl = (slot: ImageSlot, space: Id, stamp: number) => `/user-images/${slot}-${space}?v=${stamp}`;
+
+/** Fine white noise, the same for every space. */
+const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(
+  "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'>" +
+    "<filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/>" +
+    "<feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.7 0 0 0 0'/></filter>" +
+    "<rect width='100%' height='100%' filter='url(#n)' opacity='0.22'/></svg>",
+)}")`;
+
+/** `c` with its hue turned by `degrees`, as CSS with `alpha`. */
+function turned(c: Color | undefined, degrees: number, alpha: number): string {
+  const { red: r, green: g, blue: b } = c ?? DEFAULT_ACCENT;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  const l = (max + min) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  const h = d === 0 ? 0 : max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return `hsl(${Math.round(h * 60 + degrees)} ${Math.round(s * 100)}% ${Math.round(l * 100)}% / ${alpha})`;
+}
+
+/** A soft patch of `colour` around `at`, `size` wide and tall. */
+const patch = (colour: string, at: string, size: string) => `radial-gradient(${size} at ${at}, ${colour}, transparent 72%)`;
+
+/**
+ * The sidebar's background: its colour `chrome` and, over it, the effect of
+ * the space's `look`. Effects take the space colour `accent` and carry the
+ * grain; an own image lies under a veil of `chrome`, so the rows stay
+ * readable on any picture.
+ */
+export function sidebarBackground(chrome: string, space: Id, look: SpaceLook, accent?: Color): CSSProperties {
+  const layers = (...images: string[]): CSSProperties => ({ backgroundColor: chrome, backgroundImage: images.join(", ") });
+  switch (look.sidebar_effect) {
+    case "grain":
+      return layers(GRAIN);
+    case "glow":
+      return layers(GRAIN, patch(accentCss(accent, 0.34), "0% 0%", "130% 55%"), patch(accentCss(accent, 0.2), "100% 100%", "110% 45%"));
+    case "aurora":
+      return layers(GRAIN, patch(accentCss(accent, 0.32), "0% 0%", "120% 45%"), patch(turned(accent, 70, 0.24), "100% 45%", "110% 40%"), patch(turned(accent, -60, 0.26), "0% 100%", "120% 45%"));
+    case "fade":
+      return layers(GRAIN, `linear-gradient(${accentCss(accent, 0.3)}, transparent 70%)`);
+    case "image": {
+      if (look.sidebar_image == null) return { backgroundColor: chrome };
+      const veil = `color-mix(in srgb, ${chrome} 62%, transparent)`;
+      return { ...layers(`linear-gradient(${veil}, ${veil})`, `url("${userImageUrl("sidebar", space, look.sidebar_image)}")`), backgroundSize: "cover", backgroundPosition: "center" };
+    }
+    default:
+      return { backgroundColor: chrome };
+  }
+}
+
+/**
+ * Store `file` as space `space`'s image for `slot`: scaled down to `maxSide` points on
+ * its longer side and re-encoded as WebP, which also drops the picture's
+ * metadata (place, camera). `null` removes the stored image.
+ */
+export async function storeImage(slot: ImageSlot, space: Id, file: File | null, maxSide: number): Promise<void> {
+  if (!file) {
+    await send({ cmd: "set_appearance_image", slot, space, data: null });
+    return;
+  }
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/webp", 0.85));
+  if (!blob) throw new Error("That picture could not be read");
+  const url = await new Promise<string>((done, fail) => {
+    const reader = new FileReader();
+    reader.onload = () => done(String(reader.result));
+    reader.onerror = () => fail(new Error("That picture could not be read"));
+    reader.readAsDataURL(blob);
+  });
+  await send({ cmd: "set_appearance_image", slot, space, data: url.slice(url.indexOf(",") + 1) });
+}

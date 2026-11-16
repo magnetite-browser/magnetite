@@ -388,8 +388,9 @@ impl Engine {
         }
     }
 
-    /// Run `js` in every sidebar page and the top bar, shown or not, and in
-    /// the overlay (a pop-up of the top bar shows live state): state pushes.
+    /// Run `js` in every sidebar page, the top bar and the empty page, shown
+    /// or not, and in the overlay (a pop-up of the top bar shows live state):
+    /// state pushes.
     pub fn ui_eval_all(&self, js: &str) {
         let overlay = (self.lock().overlay.clone())
             .and_then(|w| w.child_view_at(0)?.as_browser_view()?.browser());
@@ -397,6 +398,7 @@ impl Engine {
             self.docked_sidebar_browser(),
             self.float_sidebar_browser(),
             self.top_bar_browser(),
+            self.empty_browser(),
             overlay,
         ]
         .into_iter()

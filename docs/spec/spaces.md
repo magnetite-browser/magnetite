@@ -26,8 +26,8 @@ by all spaces. The profile decides which logins the pages of a space use.
   It has Rename space, Change icon, New folder, the profile choice and
   Delete space….
 - **Rename**: the space menu, or double-click the title. **Icon**: the space
-  menu, or click the icon. **Colour**: Settings → Appearance → Space
-  colours, with eleven presets and a colour picker.
+  menu, or click the icon. **Colour**: Settings → Appearance →
+  Colour, with eleven presets and a colour picker ("Look" below).
 - **Reorder**: drag a space icon in the footer onto another one. A line
   shows where it goes: before the icon under the pointer on its left half,
   after it on its right half; where it already is, no line shows. The
@@ -37,6 +37,31 @@ by all spaces. The profile decides which logins the pages of a space use.
 - **Delete**: "Delete space…", then click again to confirm. The last space
   cannot be deleted. The space's pinned and Today tabs move to the archive
   (`archive.md`). If it was the current space, the first space takes over.
+
+## Look
+
+Settings → Appearance starts with the spaces: choose one (the current space
+is chosen at first), and the settings below it change that space.
+
+- **Colour**: the space colour (`accent`). It syncs with the space.
+- **Colour strength**: how much of the space colour the window takes, 0 to
+  30 percent; 8 unless changed.
+- **Sidebar background**: None, or an effect in the space colour: Grain
+  (fine noise), Glow (soft patches in two corners), Aurora (the space colour
+  and two neighbouring hues) and Fade (the colour running out from the top);
+  the last three carry the grain too. Or a picture of your own, which lies
+  under a veil of the sidebar's colour so the rows stay readable.
+- **Empty window**: a picture of your own behind the window while no tab of
+  the space is on screen, in place of the logo.
+
+A picture is scaled down (1600 points on its longer side for the sidebar,
+2880 for the empty window) and stored as WebP, which leaves out its metadata
+such as place and camera. Strength, background and pictures are kept on this
+device and are not synced: the settings in `state.json`
+(`settings.appearance.looks`), the pictures in
+`<data-dir>/appearance/`, readable by the owner only. Only the Settings page
+may store or remove a picture. Deleting a space removes its look and its
+pictures.
 
 ## Switching
 
@@ -148,11 +173,13 @@ another space for its site.
 ## Not built yet
 
 - Choosing icon, colour and profile while creating a space.
-- Gradient themes and a light appearance.
+- A light appearance.
+- Syncing a space's look, and a background effect behind the empty window.
 
 Code: `crates/core/src/model.rs`, `crates/app/src/app/commands.rs`,
 `crates/app/src/state/profiles.rs`,
 `crates/app/src/state/tabs.rs` (`move_space`),
 `crates/ui/web/src/{App,SpaceSwitcher,IsolationSection,Glyphs}.tsx`,
 `crates/ui/web/src/useSpaceSwipe.ts`,
-`crates/ui/web/src/settings/AppearanceSection.tsx`.
+`crates/ui/web/src/settings/AppearanceSection.tsx`,
+`crates/ui/web/src/{backgrounds.ts,Empty.tsx}`, `crates/engine/src/empty.rs`.

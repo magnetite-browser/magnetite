@@ -36,7 +36,7 @@ export function Switch({ label, checked, onChange }: { label: string; checked: b
 export function Slider({ value, min, max, step, unit, reset, onChange }: { value: number; min: number; max: number; step: number; unit: string; reset: number; onChange: (v: number, now: boolean) => void }) {
   return (
     <div className="flex max-w-[460px] items-center gap-3">
-      <input className="range flex-1" type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value), false)} />
+      <input className="range flex-1" type="range" min={min} max={max} step={step} value={value} style={{ ["--fill" as string]: `${((value - min) / (max - min)) * 100}%` }} onChange={(e) => onChange(Number(e.target.value), false)} />
       <span className="w-14 text-right tabular-nums text-[var(--secondary)]">{value}{unit}</span>
       <button className="btn sm" disabled={value === reset} onClick={() => onChange(reset, true)}>Reset</button>
     </div>

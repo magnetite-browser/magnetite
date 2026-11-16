@@ -1,5 +1,6 @@
 //! `magnetite://ui/` serves the built sidebar UI from `EngineConfig::ui_dir`,
-//! cached favicons (`favicons/…`) and extension icons (`ext-icons/<id>`).
+//! cached favicons (`favicons/…`), extension icons (`ext-icons/<id>`) and the
+//! user's own background images (`user-images/<name>`).
 
 use std::sync::{Arc, Mutex};
 
@@ -31,8 +32,18 @@ pub fn register_schemes(registrar: &mut SchemeRegistrar) {
     registrar.add_custom_scheme(Some(&CefString::from(SCHEME)), scheme_options());
 }
 
-pub fn install_factory(ui_dir: std::path::PathBuf, favicon_dir: std::path::PathBuf) {
-    let mut factory = UiSchemeFactory::new(Arc::new(ui_dir), Arc::new(favicon_dir));
+/// Where the user's own background images are kept (Settings → Appearance):
+/// WebP files, `<slot>-<space id>.webp`.
+pub fn user_image_dir(data_dir: &std::path::Path) -> std::path::PathBuf {
+    data_dir.join("appearance")
+}
+
+pub fn install_factory(data_dir: &std::path::Path, ui_dir: std::path::PathBuf) {
+    let mut factory = UiSchemeFactory::new(
+        Arc::new(ui_dir),
+        Arc::new(crate::favicon::cache_dir(data_dir)),
+        Arc::new(user_image_dir(data_dir)),
+    );
     register_scheme_handler_factory(
         Some(&CefString::from(SCHEME)),
         Some(&CefString::from(UI_HOST)),
@@ -44,6 +55,7 @@ wrap_scheme_handler_factory! {
     struct UiSchemeFactory {
         ui_dir: Arc<std::path::PathBuf>,
         favicon_dir: Arc<std::path::PathBuf>,
+        image_dir: Arc<std::path::PathBuf>,
     }
     impl SchemeHandlerFactory {
         fn create(
@@ -55,6 +67,15 @@ wrap_scheme_handler_factory! {
         ) -> Option<ResourceHandler> {
             let url = CefString::from(&request?.url()).to_string();
             let path = url_path(&url);
+            if let Some(name) = path.strip_prefix("user-images/") {
+                // A file's name, never a path.
+                let plain = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_';
+                if name.is_empty() || !name.chars().all(plain) {
+                    return None;
+                }
+                let bytes = std::fs::read(self.image_dir.join(format!("{name}.webp"))).ok()?;
+                return Some(BytesResourceHandler::new(Arc::new(bytes), "image/webp".to_string(), Arc::new(Mutex::new(0))));
+            }
             let (bytes, mime) = match path.strip_prefix("favicons/") {
                 // Cached icons only; a miss is a plain failure so <img> falls back.
                 Some(name) if !name.contains(['/', '\\']) && !name.starts_with('.') => {

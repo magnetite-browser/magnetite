@@ -18,7 +18,7 @@ pub(crate) struct FrameState {
     pub content_panel: Panel,
     pub sidebar_browser: Option<Browser>,
     /// The hint in the content panel for a window without a page.
-    pub empty: Option<crate::empty::EmptyHint>,
+    pub empty: Option<crate::empty::EmptyPage>,
 }
 
 impl Engine {
@@ -87,7 +87,7 @@ impl Engine {
         Some(result)
     }
 
-    /// The window whose sidebar, top bar or floating sidebar is browser
+    /// The window whose sidebar, top bar, floating sidebar or empty page is browser
     /// `id`, or whose page it is.
     pub(crate) fn window_of_browser(&self, id: i32) -> Option<WindowId> {
         let is = |b: Option<&Browser>| b.is_some_and(|b| b.identifier() == id);
@@ -101,7 +101,9 @@ impl Engine {
         inner.windows_mut().find_map(|(win, w)| {
             let frame = w.frame.as_ref();
             let float = w.float_bar.as_ref().and_then(|f| f.view.browser());
+            let empty = frame.and_then(|f| f.empty.as_ref()?.browser());
             (is(frame.and_then(|f| f.sidebar_browser.as_ref()))
+                || is(empty.as_ref())
                 || is(frame.and_then(|f| f.top_bar_browser.as_ref()))
                 || is(float.as_ref()))
             .then_some(win)
@@ -457,7 +459,6 @@ impl Engine {
             content.set_background_color(argb);
             body.set_background_color(argb);
         }
-        self.colour_empty_hint(argb);
     }
 
     pub fn sidebar_visible(&self) -> bool {
@@ -680,6 +681,8 @@ wrap_window_delegate! {
             window.show();
             window.layout();
 
+            let chrome = engine.lock().win.chrome_color;
+            let empty = crate::empty::EmptyPage::new(&content, chrome);
             let mut inner = engine.lock();
             let Some(state) = inner.window_mut(self.win) else { return };
             let sidebar_browser = state.pending_sidebar_browser.take();
@@ -689,7 +692,7 @@ wrap_window_delegate! {
                 sidebar_view: sidebar,
                 top_bar_view: None,
                 top_bar_browser: None,
-                empty: crate::empty::EmptyHint::new(&content),
+                empty,
                 content_panel: content,
                 sidebar_browser,
             });

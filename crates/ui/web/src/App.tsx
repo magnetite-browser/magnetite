@@ -13,7 +13,8 @@ import { MediaBar, type MediaEntry } from "./MediaBar";
 import { NewMenu } from "./NewMenu";
 import { PinnedExtensions } from "./PinnedExtensions";
 import { FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, type RowContext } from "./Rows";
-import { IS_MAC, accentCss, applyAppearance, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
+import { sidebarBackground } from "./backgrounds";
+import { IS_MAC, accentCss, applyAppearance, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
 import { IconPicker, SpaceGlyph } from "./Glyphs";
 import { SpaceSwitcher } from "./SpaceSwitcher";
 import { dragging, endDrag, indexAfterTaking } from "./dnd";
@@ -104,7 +105,7 @@ export function App() {
   const frontRt = state.peek ? state.peek.runtime : activeRt;
   const activeItem = state.active_tab ? findTab(state, state.active_tab) : null;
   const topBar = state.settings.appearance.top_bar && !FLOAT;
-  const spaceVars = { ["--space" as string]: accentCss(space.accent), ["--space-soft" as string]: accentCss(space.accent, 0.14), ["--bg" as string]: state.chrome, background: state.chrome };
+  const spaceVars = { ["--space" as string]: accentCss(space.accent), ["--space-soft" as string]: accentCss(space.accent, 0.14), ["--bg" as string]: state.chrome, ...sidebarBackground(state.chrome, space.id, lookOf(state.settings.appearance, space.id), space.accent) };
   // Media in tabs that are not on screen, playing ones first (at most two rows).
   const onScreen = new Set(state.panes.length > 1 ? state.panes : state.active_tab ? [state.active_tab] : []);
   const media: MediaEntry[] = Object.entries(state.runtime)

@@ -421,6 +421,7 @@ impl EngineDelegate for MagnetiteApp {
                 | UiCommand::SetShortcut { .. }
                 | UiCommand::ResetShortcut { .. }
                 | UiCommand::RecordShortcut { .. }
+                | UiCommand::SetAppearanceImage { .. }
         );
         let trusted = ["magnetite://ui/settings", WELCOME_URL];
         if settings_only && !trusted.iter().any(|page| origin.starts_with(page)) {

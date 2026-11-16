@@ -435,12 +435,19 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 :is(.row, .split-cell)[data-unloaded] .favicon:not(:has(img)), .fav[data-unloaded] .favicon:not(:has(img)) { color: var(--muted); }
 
 /* Settings → Appearance */
-.swatches { display: flex; flex-wrap: wrap; gap: 5px; justify-content: flex-end; max-width: 300px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
 .swatch { width: 18px; height: 18px; border-radius: 9px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25); position: relative; }
 .swatch[data-on] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
 .swatch.custom { background: conic-gradient(#f55, #fb5, #5f8, #5cf, #a6f, #f5a, #f55); overflow: hidden; cursor: pointer; }
 .swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.range { accent-color: var(--accent); }
+/* A slider drawn by us: the engine's own one changes colour under the pointer.
+   `--fill` is how far it is set, in percent (`Slider`). */
+.range { appearance: none; height: 18px; background: transparent; cursor: pointer; }
+.range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--accent) var(--fill, 0%), rgba(255,255,255,0.14) var(--fill, 0%)); }
+.range::-webkit-slider-thumb { appearance: none; width: 14px; height: 14px; margin-top: -5px; border-radius: 50%; background: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,0.4); transition: box-shadow 100ms; }
+.range:hover::-webkit-slider-thumb, .range:active::-webkit-slider-thumb { box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 0 4px var(--accent-soft); }
+.range:focus-visible { outline: none; }
+.range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--accent); }
 
 /* Downloads: progress under a running row, a ring on the footer button. */
 .row.download[data-dim] .title { color: var(--muted); }

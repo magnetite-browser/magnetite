@@ -26,7 +26,9 @@ mod windows;
 
 pub(crate) use folders::folder_in_tree_mut;
 pub use history::{History, Visit};
-pub use settings::{AdblockSettings, Appearance, Settings, SiteSearch, SyncSettings, TabOrder};
+pub use settings::{
+    AdblockSettings, Appearance, Settings, SidebarEffect, SiteSearch, SyncSettings, TabOrder,
+};
 pub use tabs::TabSwitch;
 
 /// What the sidebar UI receives on every change.
@@ -290,16 +292,27 @@ impl AppState {
         (byte(c.red) << 16) | (byte(c.green) << 8) | byte(c.blue)
     }
 
-    /// Mix 8% of the active space accent into the base graphite, keeping
-    /// every space's chrome at the same lightness.
+    /// Mix the active space accent into the base graphite, as much as
+    /// Settings → Appearance says (8% unless changed), keeping every space's
+    /// chrome at the same lightness.
     pub fn chrome_rgb(&self) -> u32 {
         const BASE: (f32, f32, f32) = (27.0, 27.0, 30.0); // #1b1b1e
         let accent = self.space(&self.active_space).and_then(|s| s.accent);
+        // At most 30, so the cast is exact.
+        #[allow(clippy::cast_precision_loss)]
+        let tint = self
+            .settings
+            .appearance
+            .look(&self.active_space)
+            .tint
+            .min(30) as f32
+            / 100.0;
+        let mix = |base: f32, accent: f32| base * (1.0 - tint) + accent * 255.0 * tint;
         let (r, g, b) = match accent {
             Some(c) => (
-                BASE.0 * 0.92 + c.red * 255.0 * 0.08,
-                BASE.1 * 0.92 + c.green * 255.0 * 0.08,
-                BASE.2 * 0.92 + c.blue * 255.0 * 0.08,
+                mix(BASE.0, c.red),
+                mix(BASE.1, c.green),
+                mix(BASE.2, c.blue),
             ),
             None => BASE,
         };

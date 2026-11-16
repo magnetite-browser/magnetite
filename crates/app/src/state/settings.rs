@@ -2,7 +2,7 @@
 //! change goes through, whether it comes from the Settings page or from
 //! another device.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use magnetite_core::{Id, UnixSeconds};
 use serde::{Deserialize, Serialize};
@@ -144,6 +144,36 @@ pub struct Appearance {
     /// Navigation, the address and the window buttons in a bar across the
     /// top of the window, not at the top of the sidebar.
     pub top_bar: bool,
+    /// How each space looks beyond its colour, by space id. A space without
+    /// an entry has the default look. Kept on this device.
+    pub looks: BTreeMap<String, SpaceLook>,
+}
+
+/// One space's look beyond its colour (Settings → Appearance).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct SpaceLook {
+    /// How much of the space colour is mixed into the window, in percent,
+    /// 0 to 30.
+    pub tint: u32,
+    /// What is drawn over the sidebar's colour.
+    pub sidebar_effect: SidebarEffect,
+    /// When the user's own sidebar image was stored (milliseconds), `None`
+    /// without one. Part of the image's address, so pages load a new one.
+    pub sidebar_image: Option<u64>,
+    /// The same for the image behind the empty window.
+    pub empty_image: Option<u64>,
+}
+
+impl Default for SpaceLook {
+    fn default() -> Self {
+        Self {
+            tint: 8,
+            sidebar_effect: SidebarEffect::None,
+            sidebar_image: None,
+            empty_image: None,
+        }
+    }
 }
 
 impl Default for Appearance {
@@ -153,6 +183,7 @@ impl Default for Appearance {
             density: Density::Comfortable,
             sidebar_width: 264,
             top_bar: false,
+            looks: BTreeMap::new(),
         }
     }
 }
@@ -162,13 +193,35 @@ impl Appearance {
     pub fn clamped(mut self) -> Self {
         self.text_scale = self.text_scale.clamp(85, 130);
         self.sidebar_width = Self::sidebar_width(self.sidebar_width);
+        for look in self.looks.values_mut() {
+            look.tint = look.tint.min(30);
+        }
         self
+    }
+
+    /// The look of space `id`: its own, or the default one.
+    pub fn look(&self, id: &str) -> SpaceLook {
+        self.looks.get(id).cloned().unwrap_or_default()
     }
 
     /// The docked sidebar's width kept between 220 and 360 points.
     pub fn sidebar_width(width: u32) -> u32 {
         width.clamp(220, 360)
     }
+}
+
+/// An effect over the sidebar's colour, or the user's own image.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum SidebarEffect {
+    #[default]
+    None,
+    Grain,
+    Glow,
+    Aurora,
+    Fade,
+    /// The stored image (`SpaceLook::sidebar_image`).
+    Image,
 }
 
 /// Row height and spacing in the sidebar.
@@ -780,7 +833,7 @@ mod tests {
                 text_scale: 110,
                 density: Density::Compact,
                 sidebar_width: 300,
-                top_bar: false,
+                ..Appearance::default()
             }
         );
         let on = Appearance {

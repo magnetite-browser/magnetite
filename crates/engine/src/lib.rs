@@ -82,6 +82,7 @@ pub use keymap::{Action, Combo, KeysError, Overrides};
 pub use media::{MediaAction, MediaState};
 pub use prompts::{PermissionPrompt, PromptAnswer, PromptKind};
 pub use router::ReplyTicket;
+pub use scheme::user_image_dir;
 pub use site::{SiteState, ZOOM_STEPS, zoom_step};
 pub use sitecode::SiteCode;
 pub use sitedata::{

@@ -322,7 +322,26 @@ export interface Appearance {
   sidebar_width: number;
   /** Navigation, address and window buttons in a bar across the top. */
   top_bar: boolean;
+  /** How each space looks beyond its colour, by space id; a space without an entry has `DEFAULT_LOOK`. Kept on this device. */
+  looks: Record<Id, SpaceLook>;
 }
+
+/** One space's look beyond its colour. */
+export interface SpaceLook {
+  /** How much of the space colour the window takes, in percent, 0 to 30. */
+  tint: number;
+  /** What lies over the sidebar's colour; "image" is the user's own. */
+  sidebar_effect: "none" | "grain" | "glow" | "aurora" | "fade" | "image";
+  /** When the own sidebar image was stored, `null` without one (`userImageUrl`). */
+  sidebar_image: number | null;
+  /** The same for the picture behind the empty window. */
+  empty_image: number | null;
+}
+
+export const DEFAULT_LOOK: SpaceLook = { tint: 8, sidebar_effect: "none", sidebar_image: null, empty_image: null };
+
+/** The look of space `id`: its own, or the default one. */
+export const lookOf = (a: Appearance, id: Id): SpaceLook => a.looks[id] ?? DEFAULT_LOOK;
 
 /** Apply text size and row density to this page. */
 export function applyAppearance(a: Pick<Appearance, "text_scale" | "density">) {
@@ -429,6 +448,8 @@ export type Command =
   /** The system asks the user; answers once they did. */
   | { cmd: "make_default_browser" }
   | { cmd: "set_settings"; settings: Partial<Settings> }
+  /** Store an own image (WebP as base64) for `slot` of space `space`, or remove it (`null`). Settings page only. */
+  | { cmd: "set_appearance_image"; slot: "empty" | "sidebar"; space: Id; data: string | null }
   | { cmd: "get_settings" }
   | { cmd: "sync_create"; server: string; invite?: string }
   | { cmd: "sync_join"; server: string; words: string }

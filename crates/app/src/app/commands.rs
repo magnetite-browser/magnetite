@@ -11,7 +11,7 @@ use magnetite_engine::{Engine, MediaAction, Shortcut};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::state::{AppState, ArcImport, new_id};
+use crate::state::{AppState, ArcImport, SidebarEffect, new_id};
 use crate::sync::{self, Job};
 use crate::{capture, downloads, lock, url_policy};
 
@@ -48,6 +48,35 @@ impl EnginePage {
             Self::Addresses => "chrome://settings/contactInfo",
             Self::Cards => "chrome://settings/payments",
         }
+    }
+}
+
+/// The most an own image may weigh as base64: about 6 MB of WebP.
+const MAX_IMAGE_BASE64: usize = 8 * 1024 * 1024;
+
+/// Where an own image of the user goes (Settings → Appearance).
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ImageSlot {
+    /// Behind the empty window.
+    Empty,
+    /// Over the sidebar's colour.
+    Sidebar,
+}
+
+impl ImageSlot {
+    /// The file of this slot's image for space `space`, served as
+    /// `magnetite://ui/user-images/<slot>-<space>`. `None` for an id that
+    /// would not make a plain file name.
+    fn file(self, data_dir: &Path, space: &str) -> Option<std::path::PathBuf> {
+        let plain = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '_';
+        let slot = match self {
+            Self::Empty => "empty",
+            Self::Sidebar => "sidebar",
+        };
+        (!space.is_empty() && space.chars().all(plain)).then(|| {
+            magnetite_engine::user_image_dir(data_dir).join(format!("{slot}-{space}.webp"))
+        })
     }
 }
 
@@ -356,6 +385,14 @@ pub(super) enum UiCommand {
     /// Let smart folder `id`, synced from another device, fetch here.
     SmartAllow {
         id: String,
+    },
+    /// Store the user's own image for `slot` of space `space` (WebP,
+    /// base64), or remove it (`None`). Settings → Appearance.
+    SetAppearanceImage {
+        slot: ImageSlot,
+        space: String,
+        #[serde(default)]
+        data: Option<String>,
     },
     /// What a Settings page changed: only the settings it sends change
     /// (`Settings::patched`).
@@ -878,6 +915,15 @@ impl MagnetiteApp {
                 for c in contents {
                     engine.close_content(c);
                 }
+                // Its look and its own images go with it.
+                if self.with_state(|s| s.space(&id).is_none()) {
+                    self.with_state(|s| s.settings.appearance.looks.remove(&id));
+                    for slot in [ImageSlot::Empty, ImageSlot::Sidebar] {
+                        if let Some(file) = slot.file(&self.data_dir, &id) {
+                            let _ = std::fs::remove_file(file);
+                        }
+                    }
+                }
                 let space = self.with_state(|s| s.active_space.clone());
                 self.activate_space(engine, &space);
             }
@@ -1378,6 +1424,50 @@ impl MagnetiteApp {
                 self.with_state(|s| {
                     if let Some(sp) = s.space_mut(&id) {
                         sp.accent = color.map(Color::sanitised);
+                    }
+                });
+                self.push_state(engine);
+            }
+            UiCommand::SetAppearanceImage { slot, space, data } => {
+                if !self.with_state(|s| s.space(&space).is_some()) {
+                    return Err("no such space".into());
+                }
+                let file = slot.file(&self.data_dir, &space).ok_or("no such space")?;
+                let stored = if let Some(data) = data {
+                    use base64::Engine as _;
+                    if data.len() > MAX_IMAGE_BASE64 {
+                        return Err("that image is too large".into());
+                    }
+                    let bytes = base64::engine::general_purpose::STANDARD
+                        .decode(data)
+                        .map_err(|_| "that is not an image")?;
+                    // What the page sends: a WebP file ("RIFF....WEBP").
+                    if bytes.get(..4) != Some(b"RIFF") || bytes.get(8..12) != Some(b"WEBP") {
+                        return Err("that is not an image".into());
+                    }
+                    (file.parent().map_or(Ok(()), crate::files::private_dir))
+                        .and_then(|()| crate::files::write_private(&file, &bytes))
+                        .map_err(|e| format!("the image could not be stored: {e}"))?;
+                    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH);
+                    Some(now.map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX)))
+                } else {
+                    // Gone already is as good as removed.
+                    let _ = std::fs::remove_file(&file);
+                    None
+                };
+                self.with_state(|s| {
+                    let a = s.settings.appearance.looks.entry(space).or_default();
+                    match slot {
+                        ImageSlot::Empty => a.empty_image = stored,
+                        ImageSlot::Sidebar => {
+                            a.sidebar_image = stored;
+                            // A new image shows at once; without one its effect is off.
+                            if stored.is_some() {
+                                a.sidebar_effect = SidebarEffect::Image;
+                            } else if a.sidebar_effect == SidebarEffect::Image {
+                                a.sidebar_effect = SidebarEffect::None;
+                            }
+                        }
                     }
                 });
                 self.push_state(engine);

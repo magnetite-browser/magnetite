@@ -221,7 +221,7 @@ wrap_browser_process_handler! {
         }
         fn on_context_initialized(&self) {
             let engine = Engine::global();
-            scheme::install_factory(engine.config().ui_dir.clone(), crate::favicon::cache_dir(&engine.config().data_dir));
+            scheme::install_factory(&engine.config().data_dir, engine.config().ui_dir.clone());
             engine.lock().router = Some(router::create_browser_router());
             engine.start_tick();
             #[cfg(target_os = "macos")]
