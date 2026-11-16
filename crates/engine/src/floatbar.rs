@@ -202,6 +202,8 @@ wrap_window_delegate! {
             window.set_bounds(Some(&self.bounds));
             #[cfg(target_os = "macos")]
             crate::mac::round_window_corners(window.window_handle(), 10.0, true);
+            #[cfg(target_os = "macos")]
+            crate::mac::mark_as_part(window.window_handle());
             let engine = Engine::global();
             let show = {
                 let mut inner = engine.lock();

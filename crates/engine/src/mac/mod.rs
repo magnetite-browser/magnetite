@@ -290,6 +290,28 @@ pub fn pin_window(handle: cef::sys::cef_window_handle_t) {
         let _: () = msg_send![window, setMovable: Bool::NO];
         let _: () = msg_send![window, setMovableByWindowBackground: Bool::NO];
     }
+    mark_as_part(handle);
+}
+
+/// Tell accessibility that the window holding the view `handle` is a part of
+/// another window, not one to switch to. AppKit calls a frameless window that
+/// can take the keyboard a dialog, which window switchers (`AltTab`) list next
+/// to the frame: one more "Magnetite" for every loaded page.
+pub fn mark_as_part(handle: cef::sys::cef_window_handle_t) {
+    if handle.is_null() {
+        return;
+    }
+    // SAFETY: CEF hands us a live NSView*; `setAccessibilitySubrole:` takes
+    // an NSString.
+    unsafe {
+        let view: &AnyObject = &*handle.cast::<AnyObject>();
+        let window: *mut AnyObject = msg_send![view, window];
+        if window.is_null() {
+            return;
+        }
+        let subrole = objc2_foundation::ns_string!("AXUnknown");
+        let _: () = msg_send![&*window, setAccessibilitySubrole: subrole];
+    }
 }
 
 /// Give a frameless child window rounded corners, a clear background and a
