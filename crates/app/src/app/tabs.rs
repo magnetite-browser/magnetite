@@ -391,6 +391,24 @@ impl MagnetiteApp {
         Some(id)
     }
 
+    /// Open `url`, a link from another app, as a background Today tab of
+    /// space `space` (the one a link rule names), which stays where it is:
+    /// the tab is marked unread and runs in that space's profile.
+    pub(super) fn open_background_in_space(&self, engine: &Engine, url: &str, space: &str) {
+        let url = url.trim();
+        if !url_policy::allowed(url, url_policy::Source::OtherApp) {
+            trace(|| "not opening an address from another app with this scheme".to_string());
+            return;
+        }
+        self.with_state(|s| {
+            let id = s.new_today_tab(space, url, url);
+            if let Some(t) = s.find_tab_mut(&id) {
+                t.unread = true;
+            }
+        });
+        self.push_state(engine);
+    }
+
     /// Load `url` in the page of tab `tab_id`. Magnetite's own pages are
     /// served by the default profile only (`present`), so a tab that changes
     /// between such a page and a website gets a new page window in the right

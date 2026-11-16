@@ -37,7 +37,8 @@ it as a tab, or put it beside the current tab in split view.
   tab in front or switching tabs closes it.
 - The peek runs in the profile of the page that opened it. A link from
   another app, or one picked in the command bar, runs in the active
-  space's profile.
+  space's profile; a link from another app to a site with a rule runs in
+  the profile of the rule's space (`spaces.md`, "Links from other apps").
 - A link inside the peek navigates the peek. A link there that asks for a
   new tab or window opens as a Today tab, and the peek closes.
 - While a peek is open, reload, back and forward (the sidebar's buttons and

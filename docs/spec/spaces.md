@@ -123,7 +123,9 @@ another space for its site.
 - Where the link opens stays what Settings → General → "Open links from
   other apps in" says (`peek.md`, `mini-window.md`): as a new tab it opens
   in the rule's space, which comes to the front; as a peek or a mini
-  window it opens with the logins of that space's profile.
+  window it opens with the logins of that space's profile. Of several
+  links handed over at once as peeks, only the last is one; the others
+  become background tabs, each in the space its rule names.
 - A rule whose space is gone does nothing, and a less exact rule that fits
   counts in its place; Settings marks it until another space is chosen or
   the rule removed.
