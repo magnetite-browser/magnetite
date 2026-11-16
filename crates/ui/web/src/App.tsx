@@ -320,8 +320,12 @@ function useFloatLifecycle(): number {
     if (!FLOAT) return;
     let timer: number | undefined;
     const root = document.documentElement;
-    const leave = () => (timer = window.setTimeout(() => send({ cmd: "float_sidebar", show: false }), 280));
     const enter = () => window.clearTimeout(timer);
+    // One timer at most: a second leave without an enter must not leave one behind that hides the sidebar under the pointer.
+    const leave = () => {
+      enter();
+      timer = window.setTimeout(() => send({ cmd: "float_sidebar", show: false }), 280);
+    };
     const visible = () => document.visibilityState === "visible" && setShownAt(Date.now());
     root.addEventListener("mouseleave", leave);
     root.addEventListener("mouseenter", enter);

@@ -160,13 +160,17 @@ impl Engine {
 }
 
 /// Show the panel on top without taking the keyboard from the page: hovering
-/// is not choosing. A click into the panel focuses it as usual.
+/// is not choosing. A click into the panel focuses it as usual, and the
+/// pointer moves over it as over a focused window (hover, pointer-out).
 pub(crate) fn show_quietly(window: &Window) {
     #[cfg(target_os = "macos")]
-    crate::mac::without_taking_focus(|| {
-        window.show();
-        window.bring_to_top();
-    });
+    {
+        crate::mac::hover_without_focus(window.window_handle());
+        crate::mac::without_taking_focus(|| {
+            window.show();
+            window.bring_to_top();
+        });
+    }
     #[cfg(not(target_os = "macos"))]
     {
         window.show();
