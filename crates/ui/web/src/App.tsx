@@ -272,7 +272,7 @@ export function App() {
         />
       )}
 
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} takeFocus />}
       {iconPicker && (
         <IconPicker
           at={iconPicker}

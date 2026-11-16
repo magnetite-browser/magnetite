@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { pageZoom } from "./bridge";
+import { pageZoom, send } from "./bridge";
 
 /** A line between groups, or an action. */
 export type MenuItem =
@@ -18,7 +18,18 @@ export type MenuItem =
 /** The line between groups of a menu. */
 export const SEPARATOR: MenuItem = { separator: true };
 
-export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: MenuItem[]; onClose: () => void }) {
+/**
+ * Closes on a pick, a key, a click beside it or when its page loses the
+ * keyboard (a click into a web page, another app). `takeFocus`: ask for the
+ * keyboard on opening, as a right click gives none and without it there is
+ * nothing to lose; only for menus in the sidebar, a page or a window of its
+ * own has it.
+ */
+export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: number; y: number; items: MenuItem[]; onClose: () => void; takeFocus?: boolean }) {
+  useEffect(() => {
+    if (takeFocus) send({ cmd: "focus_sidebar" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     const close = () => onClose();
     window.addEventListener("mousedown", close);

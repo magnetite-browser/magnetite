@@ -94,7 +94,7 @@ export function BookmarksView({ state, onClose }: { state: UiState; onClose: () 
           <div className="px-2 py-6 text-[var(--muted)]">No matching bookmarks.</div>
         )}
       </div>
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} takeFocus />}
     </div>
   );
 }

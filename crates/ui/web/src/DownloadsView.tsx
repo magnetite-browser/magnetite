@@ -66,9 +66,10 @@ function menuOf(d: DownloadEntry): MenuItem[] {
 /**
  * Downloads as rows, grouped by day like the archive: a click opens the
  * file, a right click offers copying and the file manager. `time` adds when
- * each one started.
+ * each one started; `inSidebar` says the list is in the sidebar and not on a
+ * page (see `ContextMenu`).
  */
-export function DownloadList({ items, time }: { items: DownloadEntry[]; time?: boolean }) {
+export function DownloadList({ items, time, inSidebar }: { items: DownloadEntry[]; time?: boolean; inSidebar?: boolean }) {
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
   return (
     <>
@@ -108,7 +109,7 @@ export function DownloadList({ items, time }: { items: DownloadEntry[]; time?: b
           })}
         </div>
       ))}
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} takeFocus={inSidebar} />}
     </>
   );
 }
@@ -143,7 +144,7 @@ export function DownloadsView({ onClose }: { onClose: () => void }) {
         </button>
       </div>
       <div className="scroll flex-1 min-h-0 px-2 pb-3 no-drag">
-        <DownloadList items={items ?? []} />
+        <DownloadList items={items ?? []} inSidebar />
         {items && items.length === 0 && <div className="px-2 py-6 text-[var(--muted)]">No downloads yet.</div>}
       </div>
     </div>
