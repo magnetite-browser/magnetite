@@ -258,6 +258,7 @@ button.panel-row:disabled { opacity: 0.45; }
 .split-cell:hover .title { -webkit-mask-image: linear-gradient(to left, transparent 20px, #000 36px); }
 .split-cell .close:hover { color: var(--fg); background: #3a3a3e; }
 /* where a dragged tab lands: a placeholder page beside its new neighbour */
+.split-cell[data-lifted] { opacity: 0; }
 .split-cell[data-ghost] { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 65%, transparent); color: var(--secondary); animation: ghost-in 140ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes ghost-in { from { opacity: 0; transform: scale(0.94); } }
 /* a tab row previewing the split it would become */

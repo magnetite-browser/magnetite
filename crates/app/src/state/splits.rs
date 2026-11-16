@@ -44,8 +44,8 @@ impl AppState {
     }
 
     /// Put `tab` beside `target` (default: the active tab), in the split
-    /// `target` is in or a new one. `tab` leaves any split it was in. False
-    /// if that split is full or already holds `tab`.
+    /// `target` is in or a new one. `tab` leaves any split it was in; a page
+    /// of the same split moves inside it. False if that split is full.
     pub fn split_insert(&mut self, target: Option<&str>, tab: &str, side: Side) -> bool {
         let Some(target) = target
             .map(str::to_owned)
@@ -62,7 +62,13 @@ impl AppState {
             .find(|t| t.contains(&target))
             .cloned()
             .unwrap_or_else(|| SplitNode::pane(target.clone()));
-        if !tree.insert(&target, tab.to_string(), side) {
+        let tab_id = tab.to_string();
+        let placed = if tree.contains(&tab_id) {
+            tree.relocate(&tab_id, &target, side)
+        } else {
+            tree.insert(&target, tab_id, side)
+        };
+        if !placed {
             return false;
         }
         self.split_remove(tab);
@@ -72,6 +78,25 @@ impl AppState {
         self.active_tab
             .insert(self.active_space.clone(), tab.to_string());
         true
+    }
+
+    /// Move `tab` before or after `target` (`side`) in the reading order of
+    /// the split both are in; its layout stays.
+    pub fn split_reorder(&mut self, target: &str, tab: &str, side: Side) -> bool {
+        let (target, tab) = (target.to_string(), tab.to_string());
+        self.splits
+            .iter_mut()
+            .any(|t| t.reorder(&tab, &target, side))
+    }
+
+    /// Let `tab` and `target`, pages of one split, trade places.
+    pub fn split_swap(&mut self, target: &str, tab: &str) -> bool {
+        let (target, tab) = (target.to_string(), tab.to_string());
+        let swapped = self.splits.iter_mut().any(|t| t.swap(&tab, &target));
+        if swapped {
+            self.active_tab.insert(self.active_space.clone(), tab);
+        }
+        swapped
     }
 
     /// Whether `tab` cannot join the split of `target` (default: the active
@@ -144,6 +169,22 @@ mod tests {
         s.archive_tab("c");
         assert_eq!(s.splits, vec![]);
         assert_eq!(s.visible_panes(), vec!["b"]);
+    }
+
+    #[test]
+    fn a_page_moves_and_swaps_inside_its_split() {
+        let mut s = state();
+        assert!(s.split_insert(Some("a"), "b", Side::Right));
+        assert!(s.split_insert(Some("b"), "c", Side::Right));
+        assert!(s.split_insert(Some("a"), "c", Side::Left));
+        assert_eq!(s.splits.len(), 1);
+        assert_eq!(s.splits[0].ids(), vec!["c", "a", "b"]);
+        assert!(s.split_swap("b", "c"));
+        assert_eq!(s.splits[0].ids(), vec!["b", "a", "c"]);
+        assert_eq!(s.active_tab_id(), Some("c"));
+        assert!(!s.split_swap("p", "c"), "p is not in the split");
+        assert!(s.split_reorder("b", "c", Side::Left));
+        assert_eq!(s.splits[0].ids(), vec!["c", "b", "a"]);
     }
 
     #[test]

@@ -6,8 +6,15 @@ import { send } from "./bridge";
 export interface DragPayload {
   kind: "tab" | "folder";
   id: string;
-  /** A whole split row being moved (by its row's tab); it only reorders. */
+  /** A whole split row being moved (by its row's tab); in the sidebar it only reorders. */
   pair?: boolean;
+  /** The page of that split row the drag started on: it can move inside the split. */
+  cell?: string;
+}
+
+/** The tab a drag can put into, or move inside, a split. */
+function splitTab(d: DragPayload | null): string | null {
+  return d?.kind === "tab" ? (d.pair ? d.cell ?? null : d.id) : null;
 }
 
 let current: DragPayload | null = null;
@@ -17,11 +24,12 @@ export function startDrag(e: React.DragEvent, payload: DragPayload) {
   e.dataTransfer.effectAllowed = "move";
   e.dataTransfer.setData("text/plain", payload.id);
   // Tabs can also be dropped onto the page area to open in split view.
-  if (splittable(payload)) send({ cmd: "split_drag_start", tab: payload.id });
+  const tab = splitTab(payload);
+  if (tab) send({ cmd: "split_drag_start", tab });
 }
 
 export function endDrag() {
-  if (splittable(current)) send({ cmd: "split_drag_end" });
+  if (splitTab(current)) send({ cmd: "split_drag_end" });
   current = null;
 }
 

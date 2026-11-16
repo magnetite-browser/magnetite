@@ -402,10 +402,12 @@ export type Command =
   | { cmd: "move_folder"; id: Id; index: number; folder?: Id }
   | { cmd: "add_split"; id: Id; side?: Side }
   | { cmd: "split_insert"; target?: Id; tab: Id; side: Side }
+  | { cmd: "split_reorder"; target: Id; tab: Id; side: Side }
   | { cmd: "split_equalize"; path: number[] }
+  | { cmd: "split_grid" }
   | { cmd: "split_drag_start"; tab: Id }
   | { cmd: "split_drop_frame" }
-  | { cmd: "split_drop"; target: Id; side: Side }
+  | { cmd: "split_drop"; target: Id; side?: Side }
   | { cmd: "split_drag_end" }
   | { cmd: "remove_split"; id: Id }
   | { cmd: "separate_all"; id?: Id }

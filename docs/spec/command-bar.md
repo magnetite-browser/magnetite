@@ -128,7 +128,7 @@ Open settings match by keyword only ("archive"; "settings", "preferences").
 | Views | Open archive, Open history, Open downloads, Open bookmarks, Open settings, Toggle sidebar, Toggle top bar, Import from another browser… |
 | Links | Copy link without trackers, Copy original link, Copy link as Markdown, Bookmark this page |
 | Page | Find in page…, Print page, Reset zoom, Toggle developer tools, Capture page…, Copy last capture |
-| Split view | Add right split…, Add left split…, Add top split…, Add bottom split…, Even out split sizes, Separate split tabs |
+| Split view | Add right split…, Add left split…, Add top split…, Add bottom split…, Even out split sizes, Arrange split as grid, Separate split tabs |
 
 "This tab" is the active tab (with a split on screen, the pane last
 clicked), and only what fits it is listed: a favorite cannot be pinned,

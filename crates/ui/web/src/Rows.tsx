@@ -528,6 +528,8 @@ export function NodeList({ ctx, nodes, depth, folderId }: { ctx: RowContext; nod
  * A split as one row: its pages side by side in reading order. While it is on
  * screen the row is lit and so is the page in focus. Drop a tab on a page to
  * add it on the half under the pointer; × or middle-click takes a page out.
+ * A page dragged onto another page of its row takes that place in the order;
+ * the layout on screen stays.
  * `owner`, `index`, `onDropAt`: the list slot the row stands in, so the row
  * can be dragged and dropped around like a tab.
  */
@@ -536,7 +538,11 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
   const onScreen = ids.includes(ctx.state.active_tab ?? "") && ctx.state.panes.length > 1;
   const [over, setOver] = useState<"before" | "after" | { cell: string; side: Side } | null>(null);
   const join = over && typeof over === "object" ? over : null;
-  const joining = join ? findTab(ctx.state, dragging()?.id) : null;
+  /** The row's own page being dragged: it leaves its place while it is carried. */
+  const [lifted, setLifted] = useState<string | null>(null);
+  /** The tab a drag would place in this row: an outside tab, or one of the row's own pages. */
+  const placing = (d: ReturnType<typeof dragging>) => (d?.pair ? (d.id === owner ? d.cell : undefined) : d?.id);
+  const joining = join ? findTab(ctx.state, placing(dragging())) : null;
   const ghost = joining && <SplitCell key="ghost" tab={joining} rt={ctx.state.runtime[joining.id]} ghost />;
   const reorder = (e: React.DragEvent) => index !== undefined && onDropAt && setOver(dropIndex(e, index) === index ? "before" : "after");
   const menu = (e: React.MouseEvent, id: string) => {
@@ -544,7 +550,10 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
     ctx.openMenu(e.clientX, e.clientY, [
       { label: "Remove from split view", onClick: () => send({ cmd: "remove_split", id }) },
       { label: "Separate all tabs", onClick: () => send({ cmd: "separate_all", id }) },
-      ...(onScreen ? [{ label: "Even out sizes", onClick: () => send({ cmd: "split_equalize", path: [] }) }] : []),
+      ...(onScreen ? [
+        { label: "Even out sizes", onClick: () => send({ cmd: "split_equalize", path: [] }) },
+        { label: "Arrange as grid", onClick: () => send({ cmd: "split_grid" }) },
+      ] : []),
     ]);
   };
   return (
@@ -554,11 +563,34 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
       data-before={over === "before" || undefined}
       data-after={over === "after" || undefined}
       draggable={!!owner}
-      onDragStart={(e) => owner && startDrag(e, { kind: "tab", id: owner, pair: true })}
-      onDragEnd={endDrag}
+      onDragStart={(e) => {
+        if (!owner) return;
+        // The row is what drags, but the picture under the pointer is the
+        // one page the drag started on: that is the page being placed.
+        const cell = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>("[data-cell]");
+        if (cell) {
+          const r = cell.getBoundingClientRect();
+          e.dataTransfer.setDragImage(cell, e.clientX - r.left, e.clientY - r.top);
+        }
+        const id = cell?.dataset.cell;
+        startDrag(e, { kind: "tab", id: owner, pair: true, cell: id });
+        // A frame later, so the picture under the pointer is taken first.
+        if (id) requestAnimationFrame(() => setLifted(id));
+      }}
+      onDragEnd={() => { setLifted(null); setOver(null); endDrag(); }}
       onDragOver={(e) => {
         const d = dragging();
-        if (!d || (d.pair && d.id === owner)) return;
+        if (!d) return;
+        if (d.pair && d.id === owner) {
+          // One of the row's own pages: over another page it takes that place.
+          // The row takes the drop anywhere, also on the placeholder or the
+          // page's old place: a refused drop makes the picture fly back first.
+          if (!d.cell) return;
+          e.preventDefault();
+          const cell = (e.target as HTMLElement).closest<HTMLElement>("[data-cell]");
+          if (cell && cell.dataset.cell !== d.cell) setOver({ cell: cell.dataset.cell!, side: sideOf(e, cell) });
+          return;
+        }
         if (splittable(d) && overRowMiddle(e) && !ids.includes(d.id)) {
           if (ids.length >= MAX_PANES) return setOver(null); // full: no drop here
           e.preventDefault();
@@ -576,17 +608,21 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
         e.preventDefault();
         const d = dragging();
         setOver(null);
-        if (d && join && splittable(d)) send({ cmd: "split_insert", target: join.cell, tab: d.id, side: join.side });
-        else if (d && index !== undefined && onDropAt) onDropAt(dropIndex(e, index));
+        setLifted(null);
+        const tab = placing(d);
+        if (join && tab) send({ cmd: d?.pair ? "split_reorder" : "split_insert", target: join.cell, tab, side: join.side });
+        else if (d && !(d.pair && d.id === owner) && index !== undefined && onDropAt) onDropAt(dropIndex(e, index));
         endDrag();
       }}
     >
       {ids.map((id) => {
         const tab = findTab(ctx.state, id);
-        if (!tab) return null;
+        // The carried page shows at its new place only, once there is one.
+        if (!tab || (id === lifted && join)) return null;
         const cell = (
           <SplitCell
             key={id}
+            lifted={id === lifted}
             tab={tab}
             rt={ctx.state.runtime[id]}
             active={onScreen && id === ctx.state.active_tab}
@@ -603,18 +639,20 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
 }
 
 /** One page of a split row; `ghost`: where a dragged tab would land. */
-function SplitCell({ tab, rt, active, ghost, onRemove, ...events }: {
+function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
   tab: TabItem;
   rt: TabRuntime | undefined;
   active?: boolean;
   ghost?: boolean;
+  /** Being dragged: its place stays, empty. */
+  lifted?: boolean;
   onRemove?: () => void;
   onClick?: () => void;
   onAuxClick?: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
 }) {
   return (
-    <div className="split-cell" data-cell={ghost ? undefined : tab.id} data-ghost={ghost || undefined} data-active={active || undefined} data-unloaded={!ghost && !rt?.loaded ? true : undefined} title={tab.url} {...events}>
+    <div className="split-cell" data-cell={ghost ? undefined : tab.id} data-ghost={ghost || undefined} data-lifted={lifted || undefined} data-active={active || undefined} data-unloaded={!ghost && !rt?.loaded ? true : undefined} title={tab.url} {...events}>
       <Favicon url={tab.url} src={rt?.favicon} loading={rt?.loading} />
       <span className="title">{tab.title || hostOf(tab.url)}</span>
       {onRemove && (

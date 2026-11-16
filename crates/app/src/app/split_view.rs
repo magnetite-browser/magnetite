@@ -38,6 +38,17 @@ impl MagnetiteApp {
         self.push_state(engine);
     }
 
+    /// Arrange the pages of the split on screen as an even grid.
+    pub(super) fn split_grid(&self, engine: &Engine) {
+        self.with_state(|s| {
+            if let Some(t) = s.visible_split_mut() {
+                *t = t.grid();
+            }
+        });
+        self.retile_split(engine);
+        self.push_state(engine);
+    }
+
     /// Add `tab` beside `target` (default: the active tab) on `side`.
     pub(super) fn split_add(&self, engine: &Engine, target: Option<&str>, tab: &str, side: Side) {
         let (added, full) = self.with_state(|s| {

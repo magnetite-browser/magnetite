@@ -226,16 +226,25 @@ pub(super) enum UiCommand {
         tab: String,
         side: Side,
     },
+    /// A page dragged inside its split's sidebar row: `tab` goes before
+    /// (`left`) or after `target` in reading order, the layout stays.
+    SplitReorder {
+        target: String,
+        tab: String,
+        side: Side,
+    },
     /// A sidebar tab started dragging: show drop zones over the pages.
     SplitDragStart {
         tab: String,
     },
     /// The drop-zone page asks what to draw.
     SplitDropFrame,
-    /// Dropped on a zone: `tab` (the dragged one) beside `target` on `side`.
+    /// Dropped on a zone: `tab` (the dragged one) beside `target` on `side`,
+    /// or without a side in `target`'s place, which takes `tab`'s.
     SplitDrop {
         target: String,
-        side: Side,
+        #[serde(default)]
+        side: Option<Side>,
     },
     /// The drag ended (dropped anywhere, or cancelled).
     SplitDragEnd,
@@ -243,6 +252,8 @@ pub(super) enum UiCommand {
     SplitEqualize {
         path: Vec<usize>,
     },
+    /// Arrange the split on screen as an even grid.
+    SplitGrid,
     RemoveSplit {
         id: String,
     },
@@ -961,6 +972,14 @@ impl MagnetiteApp {
             UiCommand::SplitInsert { target, tab, side } => {
                 self.split_add(engine, target.as_deref(), &tab, side);
             }
+            UiCommand::SplitReorder { target, tab, side } => {
+                self.with_state(|s| s.split_reorder(&target, &tab, side));
+                // The same pages stay on screen in the same layout, only
+                // their places change: tiling them again is enough, and far
+                // quicker than showing the split anew.
+                self.retile_split(engine);
+                self.push_state(engine);
+            }
             UiCommand::SplitDragStart { tab } => self.split_drag_start(engine, tab),
             UiCommand::SplitDropFrame => {
                 let drag = lock(&self.split_drag);
@@ -1001,8 +1020,13 @@ impl MagnetiteApp {
                     .filter(|(_, at)| at.elapsed() < LATE_DROP)
                     .map(|(tab, _)| tab);
                 let tab = self.split_drag_end(engine).or(just_ended);
-                if let Some(tab) = tab.filter(|t| *t != target) {
-                    self.split_add(engine, Some(&target), &tab, side);
+                match (tab.filter(|t| *t != target), side) {
+                    (Some(tab), Some(side)) => self.split_add(engine, Some(&target), &tab, side),
+                    (Some(tab), None) => {
+                        self.with_state(|s| s.split_swap(&target, &tab));
+                        self.present(engine);
+                    }
+                    (None, _) => {}
                 }
             }
             UiCommand::SplitDragEnd => {
@@ -1010,6 +1034,7 @@ impl MagnetiteApp {
                 lock(&self.split_drag).ended = tab.map(|t| (t, std::time::Instant::now()));
             }
             UiCommand::SplitEqualize { path } => self.split_equalize(engine, &path),
+            UiCommand::SplitGrid => self.split_grid(engine),
             UiCommand::RemoveSplit { id } => {
                 self.with_state(|s| s.split_remove(&id));
                 self.present(engine);

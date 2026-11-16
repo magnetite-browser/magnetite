@@ -48,6 +48,13 @@ fewer than four pages show.
   pointer lights up with "Open <title> here"; dropping opens the tab on that
   side of that page. With four pages on screen the zones say that the split
   is full and take no drop.
+- A page of the split on screen can be rearranged the same way: drag it
+  from the split's row onto the page area. A half of another page moves it
+  to that side ("Move <title> here"); the middle of another page lets the
+  two trade places ("Swap <title> with <other>"), keeping layout and sizes.
+  In the row itself, dropping a page on another page of the row puts it
+  before or after that page in the order; the layout on screen stays and
+  the pages in between shift by one place.
 - In the sidebar, the middle of a tab row is a drop target too. While the
   pointer is over it the row previews the pair, the dragged tab on the half
   under the pointer. On a split row the tab lands left or right of the page
@@ -67,7 +74,7 @@ fewer than four pages show.
   click takes the page out of the split; the tab stays open. The page's
   menu has "Remove from split view", "Separate all tabs" and, while the
   split is on screen, "Even out sizes".
-- The row drags like a tab to reorder.
+- The row drags like a tab to reorder, from any of its pages.
 
 ## Focus and sizes
 
@@ -80,6 +87,10 @@ fewer than four pages show.
   double-click gives all pages of that row or column the same size. "Even
   out sizes" in the page's menu and "Even out split sizes" in the command
   bar do this for the outermost row or column.
+- "Arrange as grid" in the page's menu and "Arrange split as grid" in the
+  command bar lay the pages out in even rows of two, in reading order: four
+  pages become a 2×2 of quarters, and with three the last one takes the
+  whole lower row.
 - A click on a page or a divider counts at once: no extra click is needed
   to activate its window first.
 
@@ -103,7 +114,6 @@ window, tiled over the page area
 ## Not built yet
 
 - Dragging a link from a page into a split.
-- Rearranging the pages of a split by dragging.
 - Pinning a split as one item.
 - A shortcut that removes the focused page from its split.
 

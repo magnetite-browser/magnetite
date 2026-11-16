@@ -36,6 +36,7 @@ const ACTIONS: Action[] = [
   { id: "split_top", title: "Add top split…", keywords: ["split", "top", "above"], cmd: { cmd: "open_palette", mode: "split", side: "top" } },
   { id: "split_bottom", title: "Add bottom split…", keywords: ["split", "bottom", "below"], cmd: { cmd: "open_palette", mode: "split", side: "bottom" } },
   { id: "split_even", title: "Even out split sizes", keywords: ["split", "equal", "even", "reset"], cmd: { cmd: "split_equalize", path: [] } },
+  { id: "split_grid", title: "Arrange split as grid", keywords: ["split", "grid", "tile", "2x2", "quarters"], cmd: { cmd: "split_grid" } },
   { id: "separate", title: "Separate split tabs", keywords: ["split", "separate", "unsplit"], cmd: { cmd: "separate_all" } },
   { id: "devtools", title: "Toggle developer tools", keywords: ["devtools", "developer", "console", "inspect", "f12"], cmd: { cmd: "toggle_devtools" } },
   { id: "capture", title: "Capture page…", keywords: ["capture", "screenshot", "snap"], cmd: { cmd: "capture_start" } },
