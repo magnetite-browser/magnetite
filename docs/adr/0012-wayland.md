@@ -72,7 +72,7 @@ pointer.
    `CefWindowView::CreateWidget`: under Wayland a window with a parent is a
    bubble, and the X11 calls run under X11 only. The patch
    (`wayland-child-windows.patch`) is written and an x86_64 build with it
-   was tested. Its x86_64 release (156.0.30) is pinned in `scripts/cef.sh`,
+   was tested. Its x86_64 release is pinned in `scripts/cef.sh`,
    which the Linux x86_64 releases and CI build with; aarch64 is open. The crash fix goes to CEF upstream as well.
 3. **The engine under Wayland (done)**, tested with `scripts/wayland-test.sh
    <stage folder> -- --ozone-platform=wayland`. One change was needed: CEF gives a Linux
