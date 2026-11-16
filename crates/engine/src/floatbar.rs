@@ -8,9 +8,6 @@ use cef::*;
 use crate::client::MagnetiteClient;
 use crate::engine::Engine;
 
-/// Room left free above the panel: the frame's traffic lights (more with
-/// the top bar on).
-const TOP: i32 = 40;
 /// Gap between the panel and the window edges.
 const MARGIN: i32 = 6;
 /// Width of the hover zone along the left edge (the page gap).
@@ -108,11 +105,13 @@ impl Engine {
         let (frame, hidden) = (self.frame_window(), !self.sidebar_visible());
         let Some(frame) = frame else { return };
         let b = frame.bounds();
+        // Not beside the top bar: its left end holds the window's buttons.
+        let top = self.top_bar_offset();
         let zone = Rect {
             x: b.x,
-            y: b.y + TOP,
+            y: b.y + top,
             width: EDGE,
-            height: (b.height - TOP).max(1),
+            height: (b.height - top).max(1),
         };
         #[cfg(target_os = "macos")]
         crate::mac::set_edge_zone(frame.window_handle(), hidden.then_some(&zone));
@@ -120,12 +119,12 @@ impl Engine {
         let _ = (zone, hidden);
     }
 
-    /// Below the traffic lights, along the left edge, the sidebar's width.
+    /// Along the left edge, the window's height (below the top bar while it
+    /// is on), the sidebar's width.
     fn float_bounds(&self) -> Option<Rect> {
         let frame = self.frame_window()?;
         let b = frame.bounds();
-        // Below the top bar while it is on.
-        let top = TOP.max(self.top_bar_offset() + MARGIN);
+        let top = self.top_bar_offset() + MARGIN;
         Some(Rect {
             x: b.x + MARGIN,
             y: b.y + top,

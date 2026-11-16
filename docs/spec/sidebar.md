@@ -132,13 +132,16 @@ the row turns the icon into a back arrow that takes the page back.
 ## Hiding and resizing
 
 `Cmd+S` or the sidebar button hides the sidebar: the pages take the whole
-window and the keyboard. `Cmd+S` shows it again. In a window that is not
-full screen, a strip above the pages stays free for the window's close,
-minimize and zoom buttons. While it is hidden on macOS,
+window and the keyboard. `Cmd+S` shows it again. While it is hidden on macOS,
 moving the pointer to the window's left edge slides the sidebar out over the
-pages without taking the keyboard from the page. It leaves when the pointer
-does, or on Esc; its sidebar button or `Cmd+S` docks it again. The sidebar
-is docked at every start.
+pages, along the window's whole height, without taking the keyboard from the
+page. It leaves when the pointer does, or on Esc; its sidebar button or
+`Cmd+S` docks it again. The sidebar is docked at every start.
+
+The pages cover the window's close, minimize and full screen buttons while
+the sidebar is hidden, so the sidebar that slides out has them, in its title
+band. With the top bar on they stay in the top bar. The gap above the pages
+still drags the window.
 
 Dragging the sidebar's right edge sets its width (220 to 360 points, 264 by
 default; double-click resets). Settings → Appearance has the width too, plus

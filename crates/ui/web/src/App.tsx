@@ -13,7 +13,7 @@ import { MediaBar, type MediaEntry } from "./MediaBar";
 import { NewMenu } from "./NewMenu";
 import { PinnedExtensions } from "./PinnedExtensions";
 import { FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, type RowContext } from "./Rows";
-import { accentCss, applyAppearance, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
+import { IS_MAC, accentCss, applyAppearance, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
 import { IconPicker, SpaceGlyph } from "./Glyphs";
 import { SpaceSwitcher } from "./SpaceSwitcher";
 import { dragging, endDrag, indexAfterTaking } from "./dnd";
@@ -160,6 +160,8 @@ export function App() {
       {!topBar && (<>
       {/* Traffic-light band: sidebar toggle left, navigation right. Empty space drags the window. */}
       <div className={`titlebar-drag hdr flex h-[42px] shrink-0 items-center gap-0.5 ${FLOAT ? "pl-2" : "pl-[86px]"} pr-2`}>
+        {/* The pages cover the window's own buttons while the sidebar is hidden; the top bar keeps them. */}
+        {FLOAT && IS_MAC && !state.settings.appearance.top_bar && <WindowButtons />}
         <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={FLOAT ? "Keep the sidebar open (⌘S)" : "Hide sidebar (⌘S)"}><SidebarIcon /></button>
         <PinnedExtensions state={state} openMenu={openMenu} />
         <span className="flex-1" />
@@ -270,6 +272,31 @@ export function App() {
           onClose={() => setIconPicker(null)}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Close, minimize and full screen for the floating sidebar on macOS, drawn
+ * like the window's own buttons, which the pages cover while it is out.
+ */
+function WindowButtons() {
+  // The floating sidebar must not stay out over a window that left or changed size.
+  const act = (cmd: "window_minimize" | "window_fullscreen") => {
+    send({ cmd: "float_sidebar", show: false });
+    send({ cmd });
+  };
+  return (
+    <div className="window-buttons no-drag">
+      <button data-kind="close" onClick={() => send({ cmd: "window_close" })} title="Close" aria-label="Close">
+        <svg viewBox="0 0 12 12"><path d="M3.6 3.6l4.8 4.8M8.4 3.6l-4.8 4.8" /></svg>
+      </button>
+      <button data-kind="minimize" onClick={() => act("window_minimize")} title="Minimize" aria-label="Minimize">
+        <svg viewBox="0 0 12 12"><path d="M2.8 6h6.4" /></svg>
+      </button>
+      <button data-kind="fullscreen" onClick={() => act("window_fullscreen")} title="Full screen" aria-label="Full screen">
+        <svg viewBox="0 0 12 12"><path className="fill" d="M3.4 3.4h3.6L3.4 7zM8.6 8.6H5L8.6 5z" /></svg>
+      </button>
     </div>
   );
 }

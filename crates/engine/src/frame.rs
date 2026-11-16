@@ -130,36 +130,19 @@ impl Engine {
     pub const CONTENT_INSET: i32 = 8;
     /// How far the window-drag strip reaches into the top of the pages.
     const GRAB_OVERLAP: i32 = 6;
-    /// Room for the traffic lights when the sidebar is hidden.
-    const TRAFFIC_LIGHTS: i32 = 80;
-    /// Gap above the pages while the sidebar is hidden in a normal window:
-    /// the traffic lights sit in it. Pages are windows above the frame and
-    /// would cover them otherwise.
-    const BUTTONS_BAR: i32 = 34;
     /// Height of the top bar (`magnetite://ui/topbar`).
     pub const TOP_BAR_HEIGHT: i32 = 42;
 
     /// Keep the window-drag strip along the top of the page area, above the
     /// page windows (see `mac::set_grab_strip`).
     pub(crate) fn update_grab_strip(&self) {
-        let frame = {
-            let inner = self.lock();
-            inner
-                .win
-                .frame
-                .as_ref()
-                .map(|f| (f.window.clone(), inner.win.sidebar_visible))
-        };
-        let Some((window, sidebar)) = frame else {
+        let Some(window) = self.frame_window() else {
             return;
         };
         let panel = self.content_panel_in_screen();
-        let skip = if sidebar { 0 } else { Self::TRAFFIC_LIGHTS };
         let strip = Rect {
-            x: panel.x + skip,
-            y: self.content_rect().y - Self::CONTENT_INSET,
-            width: (panel.width - skip).max(1),
             height: Self::CONTENT_INSET + Self::GRAB_OVERLAP,
+            ..panel
         };
         #[cfg(target_os = "macos")]
         crate::mac::set_grab_strip(window.window_handle(), &strip);
@@ -190,24 +173,17 @@ impl Engine {
     }
 
     /// Screen rectangle (DIP) the content windows must cover: the content
-    /// panel minus an inset so the page floats inside the frame, and minus
-    /// the room for the traffic lights when no sidebar holds them (a full
-    /// screen window has none).
+    /// panel minus an inset so the page floats inside the frame. With the
+    /// sidebar hidden and no top bar the pages cover the window's own
+    /// buttons: the floating sidebar has them then.
     pub fn content_rect(&self) -> Rect {
         let r = self.content_panel_in_screen();
-        let buttons = {
-            let inner = self.lock();
-            !inner.win.sidebar_visible
-                && !inner.top_bar_visible
-                && (inner.win.frame.as_ref()).is_some_and(|f| f.window.is_fullscreen() == 0)
-        };
         let i = Self::CONTENT_INSET;
-        let top = if buttons { Self::BUTTONS_BAR } else { i };
         Rect {
             x: r.x + i,
-            y: r.y + top,
+            y: r.y + i,
             width: (r.width - 2 * i).max(1),
-            height: (r.height - top - i).max(1),
+            height: (r.height - 2 * i).max(1),
         }
     }
 
@@ -347,7 +323,8 @@ impl Engine {
         self.align_hidden_toolbars();
     }
 
-    /// The top bar's window buttons (Linux and Windows; macOS has its own).
+    /// The window buttons of the top bar (Linux and Windows) and of the
+    /// floating sidebar (macOS, where the pages cover the window's own).
     pub fn minimize_frame(&self) {
         if let Some(w) = self.frame_window() {
             w.minimize();
@@ -362,6 +339,13 @@ impl Engine {
             } else {
                 w.maximize();
             }
+        }
+    }
+
+    /// Enter full screen, or leave it.
+    pub fn toggle_fullscreen_frame(&self) {
+        if let Some(w) = self.frame_window() {
+            w.set_fullscreen((w.is_fullscreen() == 0).into());
         }
     }
 
@@ -735,14 +719,6 @@ wrap_window_delegate! {
                 let engine = Engine::global();
                 engine.enter(self.win);
                 engine.notifications_follow();
-            }
-        }
-
-        // Entering or leaving full screen changes the room above the pages.
-        fn on_window_fullscreen_transition(&self, _window: Option<&mut Window>, is_completed: ::std::os::raw::c_int) {
-            if is_completed != 0 {
-                let engine = Engine::global();
-                engine.in_window(self.win, || engine.reposition_contents());
             }
         }
 

@@ -431,6 +431,7 @@ export type Command =
   | { cmd: "toggle_top_bar" }
   | { cmd: "window_minimize" }
   | { cmd: "window_maximize" }
+  | { cmd: "window_fullscreen" }
   | { cmd: "window_close" }
   | { cmd: "top_bar_popup"; popup: TopBarPopupKind; id?: string; x: number; y: number; width: number; height: number }
   | { cmd: "focus_sidebar" }

@@ -487,9 +487,11 @@ pub(super) enum UiCommand {
     ToggleSidebar,
     /// Turn the top bar on or off (Settings → Appearance has it too).
     ToggleTopBar,
-    /// The top bar's window buttons (Linux and Windows).
+    /// The window buttons of the top bar (Linux and Windows) and of the
+    /// floating sidebar (macOS).
     WindowMinimize,
     WindowMaximize,
+    WindowFullscreen,
     WindowClose,
     /// Open one of the top bar's pop-ups below it, `width` by `height`, at
     /// (`x`, `y`) in the top bar page's coordinates.
@@ -1400,6 +1402,7 @@ impl MagnetiteApp {
             }
             UiCommand::WindowMinimize => engine.minimize_frame(),
             UiCommand::WindowMaximize => engine.toggle_maximize_frame(),
+            UiCommand::WindowFullscreen => engine.toggle_fullscreen_frame(),
             UiCommand::WindowClose => engine.close_frame(),
             UiCommand::TopBarPopup {
                 popup,
