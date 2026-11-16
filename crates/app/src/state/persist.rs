@@ -206,6 +206,8 @@ impl AppState {
             deleted_profiles,
             unsynced_spaces,
             first_start,
+            recent_tabs: Vec::new(),
+            switcher: None,
             synced_sidebar: None,
             saver: Saver::new(path.clone()),
             path,

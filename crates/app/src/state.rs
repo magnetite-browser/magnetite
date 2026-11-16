@@ -26,7 +26,8 @@ mod windows;
 
 pub(crate) use folders::folder_in_tree_mut;
 pub use history::{History, Visit};
-pub use settings::{AdblockSettings, Appearance, Settings, SiteSearch, SyncSettings};
+pub use settings::{AdblockSettings, Appearance, Settings, SiteSearch, SyncSettings, TabOrder};
+pub use tabs::TabSwitch;
 
 /// What the sidebar UI receives on every change.
 #[derive(Serialize)]
@@ -46,6 +47,9 @@ pub struct UiState<'a> {
     /// Every split, on screen or not; the sidebar shows each as one row.
     pub splits: Vec<SplitNode<Id>>,
     pub peek: Option<&'a Peek>,
+    /// The tabs `Ctrl+Tab` is going through and where it stands, while
+    /// Ctrl is held: what the switcher's list shows.
+    pub switcher: Option<&'a TabSwitch>,
     pub settings: &'a Settings,
     /// Chrome colour behind the page cards, `#rrggbb`, derived from the space accent.
     pub chrome: String,
@@ -170,6 +174,12 @@ pub struct AppState {
     /// live in memory only.
     pub minis: Vec<Peek>,
     pub settings: Settings,
+    /// Tabs in the order they were last chosen, the latest first: what
+    /// `Ctrl+Tab` goes through. In memory only; a tab not in it counts by
+    /// its `last_active_at`.
+    pub recent_tabs: Vec<Id>,
+    /// The round `Ctrl+Tab` is on while Ctrl is held (`TabSwitch`).
+    pub switcher: Option<TabSwitch>,
     pub sidebar_visible: bool,
     /// Smart folder accounts of this device (tokens on disk, owner-only).
     pub accounts: crate::smart::Accounts,
@@ -231,6 +241,7 @@ impl AppState {
             split: self.visible_split(),
             splits: self.live_splits().collect(),
             peek: self.peek.as_ref(),
+            switcher: self.switcher.as_ref(),
             settings: &self.settings,
             chrome: format!("#{:06x}", self.chrome_rgb()),
             accounts: self.accounts.list(),

@@ -38,9 +38,9 @@ pub struct Settings {
     pub search_template: String,
     /// Keywords that search one site from the command bar (`gh rust`).
     pub site_searches: Vec<SiteSearch>,
-    /// Links from other apps: "tab", "peek" or "mini" (a mini window).
-    /// Synced: a version that does not know a value takes "tab"
-    /// (`sanitised`).
+    /// Links from other apps: "mini" (a mini window, the default), "tab" or
+    /// "peek". Synced: a version that does not know a value takes the
+    /// default (`sanitised`).
     pub external_links: String,
     /// The user's own CSS and JavaScript per site (Settings → Custom CSS &
     /// JS). This device's own, never synced.
@@ -76,6 +76,9 @@ pub struct Settings {
     pub check_updates: bool,
     /// What a click on the sidebar's archive and downloads button opens.
     pub library_opens: LibraryView,
+    /// The order `Ctrl+Tab` goes through the tabs in. This device's own
+    /// choice, never synced.
+    pub tab_order: TabOrder,
     /// Chromium's password manager and autofill: which parts are on. Not
     /// synced: what a device saves is that device's.
     pub autofill: magnetite_engine::AutofillPrefs,
@@ -170,6 +173,17 @@ pub enum Density {
     #[default]
     Comfortable,
     Spacious,
+}
+
+/// The order `Ctrl+Tab` and `Ctrl+Shift+Tab` go through the tabs in.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum TabOrder {
+    /// By last use: one press goes to the tab used before this one.
+    #[default]
+    Recent,
+    /// As the sidebar lists them.
+    Sidebar,
 }
 
 /// A view behind the sidebar's archive and downloads button. While something
@@ -394,7 +408,7 @@ impl Default for Settings {
             defaults: DEFAULTS,
             search_template: "https://duckduckgo.com/?q=%s".into(),
             site_searches: builtin_site_searches(),
-            external_links: "tab".into(),
+            external_links: "mini".into(),
             site_code: Vec::new(),
             quick_search: true,
             chrome_toolbar: false,
@@ -409,6 +423,7 @@ impl Default for Settings {
             chromium_pins_seen: HashMap::new(),
             check_updates: true,
             library_opens: LibraryView::Archive,
+            tab_order: TabOrder::Recent,
             autofill: magnetite_engine::AutofillPrefs::default(),
             smart_allowed: None,
             adblock: AdblockSettings::default(),
@@ -535,7 +550,7 @@ mod tests {
         .sanitised();
         assert_eq!(bad.auto_archive_hours, 1);
         assert_eq!(bad.search_template, Settings::default().search_template);
-        assert_eq!(bad.external_links, "tab");
+        assert_eq!(bad.external_links, "mini");
         for known in ["tab", "peek", "mini"] {
             let s = Settings {
                 external_links: known.into(),

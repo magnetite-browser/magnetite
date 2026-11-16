@@ -20,9 +20,9 @@ it as a tab, or put it beside the current tab in split view.
   lock follows the pin state within a minute.
 - Links opened in the background (`Cmd`+click, middle click) become
   background Today tabs, never a peek.
-- Settings → General → "Open links from other apps in" offers "a new tab in
-  the current space" (the default), "a peek window" and "a mini window"
-  (`mini-window.md`).
+- Settings → General → "Open links from other apps in" offers "a mini
+  window" (the default, `mini-window.md`), "a new tab in the current space"
+  and "a peek window".
 - An address Magnetite does not open from that source, such as
   `javascript:` or `data:`, opens nothing.
 
