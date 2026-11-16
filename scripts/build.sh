@@ -94,9 +94,11 @@ profile_entitlements() { # decoded-profile out
   id="$("$buddy" -c "Print :Entitlements:com.apple.application-identifier" "$decoded" 2>/dev/null)" || id=""
   [[ $id == "$team.$BUNDLE_ID" ]] \
     || die "the provisioning profile is for '${id:-no app}', not for $team.$BUNDLE_ID"
-  groups="$("$buddy" -c "Print :Entitlements:keychain-access-groups" "$decoded" 2>/dev/null)" || groups=""
-  # A profile lists the groups it allows; "<team>.*" stands for all of the team's.
-  [[ $groups == *"$team.*"* || $groups == *"$team.$BUNDLE_ID.webauthn"* ]] \
+  # A profile lists the groups it allows, one a line here; "<team>.*"
+  # stands for all of the team's. Whole entries: a longer group that only
+  # begins like ours does not allow ours.
+  groups="$("$buddy" -c "Print :Entitlements:keychain-access-groups" "$decoded" 2>/dev/null | sed 's/^ *//')" || groups=""
+  grep -qxF -e "$team.*" -e "$team.$BUNDLE_ID.webauthn" <<<"$groups" \
     || die "the provisioning profile does not allow the keychain group $team.$BUNDLE_ID.webauthn"
   cp "$ROOT/packaging/macos/app.entitlements" "$out"
   "$buddy" -c "Add :com.apple.application-identifier string $id" \
