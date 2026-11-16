@@ -57,7 +57,10 @@ function tabActions(state: UiState): Action[] {
   for (const sp of spaces) {
     if (sp.id !== state.active_space) actions.push({ id: `switch_${sp.id}`, title: `Switch to ${sp.title}`, keywords: ["space", "switch", "go"], cmd: { cmd: "switch_space", id: sp.id } });
   }
-  if (state.private_space) actions.push({ id: "close_private_space", title: "Close private space", keywords: ["private", "incognito", "close", "space"], cmd: { cmd: "close_private_space" } });
+  if (state.private_space) {
+    actions.push({ id: "close_private_space", title: "Close private space", keywords: ["private", "incognito", "close", "space"], cmd: { cmd: "close_private_space" } });
+    actions.push({ id: "hide_private_space", title: "Hide private space", keywords: ["private", "incognito", "hide", "space"], cmd: { cmd: "hide_private_space" } });
+  }
   const id = state.active_tab;
   const tab = id ? findTab(state, id) : null;
   if (!id || !tab) return actions;

@@ -212,6 +212,9 @@ pub struct AppState {
     /// The private space, while one is open (`private.rs`). Not saved, like
     /// the space itself.
     pub private_space: Option<Id>,
+    /// The private space is hidden (`hide_private_space`): open, with its
+    /// pages, but listed nowhere and in front in no window. Not saved.
+    pub private_hidden: bool,
     /// The in-memory profiles made for the private space: the space's own
     /// and one per tab. Not saved, never synced, and each is dropped once
     /// nothing runs in it (`release_private_profiles`).
@@ -246,7 +249,7 @@ impl AppState {
         UiState {
             sidebar: self.ui_sidebar(),
             active_space: &self.active_space,
-            private_space: self.private_space.as_deref(),
+            private_space: self.shown_private_space(),
             active_tab: self.active_tab.get(&self.active_space).map(String::as_str),
             runtime: &self.runtime,
             sidebar_visible: self.sidebar_visible,
@@ -267,13 +270,15 @@ impl AppState {
     }
 
     /// The sidebar as the UI lists it: without the profiles of the private
-    /// space, which are no choice for anything else.
+    /// space, which are no choice for anything else, and without the space
+    /// itself while it is hidden.
     fn ui_sidebar(&self) -> Cow<'_, SidebarSnapshot> {
         if self.private_profiles.is_empty() {
             return Cow::Borrowed(&self.sidebar);
         }
         let mut sidebar = self.sidebar.clone();
         (sidebar.profiles).retain(|p| !self.private_profiles.contains(&p.id));
+        (sidebar.spaces).retain(|sp| !self.is_hidden_space(&sp.id));
         Cow::Owned(sidebar)
     }
 

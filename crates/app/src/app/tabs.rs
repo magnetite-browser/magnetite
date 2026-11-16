@@ -413,6 +413,29 @@ impl MagnetiteApp {
         self.activate_space(engine, &id);
     }
 
+    /// Hide the private space: nothing lists it any more, its pages are
+    /// paused and taken back from picture-in-picture, and every window
+    /// that showed it shows the space it goes on in. It stays open;
+    /// `open_private_space` shows it again.
+    pub(super) fn hide_private_space(&self, engine: &Engine) {
+        let others = self.with_state(|s| s.other_windows_in_private_space());
+        let Some(pages) = self.with_state(AppState::hide_private_space) else {
+            return;
+        };
+        for c in pages {
+            engine.content_media(c, magnetite_engine::MediaAction::Pause);
+            engine.content_picture_in_picture(c, false);
+        }
+        let show = || {
+            let space = self.with_state(|s| s.active_space.clone());
+            self.activate_space(engine, &space);
+        };
+        for win in others {
+            engine.in_window(win, show);
+        }
+        show();
+    }
+
     /// Close the private space with everything opened from it. Every
     /// window that showed it shows the space it goes on in.
     pub(super) fn close_private_space(&self, engine: &Engine) {

@@ -205,6 +205,7 @@ impl AppState {
             downloads: crate::downloads::Downloads::restore(downloads),
             deleted_profiles,
             private_space: None,
+            private_hidden: false,
             private_profiles: BTreeSet::new(),
             unsynced_spaces,
             first_start,

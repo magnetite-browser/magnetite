@@ -42,6 +42,7 @@ pub(super) fn state() -> AppState {
         minis: Vec::new(),
         deleted_profiles: vec![],
         private_space: None,
+        private_hidden: false,
         private_profiles: std::collections::BTreeSet::new(),
         unsynced_spaces: std::collections::BTreeSet::new(),
         first_start: false,

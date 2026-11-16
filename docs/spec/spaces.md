@@ -106,9 +106,10 @@ it is the last of the spaces while it is open.
 
 - **Open**: "+" → Private Space, `Cmd+Shift+P`, File → Private Space, or
   "Open private space" in the command bar. If it is open already, these go
-  to it.
+  to it, also when it is hidden.
 - **Look**: a mask as its icon, in the footer and beside its name
-  "Private". In place of the "…" button its title has a close button, and
+  "Private". In place of the "…" button its title has a hide button and a
+  close button, and
   "New Tab" reads "New Private Tab". It has only Today tabs: no pinned tabs,
   folders or bookmarks, and the favorites do not show there.
 - **A profile per tab**: every tab you open in it (New Private Tab, an
@@ -129,6 +130,18 @@ it is the last of the spaces while it is open.
   a tab that a page opens while another space is in front.
 - **Extensions**: only those with "Allow in Incognito" switched on
   (`extensions.md`).
+- **Hide**: the hide button on its title, its menu in the footer,
+  `Cmd+Shift+H`, File → Hide Private Space, or "Hide private space" in the
+  command bar. The keys work from any space and before the page sees them.
+  The space stays open with its tabs and their logins, but nothing shows
+  that it is there: it is gone from the footer, its tabs from the command
+  bar's results and the media controls, the keys for the next, previous
+  and numbered space pass it over, and "Close private space" is not
+  offered. A window that showed it goes on in the space before it. Its
+  pages are paused, and a video of theirs in picture-in-picture goes back
+  into its page. Opening the private space (see Open) shows it again as it
+  was. Its mini windows and popup windows are windows of their own and
+  stay on screen; closing the space closes them.
 - **Close**: the close button on its title, its menu in the footer,
   `Cmd+Shift+Backspace`, File → Close Private Space, or "Close private
   space" in the command bar. The keys work from any space and before the

@@ -131,6 +131,8 @@ pub(super) enum UiCommand {
     OpenPrivateSpace,
     /// Close the private space with everything opened from it.
     ClosePrivateSpace,
+    /// Hide the private space: open, but shown nowhere until it is opened again.
+    HidePrivateSpace,
     NextSpace,
     PrevSpace,
     Pin {
@@ -805,6 +807,7 @@ impl MagnetiteApp {
             UiCommand::SwitchSpace { id } => self.activate_space(engine, &id),
             UiCommand::OpenPrivateSpace => self.open_private_space(engine),
             UiCommand::ClosePrivateSpace => self.close_private_space(engine),
+            UiCommand::HidePrivateSpace => self.hide_private_space(engine),
             UiCommand::NextSpace => self.handle_shortcut(engine, Shortcut::NextSpace),
             UiCommand::PrevSpace => self.handle_shortcut(engine, Shortcut::PrevSpace),
             UiCommand::Pin { id } => self.set_pinned(engine, &id, true),

@@ -206,7 +206,7 @@ impl MagnetiteApp {
                 // Spaces count from 1, in the footer's order.
                 let target = self.with_state(|s| {
                     let at = usize::from(n).checked_sub(1)?;
-                    let space = s.sidebar.spaces.get(at)?;
+                    let space = s.listed_spaces().nth(at)?;
                     (space.id != s.active_space).then(|| space.id.clone())
                 });
                 if let Some(id) = target {
@@ -234,25 +234,26 @@ impl MagnetiteApp {
             Shortcut::NewSpace => Self::open_palette(engine, PaletteMode::NewSpace, None, None),
             Shortcut::PrivateSpace => self.open_private_space(engine),
             Shortcut::ClosePrivateSpace => self.close_private_space(engine),
+            Shortcut::HidePrivateSpace => self.hide_private_space(engine),
             Shortcut::NewMini => Self::open_palette(engine, PaletteMode::Quick, None, None),
             Shortcut::ClosePeek => self.close_peek(engine),
             Shortcut::PeekToTab => self.peek_to_tab(engine),
             Shortcut::PeekToSplit => self.peek_to_split(engine),
             Shortcut::NextSpace | Shortcut::PrevSpace => {
                 let target = self.with_state(|s| {
-                    let n = s.sidebar.spaces.len();
-                    let pos = s
-                        .sidebar
-                        .spaces
+                    // A hidden private space is no stop on the way.
+                    let spaces: Vec<&str> = s.listed_spaces().map(|sp| sp.id.as_str()).collect();
+                    let n = spaces.len();
+                    let pos = spaces
                         .iter()
-                        .position(|sp| sp.id == s.active_space)
+                        .position(|id| *id == s.active_space)
                         .unwrap_or(0);
                     let next = if shortcut == Shortcut::NextSpace {
                         (pos + 1) % n
                     } else {
                         (pos + n - 1) % n
                     };
-                    s.sidebar.spaces[next].id.clone()
+                    spaces[next].to_string()
                 });
                 self.activate_space(engine, &target);
             }
