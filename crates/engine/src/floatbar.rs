@@ -75,6 +75,7 @@ impl Engine {
     pub(crate) fn swipe_began(&self) {
         let docked = self
             .lock()
+            .win
             .frame
             .as_ref()
             .and_then(|f| f.sidebar_view.browser());
