@@ -216,7 +216,7 @@ impl AppState {
 }
 
 /// The tab or folder `id` in `node` or below it.
-fn find<'a>(node: &'a SidebarNode, id: &str) -> Option<&'a SidebarNode> {
+pub(super) fn find<'a>(node: &'a SidebarNode, id: &str) -> Option<&'a SidebarNode> {
     if node.id() == id {
         return Some(node);
     }

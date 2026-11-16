@@ -211,7 +211,7 @@ export function App() {
         </div>
 
         {/* Pinned tabs and folders, then one divider, then Today. No labels: position says it. */}
-        <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: space.pinned.length }); endDrag(); }}>
+        <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: space.pinned.length }); else if (d) send({ cmd: "move_folder", id: d.id, index: indexAfterTaking(space.pinned, d.id, space.pinned.length) }); endDrag(); }}>
           <NodeList ctx={ctx} nodes={space.pinned} depth={0} />
         </div>
 

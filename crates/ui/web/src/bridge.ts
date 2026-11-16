@@ -370,11 +370,11 @@ export type Command =
   | { cmd: "rename_space"; id: Id; title: string; icon?: string }
   | { cmd: "delete_space"; id: Id }
   | { cmd: "move_space"; id: Id; index: number }
-  | { cmd: "new_folder"; title: string }
+  | { cmd: "new_folder"; title: string; parent?: Id }
   | { cmd: "rename_folder"; id: Id; title: string }
   | { cmd: "delete_folder"; id: Id }
   | { cmd: "move_tab"; id: Id; space: Id; section: "favorites" | "pinned" | "today"; index: number; folder?: Id; profile?: Id }
-  | { cmd: "move_folder"; id: Id; index: number }
+  | { cmd: "move_folder"; id: Id; index: number; folder?: Id }
   | { cmd: "add_split"; id: Id; side?: Side }
   | { cmd: "split_insert"; target?: Id; tab: Id; side: Side }
   | { cmd: "split_equalize"; path: number[] }

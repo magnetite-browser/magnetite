@@ -120,10 +120,13 @@ the row turns the icon into a back arrow that takes the page back.
   tabs. The sidebar page keeps this on the device, not in `state.json`.
 - Double-click or the context menu renames a folder; "Change icon…" picks
   one of 27 glyphs or the default icon.
-- A tab dropped on a folder goes to its top. A dragged folder is placed
-  among the top-level items of Pinned.
-- Folders inside folders are shown (an import can bring them), but the
-  sidebar cannot nest a folder.
+- A tab dropped on a folder goes to its top.
+- Folders nest: a folder dropped on the middle of another goes to its top,
+  one dropped on the upper or lower edge of a row is placed there, at any
+  level, and one dropped below the pinned items goes to the end of the top
+  level. "New folder inside" in a folder's context menu makes one at its
+  top. A folder does not go into itself, into a smart folder or more than
+  32 folders deep.
 - "Delete folder (keep tabs)" in the context menu removes the folder; its
   tabs stay where it was. A smart folder is deleted with the items it
   listed.
