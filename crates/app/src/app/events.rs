@@ -449,6 +449,9 @@ impl MagnetiteApp {
     /// it, the others become background tabs.
     pub(super) fn open_from_other_app(&self, engine: &Engine, urls: Vec<String>) {
         let peek = self.with_state(|s| s.settings.external_links == "peek");
+        // The space in front when the links arrive: where those without a
+        // rule belong, also after one with a rule brought its space forward.
+        let front = self.with_state(|s| s.active_space.clone());
         let last = urls.len().saturating_sub(1);
         for (i, url) in urls.into_iter().enumerate() {
             if peek && i < last {
@@ -461,6 +464,10 @@ impl MagnetiteApp {
                     }
                 }
                 continue;
+            }
+            if self.link_rule_space(&url).is_none() && self.with_state(|s| s.active_space != front)
+            {
+                self.activate_space(engine, &front);
             }
             self.on_event(
                 engine,

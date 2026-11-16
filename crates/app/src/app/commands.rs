@@ -1335,15 +1335,15 @@ impl MagnetiteApp {
             }
             UiCommand::SetSettings { settings: patch } => {
                 let before = self.with_state(|s| s.settings.adblock.clone());
-                let code_before = self.with_state(|s| s.settings.site_code.clone());
-                let settings = self.with_state(|s| {
+                let (settings, code_changed) = self.with_state(|s| {
                     let settings = s.settings.patched(patch)?;
+                    let code_changed = settings.site_code != s.settings.site_code;
                     s.settings = settings.clone();
                     // A shorter history period (or none) counts at once.
                     if s.history.prune(settings.history_days, crate::state::now()) {
                         s.history.save();
                     }
-                    Ok::<_, String>(settings)
+                    Ok::<_, String>((settings, code_changed))
                 })?;
                 engine.set_sidebar_width(settings.appearance.sidebar_width);
                 engine.set_top_bar_visible(settings.appearance.top_bar);
@@ -1353,7 +1353,7 @@ impl MagnetiteApp {
                 engine.set_autofill(settings.autofill);
                 engine.set_quick_search_key(settings.quick_search);
                 // Open pages get changed CSS at once.
-                if settings.site_code != code_before {
+                if code_changed {
                     engine.set_site_code(settings.site_code.clone());
                 }
                 // Lists are fetched and compiled only when they changed.

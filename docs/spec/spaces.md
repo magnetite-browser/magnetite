@@ -125,7 +125,9 @@ another space for its site.
   in the rule's space, which comes to the front; as a peek or a mini
   window it opens with the logins of that space's profile. Of several
   links handed over at once as peeks, only the last is one; the others
-  become background tabs, each in the space its rule names.
+  become background tabs, each in the space its rule names. Links
+  without a rule open in the space that was in front when they arrived,
+  also after one with a rule brought its space forward.
 - A rule whose space is gone does nothing, and a less exact rule that fits
   counts in its place; Settings marks it until another space is chosen or
   the rule removed.
