@@ -184,6 +184,8 @@ export interface UiState {
   splits: SplitNode[];
   /** The page shown over the tab; `runtime` is what is known about it, as for a tab. */
   peek: { url: string; title: string; runtime: TabRuntime } | null;
+  /** While Ctrl+Tab goes through the tabs by last use: the tabs of the round and the place it stands on. */
+  switcher: { tabs: Id[]; at: number } | null;
   settings: Settings;
   chrome: string;
   /** Connected smart folder accounts. */
@@ -247,6 +249,8 @@ export interface Settings {
   check_updates: boolean;
   /** What a click on the sidebar's archive and downloads button opens. */
   library_opens: LibraryView;
+  /** The order Ctrl+Tab goes through the tabs in: by last use, or as the sidebar lists them. */
+  tab_order: "recent" | "sidebar";
   /** Chromium's password manager and autofill: which parts are on (Settings → Passwords & autofill). */
   autofill: { passwords: boolean; addresses: boolean; cards: boolean; breach_check: boolean };
   /** The ad blocker (Settings → Ad blocking); this device's own choice, never synced. */

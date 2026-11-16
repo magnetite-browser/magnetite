@@ -27,6 +27,21 @@ pub(super) fn find_in_tree_mut<'a>(
     None
 }
 
+/// How many tabs `recent_tabs` remembers.
+const RECENT_TABS: usize = 200;
+/// The most tabs one round of `Ctrl+Tab` offers: what its list shows
+/// without scrolling.
+const SWITCH_TABS: usize = 9;
+
+/// A round of `Ctrl+Tab` by last use, while Ctrl is held: the tabs it goes
+/// through (the active one first, then by last use) and where it stands.
+/// Letting go of Ctrl chooses that tab.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct TabSwitch {
+    pub tabs: Vec<Id>,
+    pub at: usize,
+}
+
 impl AppState {
     /// The tab to show on switching to space `id`: the one last used there if
     /// it is still in that space or a favorite, else the space's first tab.
@@ -180,6 +195,64 @@ impl AppState {
             (None, false) => n.checked_sub(1)?,
         };
         order.get(next).cloned()
+    }
+
+    /// Tab `id` was chosen: it is the latest of `recent_tabs`.
+    pub fn note_tab_use(&mut self, id: &str) {
+        self.recent_tabs.retain(|t| t != id);
+        self.recent_tabs.insert(0, id.to_string());
+        self.recent_tabs.truncate(RECENT_TABS);
+    }
+
+    /// The favorites and the tabs of the active space by last use, the
+    /// latest first and the active tab before all: by their place in
+    /// `recent_tabs`, then (after a restart, say) by `last_active_at`.
+    pub fn tabs_by_last_use(&self) -> Vec<Id> {
+        let space = self.active_space();
+        let favorites = self.sidebar.favorites.iter().flat_map(|f| f.items.iter());
+        let pinned = space.pinned.iter().flat_map(SidebarNode::tabs);
+        let mut tabs: Vec<&TabItem> = favorites.chain(pinned).chain(&space.today).collect();
+        let active = self.active_tab_id();
+        tabs.sort_by_key(|t| {
+            let place = self.recent_tabs.iter().position(|r| *r == t.id);
+            (
+                Some(t.id.as_str()) != active,
+                place.unwrap_or(usize::MAX),
+                std::cmp::Reverse(t.last_active_at),
+            )
+        });
+        tabs.into_iter().map(|t| t.id.clone()).collect()
+    }
+
+    /// One press of `Ctrl+Tab` (`forward`) or `Ctrl+Shift+Tab` by last use:
+    /// the first begins a round on the tab used before the active one (or,
+    /// backwards, the one used longest ago), each further one goes a tab
+    /// on, around the `SWITCH_TABS` used last. False with fewer than two
+    /// tabs: there is nothing to switch to.
+    pub fn switch_tab(&mut self, forward: bool) -> bool {
+        if let Some(round) = &mut self.switcher {
+            let n = round.tabs.len();
+            round.at = (round.at + if forward { 1 } else { n - 1 }) % n;
+            return true;
+        }
+        let mut tabs = self.tabs_by_last_use();
+        tabs.truncate(SWITCH_TABS);
+        if tabs.len() < 2 {
+            return false;
+        }
+        // The round begins on the active tab, the first of the list.
+        let from_active = usize::from(self.active_tab_id().is_some());
+        let at = if forward { from_active } else { tabs.len() - 1 };
+        self.switcher = Some(TabSwitch { tabs, at });
+        true
+    }
+
+    /// End the round of `Ctrl+Tab`: the tab it stands on, if it is still
+    /// there. `None` without a round.
+    pub fn end_tab_switch(&mut self) -> Option<Id> {
+        let round = self.switcher.take()?;
+        let chosen = round.tabs.get(round.at)?;
+        self.find_tab(chosen).is_some().then(|| chosen.clone())
     }
 
     /// Remove a tab from wherever it is. Returns it and its space (None for favorites).
@@ -685,6 +758,61 @@ mod tests {
             entry.tab.home_url, None,
             "restored, it must not count as pinned"
         );
+    }
+
+    #[test]
+    fn ctrl_tab_goes_to_the_tab_used_before_and_back() {
+        // `state()`: Today a, b (active), c and the pinned p.
+        let mut s = state();
+        for used in ["a", "c", "b"] {
+            s.note_tab_use(used);
+        }
+        assert_eq!(s.tabs_by_last_use(), ["b", "c", "a", "p"]);
+        let space = s.active_space.clone();
+        let press_and_let_go = |s: &mut AppState| {
+            assert!(s.switch_tab(true));
+            let to = s.end_tab_switch().unwrap();
+            s.active_tab.insert(space.clone(), to.clone());
+            s.note_tab_use(&to);
+            to
+        };
+        assert_eq!(press_and_let_go(&mut s), "c");
+        assert_eq!(press_and_let_go(&mut s), "b", "a second press goes back");
+    }
+
+    #[test]
+    fn a_held_round_goes_further_back_and_around() {
+        let mut s = state();
+        for used in ["p", "a", "c", "b"] {
+            s.note_tab_use(used);
+        }
+        let stands_on = |s: &AppState| {
+            let round = s.switcher.as_ref().unwrap();
+            round.tabs[round.at].clone()
+        };
+        s.switch_tab(true);
+        s.switch_tab(true);
+        assert_eq!(stands_on(&s), "a");
+        s.switch_tab(true);
+        s.switch_tab(true);
+        assert_eq!(stands_on(&s), "b", "around to the tab it began on");
+        s.switch_tab(false);
+        assert_eq!(stands_on(&s), "p", "backwards: the one used longest ago");
+        // The tab is gone when Ctrl is let go: nothing is chosen.
+        s.take_tab("p");
+        assert_eq!(s.end_tab_switch(), None);
+        assert_eq!(s.end_tab_switch(), None, "no round, nothing to end");
+    }
+
+    #[test]
+    fn one_tab_alone_has_nothing_to_switch_to() {
+        let mut s = state();
+        let space = s.active_space.clone();
+        let sp = s.space_mut(&space).unwrap();
+        sp.pinned.clear();
+        sp.today.truncate(1);
+        assert!(!s.switch_tab(true));
+        assert!(s.switcher.is_none());
     }
 
     #[test]

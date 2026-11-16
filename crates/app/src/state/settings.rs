@@ -73,6 +73,9 @@ pub struct Settings {
     pub check_updates: bool,
     /// What a click on the sidebar's archive and downloads button opens.
     pub library_opens: LibraryView,
+    /// The order `Ctrl+Tab` goes through the tabs in. This device's own
+    /// choice, never synced.
+    pub tab_order: TabOrder,
     /// Chromium's password manager and autofill: which parts are on. Not
     /// synced: what a device saves is that device's.
     pub autofill: magnetite_engine::AutofillPrefs,
@@ -167,6 +170,17 @@ pub enum Density {
     #[default]
     Comfortable,
     Spacious,
+}
+
+/// The order `Ctrl+Tab` and `Ctrl+Shift+Tab` go through the tabs in.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum TabOrder {
+    /// By last use: one press goes to the tab used before this one.
+    #[default]
+    Recent,
+    /// As the sidebar lists them.
+    Sidebar,
 }
 
 /// A view behind the sidebar's archive and downloads button. While something
@@ -372,6 +386,7 @@ impl Default for Settings {
             chromium_pins_seen: HashMap::new(),
             check_updates: true,
             library_opens: LibraryView::Archive,
+            tab_order: TabOrder::Recent,
             autofill: magnetite_engine::AutofillPrefs::default(),
             smart_allowed: None,
             adblock: AdblockSettings::default(),

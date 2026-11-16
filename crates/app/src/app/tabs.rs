@@ -4,10 +4,19 @@
 use magnetite_core::sidebar::Section;
 use magnetite_engine::{ContentId, Engine, MemoryPressure, host_of};
 
-use crate::state::{AppState, folder_in_tree_mut, now};
+use crate::state::{AppState, TabOrder, folder_in_tree_mut, now};
 use crate::{lock, trace, url_policy};
 
-use super::{DOWNLOADS_URL, MagnetiteApp, WELCOME_URL};
+use super::{DOWNLOADS_URL, MagnetiteApp, WELCOME_URL, global};
+
+/// The list of the tabs `Ctrl+Tab` goes through (`Switcher.tsx`).
+const SWITCHER_URL: &str = "magnetite://ui/switcher";
+/// The height of one of its rows, in points (`.switcher .result`).
+const SWITCHER_ROW: i32 = 40;
+/// How long the modifier is held before the list shows.
+const SWITCHER_DELAY_MS: i64 = 150;
+/// How often a round looks whether the modifier is still held.
+const SWITCHER_WATCH_MS: i64 = 30;
 
 /// Drag and drop: put tab `id` at `index` of `section` (of space
 /// `space_id`); `folder` places it inside a pinned folder of that space.
@@ -113,15 +122,94 @@ impl MagnetiteApp {
             return;
         };
 
-        self.with_state(|s| {
+        let switching = self.with_state(|s| {
             s.active_space.clone_from(&space_id);
             s.active_tab.insert(space_id, tab_id.to_string());
+            s.note_tab_use(tab_id);
             if let Some(t) = s.find_tab_mut(tab_id) {
                 t.last_active_at = Some(now());
                 t.unread = false;
             }
+            // Chosen some other way while Ctrl is held: the round is over.
+            s.switcher.take().is_some()
         });
+        if switching {
+            engine.close_overlay();
+        }
         self.present(engine);
+    }
+
+    /// One press of `Ctrl+Tab` or `Ctrl+Shift+Tab` in the order Settings
+    /// say. By last use the first press begins a round, which lasts while
+    /// the modifier is held (`watch_tab_switch`): the tab changes when it
+    /// is let go, and a round longer than `SWITCHER_DELAY_MS` shows its
+    /// list.
+    pub(super) fn cycle_tab(&self, engine: &Engine, forward: bool) {
+        if self.with_state(|s| s.settings.tab_order) == TabOrder::Sidebar {
+            if let Some(t) = self.with_state(|s| s.cycle_tab(forward)) {
+                self.activate_tab(engine, &t);
+            }
+            return;
+        }
+        let began = self.with_state(|s| {
+            let began = s.switcher.is_none();
+            s.switch_tab(forward).then_some(began)
+        });
+        match began {
+            Some(true) => {
+                Self::watch_tab_switch();
+                // A quick press and release just switches, without the list.
+                Engine::post_delayed(
+                    Box::new(|| {
+                        let Some(app) = global() else { return };
+                        let tabs = app.with_state(|s| s.switcher.as_ref().map(|r| r.tabs.len()));
+                        if let Some(tabs) = tabs {
+                            let height = SWITCHER_ROW * i32::try_from(tabs).unwrap_or(1) + 12;
+                            Engine::global().open_panel(SWITCHER_URL, 440, height);
+                        }
+                    }),
+                    SWITCHER_DELAY_MS,
+                );
+            }
+            // The list follows the round.
+            Some(false) => self.show_state(engine),
+            None => {}
+        }
+    }
+
+    /// Look every `SWITCHER_WATCH_MS` whether the modifier of the round of
+    /// `Ctrl+Tab` is still held, and end the round once it is not. Where
+    /// the system does not say, the round ends at once: every press
+    /// switches to the tab used before.
+    fn watch_tab_switch() {
+        Engine::post_delayed(
+            Box::new(|| {
+                let Some(app) = global() else { return };
+                let engine = Engine::global();
+                if app.with_state(|s| s.switcher.is_none()) {
+                    return;
+                }
+                if engine.command_modifier_held() == Some(true) {
+                    Self::watch_tab_switch();
+                } else {
+                    app.end_tab_switch(engine);
+                }
+            }),
+            SWITCHER_WATCH_MS,
+        );
+    }
+
+    /// The modifier was let go: the tab the round of `Ctrl+Tab` stands on is
+    /// chosen.
+    fn end_tab_switch(&self, engine: &Engine) {
+        let Some(chosen) = self.with_state(|s| s.switcher.is_some().then(|| s.end_tab_switch()))
+        else {
+            return;
+        };
+        engine.close_overlay();
+        if let Some(tab) = chosen {
+            self.activate_tab(engine, &tab);
+        }
     }
 
     /// Make the content windows match the state: the current window shows

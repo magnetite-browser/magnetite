@@ -169,6 +169,12 @@ export function SettingsPage() {
                   {UNLOAD_AFTER.map((t) => <option key={t.minutes} value={t.minutes}>{t.label}</option>)}
                 </select>
               </Field>
+              <Field label="Ctrl+Tab goes through the tabs" hint="By last use, one press goes to the tab you used before this one, and a second press back; hold Ctrl and press Tab again to go further back in a list of the tabs used last. In sidebar order it goes down the sidebar, row by row.">
+                <select className="field" value={settings.tab_order} onChange={(e) => update({ tab_order: e.target.value as Settings["tab_order"] })}>
+                  <option value="recent">by last use</option>
+                  <option value="sidebar">in sidebar order</option>
+                </select>
+              </Field>
               <Field label="Clicking the archive button opens" hint="The button at the bottom left of the sidebar; resting on it shows bookmarks, history, downloads and the archive. While a download runs, a click opens downloads.">
                 <select className="field" value={settings.library_opens} onChange={(e) => update({ library_opens: e.target.value as Settings["library_opens"] })}>
                   <option value="archive">the archive</option>
