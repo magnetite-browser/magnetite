@@ -17,8 +17,14 @@ Settings.
 - The lists hold enabled extensions that have a toolbar action, sorted by
   name. Chromium's built-in extensions are left out.
 - Extensions are per profile. The lists show those of the profile the page
-  in front uses: the active tab's profile, else the active space's. A
-  private profile lists none.
+  in front uses: the active tab's profile, else the active space's.
+- A private profile (the "Private" isolation level and the tabs of the
+  private space, `spaces.md`) has no extensions of its own. Those of the
+  default profile with "Allow in Incognito" switched on (Manage extensions
+  → Details) run in it and are listed, without "Options"; the others do not
+  run there. Such an extension works on its own data as everywhere else: a
+  password manager stays unlocked. It sees the pages of every private tab it
+  runs in.
 - The sidebar shows as many pinned icons as fit: one at the default width,
   four at the widest. The menu bar has them all.
 - Installing happens on the Chrome Web Store page; removing, turning off

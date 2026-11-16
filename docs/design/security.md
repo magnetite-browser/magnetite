@@ -79,7 +79,19 @@ from a context Magnetite did not make is not opened.
   (`adopt_sidebar`).
 - They leave no history: their pages are not recorded (`history.rs`,
   `record_visit`), in a tab or a peek.
-- Their favicons are not cached on disk.
+- Their favicons are not cached on disk, and the icon address of a tab
+  that is not saved is not saved either (`saved_form`).
+- The private space (`state/private.rs`) goes further: the space and its
+  profiles are never saved or synced, and each tab has an in-memory profile
+  of its own. A profile is taken off the list once nothing runs in it
+  (`release_private_profiles`), and the engine lets go of its context
+  (`Engine::forget_contexts`), which Chromium then drops with its cookies
+  and storage. Nothing moves into the space or out of it (`move_tab`), and
+  its profiles cannot be given to another space or tab.
+- In-memory contexts are off-the-record children of the default profile,
+  so Chromium runs the default profile's extensions in them if, and only
+  if, "Allow in Incognito" is on for the extension. Such an extension sees
+  every private tab it runs in.
 - The sidebar (default context) never loads a remote favicon of a page in
   another profile: it would send the default profile's cookies to that site.
 

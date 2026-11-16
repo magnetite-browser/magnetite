@@ -281,11 +281,16 @@ impl AppState {
         None
     }
 
+    /// A new tab at the top of Today of space `space_id`. In the private
+    /// space it gets a profile of its own (`private.rs`).
     pub fn new_today_tab(&mut self, space_id: &str, url: &str, title: &str) -> Id {
         let id = new_id();
+        let profile_id =
+            (self.private_space.as_deref() == Some(space_id)).then(|| self.new_private_profile());
         let tab = TabItem {
             created_at: Some(now()),
             last_active_at: Some(now()),
+            profile_id,
             ..TabItem::new(id.clone(), url, title)
         };
         if let Some(s) = self.space_mut(space_id) {

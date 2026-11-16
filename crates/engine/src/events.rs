@@ -20,6 +20,8 @@ pub enum Shortcut {
     ReopenClosed,
     TogglePin,
     NewSpace,
+    /// `Cmd+Shift+P`: open the private space, or go to it.
+    PrivateSpace,
     NextSpace,
     PrevSpace,
     /// 1-based, `Cmd+1` to `Cmd+9`.

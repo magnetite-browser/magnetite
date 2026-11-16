@@ -61,14 +61,18 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   items.push({ label: "Share…", onClick: () => send({ cmd: "share", id: tab.id, x: at.x, y: at.y }) });
   items.push({ label: "Copy link", onClick: () => navigator.clipboard?.writeText(tab.url) });
   items.push(SEPARATOR);
-  if (section === "today") items.push({ label: "Pin tab", onClick: () => send({ cmd: "pin", id: tab.id }) });
+  // The private space has only Today tabs, and nothing of it is kept or moves out.
+  const inPrivate = ctx.state.private_space === ctx.spaceId && section !== "favorites";
+  if (section === "today" && !inPrivate) items.push({ label: "Pin tab", onClick: () => send({ cmd: "pin", id: tab.id }) });
   if (section === "pinned") {
     items.push({ label: "Unpin tab", onClick: () => send({ cmd: "unpin", id: tab.id }) });
     if (tab.home_url && tab.home_url !== tab.url) items.push({ label: "Back to pinned page", title: tab.home_url, onClick: () => send({ cmd: "reset_tab", id: tab.id }) });
   }
-  if (section !== "favorites") items.push({ label: "Add to favorites", onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "favorites", index: 999 }) });
+  if (inPrivate) {
+    // Nothing to keep.
+  } else if (section !== "favorites") items.push({ label: "Add to favorites", onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "favorites", index: 999 }) });
   else items.push({ label: "Remove from favorites", onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "today", index: 0 }) });
-  items.push({ label: "Add to bookmarks", onClick: () => send({ cmd: "add_bookmark", id: tab.id }) });
+  if (!inPrivate) items.push({ label: "Add to bookmarks", onClick: () => send({ cmd: "add_bookmark", id: tab.id }) });
   // Spared from unloading and auto-archive until it is let go again.
   // Favorites and pinned tabs stay loaded anyway.
   if (section === "today") items.push({ label: tab.keep_active ? "✓ Keep active" : "Keep active", onClick: () => send({ cmd: "set_keep_active", id: tab.id, keep: !tab.keep_active }) });
@@ -97,9 +101,10 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
     }
     items.push({ label: "New profile for this favorite…", onClick: () => ctx.newProfileFor(tab.id) });
   }
-  if (spaces.length > 1) {
+  const targets = inPrivate ? [] : spaces.filter((sp) => sp.id !== ctx.state.private_space);
+  if (targets.length > 1) {
     items.push(SEPARATOR);
-    for (const sp of spaces) {
+    for (const sp of targets) {
       if (sp.id === ctx.spaceId) continue;
       items.push({ label: `Move to ${sp.title}`, onClick: () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 }) });
     }
@@ -107,7 +112,7 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   items.push(SEPARATOR);
   // A smart folder's own item: its row has snooze in place of close, which
   // only unloads it.
-  items.push({ label: section === "today" ? "Archive" : "Close", danger: section === "today", onClick: () => send({ cmd: "close_tab", id: tab.id }) });
+  items.push({ label: section === "today" && !inPrivate ? "Archive" : "Close", danger: section === "today", onClick: () => send({ cmd: "close_tab", id: tab.id }) });
   return items;
 }
 

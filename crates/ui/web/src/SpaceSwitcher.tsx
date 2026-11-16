@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { SpaceGlyph } from "./Glyphs";
+import { MaskIcon } from "./Icons";
 import { accentCss, send, type Space } from "./bridge";
 import { indexAfterTaking, sideOf } from "./dnd";
 
@@ -8,7 +9,7 @@ import { indexAfterTaking, sideOf } from "./dnd";
 let dragged: string | null = null;
 
 /** The footer's space icons: click to switch, right-click for the menu, drag to reorder. */
-export function SpaceSwitcher({ spaces, current, onMenu }: { spaces: Space[]; current: string; onMenu: (x: number, y: number, space: Space) => void }) {
+export function SpaceSwitcher({ spaces, current, privateSpace, onMenu }: { spaces: Space[]; current: string; privateSpace: string | null; onMenu: (x: number, y: number, space: Space) => void }) {
   // The icon a dragged space hovers, and the side of it the space would go to.
   const [over, setOver] = useState<{ id: string; side: "left" | "right" } | null>(null);
   // Where the dragged space goes when dropped on that side of icon `i`, or
@@ -29,7 +30,7 @@ export function SpaceSwitcher({ spaces, current, onMenu }: { spaces: Space[]; cu
           data-before={(over?.id === s.id && over.side === "left") || undefined}
           data-after={(over?.id === s.id && over.side === "right") || undefined}
           style={{ ["--space" as string]: accentCss(s.accent) }}
-          draggable={spaces.length > 1}
+          draggable={spaces.length > 1 && s.id !== privateSpace}
           onDragStart={(e) => {
             dragged = s.id;
             e.dataTransfer.effectAllowed = "move";
@@ -57,7 +58,7 @@ export function SpaceSwitcher({ spaces, current, onMenu }: { spaces: Space[]; cu
           onContextMenu={(e) => { e.preventDefault(); onMenu(e.clientX, e.clientY, s); }}
           title={s.title}
         >
-          <SpaceGlyph icon={s.icon} title={s.title} size={17} />
+          {s.id === privateSpace ? <MaskIcon width={17} height={17} /> : <SpaceGlyph icon={s.icon} title={s.title} size={17} />}
         </button>
       ))}
     </div>

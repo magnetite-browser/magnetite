@@ -127,6 +127,10 @@ pub(super) enum UiCommand {
     SwitchSpace {
         id: String,
     },
+    /// Open the private space, or go to it if it is open.
+    OpenPrivateSpace,
+    /// Close the private space with everything opened from it.
+    ClosePrivateSpace,
     NextSpace,
     PrevSpace,
     Pin {
@@ -799,6 +803,8 @@ impl MagnetiteApp {
                 }
             }
             UiCommand::SwitchSpace { id } => self.activate_space(engine, &id),
+            UiCommand::OpenPrivateSpace => self.open_private_space(engine),
+            UiCommand::ClosePrivateSpace => self.close_private_space(engine),
             UiCommand::NextSpace => self.handle_shortcut(engine, Shortcut::NextSpace),
             UiCommand::PrevSpace => self.handle_shortcut(engine, Shortcut::PrevSpace),
             UiCommand::Pin { id } => self.set_pinned(engine, &id, true),
@@ -870,6 +876,10 @@ impl MagnetiteApp {
             }
             UiCommand::RenameSpace { id, title, icon } => {
                 self.with_state(|s| {
+                    // The private space keeps its name and icon.
+                    if s.is_private_space(&id) {
+                        return;
+                    }
                     if let Some(sp) = s.space_mut(&id) {
                         if !title.trim().is_empty() {
                             sp.title = title.trim().into();
@@ -880,6 +890,9 @@ impl MagnetiteApp {
                     }
                 });
                 self.push_state(engine);
+            }
+            UiCommand::DeleteSpace { id } if self.with_state(|s| s.is_private_space(&id)) => {
+                self.close_private_space(engine);
             }
             UiCommand::DeleteSpace { id } => {
                 let contents = self.with_state(|s| s.delete_space(&id));
@@ -1243,7 +1256,9 @@ impl MagnetiteApp {
                 self.push_state(engine);
             }
             UiCommand::SetSpaceSynced { id, synced } => {
-                if self.with_state(|s| s.set_space_synced(&id, synced)) {
+                // The private space is never synced: there is nothing to set.
+                if self.with_state(|s| !s.is_private_space(&id) && s.set_space_synced(&id, synced))
+                {
                     self.push_state(engine);
                     // The other devices hear of it now, not at the next round.
                     self.sync_now();
@@ -1252,7 +1267,10 @@ impl MagnetiteApp {
             UiCommand::SetSpaceProfile { id, profile } => {
                 // Tabs of that space must reload in the new context.
                 let contents = self.with_state(|s| {
-                    if !s.sidebar.profiles.iter().any(|p| p.id == profile) {
+                    // The private space stays in memory, and its profiles
+                    // are for nothing else.
+                    let known = s.sidebar.profiles.iter().any(|p| p.id == profile);
+                    if !known || s.is_private_space(&id) || s.private_profiles.contains(&profile) {
                         return vec![];
                     }
                     let Some(sp) = s.space_mut(&id) else {
@@ -1292,6 +1310,12 @@ impl MagnetiteApp {
             }
             UiCommand::SetTabProfile { id, profile } => {
                 let content = self.with_state(|s| {
+                    // A tab of the private space keeps its own profile, and
+                    // no other tab gets one of those.
+                    let private = |p: &String| s.private_profiles.contains(p);
+                    if s.in_private_space(&id) || profile.as_ref().is_some_and(private) {
+                        return None;
+                    }
                     // The default profile is the same as no override.
                     let profile = profile.filter(|p| {
                         s.sidebar
@@ -1358,12 +1382,12 @@ impl MagnetiteApp {
                         "extensions": extensions,
                         "sync_signed_in": sync::signed_in(s.data_dir()),
                         "settings": for_ui(json!({ "settings": s.settings }))["settings"],
-                        "profiles": s.sidebar.profiles.iter().map(|p| {
+                        "profiles": s.sidebar.profiles.iter().filter(|p| !s.private_profiles.contains(&p.id)).map(|p| {
                             let mut profile = json!(p);
                             profile["synced"] = json!(!kept_profiles.contains(&p.id));
                             profile
                         }).collect::<Vec<_>>(),
-                        "spaces": s.sidebar.spaces.iter().map(|sp| json!({"id": sp.id, "title": sp.title, "icon": sp.icon, "accent": sp.accent, "profile_id": sp.profile_id, "synced": !s.unsynced_spaces.contains(&sp.id)})).collect::<Vec<_>>(),
+                        "spaces": s.sidebar.spaces.iter().filter(|sp| !s.is_private_space(&sp.id)).map(|sp| json!({"id": sp.id, "title": sp.title, "icon": sp.icon, "accent": sp.accent, "profile_id": sp.profile_id, "synced": !s.unsynced_spaces.contains(&sp.id)})).collect::<Vec<_>>(),
                         "active_space": s.active_space,
                         "favorites": s.sidebar.favorites.iter().flat_map(|f| f.items.iter()).map(|t| json!({"id": t.id, "title": t.title, "url": t.url, "profile_id": s.profile_for_tab(&t.id)})).collect::<Vec<_>>(),
                         "archive_count": s.archive.len(),
@@ -1608,6 +1632,10 @@ impl MagnetiteApp {
             UiCommand::AddBookmark { id } => {
                 let saved = self.with_state(|s| {
                     let tab = id.or_else(|| s.active_tab_id().map(str::to_owned))?;
+                    // The private space's bookmarks would go with it.
+                    if s.in_private_space(&tab) {
+                        return None;
+                    }
                     let bookmark = s.add_bookmark(&tab)?;
                     s.bookmark(&bookmark).map(|(space, _)| space.title.clone())
                 });

@@ -6,7 +6,7 @@ import { HistoryView } from "./HistoryView";
 import { LibraryButton } from "./LibraryButton";
 import { SidebarResizer } from "./SidebarResizer";
 import { ContextMenu, SEPARATOR, type MenuItem } from "./ContextMenu";
-import { Back, Close, Dots, FolderIcon, Forward, Plus, Reload, SidebarIcon, SmartFolderIcon, SpacePlus, SplitIcon, TabPlus } from "./Icons";
+import { Back, Close, Dots, FolderIcon, Forward, Plus, MaskIcon, Reload, SidebarIcon, SmartFolderIcon, SpacePlus, SplitIcon, TabPlus } from "./Icons";
 import { AddressRow } from "./AddressRow";
 import { CaptureToast } from "./CaptureToast";
 import { MediaBar, type MediaEntry } from "./MediaBar";
@@ -79,8 +79,11 @@ export function App() {
 
   if (!state) return <div className="h-full" />;
   const space = state.sidebar.spaces.find((s) => s.id === state.active_space) ?? state.sidebar.spaces[0]!;
-  // The same in every space: one list of favorites per profile that has some.
-  const favoriteLists = state.sidebar.favorites.filter((f) => f.items.length > 0);
+  // The private space: only Today tabs, each in a profile of its own, and nothing of it is kept.
+  const isPrivate = state.private_space === space.id;
+  // The same in every space but the private one (a favorite runs in its own
+  // profile, which is kept): one list of favorites per profile that has some.
+  const favoriteLists = isPrivate ? [] : state.sidebar.favorites.filter((f) => f.items.length > 0);
   const spaceIndex = state.sidebar.spaces.indexOf(space);
   if (enter.current.id !== space.id) {
     enter.current = { id: space.id, index: spaceIndex, x: enter.current.id ? Math.sign(spaceIndex - enter.current.index) * 24 : 0 };
@@ -144,6 +147,9 @@ export function App() {
       if (target.id !== space.id) send({ cmd: "switch_space", id: target.id });
       run();
     };
+    if (target.id === state.private_space) {
+      return openMenu(x, y, [{ label: "Close private space", danger: true, onClick: () => send({ cmd: "close_private_space" }) }]);
+    }
     openMenu(x, y, [
       { label: "Rename space", onClick: there(() => setRenamingSpace(target.id)) },
       { label: "Change icon", onClick: () => pickSpaceIcon(x, y, target) },
@@ -201,6 +207,13 @@ export function App() {
 
       {/* Lists */}
       <div key={space.id} className="scroll space-list flex-1 min-h-0 px-2 pb-2" style={{ ["--enter-x" as string]: `${enter.current.x}px`, ...(swipe.offset ? { transform: `translateX(${swipe.offset}px)`, transition: "none" } : {}) }} onContextMenu={(e) => { if (e.target === e.currentTarget) { e.preventDefault(); spaceMenu(e.clientX, e.clientY); } }}>
+        {isPrivate ? (
+        <div className="space-title" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }}>
+          <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: "var(--space)" }}><MaskIcon width={15} height={15} /></span>
+          <span className="truncate">{space.title}</span>
+          <button className="ib sm ml-auto" title="Close private space" aria-label="Close private space" onClick={() => send({ cmd: "close_private_space" })}><Close width={14} height={14} /></button>
+        </div>
+        ) : (
         <div className="space-title group" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }} onDoubleClick={() => setRenamingSpace(space.id)}>
           <button className="grid h-5 w-5 shrink-0 place-items-center rounded-md" style={{ color: "var(--space)" }} title="Change icon" onClick={(e) => pickSpaceIcon(e.clientX, e.clientY)}><SpaceGlyph icon={space.icon} title={space.title} size={15} /></button>
           {renamingSpace === space.id ? (
@@ -210,15 +223,16 @@ export function App() {
           )}
           <button className="ib sm ml-auto opacity-0 group-hover:opacity-100" title="Space options" onClick={(e) => spaceMenu(e.clientX, e.clientY)}><Dots width={14} height={14} /></button>
         </div>
+        )}
 
-        {/* Pinned tabs and folders, then one divider, then Today. No labels: position says it. */}
-        <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: space.pinned.length }); else if (d) send({ cmd: "move_folder", id: d.id, index: indexAfterTaking(space.pinned, d.id, space.pinned.length) }); endDrag(); }}>
+        {/* Pinned tabs and folders, then one divider, then Today. No labels: position says it. The private space has only Today. */}
+        {!isPrivate && <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: space.pinned.length }); else if (d) send({ cmd: "move_folder", id: d.id, index: indexAfterTaking(space.pinned, d.id, space.pinned.length) }); endDrag(); }}>
           <NodeList ctx={ctx} nodes={space.pinned} depth={0} />
-        </div>
+        </div>}
 
         <div className="divider">
           <hr />
-          {space.today.length > 0 && <button title="Archive all Today tabs" onClick={() => send({ cmd: "archive_today" })}>Clear</button>}
+          {space.today.length > 0 && <button title={isPrivate ? "Close all private tabs" : "Archive all Today tabs"} onClick={() => send({ cmd: "archive_today" })}>Clear</button>}
         </div>
 
         <div
@@ -226,9 +240,9 @@ export function App() {
           onDragOver={(e) => dragging()?.kind === "tab" && e.preventDefault()}
           onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); dropToday(space.today.length); endDrag(); }}
         >
-          <button className="row newtab w-full" onClick={() => send({ cmd: "open_palette", mode: "new" })} title={`New tab${keysHint(state.keys, "new_tab")}`}>
+          <button className="row newtab w-full" onClick={() => send({ cmd: "open_palette", mode: "new" })} title={`${isPrivate ? "New private tab" : "New tab"}${keysHint(state.keys, "new_tab")}`}>
             <span className="icon-slot"><Plus width={15} height={15} /></span>
-            <span className="title text-left">New Tab</span>
+            <span className="title text-left">{isPrivate ? "New Private Tab" : "New Tab"}</span>
           </button>
           {looseSplit && <SplitRow ctx={ctx} split={looseSplit} />}
           {space.today.map((t, i) => (
@@ -243,7 +257,7 @@ export function App() {
       {/* Footer: archive and downloads left (one button), spaces centred, new right */}
       <div className="flex h-12 shrink-0 items-center gap-1 px-2">
         <LibraryButton opens={state.settings.library_opens} keys={state.keys} onOpen={setPanel} />
-        <SpaceSwitcher spaces={state.sidebar.spaces} current={space.id} onMenu={spaceMenu} />
+        <SpaceSwitcher spaces={state.sidebar.spaces} current={space.id} privateSpace={state.private_space} onMenu={spaceMenu} />
         <button
           className="ib lg plus-btn"
           aria-label={newMenu ? "Close menu" : "New…"}
@@ -261,12 +275,13 @@ export function App() {
           groups={[
             [
               { id: "space", label: "New Space", Icon: SpacePlus, shortcut: keysLabel(state.keys.new_space), run: () => send({ cmd: "open_palette", mode: "new_space" }) },
-              { id: "folder", label: "New Folder", Icon: FolderIcon, run: () => send({ cmd: "new_folder", title: "" }) },
-              { id: "smart", label: "New Smart Folder", Icon: SmartFolderIcon, run: () => send({ cmd: "smart_folder_dialog" }) },
+              { id: "private", label: "Private Space", Icon: MaskIcon, shortcut: keysLabel(state.keys.private_space), run: () => send({ cmd: "open_private_space" }) },
+              { id: "folder", label: "New Folder", Icon: FolderIcon, disabled: isPrivate, run: () => send({ cmd: "new_folder", title: "" }) },
+              { id: "smart", label: "New Smart Folder", Icon: SmartFolderIcon, disabled: isPrivate, run: () => send({ cmd: "smart_folder_dialog" }) },
             ],
             [
               { id: "split", label: "New Split", Icon: SplitIcon, disabled: !activeItem, run: () => send({ cmd: "open_palette", mode: "split" }) },
-              { id: "tab", label: "New Tab", Icon: TabPlus, shortcut: keysLabel(state.keys.new_tab), run: () => send({ cmd: "open_palette", mode: "new" }) },
+              { id: "tab", label: isPrivate ? "New Private Tab" : "New Tab", Icon: TabPlus, shortcut: keysLabel(state.keys.new_tab), run: () => send({ cmd: "open_palette", mode: "new" }) },
             ],
           ]}
         />

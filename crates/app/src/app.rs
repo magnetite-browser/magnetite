@@ -249,6 +249,11 @@ impl MagnetiteApp {
     /// rather than at once. A loading page reports a dozen changes within
     /// a second, and each save waits for the disk.
     fn push_state(&self, engine: &Engine) {
+        // A private tab that closed takes its profile along.
+        let released = self.with_state(AppState::release_private_profiles);
+        if !released.is_empty() {
+            engine.forget_contexts(&released);
+        }
         self.save_soon();
         self.show_state_paced(engine);
     }
@@ -348,7 +353,10 @@ impl MagnetiteApp {
         engine.set_extension_menu(context, pinned);
         // "Open in" of mini windows: the active space first.
         let spaces = self.with_state(|s| {
+            // Not the private space: a page from elsewhere would not be
+            // private there.
             let mut spaces: Vec<(String, String)> = (s.sidebar.spaces.iter())
+                .filter(|sp| !s.is_private_space(&sp.id))
                 .map(|sp| (sp.id.clone(), sp.title.clone()))
                 .collect();
             if let Some(i) = spaces.iter().position(|(id, _)| *id == s.active_space) {

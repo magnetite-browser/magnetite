@@ -113,7 +113,7 @@ impl AppState {
         ids.sort_unstable();
         (ids.into_iter().map(|id| &self.views[id]))
             .map(|v| SavedWindow {
-                active_space: v.active_space.clone(),
+                active_space: self.lasting_space(&v.active_space),
                 active_tab: v.active_tab.clone(),
             })
             .chain(self.reopen.iter().cloned())

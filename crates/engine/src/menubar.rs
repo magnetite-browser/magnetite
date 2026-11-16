@@ -322,6 +322,7 @@ pub fn install(mtm: MainThreadMarker) {
     b.command("New Tab", "t", CMD, S::NewTab);
     b.command("New Window", "n", CMD, S::NewWindow);
     b.command("New Space…", "n", SHIFT_CMD, S::NewSpace);
+    b.command("Private Space", "p", SHIFT_CMD, S::PrivateSpace);
     b.command("New Split View…", "=", SHIFT_CMD, S::NewSplit);
     b.command("New Mini Window", "n", OPT_CMD, S::NewMini);
     b.command("Open Location…", "l", CMD, S::FocusAddress);

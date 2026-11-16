@@ -23,6 +23,7 @@ export const SHORTCUT_GROUPS = [
       new_window: "New window",
       close_window: "Close the window",
       new_space: "New space",
+      private_space: "Private space",
       next_space: "Next space",
       prev_space: "Previous space",
       toggle_sidebar: "Show or hide the sidebar",

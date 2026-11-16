@@ -181,6 +181,8 @@ export type MediaAction = "play" | "pause" | "next" | "previous" | "seekforward"
 export interface UiState {
   sidebar: Snapshot;
   active_space: Id;
+  /** The private space, while one is open: not saved, a profile in memory per tab. */
+  private_space: Id | null;
   active_tab: Id | null;
   runtime: Record<Id, TabRuntime>;
   sidebar_visible: boolean;
@@ -393,6 +395,8 @@ export type Command =
   | { cmd: "site_data_scope" }
   | { cmd: "clear_site_data"; domain: string }
   | { cmd: "switch_space"; id: Id }
+  | { cmd: "open_private_space" }
+  | { cmd: "close_private_space" }
   | { cmd: "next_space" }
   | { cmd: "prev_space" }
   | { cmd: "pin"; id: Id }

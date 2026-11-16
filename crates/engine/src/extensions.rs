@@ -39,6 +39,9 @@ pub struct ExtensionInfo {
     pub options_url: Option<String>,
     /// Pinned in Chromium's own UI ("Pin to toolbar" on its extensions page).
     pub chromium_pinned: bool,
+    /// "Allow in Incognito" is on for it on Chromium's extensions page.
+    #[serde(skip)]
+    pub incognito: bool,
 }
 
 /// Chromium's preference with the ids pinned in its own UI.
@@ -160,6 +163,7 @@ fn extension(profile_dir: &Path, id: &str, entry: &Value) -> Option<ExtensionInf
         options_url: options
             .map(|p| format!("chrome-extension://{id}/{}", p.trim_start_matches('/'))),
         chromium_pinned: false,
+        incognito: entry.get("incognito").and_then(Value::as_bool) == Some(true),
     })
 }
 
@@ -250,10 +254,20 @@ pub(crate) struct ExtensionCache {
 }
 
 impl Engine {
-    /// Installed extensions of `profile`'s context (none for in-memory ones).
+    /// Installed extensions of `profile`'s context. An in-memory context
+    /// has none of its own: Chromium makes it an off-the-record child of
+    /// the default profile, and runs in it those of the default profile's
+    /// extensions that have "Allow in Incognito" on. They are listed
+    /// without their options page, which only opens in the profile an
+    /// extension is installed in.
     pub fn extensions(&self, profile: Option<&ContextProfile>) -> Vec<ExtensionInfo> {
         if profile.is_some_and(|p| p.ephemeral) {
-            return Vec::new();
+            let mut list = self.extensions(None);
+            list.retain(|e| e.incognito);
+            for e in &mut list {
+                e.options_url = None;
+            }
+            return list;
         }
         let dir = match profile.filter(|p| !p.id.is_empty()) {
             Some(p) => self.config.profile_dir(&p.id),

@@ -25,7 +25,8 @@ From top to bottom:
    archive (`bookmarks.md`, `history.md`, `archive.md`; its menu also opens
    Settings), one icon
    per space, and
-   "+" (New Space, New Folder, New Smart Folder, New Split, New Tab).
+   "+" (New Space, Private Space, New Folder, New Smart Folder, New Split,
+   New Tab).
 
 If the sidebar's page crashes, Magnetite loads it again and it shows the
 current state; the same holds for the command bar and the notification

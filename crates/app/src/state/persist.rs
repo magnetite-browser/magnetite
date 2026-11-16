@@ -1,7 +1,7 @@
 //! Loading the state at start and saving it: `state.json` in the data
 //! directory, and what a first start begins with.
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, OnceLock, PoisonError};
@@ -204,6 +204,8 @@ impl AppState {
             smart_status: HashMap::new(),
             downloads: crate::downloads::Downloads::restore(downloads),
             deleted_profiles,
+            private_space: None,
+            private_profiles: BTreeSet::new(),
             unsynced_spaces,
             first_start,
             recent_tabs: Vec::new(),
@@ -298,15 +300,20 @@ impl AppState {
     }
 
     /// What `state.json` holds for the state as it is now.
-    fn saved_form(&self) -> Persisted {
+    pub(super) fn saved_form(&self) -> Persisted {
+        let sidebar = self.lasting_sidebar();
+        // Only of the tabs that are saved: a private tab's icon would tell
+        // which site it had open.
+        let saved: HashSet<&Id> = sidebar.all_tabs().map(|t| &t.id).collect();
         let favicons = self
             .runtime
             .iter()
+            .filter(|(id, _)| saved.contains(id))
             .filter_map(|(id, r)| r.favicon.clone().map(|f| (id.clone(), f)))
             .collect();
         Persisted {
-            sidebar: self.lasting_sidebar(),
-            active_space: self.active_space.clone(),
+            sidebar,
+            active_space: self.lasting_space(&self.active_space),
             active_tab: self.active_tab.clone(),
             archive: self.archive.clone(),
             favicons,

@@ -18,6 +18,7 @@ type Action = { id: string; title: string; keywords: string[]; cmd: Command };
 
 const ACTIONS: Action[] = [
   { id: "new_space", title: "New space", keywords: ["space"], cmd: { cmd: "new_space", title: "" } },
+  { id: "private_space", title: "Open private space", keywords: ["private", "incognito", "anonymous", "space"], cmd: { cmd: "open_private_space" } },
   { id: "new_folder", title: "New folder", keywords: ["folder"], cmd: { cmd: "new_folder", title: "" } },
   { id: "archive_today", title: "Archive all Today tabs", keywords: ["clear", "archive"], cmd: { cmd: "archive_today" } },
   { id: "reopen", title: "Reopen last archived tab", keywords: ["restore", "closed"], cmd: { cmd: "reopen_closed" } },
@@ -56,10 +57,16 @@ function tabActions(state: UiState): Action[] {
   for (const sp of spaces) {
     if (sp.id !== state.active_space) actions.push({ id: `switch_${sp.id}`, title: `Switch to ${sp.title}`, keywords: ["space", "switch", "go"], cmd: { cmd: "switch_space", id: sp.id } });
   }
+  if (state.private_space) actions.push({ id: "close_private_space", title: "Close private space", keywords: ["private", "incognito", "close", "space"], cmd: { cmd: "close_private_space" } });
   const id = state.active_tab;
   const tab = id ? findTab(state, id) : null;
   if (!id || !tab) return actions;
   const owner = spaces.find((sp) => findTabInSpace(sp, id));
+  // A tab of the private space stays what and where it is.
+  if (owner && owner.id === state.private_space) {
+    actions.push({ id: "duplicate", title: "Duplicate tab", keywords: ["duplicate", "copy", "clone"], cmd: { cmd: "new_tab", url: tab.url } });
+    return actions;
+  }
   const favorite = !owner;
   const today = owner?.today.some((t) => t.id === id) ?? false;
   if (owner && today) actions.push({ id: "pin", title: "Pin tab", keywords: ["pin"], cmd: { cmd: "pin", id } });
@@ -70,7 +77,7 @@ function tabActions(state: UiState): Action[] {
   if (today) actions.push({ id: "keep_active", title: tab.keep_active ? "Stop keeping tab active" : "Keep tab active", keywords: ["keep", "active", "awake"], cmd: { cmd: "set_keep_active", id, keep: !tab.keep_active } });
   if (owner) {
     for (const sp of spaces) {
-      if (sp.id !== owner.id) actions.push({ id: `move_${sp.id}`, title: `Move tab to ${sp.title}`, keywords: ["move", "space"], cmd: { cmd: "move_tab", id, space: sp.id, section: "today", index: 0 } });
+      if (sp.id !== owner.id && sp.id !== state.private_space) actions.push({ id: `move_${sp.id}`, title: `Move tab to ${sp.title}`, keywords: ["move", "space"], cmd: { cmd: "move_tab", id, space: sp.id, section: "today", index: 0 } });
     }
   }
   // A favorite's copy keeps its profile; a tab's opens as a new Today tab of this space.

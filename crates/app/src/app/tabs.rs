@@ -56,6 +56,16 @@ pub(super) fn move_tab(s: &mut AppState, id: &str, to: &Destination) {
         Section::Pinned | Section::Today if s.space(space_id).is_none() => return,
         Section::Pinned | Section::Today => None,
     };
+    // Nothing moves into the private space or out of it, and inside it
+    // there are only Today tabs: a tab kept elsewhere would outlive it.
+    let from = s
+        .find_tab(id)
+        .and_then(|(sp, _)| sp.map(|sp| sp.id.clone()));
+    let private = |space: Option<&str>| space.is_some_and(|sp| s.is_private_space(sp));
+    let to_private = section != Section::Favorites && private(Some(space_id));
+    if private(from.as_deref()) != to_private || (to_private && section != Section::Today) {
+        return;
+    }
     let Some((mut tab, _)) = s.take_tab(id) else {
         return;
     };
@@ -397,6 +407,21 @@ impl MagnetiteApp {
         }
     }
 
+    /// Open the private space, or go to it if it is open.
+    pub(super) fn open_private_space(&self, engine: &Engine) {
+        let id = self.with_state(AppState::open_private_space);
+        self.activate_space(engine, &id);
+    }
+
+    /// Close the private space with everything opened from it.
+    pub(super) fn close_private_space(&self, engine: &Engine) {
+        for c in self.with_state(AppState::close_private_space) {
+            engine.close_content(c);
+        }
+        let space = self.with_state(|s| s.active_space.clone());
+        self.activate_space(engine, &space);
+    }
+
     /// Open `url` (typed, or from Magnetite's UI) as a new Today tab (see
     /// `open_url_from`).
     pub(super) fn open_url(&self, engine: &Engine, url: &str, background: bool) -> Option<String> {
@@ -484,7 +509,12 @@ impl MagnetiteApp {
                 .filter(|p| *p != space_profile);
             if let Some(t) = s.find_tab_mut(&id) {
                 t.unread = background;
-                t.profile_id = profile;
+                // Opened from a page of another profile: it stays there. A
+                // tab of the private space otherwise keeps the profile it
+                // was made with (`new_today_tab`).
+                if profile.is_some() {
+                    t.profile_id = profile;
+                }
             }
             id
         });
@@ -607,6 +637,8 @@ impl MagnetiteApp {
     pub(super) fn set_pinned(&self, engine: &Engine, id: &str, pinned: bool) {
         self.with_state(|s| {
             let space = s.find_tab(id).and_then(|(sp, _)| sp.map(|x| x.id.clone()));
+            // The private space has only Today tabs.
+            let space = space.filter(|sid| !s.is_private_space(sid));
             if let Some(sp) = space.and_then(|sid| s.space_mut(&sid)) {
                 if pinned {
                     sp.pin(id);

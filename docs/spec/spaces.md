@@ -99,6 +99,37 @@ its logins. Deleting counts for this device: with sync on, the other
 devices keep the profile and its logins until it is deleted there, and it
 does not come back here (`sync.md`).
 
+## Private space
+
+A space for browsing that leaves nothing behind. There is at most one, and
+it is the last of the spaces while it is open.
+
+- **Open**: "+" → Private Space, `Cmd+Shift+P`, File → Private Space, or
+  "Open private space" in the command bar. If it is open already, these go
+  to it.
+- **Look**: a mask as its icon, in the footer and beside its name
+  "Private". In place of the "…" button its title has a close button, and
+  "New Tab" reads "New Private Tab". It has only Today tabs: no pinned tabs,
+  folders or bookmarks, and the favorites do not show there.
+- **A profile per tab**: every tab opened in it runs in an in-memory profile
+  of its own, so no tab sees the cookies, logins or storage of another, nor
+  those of any other space. A page opened from a private tab (a link in a
+  new tab, a sign-in window, a peek, a mini window) stays in that tab's
+  profile.
+- **Nothing is kept**: the space, its tabs and its profiles are not saved
+  and not synced. Its pages leave no history, its closed tabs do not go to
+  the archive, and a tab's profile is dropped with its data once the tab
+  and everything opened from it are closed.
+- **Tabs stay put**: a tab cannot be moved into the private space or out of
+  it, pinned, or added to the favorites or bookmarks.
+- **Extensions**: only those with "Allow in Incognito" switched on
+  (`extensions.md`).
+- **Close**: the close button on its title, its menu in the footer, or
+  "Close private space" in the command bar. Its tabs close, with the peeks
+  and mini windows opened from them, and the space before it takes over.
+  Quitting Magnetite closes it too: the next start goes on in the space
+  before it.
+
 A space can be kept on one device (Settings → Sync, "Only on this
 device"). A separate profile that only such spaces use stays there with
 them and is marked "only on this device" in the list (`sync.md`, "Only on
@@ -151,7 +182,7 @@ another space for its site.
 - Gradient themes and a light appearance.
 
 Code: `crates/core/src/model.rs`, `crates/app/src/app/commands.rs`,
-`crates/app/src/state/profiles.rs`,
+`crates/app/src/state/profiles.rs`, `crates/app/src/state/private.rs`,
 `crates/app/src/state/tabs.rs` (`move_space`),
 `crates/ui/web/src/{App,SpaceSwitcher,IsolationSection,Glyphs}.tsx`,
 `crates/ui/web/src/useSpaceSwipe.ts`,

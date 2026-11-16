@@ -387,7 +387,13 @@ impl AppState {
     /// a synced space uses too is needed on the other devices, and the
     /// default profile is on every device.
     pub fn unsynced_profiles(&self) -> BTreeSet<String> {
-        let kept = |sp: &&magnetite_core::Space| self.unsynced_spaces.contains(&sp.id);
+        self.profiles_only_of(&self.unsynced_spaces)
+    }
+
+    /// The profiles that only the spaces `spaces` use, the default profile
+    /// left out.
+    fn profiles_only_of(&self, spaces: &BTreeSet<String>) -> BTreeSet<String> {
+        let kept = |sp: &&magnetite_core::Space| spaces.contains(&sp.id);
         let default = self.default_profile_id();
         let synced: HashSet<&str> = (self.sidebar.spaces.iter())
             .filter(|sp| !kept(sp))
@@ -442,11 +448,13 @@ impl AppState {
     ///
     /// Spaces and profiles keep their places in the lists.
     fn keep_unsynced(&self, remote: &mut SidebarSnapshot) {
-        let kept = &self.unsynced_spaces;
+        // The private space is never sent either, and stays the same way.
+        let mut kept = self.unsynced_spaces.clone();
+        kept.extend(self.private_space.clone());
         if kept.is_empty() {
             return;
         }
-        let here = self.unsynced_profiles();
+        let here = self.profiles_only_of(&kept);
         remote.spaces.retain(|sp| !kept.contains(&sp.id));
         remote.profiles.retain(|p| !here.contains(&p.id));
         remote.favorites.retain(|f| !here.contains(&f.profile_id));
@@ -479,9 +487,12 @@ impl AppState {
 
     /// The sidebar as saved: Today tabs of private profiles stay in memory,
     /// like their pages (pinned tabs and favorites, which the user keeps on
-    /// purpose, stay).
+    /// purpose, stay). Nothing of the private space is in it: not the
+    /// space, not its profiles.
     pub fn lasting_sidebar(&self) -> SidebarSnapshot {
         let mut snap = self.sidebar.clone();
+        (snap.spaces).retain(|sp| Some(&sp.id) != self.private_space.as_ref());
+        (snap.profiles).retain(|p| !self.private_profiles.contains(&p.id));
         // Private pinned tabs and favorites keep their home address, not
         // where they went: the page's later addresses and titles are
         // browsing in a private profile.
