@@ -1405,7 +1405,7 @@ impl MagnetiteApp {
             }
             UiCommand::SetShortcut { action, keys } => {
                 if let Err(error) = self.set_shortcut(engine, action, keys.as_deref()) {
-                    return Ok(json!({ "error": error }));
+                    return Ok(json!({ "error": error.to_string() }));
                 }
             }
             UiCommand::ResetShortcut { action } => self.reset_shortcut(engine, action),

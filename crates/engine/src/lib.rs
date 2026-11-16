@@ -76,7 +76,7 @@ pub use events::{
     ExtensionMenuAction, MemoryPressure, Shortcut, UrlSource,
 };
 pub use extensions::ExtensionInfo;
-pub use keymap::{Action, Combo, Overrides};
+pub use keymap::{Action, Combo, KeysError, Overrides};
 pub use media::{MediaAction, MediaState};
 pub use prompts::{PermissionPrompt, PromptAnswer, PromptKind};
 pub use router::ReplyTicket;

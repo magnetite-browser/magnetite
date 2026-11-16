@@ -829,11 +829,11 @@ mod tests {
         let sent = |s: &Settings| serde_json::to_string(&super::SyncedSettings::from(s)).unwrap();
         // As a version from before changeable shortcuts writes them.
         assert!(!sent(&settings).contains("shortcuts"));
-        let keys = "primary+J".parse().unwrap();
+        let keys = "primary+K".parse().unwrap();
         (settings.shortcuts)
             .set(magnetite_engine::Action::NewTab, Some(keys))
             .unwrap();
-        assert!(sent(&settings).contains(r#""shortcuts":{"new_tab":"primary+J"}"#));
+        assert!(sent(&settings).contains(r#""shortcuts":{"new_tab":"primary+K"}"#));
         // Such a version's settings put every shortcut back on its default keys.
         let older: super::SyncedSettings =
             serde_json::from_str(&sent(&Settings::default())).unwrap();

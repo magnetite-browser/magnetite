@@ -132,10 +132,10 @@ impl Action {
         )
     }
 
-    /// The keys the action has until the user changes them, as saved text
-    /// (`Combo`'s format). The keys Chromium has for the same command where
-    /// the two differ by system.
-    fn default_keys(self) -> Option<&'static str> {
+    /// The keys the action has until the user changes them, on macOS (`mac`)
+    /// or elsewhere, as saved text (`Combo`'s format). The keys Chromium has
+    /// for the same command where the two differ by system.
+    fn default_keys(self, mac: bool) -> Option<&'static str> {
         Some(match self {
             Self::NewTab => "primary+T",
             Self::FocusAddress => "primary+L",
@@ -158,20 +158,26 @@ impl Action {
             Self::FindNext => "primary+G",
             Self::FindPrevious => "primary+shift+G",
             Self::Print => "primary+P",
-            Self::History if MAC => "primary+Y",
+            Self::History if mac => "primary+Y",
             Self::History => "primary+H",
-            Self::Downloads if MAC => "primary+alt+L",
+            Self::Downloads if mac => "primary+alt+L",
             Self::Downloads => "primary+J",
-            Self::Settings if MAC => "primary+,",
+            Self::Settings if mac => "primary+,",
             Self::Settings => return None,
-            Self::ToggleDevTools if MAC => "primary+alt+I",
+            Self::ToggleDevTools if mac => "primary+alt+I",
             Self::ToggleDevTools => "primary+shift+I",
         })
     }
 
     /// The default keys, as they count on this system.
     pub fn default_combo(self) -> Option<Combo> {
-        let combo: Combo = self.default_keys()?.parse().ok()?;
+        self.default_on(MAC)
+    }
+
+    /// The default keys of macOS (`mac`) or of the other systems, read as
+    /// this system reads keys.
+    fn default_on(self, mac: bool) -> Option<Combo> {
+        let combo: Combo = self.default_keys(mac)?.parse().ok()?;
         Some(combo.here())
     }
 }
@@ -308,11 +314,25 @@ impl From<Combo> for String {
     }
 }
 
-impl FromStr for Combo {
-    type Err = String;
+/// Why keys cannot be a shortcut. Settings shows the text.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum KeysError {
+    /// Not in `Combo`'s format, or a key without a name here.
+    #[error("not a key combination: {0}")]
+    NotKeys(String),
+    /// No Cmd, Ctrl or Alt: it would be typing.
+    #[error("A shortcut needs {}, or is a function key.", if MAC { "⌘, ⌃ or ⌥" } else { "Ctrl or Alt" })]
+    NeedsModifier,
+    /// The keys have a fixed meaning; whose, in a few words.
+    #[error("These keys are fixed: {0}.")]
+    Fixed(&'static str),
+}
 
-    fn from_str(text: &str) -> Result<Self, String> {
-        let bad = || format!("not a key combination: {text}");
+impl FromStr for Combo {
+    type Err = KeysError;
+
+    fn from_str(text: &str) -> Result<Self, KeysError> {
+        let bad = || KeysError::NotKeys(text.to_string());
         // The key comes last and is never "+" (that key is named "=").
         let (mods, key) = text.rsplit_once('+').unwrap_or(("", text));
         let mut combo = Self {
@@ -337,9 +357,9 @@ impl FromStr for Combo {
 }
 
 impl TryFrom<String> for Combo {
-    type Error = String;
+    type Error = KeysError;
 
-    fn try_from(text: String) -> Result<Self, String> {
+    fn try_from(text: String) -> Result<Self, KeysError> {
         text.parse()
     }
 }
@@ -406,19 +426,14 @@ fn taken() -> impl Iterator<Item = (Combo, &'static str)> {
 
 /// Why `combo` cannot be a shortcut, if it cannot: it would be typing
 /// (no Cmd, Ctrl or Alt), or its keys have a fixed meaning.
-pub fn refusal(combo: Combo) -> Option<String> {
+pub fn refusal(combo: Combo) -> Option<KeysError> {
     let combo = combo.here();
     if !(combo.primary || combo.ctrl || combo.alt || combo.is_function_key()) {
-        let needs = if MAC {
-            "⌘, ⌃ or ⌥"
-        } else {
-            "Ctrl or Alt"
-        };
-        return Some(format!("A shortcut needs {needs}, or is a function key."));
+        return Some(KeysError::NeedsModifier);
     }
     taken()
         .find(|(taken, _)| *taken == combo)
-        .map(|(_, by)| format!("These keys are fixed: {by}."))
+        .map(|(_, by)| KeysError::Fixed(by))
 }
 
 /// What the user changed: an action's own keys, or `None` for no keys.
@@ -460,35 +475,51 @@ impl Overrides {
     /// Give `action` the keys `combo` (`None`: no keys). An action that had
     /// these keys loses them. Refused for keys with a fixed meaning
     /// (`refusal`).
-    pub fn set(&mut self, action: Action, combo: Option<Combo>) -> Result<(), String> {
+    pub fn set(&mut self, action: Action, combo: Option<Combo>) -> Result<(), KeysError> {
         if let Some(combo) = combo {
             if let Some(why) = refusal(combo) {
                 return Err(why);
             }
-            while let Some(other) = self.action_for(combo).filter(|o| *o != action) {
-                self.0.insert(other, None);
-            }
+            self.take_from_others(action, combo);
         }
-        self.0.insert(action, combo);
-        *self = std::mem::take(self).sanitised();
+        if combo.map(Combo::here) == action.default_combo() {
+            // The default keys of this system: nothing to save.
+            self.0.remove(&action);
+        } else {
+            self.0.insert(action, combo);
+        }
         Ok(())
     }
 
     /// Give `action` its default keys back; an action that has taken them
-    /// since loses them.
+    /// since loses them. Nothing stays saved for `action`, so on every
+    /// system it has that system's default keys again.
     pub fn reset(&mut self, action: Action) {
-        // Its default keys are never refused.
-        let _ = self.set(action, action.default_combo());
+        if let Some(keys) = action.default_combo() {
+            self.take_from_others(action, keys);
+        }
+        self.0.remove(&action);
     }
 
-    /// Without what says nothing (an action on its default keys) and
-    /// without keys a shortcut cannot have, which may come from another
-    /// device or system: such an action keeps its default keys.
+    /// Every other action that has `combo` gets no keys.
+    fn take_from_others(&mut self, action: Action, combo: Combo) {
+        while let Some(other) = self.action_for(combo).filter(|o| *o != action) {
+            self.0.insert(other, None);
+        }
+    }
+
+    /// Without keys a shortcut cannot have, which may come from another
+    /// device or system (such an action keeps its default keys), and
+    /// without what says nothing on any system: an action on keys that are
+    /// its default both on macOS and elsewhere. What differs from the
+    /// default of one system stays, so "no keys for Settings", chosen on a
+    /// Mac, survives a device where Settings has none anyway.
     #[must_use]
     pub fn sanitised(mut self) -> Self {
         self.0.retain(|action, own| {
             let fine = own.is_none_or(|combo| refusal(combo).is_none());
-            fine && own.map(Combo::here) != action.default_combo()
+            let own = own.map(Combo::here);
+            fine && !(own == action.default_on(true) && own == action.default_on(false))
         });
         self
     }
@@ -538,6 +569,14 @@ mod tests {
             assert_eq!(Action::of(action.shortcut()), Some(action));
             if let Some(keys) = action.default_combo() {
                 assert_eq!(refusal(keys), None, "{action:?}");
+                // The other systems' defaults must be usable there too.
+                for mac in [true, false] {
+                    assert!(
+                        action
+                            .default_keys(mac)
+                            .is_none_or(|k| k.parse::<Combo>().is_ok())
+                    );
+                }
                 assert!(!seen.contains(&keys), "{action:?} shares its default keys");
                 seen.push(keys);
             }
@@ -551,12 +590,12 @@ mod tests {
     #[test]
     fn new_keys_replace_the_default_and_are_all_that_is_saved() {
         let mut keys = Overrides::default();
-        keys.set(Action::NewTab, Some(combo("primary+J"))).unwrap();
-        assert_eq!(keys.action_for(combo("primary+J")), Some(Action::NewTab));
+        keys.set(Action::NewTab, Some(combo("primary+K"))).unwrap();
+        assert_eq!(keys.action_for(combo("primary+K")), Some(Action::NewTab));
         assert_eq!(keys.action_for(combo("primary+T")), None);
         assert_eq!(
             serde_json::to_string(&keys).unwrap(),
-            r#"{"new_tab":"primary+J"}"#
+            r#"{"new_tab":"primary+K"}"#
         );
         keys.set(Action::Print, None).unwrap();
         assert_eq!(keys.combo_of(Action::Print), None);
@@ -592,13 +631,33 @@ mod tests {
     #[test]
     fn what_another_version_or_device_sent_is_read_as_far_as_known() {
         let keys: Overrides = serde_json::from_str(
-            r#"{"new_tab":"primary+J","teleport":"primary+K","print":"hyper+P","find":null,
+            r#"{"new_tab":"primary+K","teleport":"primary+U","print":"hyper+P","find":null,
                 "history":"primary+C","close_tab":"primary+W"}"#,
         )
         .unwrap();
         assert_eq!(
             serde_json::to_string(&keys).unwrap(),
-            r#"{"new_tab":"primary+J","find":null}"#
+            r#"{"new_tab":"primary+K","find":null}"#
+        );
+    }
+
+    #[test]
+    fn no_keys_for_an_action_survives_a_system_where_it_has_none_anyway() {
+        // Settings has keys on macOS only. "None", chosen on a Mac, must not
+        // be dropped by a Linux device, or the Mac would get its keys back.
+        let keys: Overrides = serde_json::from_str(r#"{"settings":null}"#).unwrap();
+        assert_eq!(
+            serde_json::to_string(&keys).unwrap(),
+            r#"{"settings":null}"#
+        );
+        assert_eq!(keys.combo_of(Action::Settings), None);
+        // Reset saves nothing: each system has its own default again.
+        let mut keys = keys;
+        keys.reset(Action::Settings);
+        assert!(keys.is_empty());
+        assert_eq!(
+            keys.combo_of(Action::Settings),
+            Action::Settings.default_combo()
         );
     }
 

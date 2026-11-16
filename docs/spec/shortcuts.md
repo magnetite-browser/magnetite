@@ -45,7 +45,8 @@ the key, whatever keys they have. The others ("Show or hide the sidebar",
 to the page first, which may use the key itself (`site-controls.md`). This
 belongs to the shortcut, not to its keys.
 
-With the sidebar or the top bar in focus, a shortcut runs as in a page.
+With the sidebar (docked or floating) or the top bar in focus, a shortcut
+runs as in a page.
 
 ## Sync and other systems
 
@@ -57,6 +58,9 @@ With the sidebar or the top bar in focus, a shortcut runs as in a page.
   listed first gets them.
 - Keys that are fixed on the system they arrive on are not taken there;
   that shortcut keeps its default keys on that device.
+- The defaults differ a little by system (History is `Cmd+Y` on macOS and
+  `Ctrl+H` elsewhere). A shortcut that was reset has each system's own
+  default again; one that was given no keys has none on every system.
 - A device with a version from before changeable shortcuts writes the
   settings without them: the others then go back to the default keys.
 

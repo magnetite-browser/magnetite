@@ -1,7 +1,7 @@
 //! Keys and menu bar items, and the command palette they open.
 
 use magnetite_core::split::Side;
-use magnetite_engine::{Action, Combo, ContentId, Engine, Overrides, Shortcut};
+use magnetite_engine::{Action, Combo, ContentId, Engine, KeysError, Overrides, Shortcut};
 use serde_json::json;
 
 use super::addresses::urlencode;
@@ -22,7 +22,7 @@ impl MagnetiteApp {
         engine: &Engine,
         action: Action,
         keys: Option<&str>,
-    ) -> Result<(), String> {
+    ) -> Result<(), KeysError> {
         let combo: Option<Combo> = keys.map(str::parse).transpose()?;
         self.with_state(|s| s.settings.shortcuts.set(action, combo))?;
         self.apply_shortcut_keys(engine);

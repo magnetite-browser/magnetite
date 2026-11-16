@@ -20,6 +20,7 @@ magnetite-core.workspace = true
 cef = { git = "https://github.com/magnetite-browser/cef-rs", rev = "d02cf0401baf79e6a24b6d175e024983d59c7f0e", default-features = false }
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
 base64.workspace = true
 libc = "0.2"
 psl = "2"

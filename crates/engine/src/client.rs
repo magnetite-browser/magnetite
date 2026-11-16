@@ -601,7 +601,13 @@ wrap_keyboard_handler! {
             // The sidebar's and the top bar's shortcuts run here, not in their pages: the keys are
             // the user's (`keymap.rs`), and a hidden sidebar can still hold
             // focus while Chromium drops input to hidden pages.
-            if matches!(self.kind, Kind::Sidebar | Kind::TopBar) {
+            // The floating sidebar is an overlay window; the other overlays
+            // (the command bar, the capture tool) keep their keys.
+            let floating = self.kind == Kind::Overlay
+                && engine.float_sidebar_browser().is_some_and(|float| {
+                    browser.as_deref().is_some_and(|b| b.identifier() == float.identifier())
+                });
+            if matches!(self.kind, Kind::Sidebar | Kind::TopBar) || floating {
                 let Some(shortcut) = event.and_then(|e| keys::shortcut_for_key(e).or_else(|| keys::yieldable_shortcut(e))) else { return 0 };
                 engine.emit(EngineEvent::Shortcut { from: None, shortcut });
                 return 1;

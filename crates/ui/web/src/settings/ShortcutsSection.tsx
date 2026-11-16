@@ -1,9 +1,12 @@
 // Settings → Shortcuts: every shortcut whose keys can be changed, with the
 // keys it has. "Change" waits for the next key press and saves it.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { send } from "../bridge";
 import { keysLabel, pressedKeys, SHORTCUT_GROUPS, SHORTCUT_LABEL, type ShortcutAction } from "./shortcutKeys";
 import type { Info } from "./types";
+
+/** How long "Change" waits for keys. */
+const WAIT_MS = 20_000;
 
 /** The shortcut being given new keys: waiting for them, or holding keys another shortcut has. */
 type Recording = { action: ShortcutAction; taken?: { keys: string; by: ShortcutAction } };
@@ -13,6 +16,9 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
   // Why the last keys were refused, shown in that shortcut's row.
   const [problem, setProblem] = useState<{ action: ShortcutAction; text: string } | null>(null);
   const current = (action: ShortcutAction) => info.shortcuts.find((s) => s.action === action);
+  // The list as it is now, for the key handler of a wait that began earlier.
+  const shortcuts = useRef(info.shortcuts);
+  shortcuts.current = info.shortcuts;
 
   const save = async (action: ShortcutAction, keys: string | null) => {
     setRecording(null);
@@ -37,19 +43,22 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
       if (e.key === "Escape" && !(e.metaKey || e.ctrlKey || e.altKey || e.shiftKey)) return setRecording(null);
       const keys = pressedKeys(e);
       if (!keys) return;
-      const by = info.shortcuts.find((s) => s.keys === keys && s.action !== waiting)?.action;
+      const by = shortcuts.current.find((s) => s.keys === keys && s.action !== waiting)?.action;
       if (by) setRecording({ action: waiting, taken: { keys, by } });
       else void save(waiting, keys);
     };
     const leave = () => setRecording(null);
+    // The app runs shortcuts again after this long (`RECORDING` in keys.rs).
+    const timeout = window.setTimeout(leave, WAIT_MS);
     window.addEventListener("keydown", onKey, true);
     window.addEventListener("blur", leave);
     return () => {
+      window.clearTimeout(timeout);
       window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("blur", leave);
       void send({ cmd: "record_shortcut", on: false });
     };
-    // `save` and the list are those of the render that started the wait.
+    // `save` is that of the render that started the wait.
   }, [waiting]);
 
   const changed = info.shortcuts.some((s) => s.keys !== s.default);
