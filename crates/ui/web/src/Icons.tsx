@@ -73,6 +73,7 @@ export const GlobeIcon = icon(L.Globe);
 export const NotesIcon = icon(L.ScrollText);
 export const BugIcon = icon(L.Bug);
 export const CodeIcon = icon(L.SquareCode);
+export const BracesIcon = icon(L.Braces);
 export const CaptureIcon = icon(L.Focus);
 export const TabPlus = icon(L.SquarePlus);
 export const SmartFolderIcon = icon(L.FolderSync);

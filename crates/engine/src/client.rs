@@ -368,6 +368,12 @@ wrap_load_handler! {
             if self.kind == Kind::DevTools && frame.is_main() != 0 {
                 Engine::global().devtools_loaded(browser);
             }
+            // The user's own CSS and JavaScript for the site.
+            if self.kind == Kind::Content && frame.is_main() != 0 {
+                let engine = Engine::global();
+                engine.put_site_style(frame);
+                engine.run_site_script(frame);
+            }
         }
         fn on_load_start(&self, browser: Option<&mut Browser>, frame: Option<&mut Frame>, _transition_type: TransitionType) {
             let engine = Engine::global();
@@ -387,6 +393,8 @@ wrap_load_handler! {
                 if f.is_main() != 0 {
                     engine.emit_site_state(id);
                     engine.on_media_report(browser.as_deref(), "null");
+                    // Before the page shows anything: the user's own CSS.
+                    engine.put_site_style(f);
                 }
             }
         }

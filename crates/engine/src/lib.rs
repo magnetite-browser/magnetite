@@ -56,6 +56,7 @@ mod router;
 mod scheme;
 mod scriptlets;
 mod site;
+mod sitecode;
 mod sitedata;
 mod splitui;
 mod stray;
@@ -79,6 +80,7 @@ pub use media::{MediaAction, MediaState};
 pub use prompts::{PermissionPrompt, PromptAnswer, PromptKind};
 pub use router::ReplyTicket;
 pub use site::{SiteState, ZOOM_STEPS, zoom_step};
+pub use sitecode::SiteCode;
 pub use sitedata::{
     ClearReport, PermissionKind, PermissionRow, PermissionValue, in_domain, registrable_domain,
 };

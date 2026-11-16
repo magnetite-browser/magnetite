@@ -1,6 +1,6 @@
 // Full-page settings, opened as its own tab (magnetite://ui/settings).
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AdblockIcon, Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon } from "./Icons";
+import { AdblockIcon, Archive, BracesIcon, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon } from "./Icons";
 import { IsolationSection } from "./IsolationSection";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
@@ -11,6 +11,7 @@ import { AutofillSection } from "./settings/AutofillSection";
 import { AppearanceSection } from "./settings/AppearanceSection";
 import { Field, Switch, Toggle } from "./settings/fields";
 import { ImportBookmarksFile, ImportBrowsers } from "./settings/ImportBrowsers";
+import { SiteCodeSection } from "./settings/SiteCodeSection";
 import { SmartFoldersSection } from "./settings/SmartFoldersSection";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
 import type { Info, SettingsPatch } from "./settings/types";
@@ -29,6 +30,7 @@ const GROUPS: { label: string; sections: Section[] }[] = [
       { id: "tabs", label: "Tabs & archive", Icon: Archive, title: "Tabs & archive", intro: "Closing a tab never deletes it. Today tabs you stop using move to the archive on their own. The history of visited pages stays on this computer." },
       { id: "search", label: "Search", Icon: Search, title: "Search", intro: "Used when what you type in the command bar is not a web address. A keyword and a space search one site instead." },
       { id: "adblock", label: "Ad blocking", Icon: AdblockIcon, title: "Ad blocking", intro: "Magnetite can stop ads and trackers before they load, with filter lists you choose. Off until you turn it on." },
+      { id: "code", label: "Custom CSS & JS", Icon: BracesIcon, title: "Custom CSS & JS", intro: "Change how a site looks or behaves with CSS and JavaScript of your own: hide a part of a page, change its fonts or colours, or run a small script on it." },
       { id: "autofill", label: "Passwords & autofill", Icon: KeyIcon, title: "Passwords & autofill", intro: "Magnetite can keep your passwords, addresses and cards and fill them in for you. All of it stays on this computer." },
     ],
   },
@@ -53,9 +55,18 @@ const GROUPS: { label: string; sections: Section[] }[] = [
 const SECTIONS = GROUPS.flatMap((g) => g.sections);
 
 
+/** The section the page's address names (General without one), and what in it to show. */
+function fromHash(): { id: string; item?: string } {
+  const [id, item] = location.hash.slice(1).split("=");
+  return { id: SECTIONS.find((s) => s.id === id)?.id ?? "general", item: item && decodeURIComponent(item) };
+}
+
 export function SettingsPage() {
   const [info, setInfo] = useState<Info | null>(null);
-  const [sectionId, setSectionId] = useState(() => SECTIONS.find((s) => s.id === location.hash.slice(1))?.id ?? "general");
+  // The address names the section, and after "=" what in it to show: `#code=example.org`.
+  const [place, setPlace] = useState(fromHash);
+  const sectionId = place.id;
+  const setSectionId = (id: string) => setPlace({ id });
   // Changes made on this page. What the app answered to a question from
   // before the last one is older than what the page shows: asked again.
   const edits = useRef(0);
@@ -69,10 +80,7 @@ export function SettingsPage() {
   }, []);
   // The app sends an open Settings tab to another section by its address.
   useEffect(() => {
-    const follow = () => {
-      const wanted = SECTIONS.find((s) => s.id === location.hash.slice(1));
-      if (wanted) setSectionId(wanted.id);
-    };
+    const follow = () => setPlace((now) => (SECTIONS.some((s) => `#${s.id}` === location.hash.split("=")[0]) ? fromHash() : now));
     window.addEventListener("hashchange", follow);
     return () => window.removeEventListener("hashchange", follow);
   }, []);
@@ -271,6 +279,7 @@ export function SettingsPage() {
               )}
             </>
           )}
+          {sectionId === "code" && <SiteCodeSection key={place.item} saved={settings.site_code} open={place.item} save={(code) => update({ site_code: code })} />}
           {sectionId === "about" && <About info={info} update={update} />}
           </div>
         </div>

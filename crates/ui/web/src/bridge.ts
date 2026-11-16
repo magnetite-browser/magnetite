@@ -221,6 +221,14 @@ export function splitIds(n: SplitNode): Id[] {
   return n.kind === "pane" ? [n.id] : n.children.flatMap(splitIds);
 }
 
+/** CSS and JavaScript the user added to the pages of `site` (a host, standing for its subdomains too); `enabled` off keeps them unused. */
+export interface SiteCode {
+  site: string;
+  css: string;
+  js: string;
+  enabled: boolean;
+}
+
 export interface Settings {
   auto_archive_hours: number;
   /** Archived tabs are deleted after this many days. */
@@ -232,6 +240,8 @@ export interface Settings {
   /** Keywords that search one site from the command bar (`gh rust`). */
   site_searches: SiteSearch[];
   external_links: "tab" | "peek" | "mini";
+  /** The user's own CSS and JavaScript per site (Settings → Custom CSS & JS). */
+  site_code: SiteCode[];
   /** The system-wide quick search key (⌥⌘N) is on; this device's own choice. */
   quick_search: boolean;
   chrome_toolbar: boolean;

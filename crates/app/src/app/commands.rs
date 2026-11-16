@@ -1354,6 +1354,7 @@ impl MagnetiteApp {
             }
             UiCommand::SetSettings { settings: patch } => {
                 let before = self.with_state(|s| s.settings.adblock.clone());
+                let code_before = self.with_state(|s| s.settings.site_code.clone());
                 let settings = self.with_state(|s| {
                     let settings = s.settings.patched(patch)?;
                     s.settings = settings.clone();
@@ -1370,6 +1371,10 @@ impl MagnetiteApp {
                 Self::apply_devtools_dock(engine, settings.devtools_dock);
                 engine.set_autofill(settings.autofill);
                 engine.set_quick_search_key(settings.quick_search);
+                // Open pages get changed CSS at once.
+                if settings.site_code != code_before {
+                    engine.set_site_code(settings.site_code.clone());
+                }
                 // Lists are fetched and compiled only when they changed.
                 let after = &settings.adblock;
                 if (after.enabled, &after.lists) != (before.enabled, &before.lists) {

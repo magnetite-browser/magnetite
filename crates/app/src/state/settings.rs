@@ -42,6 +42,9 @@ pub struct Settings {
     /// Synced: a version that does not know a value takes "tab"
     /// (`sanitised`).
     pub external_links: String,
+    /// The user's own CSS and JavaScript per site (Settings → Custom CSS &
+    /// JS). This device's own, never synced.
+    pub site_code: Vec<magnetite_engine::SiteCode>,
     /// The system-wide quick search key (⌥⌘N) is registered. This
     /// device's own choice, never synced.
     pub quick_search: bool,
@@ -254,6 +257,23 @@ impl SiteSearch {
     }
 }
 
+/// The most sites with CSS and JavaScript of the user's own, and the most
+/// bytes of either for one site.
+const MAX_CODE_SITES: usize = 200;
+const MAX_SITE_CODE: usize = 256 * 1024;
+
+/// The host a site was named by, in lower case and without `www.`: what
+/// was typed may be a whole address. `None` if it names no host.
+fn site_host(typed: &str) -> Option<String> {
+    let rest = typed.trim();
+    let rest = rest.split_once("://").map_or(rest, |(_, rest)| rest);
+    let authority = rest.split(['/', '?', '#']).next()?;
+    let host = authority.rsplit('@').next()?.split(':').next()?;
+    let host = host.trim_start_matches("www.").to_ascii_lowercase();
+    let fine = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.';
+    (host.contains('.') && host.chars().all(fine)).then_some(host)
+}
+
 /// Sync configuration. Keys are kept out of `state.json` (see `sync.rs`).
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
@@ -274,7 +294,9 @@ impl Settings {
     /// or from another device: archiving after at least an hour, retention
     /// periods in range, appearance in range, search addresses on https with
     /// `%s` in them (site searches that are not, or repeat a keyword, are
-    /// dropped), a known choice for external links.
+    /// dropped), a known choice for external links, own CSS and JavaScript
+    /// only for sites named by their host (one entry per site, each part
+    /// at most `MAX_SITE_CODE` long).
     pub fn sanitised(mut self) -> Self {
         let defaults = Self::default();
         self.auto_archive_hours = self.auto_archive_hours.max(1);
@@ -298,6 +320,19 @@ impl Settings {
         if !matches!(self.external_links.as_str(), "tab" | "peek" | "mini") {
             self.external_links = defaults.external_links;
         }
+        let mut code: Vec<magnetite_engine::SiteCode> = Vec::new();
+        for mut entry in std::mem::take(&mut self.site_code) {
+            let small = entry.css.len() <= MAX_SITE_CODE && entry.js.len() <= MAX_SITE_CODE;
+            if let Some(site) = site_host(&entry.site)
+                && small
+                && !code.iter().any(|c| c.site == site)
+                && code.len() < MAX_CODE_SITES
+            {
+                entry.site = site;
+                code.push(entry);
+            }
+        }
+        self.site_code = code;
         self
     }
 }
@@ -359,6 +394,7 @@ impl Default for Settings {
             search_template: "https://duckduckgo.com/?q=%s".into(),
             site_searches: builtin_site_searches(),
             external_links: "tab".into(),
+            site_code: Vec::new(),
             quick_search: true,
             chrome_toolbar: false,
             appearance: Appearance::default(),
@@ -382,6 +418,27 @@ impl Default for Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn own_code_is_kept_per_host_and_within_limits() {
+        let code = |site: &str, css: &str| magnetite_engine::SiteCode {
+            site: site.into(),
+            css: css.into(),
+            js: String::new(),
+            enabled: true,
+        };
+        let kept = Settings {
+            site_code: vec![
+                code(" https://www.Example.org/some/page ", "a"),
+                code("example.org", "again"),
+                code("not a site", "x"),
+                code("example.net", &"x".repeat(MAX_SITE_CODE + 1)),
+            ],
+            ..Settings::default()
+        }
+        .sanitised();
+        assert_eq!(kept.site_code, [code("example.org", "a")]);
+    }
 
     #[test]
     fn autofill_switches_start_safe_and_change_one_at_a_time() {

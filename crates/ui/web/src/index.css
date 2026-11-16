@@ -510,6 +510,9 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 .shortcuts { display: grid; grid-template-columns: max-content 1fr; gap: 7px 16px; align-items: baseline; font-size: 13px; color: var(--secondary); }
 .shortcuts kbd { font-family: inherit; color: var(--fg); font-variant-numeric: tabular-nums; }
 
+/* Settings → Custom CSS & JS: a code field as wide as its card, growing downwards. */
+textarea.field.code { display: block; width: 100%; height: auto; min-height: 96px; padding: 8px 10px; resize: vertical; font-size: 12.5px; line-height: 1.5; white-space: pre; tab-size: 2; }
+
 /* Licence texts page. */
 .licence-text { white-space: pre-wrap; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--secondary); }
 
