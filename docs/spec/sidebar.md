@@ -120,10 +120,13 @@ the row turns the icon into a back arrow that takes the page back.
   tabs. The sidebar page keeps this on the device, not in `state.json`.
 - Double-click or the context menu renames a folder; "Change icon…" picks
   one of 27 glyphs or the default icon.
-- A tab dropped on a folder goes to its top. A dragged folder is placed
-  among the top-level items of Pinned.
-- Folders inside folders are shown (an import can bring them), but the
-  sidebar cannot nest a folder.
+- A tab dropped on a folder goes to its top.
+- Folders nest: a folder dropped on the middle of another goes to its top,
+  one dropped on the upper or lower edge of a row is placed there, at any
+  level, and one dropped below the pinned items goes to the end of the top
+  level. "New folder inside" in a folder's context menu makes one at its
+  top. A folder does not go into itself, into a smart folder or more than
+  32 folders deep.
 - "Delete folder (keep tabs)" in the context menu removes the folder; its
   tabs stay where it was. A smart folder is deleted with the items it
   listed.
@@ -177,7 +180,7 @@ switches at once, without a restart.
 | Change the address | Cmd+L |
 | Close the tab | Cmd+W |
 | Reopen the last archived tab | Cmd+Shift+T |
-| Next / previous tab of the space (below) | Ctrl+Tab / Ctrl+Shift+Tab |
+| The tab used before this one, and further back or forth (below) | Ctrl+Tab / Ctrl+Shift+Tab |
 | Tab 1 to 9 of the space (pinned first, then Today) | Cmd+1 to Cmd+9 |
 | Pin or unpin the active tab | Cmd+D |
 | Show or hide the sidebar | Cmd+S |
@@ -190,12 +193,28 @@ switches at once, without a restart.
 may use them itself. The six shortcuts above `Cmd+D` are taken before the
 page sees the key.
 
-`Ctrl+Tab` and `Ctrl+Shift+Tab` go through the rows of the current space
-in the order of `Cmd+1` to `Cmd+9`: the pinned tabs, those in folders
-included (also closed ones), then Today; after the last comes the first.
-The tabs of a split count one by one, so the keys can leave a split or
-move within it. Favorites are not part of the round; from a favorite the
-keys go to the first or the last row.
+`Ctrl+Tab` goes to the tab used before this one, and pressed again, back:
+the tabs are taken by last use, the favorites and the tabs of the current
+space together. With Ctrl held, each further Tab goes one tab further back
+(`Ctrl+Shift+Tab`: the other way), around the nine used last, and after
+150 ms a list over the page shows them with the one it stands on marked.
+Letting go of Ctrl chooses that tab; choosing a tab or a space some other
+way ends the round. The list never takes the keyboard.
+
+| Setting | Values | Default |
+|---|---|---|
+| Settings → Tabs & archive → "Ctrl+Tab goes through the tabs" | by last use, in sidebar order | by last use |
+
+In sidebar order the two keys go through the rows of the current space in
+the order of `Cmd+1` to `Cmd+9`: the pinned tabs, those in folders included
+(also closed ones), then Today; after the last comes the first. The tabs of
+a split count one by one, so the keys can leave a split or move within it.
+Favorites are not part of the round; from a favorite the keys go to the
+first or the last row.
+
+The order of last use is kept while Magnetite runs; after a restart the
+tabs count by the time they were last chosen. The setting stays on the
+device.
 
 ## Data
 
@@ -215,6 +234,9 @@ not opened.
 
 - Changing the home page of a pinned tab or favorite without pinning it
   again, and a "back to home page" control for favorites.
+- Outside macOS, the round with Ctrl held and its list: there the system
+  does not say whether the key is still down, so every `Ctrl+Tab` switches
+  at once to the tab used before.
 
 Code: `crates/core/src/{model,sidebar}.rs`, `crates/app/src/app/tabs.rs`,
 `crates/app/src/state/{tabs,folders,profiles}.rs`,

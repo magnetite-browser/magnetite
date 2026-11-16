@@ -962,6 +962,12 @@ pub fn app_is_active() -> bool {
     MainThreadMarker::new().is_some_and(|mtm| NSApplication::sharedApplication(mtm).isActive())
 }
 
+/// Whether the Control key is down right now, whichever app has the
+/// keyboard (the keyboard's state, not that of the last event).
+pub fn control_key_held() -> bool {
+    NSEvent::modifierFlags_class().contains(objc2_app_kit::NSEventModifierFlags::Control)
+}
+
 /// Hand the keyboard back to the app that was in front before Magnetite.
 pub fn deactivate_app() {
     if let Some(mtm) = MainThreadMarker::new() {

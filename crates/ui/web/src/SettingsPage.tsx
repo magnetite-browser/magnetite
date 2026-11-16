@@ -1,8 +1,9 @@
 // Full-page settings, opened as its own tab (magnetite://ui/settings).
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AdblockIcon, Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon } from "./Icons";
+import { AdblockIcon, Archive, BracesIcon, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon } from "./Icons";
 import { IsolationSection } from "./IsolationSection";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
+import { EXTERNAL_LINKS } from "./settings/externalLinks";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
 import { applyAppearance, send, type DefaultBrowser, type LinkRule, type Settings, type SiteSearch } from "./bridge";
 import { About } from "./settings/AboutSection";
@@ -11,6 +12,7 @@ import { AutofillSection } from "./settings/AutofillSection";
 import { AppearanceSection } from "./settings/AppearanceSection";
 import { Field, Switch, Toggle } from "./settings/fields";
 import { ImportBookmarksFile, ImportBrowsers } from "./settings/ImportBrowsers";
+import { SiteCodeSection } from "./settings/SiteCodeSection";
 import { SmartFoldersSection } from "./settings/SmartFoldersSection";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
 import type { Info, SettingsPatch } from "./settings/types";
@@ -29,6 +31,7 @@ const GROUPS: { label: string; sections: Section[] }[] = [
       { id: "tabs", label: "Tabs & archive", Icon: Archive, title: "Tabs & archive", intro: "Closing a tab never deletes it. Today tabs you stop using move to the archive on their own. The history of visited pages stays on this computer." },
       { id: "search", label: "Search", Icon: Search, title: "Search", intro: "Used when what you type in the command bar is not a web address. A keyword and a space search one site instead." },
       { id: "adblock", label: "Ad blocking", Icon: AdblockIcon, title: "Ad blocking", intro: "Magnetite can stop ads and trackers before they load, with filter lists you choose. Off until you turn it on." },
+      { id: "code", label: "Custom CSS & JS", Icon: BracesIcon, title: "Custom CSS & JS", intro: "Change how a site looks or behaves with CSS and JavaScript of your own: hide a part of a page, change its fonts or colours, or run a small script on it." },
       { id: "autofill", label: "Passwords & autofill", Icon: KeyIcon, title: "Passwords & autofill", intro: "Magnetite can keep your passwords, addresses and cards and fill them in for you. All of it stays on this computer." },
     ],
   },
@@ -53,9 +56,18 @@ const GROUPS: { label: string; sections: Section[] }[] = [
 const SECTIONS = GROUPS.flatMap((g) => g.sections);
 
 
+/** The section the page's address names (General without one), and what in it to show. */
+function fromHash(): { id: string; item?: string } {
+  const [id, item] = location.hash.slice(1).split("=");
+  return { id: SECTIONS.find((s) => s.id === id)?.id ?? "general", item: item && decodeURIComponent(item) };
+}
+
 export function SettingsPage() {
   const [info, setInfo] = useState<Info | null>(null);
-  const [sectionId, setSectionId] = useState(() => SECTIONS.find((s) => s.id === location.hash.slice(1))?.id ?? "general");
+  // The address names the section, and after "=" what in it to show: `#code=example.org`.
+  const [place, setPlace] = useState(fromHash);
+  const sectionId = place.id;
+  const setSectionId = (id: string) => setPlace({ id });
   // Changes made on this page. What the app answered to a question from
   // before the last one is older than what the page shows: asked again.
   const edits = useRef(0);
@@ -69,10 +81,7 @@ export function SettingsPage() {
   }, []);
   // The app sends an open Settings tab to another section by its address.
   useEffect(() => {
-    const follow = () => {
-      const wanted = SECTIONS.find((s) => s.id === location.hash.slice(1));
-      if (wanted) setSectionId(wanted.id);
-    };
+    const follow = () => setPlace((now) => (SECTIONS.some((s) => `#${s.id}` === location.hash.split("=")[0]) ? fromHash() : now));
     window.addEventListener("hashchange", follow);
     return () => window.removeEventListener("hashchange", follow);
   }, []);
@@ -145,9 +154,7 @@ export function SettingsPage() {
               {info.default_browser !== "unknown" && <DefaultBrowserCard key={info.default_browser} state={info.default_browser} />}
               <Field label="Open links from other apps in" hint="Links from Mail, Slack and other apps, when Magnetite is your default browser.">
                 <select className="field" value={settings.external_links} onChange={(e) => update({ external_links: e.target.value as Settings["external_links"] })}>
-                  <option value="tab">a new tab in the current space</option>
-                  <option value="peek">a peek window</option>
-                  <option value="mini">a mini window</option>
+                  {EXTERNAL_LINKS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </Field>
               <LinkRules saved={settings.link_rules} spaces={info.spaces} save={(rules) => update({ link_rules: rules })} />
@@ -168,6 +175,12 @@ export function SettingsPage() {
               <Field label="Suspend inactive tabs after" hint="Suspended tabs keep their place and reload when opened. This is what keeps hundreds of tabs cheap.">
                 <select className="field" value={settings.unload_minutes} onChange={(e) => update({ unload_minutes: Number(e.target.value) })}>
                   {UNLOAD_AFTER.map((t) => <option key={t.minutes} value={t.minutes}>{t.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Ctrl+Tab goes through the tabs" hint="By last use, one press goes to the tab you used before this one, and a second press back; hold Ctrl and press Tab again to go further back in a list of the tabs used last. In sidebar order it goes down the sidebar, row by row.">
+                <select className="field" value={settings.tab_order} onChange={(e) => update({ tab_order: e.target.value as Settings["tab_order"] })}>
+                  <option value="recent">by last use</option>
+                  <option value="sidebar">in sidebar order</option>
                 </select>
               </Field>
               <Field label="Clicking the archive button opens" hint="The button at the bottom left of the sidebar; resting on it shows bookmarks, history, downloads and the archive. While a download runs, a click opens downloads.">
@@ -272,6 +285,7 @@ export function SettingsPage() {
               )}
             </>
           )}
+          {sectionId === "code" && <SiteCodeSection key={place.item} saved={settings.site_code} open={place.item} save={(code) => update({ site_code: code })} />}
           {sectionId === "about" && <About info={info} update={update} />}
           </div>
         </div>

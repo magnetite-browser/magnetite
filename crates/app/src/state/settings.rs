@@ -38,13 +38,16 @@ pub struct Settings {
     pub search_template: String,
     /// Keywords that search one site from the command bar (`gh rust`).
     pub site_searches: Vec<SiteSearch>,
-    /// Links from other apps: "tab", "peek" or "mini" (a mini window).
-    /// Synced: a version that does not know a value takes "tab"
-    /// (`sanitised`).
+    /// Links from other apps: "mini" (a mini window, the default), "tab" or
+    /// "peek". Synced: a version that does not know a value takes the
+    /// default (`sanitised`).
     pub external_links: String,
     /// Which space a link from another app opens in, by its site
     /// (`LinkRule`). This device's own, never synced.
     pub link_rules: Vec<LinkRule>,
+    /// The user's own CSS and JavaScript per site (Settings → Custom CSS &
+    /// JS). This device's own, never synced.
+    pub site_code: Vec<magnetite_engine::SiteCode>,
     /// The system-wide quick search key (⌥⌘N) is registered. This
     /// device's own choice, never synced.
     pub quick_search: bool,
@@ -76,6 +79,9 @@ pub struct Settings {
     pub check_updates: bool,
     /// What a click on the sidebar's archive and downloads button opens.
     pub library_opens: LibraryView,
+    /// The order `Ctrl+Tab` goes through the tabs in. This device's own
+    /// choice, never synced.
+    pub tab_order: TabOrder,
     /// Chromium's password manager and autofill: which parts are on. Not
     /// synced: what a device saves is that device's.
     pub autofill: magnetite_engine::AutofillPrefs,
@@ -170,6 +176,17 @@ pub enum Density {
     #[default]
     Comfortable,
     Spacious,
+}
+
+/// The order `Ctrl+Tab` and `Ctrl+Shift+Tab` go through the tabs in.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum TabOrder {
+    /// By last use: one press goes to the tab used before this one.
+    #[default]
+    Recent,
+    /// As the sidebar lists them.
+    Sidebar,
 }
 
 /// A view behind the sidebar's archive and downloads button. While something
@@ -338,6 +355,24 @@ impl Settings {
     }
 }
 
+/// The most sites with CSS and JavaScript of the user's own, and the most
+/// bytes of either for one site.
+const MAX_CODE_SITES: usize = 200;
+const MAX_SITE_CODE: usize = 256 * 1024;
+
+/// The host a site was named by, in lower case and without `www.`: what
+/// was typed may be a whole address. `None` if it names no host.
+fn site_host(typed: &str) -> Option<String> {
+    let rest = typed.trim();
+    let rest = rest.split_once("://").map_or(rest, |(_, rest)| rest);
+    let authority = rest.split(['/', '?', '#']).next()?;
+    let host = authority.rsplit('@').next()?.split(':').next()?;
+    let host = host.to_ascii_lowercase();
+    let host = host.trim_start_matches("www.");
+    let fine = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.';
+    (host.contains('.') && host.chars().all(fine)).then(|| host.to_string())
+}
+
 /// Sync configuration. Keys are kept out of `state.json` (see `sync.rs`).
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
@@ -359,7 +394,9 @@ impl Settings {
     /// periods in range, appearance in range, search addresses on https with
     /// `%s` in them (site searches that are not, or repeat a keyword, are
     /// dropped), a known choice for external links, link rules with a site
-    /// each (one per site).
+    /// each (one per site), own CSS and JavaScript only for sites named by
+    /// their host (one entry per site, each part at most `MAX_SITE_CODE`
+    /// long).
     pub fn sanitised(mut self) -> Self {
         let defaults = Self::default();
         self.auto_archive_hours = self.auto_archive_hours.max(1);
@@ -393,6 +430,19 @@ impl Settings {
             }
         }
         self.link_rules = rules;
+        let mut code: Vec<magnetite_engine::SiteCode> = Vec::new();
+        for mut entry in std::mem::take(&mut self.site_code) {
+            let small = entry.css.len() <= MAX_SITE_CODE && entry.js.len() <= MAX_SITE_CODE;
+            if let Some(site) = site_host(&entry.site)
+                && small
+                && !code.iter().any(|c| c.site == site)
+                && code.len() < MAX_CODE_SITES
+            {
+                entry.site = site;
+                code.push(entry);
+            }
+        }
+        self.site_code = code;
         self
     }
 }
@@ -453,8 +503,9 @@ impl Default for Settings {
             defaults: DEFAULTS,
             search_template: "https://duckduckgo.com/?q=%s".into(),
             site_searches: builtin_site_searches(),
-            external_links: "tab".into(),
+            external_links: "mini".into(),
             link_rules: Vec::new(),
+            site_code: Vec::new(),
             quick_search: true,
             chrome_toolbar: false,
             appearance: Appearance::default(),
@@ -468,6 +519,7 @@ impl Default for Settings {
             chromium_pins_seen: HashMap::new(),
             check_updates: true,
             library_opens: LibraryView::Archive,
+            tab_order: TabOrder::Recent,
             autofill: magnetite_engine::AutofillPrefs::default(),
             smart_allowed: None,
             adblock: AdblockSettings::default(),
@@ -533,6 +585,27 @@ mod tests {
             nested.unwrap().site,
             "archive.example/https://target.example"
         );
+    }
+
+    #[test]
+    fn own_code_is_kept_per_host_and_within_limits() {
+        let code = |site: &str, css: &str| magnetite_engine::SiteCode {
+            site: site.into(),
+            css: css.into(),
+            js: String::new(),
+            enabled: true,
+        };
+        let kept = Settings {
+            site_code: vec![
+                code(" https://WWW.Example.org/some/page ", "a"),
+                code("example.org", "again"),
+                code("not a site", "x"),
+                code("example.net", &"x".repeat(MAX_SITE_CODE + 1)),
+            ],
+            ..Settings::default()
+        }
+        .sanitised();
+        assert_eq!(kept.site_code, [code("example.org", "a")]);
     }
 
     #[test]
@@ -629,7 +702,7 @@ mod tests {
         .sanitised();
         assert_eq!(bad.auto_archive_hours, 1);
         assert_eq!(bad.search_template, Settings::default().search_template);
-        assert_eq!(bad.external_links, "tab");
+        assert_eq!(bad.external_links, "mini");
         for known in ["tab", "peek", "mini"] {
             let s = Settings {
                 external_links: known.into(),

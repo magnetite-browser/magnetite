@@ -29,6 +29,7 @@ impl EngineDelegate for MagnetiteApp {
                     )
                 });
                 engine.set_quick_search_key(quick);
+                engine.set_site_code(self.with_state(|s| s.settings.site_code.clone()));
                 // Before any profile exists: each gets these when it is made.
                 engine.set_autofill(autofill);
                 engine.set_sidebar_width(width);

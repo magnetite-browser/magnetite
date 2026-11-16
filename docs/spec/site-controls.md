@@ -49,8 +49,9 @@ focus returns to the chip.
   untrusted), "Local file", "Magnetite page", "Loading…" until the first
   load has finished, or "Unavailable" for other pages without a network
   origin. A page in a profile other than the default adds "Profile: name".
-- **Tools:** Capture, Share (the macOS share menu for the page's URL) and
-  Developer tools. Magnetite's own pages offer Share only, and nothing below.
+- **Tools:** Capture, Share (the macOS share menu for the page's URL),
+  Custom CSS & JS (opens Settings at this site, see below) and Developer
+  tools. Magnetite's own pages offer Share only, and nothing below.
 - **Zoom:** − and + move through Chromium's zoom steps, 25 % to 500 %; a
   click on the value resets it to 100 %.
 - **Block ads:** shown while the ad blocker is on (`ad-blocking.md`). Off
@@ -84,6 +85,30 @@ and `localhost` count as they are.
 3. If the cookies were removed, the open tabs of the domain in that profile
    reload. The panel reports both parts ("Cookies: 12 removed · Storage: 3
    of 3 origins"); after a failure it offers "Retry".
+
+## Custom CSS and JavaScript
+
+Settings → Custom CSS & JS holds CSS and JavaScript of the user's own per
+site: to hide a part of a page, change fonts and colours, or run a small
+script.
+
+| Per site | |
+|---|---|
+| Site | a host, in lower case and without `www.`; typed as a whole address, its host is kept. It stands for its subdomains; a page gets the code of the longest site its host is on |
+| Switch | off keeps the code without using it |
+| CSS | put on the page when its document begins and again once it has loaded, as a style sheet made in script, so a page's content security policy does not stop it. `@import` has no effect there |
+| JavaScript | run once each time a page of the site has loaded, as a script of the page |
+
+- Saved when a field is left. A site without a host, or listed twice, is
+  marked and not saved; one without any code is not kept.
+- Saved CSS reaches the open pages of the site at once, and leaves them
+  when it is removed or switched off. JavaScript counts from the next load.
+- The code is for the page a tab, peek or mini window shows (its main
+  frame), not for frames inside it, and never for Magnetite's own pages.
+- It runs as part of the page: with the page's rights, able to read and
+  change everything on it, and visible to the page. Settings says so.
+- At most 200 sites, each part at most 256 KiB. The code stays on the
+  device.
 
 ## Developer tools
 
@@ -197,10 +222,14 @@ or written without one of these actions.
 | Origins seen | memory | Magnetite quits |
 | Last capture (PNG) | memory | replaced, dismissed, or Magnetite quits |
 | Tracker removal, DevTools dock and size | `state.json` | changed |
+| Own CSS and JavaScript per site (`settings.site_code`) | `state.json` | changed |
 
 ## Not built yet
 
 - Editing the address in place (the address opens the command bar instead).
+- Custom CSS and JavaScript: syncing them, code for one path of a site
+  only, JavaScript before the page's own scripts run, and an editor with
+  highlighting.
 - Developer mode per site: status, load times and console counters in a strip.
 - Device mode without DevTools, and devices of one's own in the list.
 - Dividers beside docked DevTools, and the device mode's resize handles,
@@ -214,5 +243,6 @@ or written without one of these actions.
 Code: `crates/ui/web/src` (`AddressRow.tsx`, `SitePanel.tsx`,
 `Capture*.tsx`), `crates/core/src/links.rs`, `crates/app/src` (`app/site.rs`,
 `app/screenshots.rs`, `capture.rs`), `crates/engine/src` (`site.rs`, `sitedata.rs`, `capture.rs`,
-`devdock.rs`, `device.rs`, `devtools_menu.js`, `devtools.rs`, `keys.rs`),
+`devdock.rs`, `device.rs`, `devtools_menu.js`, `devtools.rs`, `keys.rs`,
+`sitecode.rs`), `crates/ui/web/src/settings/SiteCodeSection.tsx`,
 `crates/ui/web/src/DeviceBar.tsx`.

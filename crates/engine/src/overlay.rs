@@ -45,6 +45,34 @@ impl Engine {
         self.open_overlay_with(bounds, url, 14.0, true, true)
     }
 
+    /// Open `url` as a panel centred over the page area, `width` by `height`
+    /// (smaller if the area is), that never takes the keyboard: the keys go
+    /// on to the page that has them. Replaces an overlay that is open.
+    pub fn open_panel(&self, url: &str, width: i32, height: i32) -> bool {
+        let area = self.content_rect();
+        let width = width.min(area.width - 48).max(240);
+        let height = height.min(area.height - 48).max(40);
+        let bounds = Rect {
+            x: area.x + (area.width - width) / 2,
+            y: area.y + (area.height - height) / 2,
+            width,
+            height,
+        };
+        self.open_overlay_with(bounds, url, 14.0, true, false)
+    }
+
+    /// Whether the Control key is held right now; `None` where the system
+    /// does not say (outside macOS). Chromium hands on no key-up after a
+    /// shortcut it took, so this is how the end of a round with Ctrl held
+    /// (the tab switcher) is seen.
+    #[allow(clippy::unused_self)] // an Engine method like its siblings
+    pub fn control_key_held(&self) -> Option<bool> {
+        #[cfg(target_os = "macos")]
+        return Some(crate::mac::control_key_held());
+        #[cfg(not(target_os = "macos"))]
+        None
+    }
+
     /// Open `url` as the quick search: a floating palette of its own, near
     /// the top of the screen with the pointer and above other apps' windows,
     /// `width` wide, starting `height` tall.

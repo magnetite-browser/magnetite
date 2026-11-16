@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDismiss } from "./dismiss";
 import { Favicon } from "./Favicon";
-import { CaptureIcon, CodeIcon, Minus, Plus, ShareIcon, Speaker, SpeakerOff } from "./Icons";
+import { BracesIcon, CaptureIcon, CodeIcon, Minus, Plus, ShareIcon, Speaker, SpeakerOff } from "./Icons";
 import { Switch } from "./settings/fields";
 import { findTabInSpace, hostOf, onSiteDataCleared, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
@@ -199,6 +199,12 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
             <ShareIcon width={16} height={16} />
             <span>Share</span>
           </button>
+          {!internal && (
+            <button title={`Your own CSS and JavaScript for ${host}`} onClick={() => { send({ cmd: "new_tab", url: `magnetite://ui/settings#code=${encodeURIComponent(host)}` }); onClose(); }}>
+              <BracesIcon width={16} height={16} />
+              <span>Custom CSS & JS</span>
+            </button>
+          )}
           {!internal && (
             <button title="Developer tools (⌥⌘I)" onClick={() => { send({ cmd: "toggle_devtools" }); onClose(); }}>
               <CodeIcon width={16} height={16} />

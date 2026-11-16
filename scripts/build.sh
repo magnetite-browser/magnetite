@@ -11,6 +11,10 @@
 # first build downloads CEF (350 MB and more; set CEF_PATH to keep it outside
 # target/) and the ad blocker's scriptlets (scripts/scriptlets.sh).
 # macOS signing: MACOS_SIGN_IDENTITY, default "-" (ad hoc, for this computer).
+# macOS passkeys: MACOS_PROVISIONING_PROFILE, a Developer ID provisioning
+# profile for the app; with it the app is entitled to keep passkeys behind
+# Touch ID and, if the profile allows it, to use those in iCloud Keychain
+# (docs/development/release.md, "Passkeys").
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
@@ -64,6 +68,51 @@ fill() { # template name bundle-id
   sed -e "s|@NAME@|$2|g" -e "s|@BUNDLE_ID@|$3|g" -e "s|@VERSION@|$version|g" "$1"
 }
 
+# The entitlements of an app that carries provisioning profile `profile`:
+# those of packaging/macos/app.entitlements and, as far as the profile
+# allows them, the ones passkeys need. Written to `out`.
+#   - the application identifier and the team: what the keychain group is
+#     checked against, and what Magnetite's CEF names the group after;
+#   - the keychain access group "<team>.<bundle id>.webauthn", where
+#     Chromium's Touch ID authenticator keeps its credentials;
+#   - com.apple.developer.web-browser.public-key-credential, with which
+#     Chromium offers the passkeys in iCloud Keychain. Apple grants it to
+#     browsers on request; a profile without it leaves it out here.
+# macOS does not start an app that claims any of these without a profile
+# that allows it, so a wrong profile stops the build here.
+passkey_entitlements() { # profile out
+  local decoded="$2.profile"
+  security cms -D -i "$1" -o "$decoded" || die "cannot read the provisioning profile $1"
+  profile_entitlements "$decoded" "$2"
+  rm -f "$decoded"
+}
+
+# `passkey_entitlements` for a profile already decoded to a property list.
+profile_entitlements() { # decoded-profile out
+  local decoded="$1" out="$2" buddy=/usr/libexec/PlistBuddy team id groups
+  team="$("$buddy" -c "Print :TeamIdentifier:0" "$decoded" 2>/dev/null)" || die "the provisioning profile names no team"
+  id="$("$buddy" -c "Print :Entitlements:com.apple.application-identifier" "$decoded" 2>/dev/null)" || id=""
+  [[ $id == "$team.$BUNDLE_ID" ]] \
+    || die "the provisioning profile is for '${id:-no app}', not for $team.$BUNDLE_ID"
+  # A profile lists the groups it allows, one a line here; "<team>.*"
+  # stands for all of the team's. Whole entries: a longer group that only
+  # begins like ours does not allow ours.
+  groups="$("$buddy" -c "Print :Entitlements:keychain-access-groups" "$decoded" 2>/dev/null | sed 's/^ *//')" || groups=""
+  grep -qxF -e "$team.*" -e "$team.$BUNDLE_ID.webauthn" <<<"$groups" \
+    || die "the provisioning profile does not allow the keychain group $team.$BUNDLE_ID.webauthn"
+  cp "$ROOT/packaging/macos/app.entitlements" "$out"
+  "$buddy" -c "Add :com.apple.application-identifier string $id" \
+    -c "Add :com.apple.developer.team-identifier string $team" \
+    -c "Add :keychain-access-groups array" \
+    -c "Add :keychain-access-groups:0 string $id.webauthn" "$out"
+  if "$buddy" -c "Print :Entitlements:com.apple.developer.web-browser.public-key-credential" "$decoded" >/dev/null 2>&1; then
+    "$buddy" -c "Add :com.apple.developer.web-browser.public-key-credential bool true" "$out"
+    log "passkeys: Touch ID and iCloud Keychain"
+  else
+    log "passkeys: Touch ID only (the profile lacks the entitlement for iCloud Keychain passkeys)"
+  fi
+}
+
 # Sign inside out: framework libraries, framework, helpers, app. Ad hoc ("-")
 # is for local use. A Developer ID identity adds the hardened runtime and a
 # secure timestamp, which notarization requires.
@@ -83,7 +132,16 @@ sign_macos() {
       *) codesign "${flags[@]}" "$item" ;;
     esac
   done
-  codesign "${flags[@]}" --entitlements "$ent/app.entitlements" "$app"
+  # With a provisioning profile the app carries it, and the entitlements for
+  # passkeys that it allows.
+  local app_ent="$ent/app.entitlements"
+  if [[ -n ${MACOS_PROVISIONING_PROFILE:-} ]]; then
+    [[ $identity != - ]] || die "MACOS_PROVISIONING_PROFILE needs a Developer ID in MACOS_SIGN_IDENTITY"
+    cp "$MACOS_PROVISIONING_PROFILE" "$app/Contents/embedded.provisionprofile"
+    app_ent="$(mktemp -t magnetite-entitlements)"
+    passkey_entitlements "$MACOS_PROVISIONING_PROFILE" "$app_ent"
+  fi
+  codesign "${flags[@]}" --entitlements "$app_ent" "$app"
   codesign --verify --deep --strict "$app"
 }
 
