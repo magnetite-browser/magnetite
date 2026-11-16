@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { AdblockIcon, Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon } from "./Icons";
 import { IsolationSection } from "./IsolationSection";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
+import { EXTERNAL_LINKS } from "./settings/externalLinks";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
 import { applyAppearance, send, type DefaultBrowser, type Settings, type SiteSearch } from "./bridge";
 import { About } from "./settings/AboutSection";
@@ -145,9 +146,7 @@ export function SettingsPage() {
               {info.default_browser !== "unknown" && <DefaultBrowserCard key={info.default_browser} state={info.default_browser} />}
               <Field label="Open links from other apps in" hint="Links from Mail, Slack and other apps, when Magnetite is your default browser.">
                 <select className="field" value={settings.external_links} onChange={(e) => update({ external_links: e.target.value as Settings["external_links"] })}>
-                  <option value="tab">a new tab in the current space</option>
-                  <option value="peek">a peek window</option>
-                  <option value="mini">a mini window</option>
+                  {EXTERNAL_LINKS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </Field>
               <Toggle label="Quick search from anywhere (⌥⌘N)" hint="Opens the command bar over any app; what you pick opens in a mini window. Only that key combination reaches Magnetite, no other typing." checked={settings.quick_search} onChange={(v) => update({ quick_search: v })} />

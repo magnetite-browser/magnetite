@@ -38,9 +38,9 @@ pub struct Settings {
     pub search_template: String,
     /// Keywords that search one site from the command bar (`gh rust`).
     pub site_searches: Vec<SiteSearch>,
-    /// Links from other apps: "tab", "peek" or "mini" (a mini window).
-    /// Synced: a version that does not know a value takes "tab"
-    /// (`sanitised`).
+    /// Links from other apps: "mini" (a mini window, the default), "tab" or
+    /// "peek". Synced: a version that does not know a value takes the
+    /// default (`sanitised`).
     pub external_links: String,
     /// The system-wide quick search key (⌥⌘N) is registered. This
     /// device's own choice, never synced.
@@ -358,7 +358,7 @@ impl Default for Settings {
             defaults: DEFAULTS,
             search_template: "https://duckduckgo.com/?q=%s".into(),
             site_searches: builtin_site_searches(),
-            external_links: "tab".into(),
+            external_links: "mini".into(),
             quick_search: true,
             chrome_toolbar: false,
             appearance: Appearance::default(),
@@ -477,7 +477,7 @@ mod tests {
         .sanitised();
         assert_eq!(bad.auto_archive_hours, 1);
         assert_eq!(bad.search_template, Settings::default().search_template);
-        assert_eq!(bad.external_links, "tab");
+        assert_eq!(bad.external_links, "mini");
         for known in ["tab", "peek", "mini"] {
             let s = Settings {
                 external_links: known.into(),
