@@ -94,7 +94,8 @@ impl crate::Engine {
     }
 }
 
-/// The keys of `action` now.
+/// The keys of `action` now (for the menu bar, which only macOS has).
+#[cfg(target_os = "macos")]
 pub fn combo_of(action: Action) -> Option<Combo> {
     match KEYS.read().ok()?.as_ref() {
         Some(keys) => keys.combo_of(action),
