@@ -321,6 +321,10 @@ impl Engine {
         self.apply_drag_regions();
         self.update_edge_zone();
         self.align_hidden_toolbars();
+        // A floating sidebar that is out moves below the bar, or back up.
+        if self.float_sidebar_shown() {
+            self.show_float_sidebar(true);
+        }
     }
 
     /// The window buttons of the top bar (Linux and Windows) and of the
