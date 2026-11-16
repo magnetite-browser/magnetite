@@ -135,6 +135,12 @@ impl MagnetiteApp {
         };
 
         let switching = self.with_state(|s| {
+            // A tab of the hidden private space is gone to only by the
+            // user's own doing (a private mini window kept as a tab), which
+            // shows the space again.
+            if s.is_hidden_space(&space_id) {
+                s.private_hidden = false;
+            }
             s.active_space.clone_from(&space_id);
             s.active_tab.insert(space_id, tab_id.to_string());
             s.note_tab_use(tab_id);
@@ -413,6 +419,17 @@ impl MagnetiteApp {
         self.activate_space(engine, &id);
     }
 
+    /// A link from another app is not private browsing: with the private
+    /// space in front, the space beside it comes to the front for it.
+    pub(super) fn leave_private_space(&self, engine: &Engine) {
+        let beside = self.with_state(|s| {
+            (s.is_private_space(&s.active_space)).then(|| s.lasting_space(&s.active_space))
+        });
+        if let Some(space) = beside {
+            self.activate_space(engine, &space);
+        }
+    }
+
     /// Hide the private space: nothing lists it any more, its pages are
     /// paused and taken back from picture-in-picture, and every window
     /// that showed it shows the space it goes on in. It stays open;
@@ -492,7 +509,7 @@ impl MagnetiteApp {
         &self,
         engine: &Engine,
         url: &str,
-        background: bool,
+        mut background: bool,
         source: url_policy::Source,
         context: Option<&str>,
     ) -> Option<String> {
@@ -535,6 +552,10 @@ impl MagnetiteApp {
             }
             let opener = context.and_then(|c| s.profile_for_context(c));
             let id = s.open_tab_from(opener.as_deref(), &url, &title)?;
+            // What a page of the hidden private space opens stays out of
+            // sight with it: a tab in the background.
+            let (space, _) = s.find_tab(&id)?;
+            background |= space.is_some_and(|sp| s.is_hidden_space(&sp.id));
             if let Some(t) = s.find_tab_mut(&id) {
                 t.unread = background;
             }

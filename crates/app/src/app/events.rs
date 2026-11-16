@@ -204,6 +204,9 @@ impl EngineDelegate for MagnetiteApp {
                     UrlSource::OtherApp => url_policy::Source::OtherApp,
                     UrlSource::Chromium => url_policy::Source::Chromium,
                 };
+                if source == url_policy::Source::OtherApp {
+                    self.leave_private_space(engine);
+                }
                 let (target, from_mini) = self.with_state(|s| {
                     let from_peek = from.is_some() && from == s.peek.as_ref().map(|p| p.content);
                     let ask = Ask {
@@ -455,6 +458,7 @@ impl MagnetiteApp {
     /// it, the others become background tabs.
     pub(super) fn open_from_other_app(&self, engine: &Engine, urls: Vec<String>) {
         let peek = self.with_state(|s| s.settings.external_links == "peek");
+        self.leave_private_space(engine);
         // The space in front when the links arrive: where those without a
         // rule belong, also after one with a rule brought its space forward.
         let front = self.with_state(|s| s.active_space.clone());

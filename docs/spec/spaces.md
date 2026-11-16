@@ -131,21 +131,25 @@ it is the last of the spaces while it is open.
 - **Extensions**: only those with "Allow in Incognito" switched on
   (`extensions.md`).
 - **Hide**: the hide button on its title, its menu in the footer,
-  `Cmd+Shift+H`, File → Hide Private Space, or "Hide private space" in the
-  command bar. The keys work from any space and before the page sees them.
+  `Cmd+Shift+D`, File → Hide Private Space, or "Hide private space" in the
+  command bar. The keys work from any space and before the page sees them,
+  and one hand reaches them, like those that close the space.
   The space stays open with its tabs and their logins, but nothing shows
   that it is there: it is gone from the footer, its tabs from the command
   bar's results and the media controls, the keys for the next, previous
   and numbered space pass it over, and "Close private space" is not
   offered. A window that showed it goes on in the space before it. Its
   pages are paused, and a video of theirs in picture-in-picture goes back
-  into its page. Opening the private space (see Open) shows it again as it
-  was. Its mini windows and popup windows are windows of their own and
+  into its page. A tab that one of its pages opens meanwhile opens in the
+  background and stays hidden with it. Opening the private space (see Open)
+  shows it again as it was, and so does keeping one of its mini windows as
+  a tab. Its mini windows and popup windows are windows of their own and
   stay on screen; closing the space closes them.
 - **Close**: the close button on its title, its menu in the footer,
-  `Cmd+Shift+Backspace`, File → Close Private Space, or "Close private
-  space" in the command bar. The keys work from any space and before the
-  page sees them, and nothing asks first: the space is gone at once. Its
+  `Cmd+Shift+X`, File → Close Private Space, or "Close private space" in
+  the command bar. The keys work from any space, also while the space is
+  hidden, and before the page sees them, and nothing asks first: the space
+  is gone at once. Its
   tabs close, with the peeks and mini windows opened from them, and the
   space before it takes over.
   Quitting Magnetite closes it too: the next start goes on in the space
@@ -159,7 +163,8 @@ this device").
 ## Links from other apps
 
 A link from another app opens in the space in front, unless a rule names
-another space for its site.
+another space for its site. It never opens in the private space: with that
+in front, the space beside it comes to the front for the link.
 
 | Setting | Values |
 |---|---|

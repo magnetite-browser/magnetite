@@ -171,7 +171,7 @@ impl AppState {
 
     /// The space saved in place of `space` as the one in front: the private
     /// space is gone at the next start, so the one before it.
-    pub(super) fn lasting_space(&self, space: &Id) -> Id {
+    pub fn lasting_space(&self, space: &Id) -> Id {
         if !self.is_private_space(space) {
             return space.clone();
         }
