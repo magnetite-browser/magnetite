@@ -288,7 +288,8 @@ fn host_and_path(address: &str) -> Option<(String, &str)> {
         None => (rest, ""),
     };
     let host = authority.rsplit('@').next()?.split(':').next()?;
-    let host = host.trim_start_matches("www.").to_ascii_lowercase();
+    let host = host.to_ascii_lowercase();
+    let host = host.trim_start_matches("www.").to_string();
     let fine = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.';
     (host.contains('.') && host.chars().all(fine)).then(|| (host, path.trim_end_matches('/')))
 }
@@ -512,7 +513,7 @@ mod tests {
     fn link_rules_keep_a_site_each_as_host_and_path() {
         let kept = Settings {
             link_rules: vec![
-                rule(" https://www.GitHub.com/acme/ ", "work"),
+                rule(" https://WWW.GitHub.com/acme/ ", "work"),
                 rule("github.com/acme", "again"),
                 rule("not a site", "x"),
                 rule("", "x"),
