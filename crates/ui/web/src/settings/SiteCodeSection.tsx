@@ -41,7 +41,8 @@ export function SiteCodeSection({ saved, open, save }: { saved: SiteCode[]; open
   }, [saved]);
   useEffect(() => {
     const site = open && siteHost(open);
-    if (site) setRows((list) => (list.some((c) => siteHost(c.site) === site) ? list : [{ site, css: "", js: "", enabled: true }, ...list]));
+    // No new row once the list is full: the app would drop the last site for it.
+    if (site) setRows((list) => (list.some((c) => siteHost(c.site) === site) || list.length >= MAX_SITES ? list : [{ site, css: "", js: "", enabled: true }, ...list]));
   }, [open]);
   const commit = (next: SiteCode[]) => {
     // A site without code says nothing yet.

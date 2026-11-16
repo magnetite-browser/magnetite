@@ -386,14 +386,9 @@ const MAX_SITE_CODE: usize = 256 * 1024;
 /// The host a site was named by, in lower case and without `www.`: what
 /// was typed may be a whole address. `None` if it names no host.
 fn site_host(typed: &str) -> Option<String> {
-    let rest = typed.trim();
-    let rest = rest.split_once("://").map_or(rest, |(_, rest)| rest);
-    let authority = rest.split(['/', '?', '#']).next()?;
-    let host = authority.rsplit('@').next()?.split(':').next()?;
-    let host = host.to_ascii_lowercase();
-    let host = host.trim_start_matches("www.");
-    let fine = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.';
-    (host.contains('.') && host.chars().all(fine)).then(|| host.to_string())
+    // The host as `host_and_path` finds it: a scheme counts only at the start.
+    let (host, _) = host_and_path(typed.trim())?;
+    Some(host)
 }
 
 /// Sync configuration. Keys are kept out of `state.json` (see `sync.rs`).
@@ -652,6 +647,11 @@ mod tests {
         }
         .sanitised();
         assert_eq!(kept.site_code, [code("example.org", "a")]);
+        // An address inside a path is part of the path, not the site.
+        assert_eq!(
+            site_host("archive.example/https://target.example").as_deref(),
+            Some("archive.example")
+        );
     }
 
     #[test]
