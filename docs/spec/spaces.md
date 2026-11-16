@@ -129,9 +129,12 @@ it is the last of the spaces while it is open.
   a tab that a page opens while another space is in front.
 - **Extensions**: only those with "Allow in Incognito" switched on
   (`extensions.md`).
-- **Close**: the close button on its title, its menu in the footer, or
-  "Close private space" in the command bar. Its tabs close, with the peeks
-  and mini windows opened from them, and the space before it takes over.
+- **Close**: the close button on its title, its menu in the footer,
+  `Cmd+Shift+Backspace`, File → Close Private Space, or "Close private
+  space" in the command bar. The keys work from any space and before the
+  page sees them, and nothing asks first: the space is gone at once. Its
+  tabs close, with the peeks and mini windows opened from them, and the
+  space before it takes over.
   Quitting Magnetite closes it too: the next start goes on in the space
   before it.
 

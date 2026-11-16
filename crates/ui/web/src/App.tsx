@@ -211,7 +211,7 @@ export function App() {
         <div className="space-title" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }}>
           <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: "var(--space)" }}><MaskIcon width={15} height={15} /></span>
           <span className="truncate">{space.title}</span>
-          <button className="ib sm ml-auto" title="Close private space" aria-label="Close private space" onClick={() => send({ cmd: "close_private_space" })}><Close width={14} height={14} /></button>
+          <button className="ib sm ml-auto" title={`Close private space${keysHint(state.keys, "close_private_space")}`} aria-label="Close private space" onClick={() => send({ cmd: "close_private_space" })}><Close width={14} height={14} /></button>
         </div>
         ) : (
         <div className="space-title group" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }} onDoubleClick={() => setRenamingSpace(space.id)}>

@@ -22,6 +22,9 @@ pub enum Shortcut {
     NewSpace,
     /// `Cmd+Shift+P`: open the private space, or go to it.
     PrivateSpace,
+    /// `Cmd+Shift+Backspace`: close the private space at once, from any
+    /// space, with everything opened from it.
+    ClosePrivateSpace,
     NextSpace,
     PrevSpace,
     /// 1-based, `Cmd+1` to `Cmd+9`.

@@ -88,8 +88,8 @@ from a context Magnetite did not make is not opened.
   it (`release_private_profiles`), and the engine lets go of its context
   (`Engine::forget_contexts`) and closes the popup windows still open in
   it, so Chromium drops it with its cookies and storage. Nothing moves into
-  the space or out of it (`move_tab`, `keep_space`, `open_tab_from`), and its profiles cannot
-  be given to another space or tab.
+  the space or out of it (`move_tab`, `keep_space`, `open_tab_from`), and
+  its profiles cannot be given to another space or tab.
 - In-memory contexts are off-the-record children of the default profile,
   so Chromium runs the default profile's extensions in them if, and only
   if, "Allow in Incognito" is on for the extension. Such an extension sees

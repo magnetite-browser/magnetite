@@ -29,6 +29,7 @@ pub enum Action {
     CloseWindow,
     NewSpace,
     PrivateSpace,
+    ClosePrivateSpace,
     NextSpace,
     PrevSpace,
     ToggleSidebar,
@@ -48,7 +49,7 @@ pub enum Action {
 impl Action {
     /// Every action, in the order Settings lists them. Of two actions on
     /// the same keys the earlier one gets them.
-    pub const ALL: [Self; 26] = [
+    pub const ALL: [Self; 27] = [
         Self::NewTab,
         Self::FocusAddress,
         Self::CloseTab,
@@ -61,6 +62,7 @@ impl Action {
         Self::CloseWindow,
         Self::NewSpace,
         Self::PrivateSpace,
+        Self::ClosePrivateSpace,
         Self::NextSpace,
         Self::PrevSpace,
         Self::ToggleSidebar,
@@ -92,6 +94,7 @@ impl Action {
             Self::CloseWindow => Shortcut::CloseWindow,
             Self::NewSpace => Shortcut::NewSpace,
             Self::PrivateSpace => Shortcut::PrivateSpace,
+            Self::ClosePrivateSpace => Shortcut::ClosePrivateSpace,
             Self::NextSpace => Shortcut::NextSpace,
             Self::PrevSpace => Shortcut::PrevSpace,
             Self::ToggleSidebar => Shortcut::ToggleSidebar,
@@ -131,6 +134,7 @@ impl Action {
                 | Self::CloseWindow
                 | Self::NewSpace
                 | Self::PrivateSpace
+                | Self::ClosePrivateSpace
                 | Self::NextSpace
                 | Self::PrevSpace
         )
@@ -153,6 +157,7 @@ impl Action {
             Self::CloseWindow => "primary+shift+W",
             Self::NewSpace => "primary+shift+N",
             Self::PrivateSpace => "primary+shift+P",
+            Self::ClosePrivateSpace => "primary+shift+Backspace",
             Self::NextSpace => "primary+alt+Right",
             Self::PrevSpace => "primary+alt+Left",
             Self::ToggleSidebar => "primary+S",

@@ -233,6 +233,7 @@ impl MagnetiteApp {
             }
             Shortcut::NewSpace => Self::open_palette(engine, PaletteMode::NewSpace, None, None),
             Shortcut::PrivateSpace => self.open_private_space(engine),
+            Shortcut::ClosePrivateSpace => self.close_private_space(engine),
             Shortcut::NewMini => Self::open_palette(engine, PaletteMode::Quick, None, None),
             Shortcut::ClosePeek => self.close_peek(engine),
             Shortcut::PeekToTab => self.peek_to_tab(engine),
