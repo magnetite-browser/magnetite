@@ -204,6 +204,10 @@ wrap_app! {
         fn browser_process_handler(&self) -> Option<BrowserProcessHandler> {
             Some(MagnetiteBrowserProcessHandler::new())
         }
+
+        fn resource_bundle_handler(&self) -> Option<ResourceBundleHandler> {
+            Some(crate::strings::Strings::new())
+        }
     }
 }
 

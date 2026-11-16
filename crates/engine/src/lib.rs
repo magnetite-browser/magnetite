@@ -61,6 +61,7 @@ mod sitecode;
 mod sitedata;
 mod splitui;
 mod stray;
+mod strings;
 
 pub use autofill::AutofillPrefs;
 pub use blocker::{Filters, List as FilterList, set_allowed_sites, set_filters};
