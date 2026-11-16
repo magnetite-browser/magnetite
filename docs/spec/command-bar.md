@@ -142,7 +142,8 @@ included (`site-controls.md`).
 
 "New space" creates a space named "New space" at once; `Cmd+Shift+N` asks
 for the name first. "Open private space" opens the private space or goes to
-it, and "Close private space" shows while it is open (`spaces.md`). For a
+it, and "Close private space" and "Hide private space" show while it is
+open and not hidden (`spaces.md`). For a
 tab of the private space only "Duplicate tab" is offered: it opens the
 address in a new private tab. The copy commands are confirmed in the sidebar, since
 the command bar closes at once: the link button of the address row for a

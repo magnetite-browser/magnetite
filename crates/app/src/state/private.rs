@@ -3,7 +3,8 @@
 //! opened in it runs in an in-memory profile of its own, so no tab sees
 //! the cookies, logins or storage of another. A page opened from a private
 //! tab stays in that tab's profile (a sign-in window has to). Closing the
-//! space closes its tabs; a profile goes once nothing runs in it.
+//! space closes its tabs; a profile goes once nothing runs in it. Hidden,
+//! it stays open but is listed nowhere until it is opened again.
 
 use magnetite_core::{Color, Id, Profile, SidebarNode, Space};
 use magnetite_engine::ContentId;
@@ -21,9 +22,59 @@ impl AppState {
             .is_some_and(|(space, _)| space.is_some_and(|sp| self.is_private_space(&sp.id)))
     }
 
+    /// Whether `id` is the private space while that is hidden.
+    pub fn is_hidden_space(&self, id: &str) -> bool {
+        self.private_hidden && self.is_private_space(id)
+    }
+
+    /// The private space, unless it is hidden: what the sidebar hears of.
+    pub fn shown_private_space(&self) -> Option<&str> {
+        self.private_space
+            .as_deref()
+            .filter(|_| !self.private_hidden)
+    }
+
+    /// The spaces that are listed and can be gone to: all but a hidden
+    /// private space.
+    pub fn listed_spaces(&self) -> impl Iterator<Item = &Space> {
+        (self.sidebar.spaces.iter()).filter(|sp| !self.is_hidden_space(&sp.id))
+    }
+
+    /// Hide the private space: it stays open with its pages, but no list
+    /// names it or its tabs, and a window that showed it goes on in the
+    /// space before it. Opening the private space shows it again. Returns
+    /// the pages of its tabs, to silence; `None` if there is no private
+    /// space to hide.
+    pub fn hide_private_space(&mut self) -> Option<Vec<ContentId>> {
+        let id = self.shown_private_space()?.to_string();
+        self.private_hidden = true;
+        let before = self.beside_private(&id);
+        let shown = std::iter::once(&mut self.active_space)
+            .chain(self.views.values_mut().map(|v| &mut v.active_space));
+        for space in shown.filter(|space| **space == id) {
+            space.clone_from(&before);
+        }
+        // A playing page is paused by the caller; as paused it is not
+        // popped out as a picture when it leaves the screen.
+        let space = self.space(&id)?;
+        let tabs: Vec<Id> = space.today.iter().map(|t| t.id.clone()).collect();
+        let mut contents = vec![];
+        for tab in tabs {
+            let Some(runtime) = self.runtime.get_mut(&tab) else {
+                continue;
+            };
+            if let Some(media) = &mut runtime.media {
+                media.playing = false;
+            }
+            contents.extend(runtime.content);
+        }
+        Some(contents)
+    }
+
     /// The private space, opened if there is none yet: the last of the
-    /// spaces, empty. Returns its id.
+    /// spaces, empty; shown again if it was hidden. Returns its id.
     pub fn open_private_space(&mut self) -> Id {
+        self.private_hidden = false;
         if let Some(id) = &self.private_space {
             return id.clone();
         }
@@ -70,6 +121,7 @@ impl AppState {
         let Some(id) = self.private_space.take() else {
             return vec![];
         };
+        self.private_hidden = false;
         let before = self.beside_private(&id);
         let spaces = &self.sidebar.spaces;
         let at = spaces.iter().position(|sp| sp.id == id).unwrap_or(0);
@@ -186,6 +238,34 @@ mod tests {
         let space = s.sidebar.spaces[0].id.clone();
         let plain = s.new_today_tab(&space, "https://example.org/3", "3");
         assert_eq!(s.find_tab(&plain).unwrap().1.profile_id, None);
+    }
+
+    #[test]
+    fn a_hidden_private_space_is_listed_nowhere_and_comes_back_as_it_was() {
+        let mut s = state();
+        let first = s.active_space.clone();
+        assert_eq!(s.hide_private_space(), None, "nothing to hide");
+        let private = s.open_private_space();
+        let tab = s.new_today_tab(&private, "https://example.org/secret", "secret");
+        s.runtime.entry(tab.clone()).or_default().content = Some(7);
+        s.active_space.clone_from(&private);
+
+        assert_eq!(s.hide_private_space(), Some(vec![7]));
+        assert_eq!(s.active_space, first);
+        let ui = serde_json::to_value(s.ui_state(&[])).unwrap();
+        assert!(ui["private_space"].is_null());
+        assert!(!ui["sidebar"].to_string().contains("secret"));
+        assert!(s.listed_spaces().all(|sp| sp.id != private));
+        assert_eq!(s.search("secret").len(), 0);
+        // Still open: the tab and its profile are in use.
+        assert!(s.in_private_space(&tab));
+        assert_eq!(s.release_private_profiles(), [] as [String; 0]);
+        assert_eq!(s.hide_private_space(), None, "hidden already");
+
+        assert_eq!(s.open_private_space(), private);
+        assert!(s.listed_spaces().any(|sp| sp.id == private));
+        assert_eq!(s.ui_state(&[]).private_space, Some(private.as_str()));
+        assert_eq!(s.search("secret").len(), 1);
     }
 
     #[test]

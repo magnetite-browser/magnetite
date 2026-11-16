@@ -61,7 +61,7 @@ impl AppState {
             favicon: None,
         };
         let mut results = Vec::new();
-        for space in &self.sidebar.spaces {
+        for space in self.listed_spaces() {
             let tabs = space
                 .pinned
                 .iter()
@@ -85,7 +85,7 @@ impl AppState {
                 ));
             }
         }
-        for space in &self.sidebar.spaces {
+        for space in self.listed_spaces() {
             for b in space.bookmarks.iter().flat_map(SidebarNode::tabs) {
                 if hit(&b.title, &b.url) {
                     results.push(row(

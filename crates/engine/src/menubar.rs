@@ -329,6 +329,7 @@ pub fn install(mtm: MainThreadMarker) {
         SHIFT_CMD,
         S::ClosePrivateSpace,
     );
+    b.command("Hide Private Space", "h", SHIFT_CMD, S::HidePrivateSpace);
     b.command("New Split View…", "=", SHIFT_CMD, S::NewSplit);
     b.command("New Mini Window", "n", OPT_CMD, S::NewMini);
     b.command("Open Location…", "l", CMD, S::FocusAddress);

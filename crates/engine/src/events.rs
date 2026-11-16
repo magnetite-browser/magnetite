@@ -25,6 +25,9 @@ pub enum Shortcut {
     /// `Cmd+Shift+Backspace`: close the private space at once, from any
     /// space, with everything opened from it.
     ClosePrivateSpace,
+    /// `Cmd+Shift+H`: hide the private space, from any space: it stays
+    /// open but shows nowhere until `PrivateSpace` goes to it again.
+    HidePrivateSpace,
     NextSpace,
     PrevSpace,
     /// 1-based, `Cmd+1` to `Cmd+9`.

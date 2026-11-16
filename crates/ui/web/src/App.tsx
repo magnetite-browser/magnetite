@@ -6,7 +6,7 @@ import { HistoryView } from "./HistoryView";
 import { LibraryButton } from "./LibraryButton";
 import { SidebarResizer } from "./SidebarResizer";
 import { ContextMenu, SEPARATOR, type MenuItem } from "./ContextMenu";
-import { Back, Close, Dots, FolderIcon, Forward, Plus, MaskIcon, Reload, SidebarIcon, SmartFolderIcon, SpacePlus, SplitIcon, TabPlus } from "./Icons";
+import { Back, Close, Dots, FolderIcon, Forward, Plus, MaskIcon, PrivateIcon, Reload, SidebarIcon, SmartFolderIcon, SpacePlus, SplitIcon, TabPlus } from "./Icons";
 import { AddressRow } from "./AddressRow";
 import { CaptureToast } from "./CaptureToast";
 import { MediaBar, type MediaEntry } from "./MediaBar";
@@ -148,7 +148,10 @@ export function App() {
       run();
     };
     if (target.id === state.private_space) {
-      return openMenu(x, y, [{ label: "Close private space", danger: true, onClick: () => send({ cmd: "close_private_space" }) }]);
+      return openMenu(x, y, [
+        { label: "Hide private space", onClick: () => send({ cmd: "hide_private_space" }) },
+        { label: "Close private space", danger: true, onClick: () => send({ cmd: "close_private_space" }) },
+      ]);
     }
     openMenu(x, y, [
       { label: "Rename space", onClick: there(() => setRenamingSpace(target.id)) },
@@ -211,7 +214,8 @@ export function App() {
         <div className="space-title" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }}>
           <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: "var(--space)" }}><MaskIcon width={15} height={15} /></span>
           <span className="truncate">{space.title}</span>
-          <button className="ib sm ml-auto" title={`Close private space${keysHint(state.keys, "close_private_space")}`} aria-label="Close private space" onClick={() => send({ cmd: "close_private_space" })}><Close width={14} height={14} /></button>
+          <button className="ib sm ml-auto" title={`Hide private space${keysHint(state.keys, "hide_private_space")}`} aria-label="Hide private space" onClick={() => send({ cmd: "hide_private_space" })}><PrivateIcon width={14} height={14} /></button>
+          <button className="ib sm" title={`Close private space${keysHint(state.keys, "close_private_space")}`} aria-label="Close private space" onClick={() => send({ cmd: "close_private_space" })}><Close width={14} height={14} /></button>
         </div>
         ) : (
         <div className="space-title group" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }} onDoubleClick={() => setRenamingSpace(space.id)}>
