@@ -247,11 +247,20 @@ mod tests {
         assert_eq!(s.hide_private_space(), None, "nothing to hide");
         let private = s.open_private_space();
         let tab = s.new_today_tab(&private, "https://example.org/secret", "secret");
-        s.runtime.entry(tab.clone()).or_default().content = Some(7);
+        let runtime = s.runtime.entry(tab.clone()).or_default();
+        runtime.content = Some(7);
+        runtime.media = Some(magnetite_engine::MediaState {
+            playing: true,
+            video: true,
+            ..Default::default()
+        });
         s.active_space.clone_from(&private);
 
         assert_eq!(s.hide_private_space(), Some(vec![7]));
         assert_eq!(s.active_space, first);
+        // Noted as paused at once, before its page leaves the screen: a
+        // playing video would be popped out as a picture (`follow_pictures`).
+        assert!(!s.runtime[&tab].media.as_ref().unwrap().playing);
         let ui = serde_json::to_value(s.ui_state(&[])).unwrap();
         assert!(ui["private_space"].is_null());
         assert!(!ui["sidebar"].to_string().contains("secret"));
