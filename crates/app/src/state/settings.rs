@@ -327,9 +327,11 @@ impl LinkRule {
 impl Settings {
     /// The space a link from another app to `url` opens in, if a rule says
     /// so: of several rules that fit, the one with the longest host, then
-    /// the longest path.
-    pub fn link_space(&self, url: &str) -> Option<&Id> {
+    /// the longest path. Only rules whose space `exists` count: one whose
+    /// space is gone must not stand in the way of a less exact rule.
+    pub fn link_space(&self, url: &str, exists: impl Fn(&Id) -> bool) -> Option<&Id> {
         (self.link_rules.iter())
+            .filter(|rule| exists(&rule.space))
             .filter_map(|rule| Some((rule.fit(url)?, rule)))
             .max_by_key(|(fit, _)| *fit)
             .map(|(_, rule)| &rule.space)
@@ -494,7 +496,7 @@ mod tests {
             ],
             ..Settings::default()
         };
-        let space = |url: &str| settings.link_space(url).map(String::as_str);
+        let space = |url: &str| settings.link_space(url, |_| true).map(String::as_str);
         assert_eq!(
             space("https://github.com/acme/app/pull/1?x=1"),
             Some("work")
@@ -507,6 +509,9 @@ mod tests {
         assert_eq!(space("https://example.org/"), None);
         assert_eq!(space("https://notgithub.com/acme"), None);
         assert_eq!(space("file:///github.com/acme"), None);
+        // The space of the closest rule is gone: the next one counts.
+        let without_work = settings.link_space("https://github.com/acme/app", |id| id != "work");
+        assert_eq!(without_work.map(String::as_str), Some("personal"));
     }
 
     #[test]

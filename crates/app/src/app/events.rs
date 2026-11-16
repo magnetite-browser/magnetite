@@ -220,7 +220,7 @@ impl EngineDelegate for MagnetiteApp {
                 // with that space's logins.
                 let ruled = self.with_state(|s| {
                     let space = (source == url_policy::Source::OtherApp)
-                        .then(|| s.settings.link_space(&url))
+                        .then(|| s.settings.link_space(&url, |id| s.space(id).is_some()))
                         .flatten()
                         .and_then(|id| s.space(id))?;
                     Some((space.id.clone(), space.profile_id.clone()))

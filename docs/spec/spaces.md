@@ -124,8 +124,9 @@ another space for its site.
   other apps in" says (`peek.md`, `mini-window.md`): as a new tab it opens
   in the rule's space, which comes to the front; as a peek or a mini
   window it opens with the logins of that space's profile.
-- A rule whose space is gone does nothing; Settings marks it until another
-  space is chosen or the rule removed.
+- A rule whose space is gone does nothing, and a less exact rule that fits
+  counts in its place; Settings marks it until another space is chosen or
+  the rule removed.
 - At most 100 rules, one per site. They stay on the device.
 
 ## Data
