@@ -46,6 +46,9 @@ pub const FIRST_CHECK_AFTER_SECS: i64 = 30;
 /// The app being replaced, inside the staging folder next to it.
 const OLD_APP: &str = "old.app";
 
+/// The extended attribute macOS marks downloaded files with.
+const QUARANTINE: &str = "com.apple.quarantine";
+
 /// Largest manifest or signature accepted.
 const MAX_MANIFEST: u64 = 64 * 1024;
 
@@ -333,7 +336,7 @@ fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), St
     let zip = staging.join("update.zip");
     std::fs::write(&zip, &data).map_err(|e| format!("Cannot save the update: {e}"))?;
     let unpacked = staging.join("new");
-    run("/usr/bin/ditto", &["-x", "-k"], &[&zip, &unpacked])?;
+    unpack(&zip, &unpacked)?;
     let new_app = std::fs::read_dir(&unpacked)
         .map_err(|e| e.to_string())?
         .filter_map(Result::ok)
@@ -379,6 +382,19 @@ fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), St
         });
     }
     Ok(())
+}
+
+/// Unpack the downloaded `zip` into `into`, free of the quarantine mark.
+/// macOS puts that mark on every file Magnetite writes
+/// (`LSFileQuarantineEnabled`), the zip included, and ditto hands it on to
+/// what it unpacks. macOS would then run the new app from a read-only copy
+/// elsewhere (app translocation), where the next update finds nothing it
+/// may replace. The caller has checked the zip against the signed manifest
+/// and lets Gatekeeper assess the app itself, which is what the mark is for.
+fn unpack(zip: &Path, into: &Path) -> Result<(), String> {
+    // Fails when there is no mark (a build that macOS does not quarantine).
+    let _ = run("/usr/bin/xattr", &["-d", QUARANTINE], &[zip]);
+    run("/usr/bin/ditto", &["-x", "-k"], &[zip, into])
 }
 
 /// After Magnetite quits: start `bundle` again and delete `cleanup`, which
@@ -589,5 +605,40 @@ mod tests {
         fake_binary(&dir, "magnetite 9.9.9", 2_000);
         assert_eq!(binary.replaced().as_deref(), Some("9.9.9"));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// What `unpack` gets in an installed Magnetite: a zip that macOS has
+    /// marked as downloaded.
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn an_unpacked_update_carries_no_quarantine_mark() {
+        let dir = crate::files::test_dir("update-quarantine");
+        let app = dir.join("src/Magnetite.app");
+        std::fs::create_dir_all(&app).unwrap();
+        std::fs::write(app.join("magnetite"), b"binary").unwrap();
+        let zip = dir.join("update.zip");
+        run(
+            "/usr/bin/ditto",
+            &["-c", "-k", "--keepParent"],
+            &[&app, &zip],
+        )
+        .unwrap();
+        let mark = "0081;00000000;Magnetite;";
+        run("/usr/bin/xattr", &["-w", QUARANTINE, mark], &[&zip]).unwrap();
+
+        let unpacked = dir.join("new");
+        unpack(&zip, &unpacked).unwrap();
+
+        let binary = unpacked.join("Magnetite.app/magnetite");
+        assert_eq!(std::fs::read(&binary).unwrap(), b"binary");
+        for path in [unpacked.join("Magnetite.app"), binary] {
+            // `xattr -p` fails for an attribute that is not there.
+            assert!(
+                run("/usr/bin/xattr", &["-p", QUARANTINE], &[&path]).is_err(),
+                "{} is quarantined",
+                path.display()
+            );
+        }
+        let _ = std::fs::remove_dir_all(dir);
     }
 }
