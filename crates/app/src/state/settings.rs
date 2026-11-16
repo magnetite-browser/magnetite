@@ -272,7 +272,16 @@ const MAX_LINK_RULES: usize = 100;
 /// The host of an http(s) address or of a rule's site, without `www.`, and
 /// the path after it (up to `?` or `#`, without the `/` at its end).
 fn host_and_path(address: &str) -> Option<(String, &str)> {
-    let rest = address.split_once("://").map_or(address, |(_, rest)| rest);
+    // A scheme stands at the very start; "://" further in belongs to a path.
+    let scheme = |s: &str| {
+        !s.is_empty()
+            && s.chars()
+                .all(|c| c.is_ascii_alphanumeric() || "+.-".contains(c))
+    };
+    let rest = match address.split_once("://") {
+        Some((before, rest)) if scheme(before) => rest,
+        _ => address,
+    };
     let rest = rest.split(['?', '#']).next()?;
     let (authority, path) = match rest.find('/') {
         Some(at) => rest.split_at(at),
@@ -512,6 +521,12 @@ mod tests {
         }
         .sanitised();
         assert_eq!(kept.link_rules, [rule("github.com/acme", "work")]);
+        // An address inside a path is part of the path.
+        let nested = rule("archive.example/https://target.example", "x").sanitised();
+        assert_eq!(
+            nested.unwrap().site,
+            "archive.example/https://target.example"
+        );
     }
 
     #[test]

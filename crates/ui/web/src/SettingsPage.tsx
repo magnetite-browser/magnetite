@@ -396,6 +396,9 @@ function DefaultBrowserCard({ state }: { state: DefaultBrowser }) {
   );
 }
 
+/** The most rules the app keeps (`MAX_LINK_RULES`). */
+const MAX_LINK_RULES = 100;
+
 /**
  * A rule's site as the app keeps it (`LinkRule::sanitised`): of what was
  * typed, which may be a whole address, the host without `www.` and the
@@ -416,6 +419,15 @@ function ruleSite(typed: string): string | null {
  */
 function LinkRules({ saved, spaces, save }: { saved: LinkRule[]; spaces: Info["spaces"]; save: (rules: LinkRule[]) => void }) {
   const [rows, setRows] = useState(saved);
+  // What this editor knows to be saved. Saved rules that differ were changed
+  // elsewhere (another Settings tab): they replace the rows, drafts included.
+  const known = useRef(JSON.stringify(saved));
+  useEffect(() => {
+    const now = JSON.stringify(saved);
+    if (now === known.current) return;
+    known.current = now;
+    setRows(saved);
+  }, [saved]);
   const problem = (rule: LinkRule, all: LinkRule[]): string | null => {
     const site = ruleSite(rule.site);
     if (!site) return "Give a site, such as github.com or github.com/acme.";
@@ -425,7 +437,9 @@ function LinkRules({ saved, spaces, save }: { saved: LinkRule[]; spaces: Info["s
   };
   const commit = (next: LinkRule[]) => {
     const valid = next.filter((r) => !problem(r, next)).map((r) => ({ site: ruleSite(r.site)!, space: r.space }));
-    if (JSON.stringify(valid) !== JSON.stringify(saved)) save(valid);
+    if (JSON.stringify(valid) === JSON.stringify(saved)) return;
+    known.current = JSON.stringify(valid);
+    save(valid);
   };
   const change = (i: number, patch: Partial<LinkRule>) => {
     const next = rows.map((r, j) => (j === i ? { ...r, ...patch } : r));
@@ -453,7 +467,7 @@ function LinkRules({ saved, spaces, save }: { saved: LinkRule[]; spaces: Info["s
             </div>
           );
         })}
-        <button className="btn" onClick={() => setRows((list) => [...list, { site: "", space: spaces[0]?.id ?? "" }])}>Add rule</button>
+        <button className="btn" disabled={rows.length >= MAX_LINK_RULES} title={rows.length >= MAX_LINK_RULES ? `No more than ${MAX_LINK_RULES} rules are kept.` : undefined} onClick={() => setRows((list) => [...list, { site: "", space: spaces[0]?.id ?? "" }])}>Add rule</button>
       </div>
     </Field>
   );
