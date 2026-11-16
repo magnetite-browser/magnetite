@@ -14,8 +14,9 @@ export type SearchSection = { id: string; title: string; Icon: IconComponent };
  * word somewhere in them; the others are greyed out (`data-dim`), and a
  * section without any match is left out (`data-miss`). A section whose
  * title matches comes first, with nothing greyed out. In a card of rows
- * (`data-search-row`, the shortcuts) the rows are marked one by one, unless
- * the card's own name matches.
+ * (`data-search-row`: the shortcuts, the spaces of sync) the rows are
+ * marked one by one, by their name (`data-search-name`, or all their text),
+ * unless the card's own name matches.
  */
 function filter(root: HTMLElement, query: string): string[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -31,12 +32,14 @@ function filter(root: HTMLElement, query: string): string[] {
     let hits = 0;
     for (const child of section.querySelector("[data-search-body]")?.children ?? []) {
       const cards = child.matches(".set-card") ? [child] : [...child.querySelectorAll(".set-card")].filter((c) => !c.parentElement?.closest(".set-card"));
-      for (const unit of cards.length > 0 ? cards : [child]) {
+      // Next to the cards of a wrapper, what else it holds (a closing paragraph).
+      const apart = cards.length > 0 && cards[0] !== child ? [...child.children].filter((el) => !cards.some((c) => el.contains(c))) : [];
+      for (const unit of cards.length > 0 ? [...cards, ...apart] : [child]) {
         const named = [...unit.querySelectorAll(".set-label, .set-hint")];
         const own = whole || has(named.length > 0 ? named.map((n) => n.textContent).join(" ") : unit.textContent);
         let rows = 0;
         for (const row of unit.querySelectorAll("[data-search-row]")) {
-          const hit = own || has(row.textContent);
+          const hit = own || has((row.querySelector("[data-search-name]") ?? row).textContent);
           light(row, hit);
           if (hit) rows++;
         }

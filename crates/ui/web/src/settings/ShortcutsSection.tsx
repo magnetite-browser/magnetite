@@ -74,7 +74,7 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
               return (
                 <div key={action} className="shortcut-row" data-search-row data-recording={here ? true : undefined}>
                   <div className="flex min-h-9 items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate">{SHORTCUT_LABEL[action]}</span>
+                    <span className="min-w-0 flex-1 truncate" data-search-name>{SHORTCUT_LABEL[action]}</span>
                     {here && !here.taken ? (
                       <span className="text-[13px] text-[var(--accent)]">Press the new keys · Esc cancels</span>
                     ) : (

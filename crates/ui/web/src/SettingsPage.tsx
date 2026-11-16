@@ -104,7 +104,12 @@ export function SettingsPage() {
   }, []);
   // The app sends an open Settings tab to another section by its address.
   useEffect(() => {
-    const follow = () => setPlace((now) => (SECTIONS.some((s) => `#${s.id}` === location.hash.split("=")[0]) ? fromHash() : now));
+    const follow = () => {
+      if (!SECTIONS.some((s) => `#${s.id}` === location.hash.split("=")[0])) return;
+      // The section asked for, not what a search was showing.
+      setQuery("");
+      setPlace(fromHash());
+    };
     window.addEventListener("hashchange", follow);
     return () => window.removeEventListener("hashchange", follow);
   }, []);

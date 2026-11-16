@@ -25,9 +25,9 @@ function SpacesOnThisDevice({ info, reload }: { info: Info; reload: () => Promis
     <Field label="Spaces" hint="A space that is only on this device is not synced: it stays here and leaves your other devices with their next sync. Logins that only such spaces use stay here as well, with their favorites.">
       <div className="iso-list">
         {info.spaces.map((sp) => (
-          <label key={sp.id} className="iso-row">
+          <label key={sp.id} className="iso-row" data-search-row>
             <span className="icon-slot" style={{ color: "var(--accent)" }}><SpaceGlyph icon={sp.icon} title={sp.title} size={15} /></span>
-            <span className="min-w-0 flex-1 truncate">{sp.title}</span>
+            <span className="min-w-0 flex-1 truncate" data-search-name>{sp.title}</span>
             <span className="shrink-0 text-[13px] text-[var(--secondary)]">Only on this device</span>
             <Switch
               label={`Keep ${sp.title} only on this device`}
