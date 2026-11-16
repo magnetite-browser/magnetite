@@ -61,7 +61,16 @@ const SECTIONS = GROUPS.flatMap((g) => g.sections);
 /** The section the page's address names (General without one), and what in it to show. */
 function fromHash(): { id: string; item?: string } {
   const [id, item] = location.hash.slice(1).split("=");
-  return { id: SECTIONS.find((s) => s.id === id)?.id ?? "general", item: item && decodeURIComponent(item) };
+  return { id: SECTIONS.find((s) => s.id === id)?.id ?? "general", item: item ? decoded(item) : undefined };
+}
+
+/** `text` with its percent signs read; undefined if they do not make sense (`%` alone). */
+function decoded(text: string): string | undefined {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return undefined;
+  }
 }
 
 export function SettingsPage() {
