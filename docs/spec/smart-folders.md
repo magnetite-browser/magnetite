@@ -28,8 +28,13 @@ YouTrack lists follow the query. The default queries are
   finds it closed. Titles follow the source unless you renamed the tab.
 - Tabs and folders you put into the folder by hand stay, above the source's
   items.
-- "Hide from this folder" (tab menu) removes an item and keeps it out while
-  the source still lists it. Closing only unloads it, as for any pinned tab.
+- Snoozing puts an item away: it leaves the folder until a time you pick
+  (in 1 hour, in 3 hours, this evening at 18:00, tomorrow at 9:00, next
+  Monday at 9:00, or a date and time of your own) or for good ("Forever").
+  When its time has come it returns within a minute, at the folder's end
+  and bold; "Wake now" brings it back earlier. A snoozed item the source
+  stops listing is forgotten. Closing an item only unloads it, as for any
+  pinned tab.
 - Refresh: when Magnetite starts, then every 5, 15 (default), 30 or 60
   minutes, and on "Refresh now" (folder menu, Settings). A folder takes at
   most 10, 20 (default) or 50 items from its source.
@@ -59,6 +64,11 @@ YouTrack lists follow the query. The default queries are
 - **Sidebar:** a smart folder icon in the space colour (or the folder's own
   icon), a spinner while refreshing, a warning sign after a failure, and a
   dot on a collapsed folder with new items.
+- **Snooze:** an item's row has a snooze button where other tabs have
+  close (Close stays in the tab menu). A click, or resting the pointer on
+  it, opens the menu of times. A folder with snoozed items shows an alarm
+  clock on its row: it lists them below the others, dimmed, each with its
+  wake time and a "Wake now" button, and hides them again.
 - **Settings → Smart folders:** every smart folder with its space, source
   and status, and the connected accounts (connect, disconnect).
 
@@ -82,8 +92,8 @@ or password in it is refused. The dialog links to the server's token page.
 
 ## Sync
 
-The folder's definition and its items are part of the sidebar, so they sync
-when sync is on (`sync.md`). Accounts and tokens never sync. A smart folder
+The folder's definition, its items and its snoozed items are part of the
+sidebar, so they sync when sync is on (`sync.md`). Accounts and tokens never sync. A smart folder
 that another device added, or whose source or account it changed, does not
 fetch here until it is turned on ("Turn on on this device" in the folder
 menu, or saving it in the dialog): the sync code alone must not make this
@@ -102,13 +112,13 @@ brought is on from the start.
   commands, not their contents). Disconnecting deletes the token here;
   revoke it on the server as well.
 - **Stored data:** the folder's definition (service, server, query, account
-  login, size, interval), the addresses of its items and of hidden items,
-  and the items themselves as pinned tabs (title, address) are part of the
-  sidebar in `state.json`. Titles can contain personal data from the service
+  login, size, interval), the addresses of its items, its snoozed items
+  (address, title, wake time), and the items themselves as pinned tabs
+  (title, address) are part of the sidebar in `state.json`. Titles can contain personal data from the service
   (names in issue titles); they are needed to show the item. The refresh
   status (last update, last error) is kept in memory only.
 - **Retention:** an item leaves the folder when the source stops listing
-  it; a hidden address is forgotten at the same point.
+  it; a snoozed item is forgotten at the same point.
 - **Who processes it:** your own device and the service you connect. The
   Magnetite project receives none of this data.
 

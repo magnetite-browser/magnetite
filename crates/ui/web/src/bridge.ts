@@ -49,7 +49,16 @@ export interface SmartFolder {
   limit: number;
   refresh_minutes: number;
   items: string[];
-  hidden: string[];
+  /** Items put away; absent when there are none. */
+  snoozed?: Snoozed[];
+}
+
+/** A smart folder's item that is put away. */
+export interface Snoozed {
+  url: string;
+  title: string;
+  /** Unix seconds when it comes back; none: only when woken by hand. */
+  until?: number;
 }
 
 /** A connected account (the token never leaves the app side). */
@@ -452,7 +461,8 @@ export type Command =
   | { cmd: "smart_save"; id?: Id; title: string; source: SmartSource; account?: string; limit: number; refresh_minutes: number }
   | { cmd: "smart_refresh"; id: Id }
   | { cmd: "smart_unlink"; id: Id }
-  | { cmd: "smart_hide"; id: Id }
+  | { cmd: "smart_snooze"; id: Id; until?: number }
+  | { cmd: "smart_wake"; id: Id; url: string }
   | { cmd: "smart_allow"; id: Id }
   | { cmd: "toggle_sidebar" }
   | { cmd: "toggle_top_bar" }

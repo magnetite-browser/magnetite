@@ -1,10 +1,10 @@
 import { memo, useRef, useState } from "react";
 import { Favicon } from "./Favicon";
-import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, SmartFolderIcon, Speaker, SpeakerOff, WarningIcon } from "./Icons";
-import { ago, findFolder } from "./smart";
+import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, SmartFolderIcon, SnoozeIcon, Speaker, SpeakerOff, WakeIcon, WarningIcon } from "./Icons";
+import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./smart";
 import { Glyph, glyphFor } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
-import { findTab, hostOf, send, splitIds, type FavoriteList, type Folder, type SidebarNode, type Side, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { findTab, hostOf, send, splitIds, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 
 export type Section = "favorites" | "pinned" | "today";
@@ -28,8 +28,31 @@ export interface RowContext {
 /** Most pages one split holds (as `magnetite_core::split::MAX_PANES`). */
 const MAX_PANES = 4;
 
-/** Right-click menu of a tab; `at` is the click point (the share menu opens there), `folderId` the folder it is in. */
-export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x: number; y: number }, folderId?: string): MenuItem[] {
+/** Is `tab` an item its smart folder `folderId` got from its source (not a tab put there by hand)? */
+function isSmartItem(state: UiState, tab: TabItem, folderId?: string): boolean {
+  const smart = folderId ? findFolder(state, folderId)?.folder.smart : undefined;
+  return !!smart?.items.includes(tab.home_url ?? tab.url);
+}
+
+/**
+ * The snooze menu of a smart folder's item: the times to put it away until.
+ * `onCustom` asks for a time of the user's own.
+ */
+function snoozeMenu(tab: TabItem, onCustom: () => void): MenuItem[] {
+  const snooze = (until?: number) => send({ cmd: "smart_snooze", id: tab.id, until });
+  return [
+    ...snoozeChoices(new Date()).map((c) => ({ label: c.label, hint: c.hint, onClick: () => snooze(c.until) })),
+    SEPARATOR,
+    { label: "Custom…", title: "Pick a date and time", onClick: onCustom },
+    { label: "Forever", title: "Until you wake it from the folder's snoozed items", onClick: () => snooze() },
+  ];
+}
+
+/** How long the pointer rests on the snooze button before its menu opens by itself. */
+const SNOOZE_HOVER_MS = 400;
+
+/** Right-click menu of a tab; `at` is the click point (the share menu opens there). */
+export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x: number; y: number }): MenuItem[] {
   const items: MenuItem[] = [];
   const spaces = ctx.state.sidebar.spaces;
   const onScreen = ctx.state.panes.includes(tab.id);
@@ -82,9 +105,8 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
     }
   }
   items.push(SEPARATOR);
-  // A smart folder's own item: closing only unloads it, hiding keeps it out.
-  const smart = folderId ? findFolder(ctx.state, folderId)?.folder.smart : undefined;
-  if (smart?.items.includes(tab.home_url ?? tab.url)) items.push({ label: "Hide from this folder", onClick: () => send({ cmd: "smart_hide", id: tab.id }) });
+  // A smart folder's own item: its row has snooze in place of close, which
+  // only unloads it.
   items.push({ label: section === "today" ? "Archive" : "Close", danger: section === "today", onClick: () => send({ cmd: "close_tab", id: tab.id }) });
   return items;
 }
@@ -184,6 +206,7 @@ export function TabRow({ ctx, tab, section, index, folderId, onDropAt }: {
       section={section}
       index={index}
       folderId={folderId}
+      snoozable={isSmartItem(ctx.state, tab, folderId)}
       ctx={ctx}
       onDropAt={onDropAt}
     />
@@ -195,6 +218,8 @@ interface InnerProps {
   rt: TabRuntime | undefined;
   active: boolean;
   renaming: boolean;
+  /** An item its smart folder got from its source: the row offers snooze in place of close. */
+  snoozable: boolean;
   section: Section;
   index: number;
   folderId?: string;
@@ -205,9 +230,17 @@ interface InnerProps {
 // Re-render only when this row's own data changes, or what its menu reads
 // (spaces, the active tab, the pages on screen).
 const TabRowInner = memo(
-  function TabRowInner({ tab, rt, active, renaming, section, index, folderId, ctx, onDropAt }: InnerProps) {
+  function TabRowInner({ tab, rt, active, renaming, snoozable, section, index, folderId, ctx, onDropAt }: InnerProps) {
     // `left`/`right`: a tab hovers the middle and would open beside this one.
     const [over, setOver] = useState<"before" | "after" | Side | null>(null);
+    // The user picks a time of their own to snooze until, in the title's place.
+    const [pickingTime, setPickingTime] = useState(false);
+    const hover = useRef<number | undefined>(undefined);
+    const openSnooze = (button: HTMLElement) => {
+      window.clearTimeout(hover.current);
+      const r = button.getBoundingClientRect();
+      ctx.openMenu(r.left, r.bottom + 4, snoozeMenu(tab, () => setPickingTime(true)));
+    };
     const awayFromHome = section !== "today" && !!tab.home_url && tab.home_url !== tab.url;
     const joining = over === "left" || over === "right" ? findTab(ctx.state, dragging()?.id) : null;
     const preview = joining && [<SplitCell key={tab.id} tab={tab} rt={rt} />, <SplitCell key="ghost" tab={joining} rt={ctx.state.runtime[joining.id]} ghost />];
@@ -258,7 +291,7 @@ const TabRowInner = memo(
         onAuxClick={(e) => e.button === 1 && send({ cmd: "close_tab", id: tab.id })}
         onContextMenu={(e) => {
           e.preventDefault();
-          ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, tab, section, { x: e.clientX, y: e.clientY }, folderId));
+          ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, tab, section, { x: e.clientX, y: e.clientY }));
         }}
         title={tab.url}
         data-folder={folderId}
@@ -280,7 +313,15 @@ const TabRowInner = memo(
           ) : (
             <Favicon url={tab.url} src={rt?.favicon} loading={rt?.loading} />
           )}
-          {renaming ? (
+          {pickingTime ? (
+            <SnoozeUntilInput
+              onCommit={(until) => {
+                setPickingTime(false);
+                send({ cmd: "smart_snooze", id: tab.id, until });
+              }}
+              onCancel={() => setPickingTime(false)}
+            />
+          ) : renaming ? (
             <RenameInput
               value={tab.title}
               onCommit={(title) => {
@@ -306,22 +347,43 @@ const TabRowInner = memo(
               <KeepActiveIcon width={12} height={12} />
             </span>
           )}
-          <button
-            className="close"
-            onClick={(e) => {
-              e.stopPropagation();
-              send({ cmd: "close_tab", id: tab.id });
-            }}
-            title={section === "today" ? "Archive" : "Close"}
-          >
-            <Close width={14} height={14} />
-          </button>
+          {snoozable ? (
+            // Opens on a click, or by itself when the pointer rests on it.
+            !pickingTime && (
+              <button
+                className="close"
+                title="Snooze"
+                aria-label="Snooze"
+                aria-haspopup="menu"
+                onClick={(e) => { e.stopPropagation(); openSnooze(e.currentTarget); }}
+                onDoubleClick={(e) => e.stopPropagation()}
+                onMouseEnter={(e) => {
+                  const button = e.currentTarget;
+                  hover.current = window.setTimeout(() => openSnooze(button), SNOOZE_HOVER_MS);
+                }}
+                onMouseLeave={() => window.clearTimeout(hover.current)}
+              >
+                <SnoozeIcon width={14} height={14} />
+              </button>
+            )
+          ) : (
+            <button
+              className="close"
+              onClick={(e) => {
+                e.stopPropagation();
+                send({ cmd: "close_tab", id: tab.id });
+              }}
+              title={section === "today" ? "Archive" : "Close"}
+            >
+              <Close width={14} height={14} />
+            </button>
+          )}
         </>)}
       </div>
     );
   },
   (a, b) =>
-    a.tab === b.tab && a.rt === b.rt && a.active === b.active && a.renaming === b.renaming &&
+    a.tab === b.tab && a.rt === b.rt && a.active === b.active && a.renaming === b.renaming && a.snoozable === b.snoozable &&
     a.section === b.section && a.index === b.index && a.folderId === b.folderId &&
     a.ctx.spaceId === b.ctx.spaceId && a.ctx.state.sidebar.spaces === b.ctx.state.sidebar.spaces &&
     a.ctx.state.active_tab === b.ctx.state.active_tab && a.ctx.state.panes === b.ctx.state.panes,
@@ -346,6 +408,54 @@ export function RenameInput({ value, onCommit, onCancel }: { value: string; onCo
         }
       }}
     />
+  );
+}
+
+/**
+ * A date and time to snooze until, in place of a title: Return snoozes (a
+ * time that is not ahead is refused), Esc or leaving the field cancels.
+ * Starts at tomorrow, 9:00.
+ */
+function SnoozeUntilInput({ onCommit, onCancel }: { onCommit: (until: number) => void; onCancel: () => void }) {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9);
+  return (
+    <input
+      autoFocus
+      type="datetime-local"
+      className="rename"
+      aria-label="Snooze until"
+      defaultValue={localInputValue(start)}
+      min={localInputValue(now)}
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => e.stopPropagation()}
+      onBlur={onCancel}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          const at = new Date(e.currentTarget.value).getTime();
+          if (at > Date.now()) onCommit(Math.floor(at / 1000));
+        }
+        if (e.key === "Escape") {
+          e.stopPropagation();
+          onCancel();
+        }
+      }}
+    />
+  );
+}
+
+/** A snoozed item of smart folder `folderId`, shown while the folder shows them: when it wakes, and a button to wake it now. */
+function SnoozedRow({ folderId, item }: { folderId: string; item: Snoozed }) {
+  const until = wakeLabel(item.until);
+  return (
+    <div className="row snoozed" title={`${item.url}\nSnoozed${item.until === undefined ? "" : " until " + new Date(item.until * 1000).toLocaleString()}`}>
+      <Favicon url={item.url} />
+      <span className="title">{item.title || hostOf(item.url)}</span>
+      <span className="meta">{until}</span>
+      <button className="close" title="Wake now" aria-label="Wake now" onClick={() => send({ cmd: "smart_wake", id: folderId, url: item.url })}>
+        <WakeIcon width={14} height={14} />
+      </button>
+    </div>
   );
 }
 
@@ -376,6 +486,15 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
   };
   const count = countTabs(folder.children);
   const smart = folder.smart;
+  const snoozed = smart?.snoozed ?? [];
+  // Whether the folder lists its snoozed items below the others.
+  const [showSnoozed, setShowSnoozed] = useState(() => localStorage.getItem("snoozed:" + folder.id) === "shown");
+  const toggleSnoozed = () => {
+    setShowSnoozed((shown) => {
+      localStorage.setItem("snoozed:" + folder.id, shown ? "hidden" : "shown");
+      return !shown;
+    });
+  };
   const status = smart ? ctx.state.smart[folder.id] : undefined;
   const unread = smart && !open && folder.children.some((n) => n.kind === "tab" && n.unread);
   const settings = () => send({ cmd: "smart_folder_dialog", id: folder.id });
@@ -488,11 +607,29 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
           </button>
         )}
         {unread && <span className="unread-dot" aria-label="New items" />}
+        {snoozed.length > 0 && (
+          <button
+            className="slot"
+            data-on={showSnoozed || undefined}
+            aria-pressed={showSnoozed}
+            title={`${showSnoozed ? "Hide" : "Show"} ${snoozed.length} snoozed item${snoozed.length === 1 ? "" : "s"}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSnoozed();
+              // Showing them in a collapsed folder opens it.
+              if (!showSnoozed && !open) toggle();
+            }}
+            onDoubleClick={(e) => e.stopPropagation()}
+          >
+            <SnoozeIcon width={14} height={14} />
+          </button>
+        )}
         {!open && count > 0 && <span className="meta">{count}</span>}
       </div>
       {open && (
         <div style={{ paddingLeft: depth < 2 ? 16 : 8 }}>
           <NodeList ctx={ctx} nodes={folder.children} depth={depth + 1} folderId={folder.id} />
+          {showSnoozed && snoozed.map((s) => <SnoozedRow key={s.url} folderId={folder.id} item={s} />)}
         </div>
       )}
     </div>

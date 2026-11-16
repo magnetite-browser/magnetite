@@ -381,6 +381,7 @@ impl EngineDelegate for MagnetiteApp {
                     self.show_state(engine);
                 }
                 self.housekeeping(engine);
+                self.smart_wake_due(engine);
                 self.smart_refresh_due(engine);
                 self.update_tick(engine);
                 self.adblock_tick();

@@ -123,3 +123,55 @@ export function guessSource(folder: Folder | null): SmartSource {
   if (youtrack) return { ...DEFAULT_SOURCES.youtrack, url: origin(youtrack) };
   return DEFAULT_SOURCES.github;
 }
+
+/** A time to snooze an item until, as the snooze menu offers it. */
+export interface SnoozeChoice {
+  label: string;
+  /** The time it stands for, as the menu shows it. */
+  hint: string;
+  /** Unix seconds. */
+  until: number;
+}
+
+const clock = (d: Date) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+const weekday = (d: Date) => d.toLocaleDateString([], { weekday: "short" });
+
+/** `now` moved by `days`, at `hour` o'clock. */
+function dayAt(now: Date, days: number, hour: number): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + days, hour);
+}
+
+/**
+ * The times the snooze menu offers at `now`: in 1 and 3 hours, this evening
+ * (18:00, while it is still ahead), tomorrow at 9:00 and next Monday at 9:00.
+ */
+export function snoozeChoices(now: Date): SnoozeChoice[] {
+  const inHours = (h: number) => new Date(now.getTime() + h * 3600_000);
+  const evening = dayAt(now, 0, 18);
+  const tomorrow = dayAt(now, 1, 9);
+  // Days until the next Monday; on a Monday that is a week.
+  const monday = dayAt(now, ((8 - now.getDay()) % 7) || 7, 9);
+  const choice = (label: string, at: Date, hint = clock(at)): SnoozeChoice => ({ label, hint, until: Math.floor(at.getTime() / 1000) });
+  return [
+    choice("In 1 hour", inHours(1)),
+    choice("In 3 hours", inHours(3)),
+    ...(evening > now ? [choice("This evening", evening)] : []),
+    choice("Tomorrow", tomorrow),
+    choice("Next week", monday, `${weekday(monday)} ${clock(monday)}`),
+  ];
+}
+
+/** When a snoozed item comes back: "14:35" today, "Mon 9:00" within a week, else "24 Nov"; without a time "Forever". */
+export function wakeLabel(until: number | undefined, now = new Date()): string {
+  if (until === undefined) return "Forever";
+  const at = new Date(until * 1000);
+  if (at.toDateString() === now.toDateString()) return clock(at);
+  if (at.getTime() - now.getTime() < 7 * 86400_000) return `${weekday(at)} ${clock(at)}`;
+  return at.toLocaleDateString([], { day: "numeric", month: "short" });
+}
+
+/** `d` as a `datetime-local` input takes it: local time, to the minute. */
+export function localInputValue(d: Date): string {
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}T${two(d.getHours())}:${two(d.getMinutes())}`;
+}

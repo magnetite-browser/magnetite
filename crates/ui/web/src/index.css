@@ -93,6 +93,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .row:hover .kept, .row:focus-within .kept { visibility: hidden; }
 .row:hover .slot.ghost, .row:focus-within .slot.ghost { opacity: 1; }
 .row .slot:hover { background: rgba(255,255,255,0.1); color: var(--fg); }
+/* A toggle that is on (a smart folder showing its snoozed items). */
+.row .slot[data-on] { color: var(--space, var(--accent)); }
+/* A snoozed item of a smart folder: dimmed; its wake time gives way to the wake button. */
+.row.snoozed .title { color: var(--muted); }
+.row.snoozed .favicon { opacity: 0.5; filter: grayscale(1); }
+.row.snoozed:hover .meta, .row.snoozed:focus-within .meta { visibility: hidden; }
 .row .rename { flex: 1; min-width: 0; height: 24px; background: var(--surface); border: 0; border-radius: 6px; padding: 0 6px; color: var(--fg); outline: 2px solid var(--accent); outline-offset: -2px; }
 
 .drop { position: relative; }
@@ -298,6 +304,7 @@ button.panel-row:disabled { opacity: 0.45; }
 .menu button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; height: 28px; padding: 0 10px; border-radius: 6px; }
 /* One line per entry: the menu's height is counted in 28 px rows (ContextMenu.tsx). */
 .menu button span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu button .hint { margin-left: auto; flex: none; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .menu button:hover { background: rgba(255,255,255,0.1); }
 .menu button[data-danger] { color: var(--danger); }
 .menu button[data-danger]:hover { background: rgba(255, 90, 90, 0.14); }

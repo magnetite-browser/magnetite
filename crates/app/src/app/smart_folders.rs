@@ -2,6 +2,7 @@
 //! items.
 
 use magnetite_core::smart::{Service, SmartFolder, SmartItem, SmartSource, item_key};
+use magnetite_core::{SidebarNode, UnixSeconds};
 use magnetite_engine::Engine;
 use serde_json::json;
 
@@ -125,6 +126,7 @@ impl MagnetiteApp {
                         .collect::<Vec<_>>(),
                 );
                 if let Some(o) = old.filter(|o| o.source == smart.source) {
+                    smart.snoozed = o.snoozed;
                     smart.hidden = o.hidden;
                     smart.filled = o.filled;
                 }
@@ -278,27 +280,61 @@ impl MagnetiteApp {
         }
     }
 
-    /// Take tab `id` out of its smart folder and keep it out (unloading it
-    /// first, which also moves on if it is the active tab).
-    pub(super) fn smart_hide(&self, engine: &Engine, id: &str) {
+    /// Put tab `id`, an item of its smart folder, away until `until`
+    /// (`None`: until it is woken by hand), unloading it first, which also
+    /// moves on if it is the active tab.
+    pub(super) fn smart_snooze(&self, engine: &Engine, id: &str, until: Option<UnixSeconds>) {
+        let own = self.with_state(|s| {
+            s.parent_folder_mut(id).is_some_and(|f| {
+                let smart = f.smart.as_ref();
+                f.children.iter().any(|n| {
+                    matches!(n, SidebarNode::Tab(t) if t.id == id
+                        && smart.is_some_and(|sm| sm.items.iter().any(|k| k == item_key(t))))
+                })
+            })
+        });
+        if !own {
+            return;
+        }
         self.close_tab(engine, id);
         self.with_state(|s| {
-            if let Some(f) = s.parent_folder_mut(id) {
-                let key = f.children.iter().find_map(|n| match n {
-                    magnetite_core::SidebarNode::Tab(t) if t.id == id => {
-                        Some(item_key(t).to_string())
-                    }
-                    _ => None,
-                });
-                if let (Some(smart), Some(key)) = (f.smart.as_mut(), key) {
-                    smart.items.retain(|k| *k != key);
-                    smart.hidden.push(key);
-                }
-                f.children
-                    .retain(|n| !matches!(n, magnetite_core::SidebarNode::Tab(t) if t.id == id));
+            if s.parent_folder_mut(id).is_some_and(|f| f.snooze(id, until)) {
+                s.runtime.remove(id);
             }
-            s.runtime.remove(id);
         });
         self.push_state(engine);
+    }
+
+    /// Bring the item `url`, snoozed in smart folder `id`, back now.
+    pub(super) fn smart_wake(&self, engine: &Engine, id: &str, url: &str) {
+        let woken = self.with_state(|s| {
+            s.folder_mut(id)
+                .is_some_and(|f| f.wake(|sn| sn.url == url, new_id, now()))
+        });
+        if woken {
+            self.push_state(engine);
+        }
+    }
+
+    /// Bring back the snoozed items whose time has come.
+    pub(super) fn smart_wake_due(&self, engine: &Engine) {
+        let now = now();
+        let woken = self.with_state(|s| {
+            let due: Vec<String> = s
+                .smart_folders()
+                .into_iter()
+                .filter(|(_, sf)| sf.snoozed.iter().any(|sn| sn.is_due(now)))
+                .map(|(id, _)| id)
+                .collect();
+            // Every one of them, so no short-circuiting `any`.
+            let woken = due.iter().filter(|id| {
+                s.folder_mut(id)
+                    .is_some_and(|f| f.wake(|sn| sn.is_due(now), new_id, now))
+            });
+            woken.count() > 0
+        });
+        if woken {
+            self.push_state(engine);
+        }
     }
 }

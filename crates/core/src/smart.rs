@@ -25,8 +25,13 @@ pub struct SmartFolder {
     /// URLs the source listed on the last refresh: the folder's own items.
     #[serde(default)]
     pub items: Vec<String>,
-    /// URLs the user hid; not added again while the source lists them.
-    #[serde(default)]
+    /// Items the user put away for a while or for good: not shown while
+    /// the source lists them, until they wake.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub snoozed: Vec<Snoozed>,
+    /// URLs hidden before items could be snoozed (up to 0.0.3). The next
+    /// refresh turns them into items snoozed for good.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub hidden: Vec<String>,
     /// The source was asked at least once. Items that come later are new
     /// (shown as unread), also in a folder that was empty until then.
@@ -50,9 +55,28 @@ impl SmartFolder {
             limit: default_limit(),
             refresh_minutes: default_refresh_minutes(),
             items: Vec::new(),
+            snoozed: Vec::new(),
             hidden: Vec::new(),
             filled: false,
         }
+    }
+}
+
+/// An item of a smart folder that is put away.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Snoozed {
+    pub url: String,
+    /// As the source named it last, for the list of snoozed items.
+    pub title: String,
+    /// When it comes back; `None`: only when the user wakes it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub until: Option<UnixSeconds>,
+}
+
+impl Snoozed {
+    /// Whether its time has come at `now`.
+    pub fn is_due(&self, now: UnixSeconds) -> bool {
+        self.until.is_some_and(|until| until <= now)
     }
 }
 
@@ -160,9 +184,10 @@ impl Folder {
     /// Bring a smart folder up to date with `items`, what its source lists
     /// now (best first). New items become tabs, unread unless this is the
     /// folder's first fill; items the source dropped go away unless `keep`
-    /// says otherwise (the tab is open); hidden items stay away. Tabs the
-    /// user added by hand keep their place, ahead of the source's items.
-    /// Returns whether anything changed.
+    /// says otherwise (the tab is open); snoozed items stay away until
+    /// their time has come, and are forgotten once the source drops them.
+    /// Tabs the user added by hand keep their place, ahead of the source's
+    /// items. Returns whether anything changed.
     pub fn apply_smart(
         &mut self,
         items: &[SmartItem],
@@ -176,9 +201,26 @@ impl Folder {
         // The first answer fills the folder; nothing in it is news yet.
         let first_fill = !smart.filled && smart.items.is_empty();
         smart.filled = true;
+        let snoozed_before = smart.snoozed.clone();
+        let title_of = |url: &str| items.iter().find(|i| i.url == url).map(|i| &i.title);
+        for url in std::mem::take(&mut smart.hidden) {
+            if let Some(title) = title_of(&url) {
+                smart.snoozed.push(Snoozed {
+                    url,
+                    title: title.clone(),
+                    until: None,
+                });
+            }
+        }
+        // Due items come back below as new ones; the rest follow the
+        // source's titles while it lists them.
+        smart.snoozed.retain_mut(|s| {
+            let listed = title_of(&s.url).map(|title| s.title.clone_from(title));
+            listed.is_some() && !s.is_due(now)
+        });
         let listed: Vec<&SmartItem> = items
             .iter()
-            .filter(|i| !smart.hidden.contains(&i.url))
+            .filter(|i| !smart.snoozed.iter().any(|s| s.url == i.url))
             .take(smart.limit as usize)
             .collect();
         let before = self.children.clone();
@@ -220,10 +262,60 @@ impl Folder {
             .chain(kept.iter().map(|t| item_key(t).to_string()))
             .collect();
         children.extend(kept.into_iter().map(SidebarNode::Tab));
-        // Forget hidden items once the source stops listing them.
-        smart.hidden.retain(|h| items.iter().any(|i| &i.url == h));
+        let snoozed_changed = smart.snoozed != snoozed_before;
         self.children = children;
-        self.children != before
+        self.children != before || snoozed_changed
+    }
+
+    /// Put tab `id`, one of a smart folder's own items, away until `until`
+    /// (`None`: until the user wakes it). False if it is not such an item.
+    pub fn snooze(&mut self, id: &str, until: Option<UnixSeconds>) -> bool {
+        let Some(smart) = self.smart.as_mut() else {
+            return false;
+        };
+        let own = |n: &SidebarNode| matches!(n, SidebarNode::Tab(t) if t.id == id && smart.items.iter().any(|k| k == item_key(t)));
+        let Some(at) = self.children.iter().position(own) else {
+            return false;
+        };
+        let SidebarNode::Tab(tab) = self.children.remove(at) else {
+            return false;
+        };
+        let url = item_key(&tab).to_string();
+        smart.items.retain(|k| *k != url);
+        smart.snoozed.push(Snoozed {
+            url,
+            title: tab.title,
+            until,
+        });
+        true
+    }
+
+    /// Bring the snoozed items `which` picks back, as unread tabs at the
+    /// folder's end (the next refresh puts them in the source's order).
+    /// Returns whether there were any.
+    pub fn wake(
+        &mut self,
+        which: impl Fn(&Snoozed) -> bool,
+        mut new_id: impl FnMut() -> Id,
+        now: UnixSeconds,
+    ) -> bool {
+        let Some(smart) = self.smart.as_mut() else {
+            return false;
+        };
+        let (woken, asleep) = std::mem::take(&mut smart.snoozed)
+            .into_iter()
+            .partition::<Vec<_>, _>(|s| which(s));
+        smart.snoozed = asleep;
+        for s in &woken {
+            smart.items.push(s.url.clone());
+            self.children.push(SidebarNode::Tab(TabItem {
+                home_url: Some(s.url.clone()),
+                created_at: Some(now),
+                unread: true,
+                ..TabItem::new(new_id(), s.url.clone(), s.title.clone())
+            }));
+        }
+        !woken.is_empty()
     }
 }
 
@@ -301,7 +393,7 @@ mod tests {
     }
 
     #[test]
-    fn open_tabs_survive_and_hidden_items_stay_away_until_the_source_drops_them() {
+    fn open_tabs_survive_and_snoozed_items_stay_away_until_the_source_drops_them() {
         let mut f = folder();
         let mut ids = {
             let mut n = 0;
@@ -311,17 +403,74 @@ mod tests {
             }
         };
         f.apply_smart(&[item(1), item(2)], |_| false, &mut ids, 0);
-        f.smart.as_mut().unwrap().hidden.push(item(2).url);
+        assert!(f.snooze("t2", None));
         // PR 1 is gone from the source but open: it stays for now.
         f.apply_smart(&[item(2)], |t| t.title == "PR 1", &mut ids, 0);
         assert_eq!(
             tabs(&f),
             vec![("Notes".into(), false), ("PR 1".into(), false)]
         );
-        // Once closed, the next refresh drops it; the hidden mark ends with PR 2.
+        // Once closed, the next refresh drops it; the snooze ends with PR 2.
         f.apply_smart(&[], |_| false, &mut ids, 0);
         assert_eq!(tabs(&f), vec![("Notes".into(), false)]);
-        assert_eq!(f.smart.as_ref().unwrap().hidden, vec![] as Vec<String>);
+        assert_eq!(f.smart.as_ref().unwrap().snoozed, vec![] as Vec<Snoozed>);
+    }
+
+    #[test]
+    fn a_snoozed_item_comes_back_unread_when_its_time_has_come() {
+        let mut f = folder();
+        let mut ids = {
+            let mut n = 0;
+            move || {
+                n += 1;
+                format!("t{n}")
+            }
+        };
+        let both = [item(1), item(2)];
+        f.apply_smart(&both, |_| false, &mut ids, 0);
+        assert!(!f.snooze("manual", Some(100)), "not the source's item");
+        assert!(f.snooze("t1", Some(100)));
+        // Still listed, still asleep: a refresh leaves it away.
+        assert!(!f.apply_smart(&both, |_| false, &mut ids, 99));
+        assert_eq!(
+            tabs(&f),
+            vec![("Notes".into(), false), ("PR 2".into(), false)]
+        );
+        // Its time has come: back at once, in its place after the refresh.
+        assert!(!f.wake(|s| s.is_due(99), &mut ids, 99));
+        assert!(f.wake(|s| s.is_due(100), &mut ids, 100));
+        assert_eq!(tabs(&f).last(), Some(&("PR 1".into(), true)));
+        f.apply_smart(&both, |_| false, &mut ids, 100);
+        assert_eq!(
+            tabs(&f),
+            vec![
+                ("Notes".into(), false),
+                ("PR 1".into(), true),
+                ("PR 2".into(), false)
+            ]
+        );
+        // Without a wake in between, the refresh itself brings a due item back.
+        assert!(f.snooze("t3", Some(200)));
+        assert!(f.apply_smart(&both, |_| false, &mut ids, 200));
+        assert_eq!(tabs(&f)[1], ("PR 1".into(), true));
+    }
+
+    #[test]
+    fn items_hidden_by_an_older_version_are_snoozed_for_good() {
+        let mut f = folder();
+        f.smart.as_mut().unwrap().hidden = vec![item(2).url, item(9).url];
+        f.apply_smart(&[item(1), item(2)], |_| false, || "t".into(), 0);
+        let smart = f.smart.as_ref().unwrap();
+        assert_eq!(
+            smart.snoozed,
+            vec![Snoozed {
+                url: item(2).url,
+                title: "PR 2".into(),
+                until: None
+            }]
+        );
+        assert_eq!(smart.hidden, vec![] as Vec<String>);
+        assert_eq!(tabs(&f).len(), 2, "Notes and PR 1");
     }
 
     #[test]

@@ -68,7 +68,8 @@ fn drop_taken(nodes: &mut Vec<SidebarNode>, taken: &HashSet<String>) {
 /// Make data from elsewhere (sync, imports) safe to keep: colours finite and
 /// in range (a non-finite one would be saved as `null` and make `state.json`
 /// unreadable), timestamps no later than tomorrow, smart folder settings in
-/// the Settings page's ranges, IDs unique (later duplicates are dropped),
+/// the Settings page's ranges and their snoozed items web addresses, IDs
+/// unique (later duplicates are dropped),
 /// profiles with an ID each, and every tab what its place says it is: a
 /// favorite or pinned tab has a home page, a Today tab has none. (Without
 /// its home page a private pinned tab would be saved where it went.) A
@@ -102,6 +103,10 @@ pub fn sanitise_snapshot(snap: &mut SidebarSnapshot) {
                 if let Some(smart) = &mut f.smart {
                     smart.limit = smart.limit.clamp(1, 100);
                     smart.refresh_minutes = smart.refresh_minutes.clamp(1, 24 * 60);
+                    // A snoozed item becomes a tab when it wakes.
+                    smart.snoozed.retain(|s| {
+                        crate::url_policy::allowed(&s.url, crate::url_policy::Source::Stored)
+                    });
                 }
                 nodes(&mut f.children, seen, latest);
                 seen.insert(f.id.clone())

@@ -349,9 +349,17 @@ pub(super) enum UiCommand {
     SmartUnlink {
         id: String,
     },
-    /// Take tab `id` out of its smart folder for good.
-    SmartHide {
+    /// Put tab `id`, an item of its smart folder, away until `until`
+    /// (Unix seconds; none: until it is woken by hand).
+    SmartSnooze {
         id: String,
+        #[serde(default)]
+        until: Option<i64>,
+    },
+    /// Bring the item `url`, snoozed in smart folder `id`, back now.
+    SmartWake {
+        id: String,
+        url: String,
     },
     /// Let smart folder `id`, synced from another device, fetch here.
     SmartAllow {
@@ -1194,7 +1202,8 @@ impl MagnetiteApp {
                 });
                 self.push_state(engine);
             }
-            UiCommand::SmartHide { id } => self.smart_hide(engine, &id),
+            UiCommand::SmartSnooze { id, until } => self.smart_snooze(engine, &id, until),
+            UiCommand::SmartWake { id, url } => self.smart_wake(engine, &id, &url),
             UiCommand::SmartAllow { id } => {
                 self.with_state(|s| s.allow_smart(&id));
                 self.smart_fetch(engine, &id);
