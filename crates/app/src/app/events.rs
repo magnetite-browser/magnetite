@@ -215,11 +215,32 @@ impl EngineDelegate for MagnetiteApp {
                     let from_mini = from.is_some_and(|c| s.minis.iter().any(|m| m.content == c));
                     (ask.target(&s.settings.external_links), from_mini)
                 });
+                // A link from another app to a site with a rule opens in the
+                // rule's space: as a tab there, or as a peek or mini window
+                // with that space's logins.
+                let ruled = self.with_state(|s| {
+                    let space = (source == url_policy::Source::OtherApp)
+                        .then(|| s.settings.link_space(&url))
+                        .flatten()
+                        .and_then(|id| s.space(id))?;
+                    Some((space.id.clone(), space.profile_id.clone()))
+                });
+                let context = match &ruled {
+                    Some((_, profile)) => Some(profile.as_str()),
+                    None => context.as_deref(),
+                };
                 match target {
-                    Target::Peek => self.open_peek(engine, &url, source, context.as_deref()),
-                    Target::Mini => self.open_mini(engine, &url, source, context.as_deref()),
+                    Target::Peek => self.open_peek(engine, &url, source, context),
+                    Target::Mini => self.open_mini(engine, &url, source, context),
                     Target::Tab => {
-                        self.open_url_from(engine, &url, background, source, context.as_deref());
+                        if let Some((space, _)) = &ruled
+                            && self.with_state(|s| s.active_space != *space)
+                        {
+                            self.activate_space(engine, space);
+                        }
+                        // In the rule's space the tab takes that space's profile.
+                        let context = context.filter(|_| ruled.is_none());
+                        self.open_url_from(engine, &url, background, source, context);
                     }
                 }
                 // A link from another app, or what a mini window's page

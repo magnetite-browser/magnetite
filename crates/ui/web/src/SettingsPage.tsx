@@ -4,7 +4,7 @@ import { AdblockIcon, Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIco
 import { IsolationSection } from "./IsolationSection";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
-import { applyAppearance, send, type DefaultBrowser, type Settings, type SiteSearch } from "./bridge";
+import { applyAppearance, send, type DefaultBrowser, type LinkRule, type Settings, type SiteSearch } from "./bridge";
 import { About } from "./settings/AboutSection";
 import { AdblockSection } from "./settings/AdblockSection";
 import { AutofillSection } from "./settings/AutofillSection";
@@ -150,6 +150,7 @@ export function SettingsPage() {
                   <option value="mini">a mini window</option>
                 </select>
               </Field>
+              <LinkRules saved={settings.link_rules} spaces={info.spaces} save={(rules) => update({ link_rules: rules })} />
               <Toggle label="Quick search from anywhere (⌥⌘N)" hint="Opens the command bar over any app; what you pick opens in a mini window. Only that key combination reaches Magnetite, no other typing." checked={settings.quick_search} onChange={(v) => update({ quick_search: v })} />
               <Toggle label="Pop out playing videos" hint="When you leave a tab with a playing video, it continues in a floating picture-in-picture window. Coming back puts it into the page again." checked={settings.auto_pip} onChange={(v) => update({ auto_pip: v })} />
               <Toggle label="Several windows (⌘N)" hint="New Window opens another window on the same sidebar. Choosing a tab in one window moves it there; with Magnetite's own engine build it keeps playing, otherwise it loads again. Windows open again after a restart. New, and untested on macOS and Windows." checked={settings.several_windows} onChange={(v) => update({ several_windows: v })} />
@@ -391,6 +392,69 @@ function DefaultBrowserCard({ state }: { state: DefaultBrowser }) {
   return (
     <Field label="Default browser" hint={now === "yes" ? "Magnetite opens links from other apps." : "Links from other apps open in another browser."}>
       {now === "no" && <button className="btn" disabled={asking} onClick={ask}>{asking ? "Waiting for macOS…" : "Make default"}</button>}
+    </Field>
+  );
+}
+
+/**
+ * A rule's site as the app keeps it (`LinkRule::sanitised`): of what was
+ * typed, which may be a whole address, the host without `www.` and the
+ * path. Null without a host.
+ */
+function ruleSite(typed: string): string | null {
+  const rest = typed.trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, "").split(/[?#]/)[0] ?? "";
+  const slash = rest.indexOf("/");
+  const host = (slash < 0 ? rest : rest.slice(0, slash)).split("@").pop()!.split(":")[0]!.replace(/^www\./i, "").toLowerCase();
+  const path = slash < 0 ? "" : rest.slice(slash).replace(/\/+$/, "");
+  return /^[a-z0-9.-]+$/.test(host) && host.includes(".") ? host + path : null;
+}
+
+/**
+ * The rules for links from other apps: a site and the space its links open
+ * in. Changes are saved when a field is left or a space chosen; a row that
+ * would not be kept stays here, marked, and is left out until it is fixed.
+ */
+function LinkRules({ saved, spaces, save }: { saved: LinkRule[]; spaces: Info["spaces"]; save: (rules: LinkRule[]) => void }) {
+  const [rows, setRows] = useState(saved);
+  const problem = (rule: LinkRule, all: LinkRule[]): string | null => {
+    const site = ruleSite(rule.site);
+    if (!site) return "Give a site, such as github.com or github.com/acme.";
+    if (all.find((r) => ruleSite(r.site) === site) !== rule) return "Another rule has this site.";
+    if (!spaces.some((s) => s.id === rule.space)) return "Choose a space; the one this rule had is gone.";
+    return null;
+  };
+  const commit = (next: LinkRule[]) => {
+    const valid = next.filter((r) => !problem(r, next)).map((r) => ({ site: ruleSite(r.site)!, space: r.space }));
+    if (JSON.stringify(valid) !== JSON.stringify(saved)) save(valid);
+  };
+  const change = (i: number, patch: Partial<LinkRule>) => {
+    const next = rows.map((r, j) => (j === i ? { ...r, ...patch } : r));
+    setRows(next);
+    return next;
+  };
+  return (
+    <Field label="Links to these sites open in a space of their own" hint="A link from another app to a site listed here opens in the space chosen for it, with that space's logins, whichever space is in front. A site stands for its subdomains; github.com/acme is only that part of GitHub. The most exact rule counts.">
+      <div className="space-y-2">
+        {rows.map((r, i) => {
+          // A row just added says nothing until something is typed.
+          const why = r.site ? problem(r, rows) : null;
+          return (
+            <div key={i}>
+              <div className="flex items-center gap-2">
+                <input className="field mono" style={{ flex: 1, minWidth: 0 }} value={r.site} placeholder="github.com/acme" aria-label="Site" aria-invalid={!!why || undefined} onChange={(e) => change(i, { site: e.target.value })} onBlur={() => commit(rows)} />
+                <span className="text-[13px] text-[var(--muted)]">opens in</span>
+                <select className="field" style={{ width: 180 }} value={spaces.some((s) => s.id === r.space) ? r.space : ""} aria-label="Space" onChange={(e) => commit(change(i, { space: e.target.value }))}>
+                  <option value="" disabled>a space…</option>
+                  {spaces.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
+                </select>
+                <button className="ib" title="Remove" aria-label={`Remove the rule for ${r.site || "a site"}`} onClick={() => { const next = rows.filter((_, j) => j !== i); setRows(next); commit(next); }}><Close width={14} height={14} /></button>
+              </div>
+              {why && <p className="set-hint" style={{ color: "var(--danger)" }}>Not saved: {why}</p>}
+            </div>
+          );
+        })}
+        <button className="btn" onClick={() => setRows((list) => [...list, { site: "", space: spaces[0]?.id ?? "" }])}>Add rule</button>
+      </div>
     </Field>
   );
 }

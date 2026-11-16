@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use magnetite_core::UnixSeconds;
+use magnetite_core::{Id, UnixSeconds};
 use serde::{Deserialize, Serialize};
 
 /// The longest the archive may keep a tab: ten years.
@@ -42,6 +42,9 @@ pub struct Settings {
     /// Synced: a version that does not know a value takes "tab"
     /// (`sanitised`).
     pub external_links: String,
+    /// Which space a link from another app opens in, by its site
+    /// (`LinkRule`). This device's own, never synced.
+    pub link_rules: Vec<LinkRule>,
     /// The system-wide quick search key (⌥⌘N) is registered. This
     /// device's own choice, never synced.
     pub quick_search: bool,
@@ -254,6 +257,75 @@ impl SiteSearch {
     }
 }
 
+/// A rule for links from other apps: one to `site` opens in space `space`.
+/// `site` is a host, or a host and the start of a path (`github.com/acme`),
+/// in lower case without `www.`; it stands for its subdomains too.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LinkRule {
+    pub site: String,
+    pub space: Id,
+}
+
+/// The most link rules kept.
+const MAX_LINK_RULES: usize = 100;
+
+/// The host of an http(s) address or of a rule's site, without `www.`, and
+/// the path after it (up to `?` or `#`, without the `/` at its end).
+fn host_and_path(address: &str) -> Option<(String, &str)> {
+    let rest = address.split_once("://").map_or(address, |(_, rest)| rest);
+    let rest = rest.split(['?', '#']).next()?;
+    let (authority, path) = match rest.find('/') {
+        Some(at) => rest.split_at(at),
+        None => (rest, ""),
+    };
+    let host = authority.rsplit('@').next()?.split(':').next()?;
+    let host = host.trim_start_matches("www.").to_ascii_lowercase();
+    let fine = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.';
+    (host.contains('.') && host.chars().all(fine)).then(|| (host, path.trim_end_matches('/')))
+}
+
+impl LinkRule {
+    /// This rule as Magnetite keeps it, or `None` without a site: what was
+    /// typed may be a whole address (`https://www.GitHub.com/acme/`), of
+    /// which the host and the path stay (`github.com/acme`).
+    fn sanitised(self) -> Option<Self> {
+        let (host, path) = host_and_path(self.site.trim())?;
+        Some(Self {
+            site: format!("{host}{path}"),
+            space: self.space,
+        })
+    }
+
+    /// How closely the rule fits `url`, if it does: the lengths of its host
+    /// and its path. It fits an http(s) address on its host or a subdomain
+    /// of it, under its path.
+    fn fit(&self, url: &str) -> Option<(usize, usize)> {
+        if !(url.starts_with("https://") || url.starts_with("http://")) {
+            return None;
+        }
+        let (host, path) = host_and_path(url)?;
+        let (site, under) = host_and_path(&self.site)?;
+        let on_host = host == site || host.ends_with(&format!(".{site}"));
+        // `/acme` is above `/acme/app`, not above `/acmecorp`.
+        let below = path
+            .strip_prefix(under)
+            .is_some_and(|rest| rest.is_empty() || rest.starts_with('/'));
+        (on_host && below).then_some((site.len(), under.len()))
+    }
+}
+
+impl Settings {
+    /// The space a link from another app to `url` opens in, if a rule says
+    /// so: of several rules that fit, the one with the longest host, then
+    /// the longest path.
+    pub fn link_space(&self, url: &str) -> Option<&Id> {
+        (self.link_rules.iter())
+            .filter_map(|rule| Some((rule.fit(url)?, rule)))
+            .max_by_key(|(fit, _)| *fit)
+            .map(|(_, rule)| &rule.space)
+    }
+}
+
 /// Sync configuration. Keys are kept out of `state.json` (see `sync.rs`).
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
@@ -274,7 +346,8 @@ impl Settings {
     /// or from another device: archiving after at least an hour, retention
     /// periods in range, appearance in range, search addresses on https with
     /// `%s` in them (site searches that are not, or repeat a keyword, are
-    /// dropped), a known choice for external links.
+    /// dropped), a known choice for external links, link rules with a site
+    /// each (one per site).
     pub fn sanitised(mut self) -> Self {
         let defaults = Self::default();
         self.auto_archive_hours = self.auto_archive_hours.max(1);
@@ -298,6 +371,16 @@ impl Settings {
         if !matches!(self.external_links.as_str(), "tab" | "peek" | "mini") {
             self.external_links = defaults.external_links;
         }
+        let mut rules: Vec<LinkRule> = Vec::new();
+        for rule in std::mem::take(&mut self.link_rules) {
+            if let Some(rule) = rule.sanitised()
+                && !rules.iter().any(|r| r.site == rule.site)
+                && rules.len() < MAX_LINK_RULES
+            {
+                rules.push(rule);
+            }
+        }
+        self.link_rules = rules;
         self
     }
 }
@@ -359,6 +442,7 @@ impl Default for Settings {
             search_template: "https://duckduckgo.com/?q=%s".into(),
             site_searches: builtin_site_searches(),
             external_links: "tab".into(),
+            link_rules: Vec::new(),
             quick_search: true,
             chrome_toolbar: false,
             appearance: Appearance::default(),
@@ -382,6 +466,53 @@ impl Default for Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn rule(site: &str, space: &str) -> LinkRule {
+        LinkRule {
+            site: site.into(),
+            space: space.into(),
+        }
+    }
+
+    #[test]
+    fn a_link_goes_to_the_space_of_the_rule_that_fits_it_best() {
+        let settings = Settings {
+            link_rules: vec![
+                rule("github.com", "personal"),
+                rule("github.com/acme", "work"),
+                rule("mail.example.org", "mail"),
+            ],
+            ..Settings::default()
+        };
+        let space = |url: &str| settings.link_space(url).map(String::as_str);
+        assert_eq!(
+            space("https://github.com/acme/app/pull/1?x=1"),
+            Some("work")
+        );
+        assert_eq!(space("https://github.com/acme"), Some("work"));
+        assert_eq!(space("https://github.com/acmecorp/app"), Some("personal"));
+        assert_eq!(space("https://www.github.com/"), Some("personal"));
+        assert_eq!(space("https://gist.github.com/someone"), Some("personal"));
+        assert_eq!(space("http://mail.example.org:8080/inbox"), Some("mail"));
+        assert_eq!(space("https://example.org/"), None);
+        assert_eq!(space("https://notgithub.com/acme"), None);
+        assert_eq!(space("file:///github.com/acme"), None);
+    }
+
+    #[test]
+    fn link_rules_keep_a_site_each_as_host_and_path() {
+        let kept = Settings {
+            link_rules: vec![
+                rule(" https://www.GitHub.com/acme/ ", "work"),
+                rule("github.com/acme", "again"),
+                rule("not a site", "x"),
+                rule("", "x"),
+            ],
+            ..Settings::default()
+        }
+        .sanitised();
+        assert_eq!(kept.link_rules, [rule("github.com/acme", "work")]);
+    }
 
     #[test]
     fn autofill_switches_start_safe_and_change_one_at_a_time() {

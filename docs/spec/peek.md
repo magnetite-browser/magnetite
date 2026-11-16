@@ -23,6 +23,8 @@ it as a tab, or put it beside the current tab in split view.
 - Settings → General → "Open links from other apps in" offers "a new tab in
   the current space" (the default), "a peek window" and "a mini window"
   (`mini-window.md`).
+- A rule can send the links to a site to a space of their own
+  (`spaces.md`, "Links from other apps").
 - An address Magnetite does not open from that source, such as
   `javascript:` or `data:`, opens nothing.
 
