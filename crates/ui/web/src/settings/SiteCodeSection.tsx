@@ -1,13 +1,16 @@
 // Settings → Custom CSS & JS: the user's own CSS and JavaScript per site.
 // Changes are saved when a field is left; a site that would not be kept
 // stays here, marked, and is left out until it is fixed.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Close } from "../Icons";
 import type { SiteCode } from "../bridge";
 import { Switch } from "./fields";
 
-/** The most characters of CSS or JavaScript for one site (`MAX_SITE_CODE` in the app counts bytes). */
-const MAX_CODE = 200_000;
+/** The most sites the app keeps (`MAX_CODE_SITES`). */
+const MAX_SITES = 200;
+/** The most bytes of CSS or JavaScript for one site, as UTF-8 (`MAX_SITE_CODE`). */
+const MAX_CODE = 256 * 1024;
+const bytes = (text: string) => new TextEncoder().encode(text).length;
 
 /** A site as the app keeps it (`site_host`): the host of what was typed, without `www.`. Null without a host. */
 function siteHost(typed: string): string | null {
@@ -20,13 +23,22 @@ function problem(entry: SiteCode, all: SiteCode[]): string | null {
   const site = siteHost(entry.site);
   if (!site) return "Give the site by its host, such as example.org.";
   if (all.find((c) => siteHost(c.site) === site) !== entry) return "This site is listed already.";
-  if (entry.css.length > MAX_CODE || entry.js.length > MAX_CODE) return "That is too much code for one site.";
+  if (bytes(entry.css) > MAX_CODE || bytes(entry.js) > MAX_CODE) return "That is too much code for one site (256 KiB of CSS and of JavaScript at most).";
   return null;
 }
 
 /** `open`: the site whose code to show at once (from the site panel); it gets a row if it has none. */
 export function SiteCodeSection({ saved, open, save }: { saved: SiteCode[]; open?: string; save: (code: SiteCode[]) => void }) {
   const [rows, setRows] = useState(saved);
+  // What this editor knows to be saved. Saved code that differs was changed
+  // elsewhere (another Settings tab): it replaces the rows, drafts included.
+  const known = useRef(JSON.stringify(saved));
+  useEffect(() => {
+    const now = JSON.stringify(saved);
+    if (now === known.current) return;
+    known.current = now;
+    setRows(saved);
+  }, [saved]);
   useEffect(() => {
     const site = open && siteHost(open);
     if (site) setRows((list) => (list.some((c) => siteHost(c.site) === site) ? list : [{ site, css: "", js: "", enabled: true }, ...list]));
@@ -34,7 +46,9 @@ export function SiteCodeSection({ saved, open, save }: { saved: SiteCode[]; open
   const commit = (next: SiteCode[]) => {
     // A site without code says nothing yet.
     const valid = next.filter((c) => !problem(c, next) && (c.css.trim() || c.js.trim())).map((c) => ({ ...c, site: siteHost(c.site)! }));
-    if (JSON.stringify(valid) !== JSON.stringify(saved)) save(valid);
+    if (JSON.stringify(valid) === JSON.stringify(saved)) return;
+    known.current = JSON.stringify(valid);
+    save(valid);
   };
   const change = (i: number, patch: Partial<SiteCode>) => {
     const next = rows.map((c, j) => (j === i ? { ...c, ...patch } : c));
@@ -68,7 +82,7 @@ export function SiteCodeSection({ saved, open, save }: { saved: SiteCode[]; open
         <p className="set-hint min-w-0 flex-1">
           CSS reaches open pages of the site as soon as it is saved; JavaScript runs each time one of its pages has loaded. A site stands for its subdomains. The code runs as part of the page and can read and change everything on it: only add code you understand. It stays on this computer.
         </p>
-        <button className="btn" onClick={() => setRows((list) => [...list, { site: "", css: "", js: "", enabled: true }])}>Add site</button>
+        <button className="btn" disabled={rows.length >= MAX_SITES} title={rows.length >= MAX_SITES ? `No more than ${MAX_SITES} sites are kept.` : undefined} onClick={() => setRows((list) => [...list, { site: "", css: "", js: "", enabled: true }])}>Add site</button>
       </div>
     </>
   );

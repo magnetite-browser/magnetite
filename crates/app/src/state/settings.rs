@@ -269,9 +269,10 @@ fn site_host(typed: &str) -> Option<String> {
     let rest = rest.split_once("://").map_or(rest, |(_, rest)| rest);
     let authority = rest.split(['/', '?', '#']).next()?;
     let host = authority.rsplit('@').next()?.split(':').next()?;
-    let host = host.trim_start_matches("www.").to_ascii_lowercase();
+    let host = host.to_ascii_lowercase();
+    let host = host.trim_start_matches("www.");
     let fine = |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.';
-    (host.contains('.') && host.chars().all(fine)).then_some(host)
+    (host.contains('.') && host.chars().all(fine)).then(|| host.to_string())
 }
 
 /// Sync configuration. Keys are kept out of `state.json` (see `sync.rs`).
@@ -429,7 +430,7 @@ mod tests {
         };
         let kept = Settings {
             site_code: vec![
-                code(" https://www.Example.org/some/page ", "a"),
+                code(" https://WWW.Example.org/some/page ", "a"),
                 code("example.org", "again"),
                 code("not a site", "x"),
                 code("example.net", &"x".repeat(MAX_SITE_CODE + 1)),

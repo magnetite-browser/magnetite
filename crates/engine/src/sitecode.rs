@@ -30,13 +30,12 @@ static CODE: RwLock<Vec<SiteCode>> = RwLock::new(Vec::new());
 
 /// The code for the page at `url`, if any is on: that of the longest site
 /// the page's host is on.
-fn code_for(code: &[SiteCode], url: &str) -> Option<SiteCode> {
+fn code_for<'a>(code: &'a [SiteCode], url: &str) -> Option<&'a SiteCode> {
     let host = host_of(url)?;
     let on = |site: &str| host == site || host.ends_with(&format!(".{site}"));
     (code.iter())
         .filter(|c| c.enabled && !c.site.is_empty() && on(&c.site))
         .max_by_key(|c| c.site.len())
-        .cloned()
 }
 
 /// A script that makes `css` the document's sheet of the user's own styles:
@@ -85,8 +84,8 @@ impl Engine {
         if host_of(&url).is_none() {
             return;
         }
-        let css = code_for(&code, &url).map(|c| c.css).unwrap_or_default();
-        run(frame, &style_script(&css));
+        let css = code_for(&code, &url).map_or("", |c| c.css.as_str());
+        run(frame, &style_script(css));
     }
 
     /// The page in `frame` (a main frame) has loaded: run the user's
@@ -122,7 +121,7 @@ mod tests {
             code("docs.example.org", "b", true),
             code("example.net", "c", false),
         ];
-        let css = |url: &str| code_for(&all, url).map(|c| c.css);
+        let css = |url: &str| code_for(&all, url).map(|c| c.css.clone());
         assert_eq!(css("https://example.org/page").as_deref(), Some("a"));
         assert_eq!(css("https://www.example.org/").as_deref(), Some("a"));
         assert_eq!(css("https://docs.example.org/x").as_deref(), Some("b"));
