@@ -392,8 +392,15 @@ fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), St
 /// may replace. The caller has checked the zip against the signed manifest
 /// and lets Gatekeeper assess the app itself, which is what the mark is for.
 fn unpack(zip: &Path, into: &Path) -> Result<(), String> {
-    // Fails when there is no mark (a build that macOS does not quarantine).
+    // Fails when there is no mark (a build that macOS does not quarantine),
+    // so ask whether one is left: `xattr -p` succeeds only if it is.
     let _ = run("/usr/bin/xattr", &["-d", QUARANTINE], &[zip]);
+    if run("/usr/bin/xattr", &["-p", QUARANTINE], &[zip]).is_ok() {
+        return Err(
+            "Cannot prepare the update (it stays marked as a download). Download it from the release page."
+                .into(),
+        );
+    }
     run("/usr/bin/ditto", &["-x", "-k"], &[zip, into])
 }
 
