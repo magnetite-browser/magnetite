@@ -1451,9 +1451,14 @@ impl MagnetiteApp {
                     let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH);
                     Some(now.map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX)))
                 } else {
-                    // Gone already is as good as removed.
-                    let _ = std::fs::remove_file(&file);
-                    None
+                    // Gone already is as good as removed; a picture that
+                    // stays on disk keeps its setting.
+                    match std::fs::remove_file(&file) {
+                        Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+                            return Err(format!("the image could not be removed: {e}"));
+                        }
+                        _ => None,
+                    }
                 };
                 self.with_state(|s| {
                     let a = s.settings.appearance.looks.entry(space).or_default();

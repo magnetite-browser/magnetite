@@ -30,25 +30,26 @@ const EFFECTS = [["None", "none"], ["Grain", "grain"], ["Glow", "glow"], ["Auror
  */
 function OwnImage({ slot, space, stamp, maxSide, reload }: { slot: ImageSlot; space: string; stamp: number | null; maxSide: number; reload: () => void }) {
   const [error, setError] = useState<string | null>(null);
+  // The file input stays out of sight; the button opens its picker, so the keyboard reaches it too.
+  const picker = useRef<HTMLInputElement>(null);
   const store = (file: File | null) =>
     storeImage(slot, space, file, maxSide).then(() => setError(null), (e: Error) => setError(e.message)).then(reload);
   return (
     <div className="flex items-center gap-3">
       {stamp != null && <img className="h-8 w-12 rounded-md object-cover" src={userImageUrl(slot, space, stamp)} alt="" />}
-      <label className="btn sm inline-flex items-center">
-        {stamp == null ? "Choose picture…" : "Change…"}
-        <input
-          className="hidden"
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            // Emptied, so choosing the same file again counts as a change.
-            e.target.value = "";
-            if (file) void store(file);
-          }}
-        />
-      </label>
+      <button className="btn sm" onClick={() => picker.current?.click()}>{stamp == null ? "Choose picture…" : "Change…"}</button>
+      <input
+        ref={picker}
+        className="hidden"
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          // Emptied, so choosing the same file again counts as a change.
+          e.target.value = "";
+          if (file) void store(file);
+        }}
+      />
       {stamp != null && <button className="btn sm" onClick={() => void store(null)}>Remove</button>}
       {error && <span className="text-[12.5px] text-[#f3a0a0]">{error}</span>}
     </div>

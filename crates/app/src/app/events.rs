@@ -421,10 +421,16 @@ impl EngineDelegate for MagnetiteApp {
                 | UiCommand::SetShortcut { .. }
                 | UiCommand::ResetShortcut { .. }
                 | UiCommand::RecordShortcut { .. }
-                | UiCommand::SetAppearanceImage { .. }
         );
         let trusted = ["magnetite://ui/settings", WELCOME_URL];
         if settings_only && !trusted.iter().any(|page| origin.starts_with(page)) {
+            return Err("only the Settings page may do that".into());
+        }
+        // Pictures are stored from Settings alone: the welcome page has no
+        // use for them.
+        if matches!(cmd, UiCommand::SetAppearanceImage { .. })
+            && !origin.starts_with("magnetite://ui/settings")
+        {
             return Err("only the Settings page may do that".into());
         }
         // Granting a site a permission is the prompt's job alone.
