@@ -42,6 +42,9 @@ pub struct Settings {
     /// Synced: a version that does not know a value takes "tab"
     /// (`sanitised`).
     pub external_links: String,
+    /// The shortcuts the user gave other keys, or none (Settings →
+    /// Shortcuts); the rest have their default keys. Synced.
+    pub shortcuts: magnetite_engine::Overrides,
     /// The system-wide quick search key (⌥⌘N) is registered. This
     /// device's own choice, never synced.
     pub quick_search: bool,
@@ -298,11 +301,18 @@ impl Settings {
         if !matches!(self.external_links.as_str(), "tab" | "peek" | "mini") {
             self.external_links = defaults.external_links;
         }
+        self.shortcuts = self.shortcuts.sanitised();
         self
     }
 }
 
 impl Settings {
+    /// The shortcuts that have keys, each with them as text.
+    pub fn shortcut_keys(&self) -> impl Iterator<Item = (magnetite_engine::Action, String)> {
+        (magnetite_engine::Action::ALL.into_iter())
+            .filter_map(|action| Some((action, self.shortcuts.combo_of(action)?.to_string())))
+    }
+
     /// Settings read from this device's `state.json`, following defaults
     /// that changed since they were saved: pages unloaded after 30 minutes
     /// off screen, which read as slow tabs. That time may have been chosen
@@ -320,7 +330,8 @@ impl Settings {
     /// changed), checked like any others. A page sends only what it changed:
     /// its copy of the rest may be old. What pages never change stays as it
     /// is here whatever the patch says: everything about sync, the pinned
-    /// extensions, and the smart folders allowed on this device.
+    /// extensions, the smart folders allowed on this device, and the
+    /// shortcuts' keys, which have commands of their own (`set_shortcut`).
     pub fn patched(
         &self,
         patch: serde_json::Map<String, serde_json::Value>,
@@ -343,6 +354,7 @@ impl Settings {
             pinned_extensions: self.pinned_extensions.clone(),
             chromium_pins_seen: self.chromium_pins_seen.clone(),
             smart_allowed: self.smart_allowed.clone(),
+            shortcuts: self.shortcuts.clone(),
             ..wanted.sanitised()
         })
     }
@@ -359,6 +371,7 @@ impl Default for Settings {
             search_template: "https://duckduckgo.com/?q=%s".into(),
             site_searches: builtin_site_searches(),
             external_links: "tab".into(),
+            shortcuts: magnetite_engine::Overrides::default(),
             quick_search: true,
             chrome_toolbar: false,
             appearance: Appearance::default(),

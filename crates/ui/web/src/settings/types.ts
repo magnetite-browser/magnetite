@@ -1,5 +1,6 @@
 // What the Settings page works with.
 import type { Color, DefaultBrowser, ExtensionInfo, Settings } from "../bridge";
+import type { ShortcutAction } from "./shortcutKeys";
 
 /** Everything the Settings page shows (`get_settings`). */
 export interface Info {
@@ -29,6 +30,8 @@ export interface Info {
     lists: { id: string; name: string; about: string; host: string; fetched_at: number | null; error: string | null }[];
     working: boolean;
   };
+  /** Every shortcut whose keys can be changed, with the keys it has and those it began with (null: none). */
+  shortcuts: { action: ShortcutAction; keys: string | null; default: string | null }[];
   /** Where Chromium keeps its encryption key: macOS Keychain, or its fixed test key (`--mock-keychain`). */
   keychain: "keychain" | "test";
 }

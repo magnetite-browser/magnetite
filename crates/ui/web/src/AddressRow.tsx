@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MenuItem } from "./ContextMenu";
 import { Check, LinkIcon, LockAlert, SiteIcon, SpeakerOff } from "./Icons";
 import { SitePanel } from "./SitePanel";
+import { keysHint } from "./settings/shortcutKeys";
 import { hostOf, onCopied, onOpenSitePanel, send, type CopyResult, type LinkVariant, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
 /** Every non-default state of a page, most important first. */
@@ -69,7 +70,7 @@ export function AddressRow({ state, item, rt, onEdit, openMenu, popups = false }
   };
   const copy = async (variant: LinkVariant) => show(await send({ cmd: "copy_link", variant }));
   useEffect(() => onCopied(show), []);
-  // The panel belongs to a page. With none it neither opens (⇧⌘O) nor stays
+  // The panel belongs to a page. With none it neither opens (its shortcut) nor stays
   // asked for, or it would appear by itself with the next tab.
   const hasPage = item !== null;
   const openPanel = () => {
@@ -101,21 +102,21 @@ export function AddressRow({ state, item, rt, onEdit, openMenu, popups = false }
           className="addr-chip no-drag"
           data-state={top}
           aria-label={`Site controls${states.length ? `: ${states.map((s) => s.label).join(", ")}` : ""}`}
-          title={states.length ? states.map((s) => s.label).join(" · ") : "Site controls (⇧⌘O)"}
+          title={states.length ? states.map((s) => s.label).join(" · ") : `Site controls${keysHint(state.keys, "site_panel")}`}
           aria-expanded={panel}
           onClick={() => (popups ? openPanel() : setPanel((p) => !p))}
         >
           <ChipIcon state={top} />
         </button>
-        <button type="button" className="addr-text no-drag" onClick={onEdit} title={item.url} aria-label={`Address: ${item.url}. Edit (⌘L)`}>
+        <button type="button" className="addr-text no-drag" onClick={onEdit} title={item.url} aria-label={`Address: ${item.url}. Edit${keysHint(state.keys, "focus_address")}`}>
           {/* The top bar has room for the whole address. */}
           <span className="truncate">{popups ? shownAddress(item.url) : hostOf(item.url)}</span>
         </button>
         <button
           type="button"
           className="addr-copy no-drag"
-          aria-label="Copy link (⇧⌘C). Right-click for more."
-          title="Copy link (⇧⌘C)"
+          aria-label={`Copy link${keysHint(state.keys, "copy_link")}. Right-click for more.`}
+          title={`Copy link${keysHint(state.keys, "copy_link")}`}
           onClick={() => copy("clean")}
           onContextMenu={(e) => {
             e.preventDefault();

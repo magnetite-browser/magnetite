@@ -509,6 +509,10 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 .link-tile:disabled { opacity: 0.45; }
 .shortcuts { display: grid; grid-template-columns: max-content 1fr; gap: 7px 16px; align-items: baseline; font-size: 13px; color: var(--secondary); }
 .shortcuts kbd { font-family: inherit; color: var(--fg); font-variant-numeric: tabular-nums; }
+/* Settings → Shortcuts: one shortcut per row, its keys and buttons on the right. */
+.shortcut-row { font-size: 14px; border-top: 1px solid var(--line); }
+.shortcut-row:first-child { border-top: 0; }
+.shortcut-row kbd { min-width: 28px; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.1); font: inherit; font-size: 13px; text-align: center; color: var(--fg); }
 
 /* Licence texts page. */
 .licence-text { white-space: pre-wrap; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--secondary); }

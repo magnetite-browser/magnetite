@@ -1,6 +1,6 @@
 // Full-page settings, opened as its own tab (magnetite://ui/settings).
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AdblockIcon, Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon } from "./Icons";
+import { AdblockIcon, Archive, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon, KeyboardIcon } from "./Icons";
 import { IsolationSection } from "./IsolationSection";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
@@ -11,6 +11,7 @@ import { AutofillSection } from "./settings/AutofillSection";
 import { AppearanceSection } from "./settings/AppearanceSection";
 import { Field, Switch, Toggle } from "./settings/fields";
 import { ImportBookmarksFile, ImportBrowsers } from "./settings/ImportBrowsers";
+import { ShortcutsSection } from "./settings/ShortcutsSection";
 import { SmartFoldersSection } from "./settings/SmartFoldersSection";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
 import type { Info, SettingsPatch } from "./settings/types";
@@ -27,6 +28,7 @@ const GROUPS: { label: string; sections: Section[] }[] = [
       { id: "general", label: "General", Icon: SettingsIcon, title: "General", intro: "Magnetite keeps everything on this computer. No account is needed." },
       { id: "appearance", label: "Appearance", Icon: PaletteIcon, title: "Appearance", intro: "How the sidebar and Magnetite's own pages look. Web pages keep their own design." },
       { id: "tabs", label: "Tabs & archive", Icon: Archive, title: "Tabs & archive", intro: "Closing a tab never deletes it. Today tabs you stop using move to the archive on their own. The history of visited pages stays on this computer." },
+      { id: "shortcuts", label: "Shortcuts", Icon: KeyboardIcon, title: "Shortcuts", intro: "The keys that run Magnetite's commands. Give any of them other keys, or none." },
       { id: "search", label: "Search", Icon: Search, title: "Search", intro: "Used when what you type in the command bar is not a web address. A keyword and a space search one site instead." },
       { id: "adblock", label: "Ad blocking", Icon: AdblockIcon, title: "Ad blocking", intro: "Magnetite can stop ads and trackers before they load, with filter lists you choose. Off until you turn it on." },
       { id: "autofill", label: "Passwords & autofill", Icon: KeyIcon, title: "Passwords & autofill", intro: "Magnetite can keep your passwords, addresses and cards and fill them in for you. All of it stays on this computer." },
@@ -152,8 +154,8 @@ export function SettingsPage() {
               </Field>
               <Toggle label="Quick search from anywhere (⌥⌘N)" hint="Opens the command bar over any app; what you pick opens in a mini window. Only that key combination reaches Magnetite, no other typing." checked={settings.quick_search} onChange={(v) => update({ quick_search: v })} />
               <Toggle label="Pop out playing videos" hint="When you leave a tab with a playing video, it continues in a floating picture-in-picture window. Coming back puts it into the page again." checked={settings.auto_pip} onChange={(v) => update({ auto_pip: v })} />
-              <Toggle label="Several windows (⌘N)" hint="New Window opens another window on the same sidebar. Choosing a tab in one window moves it there; with Magnetite's own engine build it keeps playing, otherwise it loads again. Windows open again after a restart. New, and untested on macOS and Windows." checked={settings.several_windows} onChange={(v) => update({ several_windows: v })} />
-              <Toggle label="Remove trackers from copied links" hint="Copy Link (⇧⌘C) drops tracking parameters such as utm_source and fbclid." checked={settings.strip_trackers} onChange={(v) => update({ strip_trackers: v })} />
+              <Toggle label="Several windows" hint="New Window opens another window on the same sidebar. Choosing a tab in one window moves it there; with Magnetite's own engine build it keeps playing, otherwise it loads again. Windows open again after a restart. New, and untested on macOS and Windows." checked={settings.several_windows} onChange={(v) => update({ several_windows: v })} />
+              <Toggle label="Remove trackers from copied links" hint="Copy Link drops tracking parameters such as utm_source and fbclid." checked={settings.strip_trackers} onChange={(v) => update({ strip_trackers: v })} />
             </>
           )}
           {sectionId === "tabs" && (
@@ -180,7 +182,7 @@ export function SettingsPage() {
               <Field label="Archive" hint={`${info.archive_count} archived tabs. Search them from the command bar or the archive view in the sidebar.`}>
                 <button className="btn" onClick={() => send({ cmd: "reopen_closed" })}>Reopen last archived tab</button>
               </Field>
-              <Field label="Keep history for" hint="The pages you visit, with title and time, to find them again in the command bar and the history view (⌘Y). Kept on this computer only, never synced; private profiles leave none. Older visits are deleted within a minute.">
+              <Field label="Keep history for" hint="The pages you visit, with title and time, to find them again in the command bar and the history view. Kept on this computer only, never synced; private profiles leave none. Older visits are deleted within a minute.">
                 <select className="field" value={settings.history_days} onChange={(e) => update({ history_days: Number(e.target.value) })}>
                   {[7, 30, 90].includes(settings.history_days) || settings.history_days === 0 ? null : <option value={settings.history_days}>{settings.history_days} days</option>}
                   <option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option><option value={0}>Don't keep history</option>
@@ -210,7 +212,7 @@ export function SettingsPage() {
           )}
           {sectionId === "spaces" && <IsolationSection info={info} reload={reload} />}
           {sectionId === "developer" && (
-            <Field label="Developer tools open" hint="F12, ⌥⌘I, or Developer tools in the site panel. Docked tools sit next to the page inside the window; the page gets narrower or shorter to make room.">
+            <Field label="Developer tools open" hint="F12, the shortcut for developer tools, or Developer tools in the site panel. Docked tools sit next to the page inside the window; the page gets narrower or shorter to make room.">
               <div className="seg">
                 {([["right", "Right of the page"], ["bottom", "Below the page"], ["window", "In a separate window"]] as const).map(([v, label]) => (
                   <button key={v} data-on={settings.devtools_dock === v || undefined} onClick={() => update({ devtools_dock: v })}>{label}</button>
@@ -271,6 +273,7 @@ export function SettingsPage() {
               )}
             </>
           )}
+          {sectionId === "shortcuts" && <ShortcutsSection info={info} reload={() => void reload()} />}
           {sectionId === "about" && <About info={info} update={update} />}
           </div>
         </div>

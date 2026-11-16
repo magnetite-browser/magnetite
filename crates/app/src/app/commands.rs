@@ -346,6 +346,25 @@ pub(super) enum UiCommand {
     },
     /// Settings page (own tab) asks for everything it shows.
     GetSettings,
+    /// Give shortcut `action` the keys `keys` (as `Combo` saves them), or
+    /// none. An action that had these keys loses them. Answers
+    /// `{"error": …}` for keys a shortcut cannot have.
+    SetShortcut {
+        action: magnetite_engine::Action,
+        #[serde(default)]
+        keys: Option<String>,
+    },
+    /// Give shortcut `action` its default keys back, or every shortcut
+    /// without `action`.
+    ResetShortcut {
+        #[serde(default)]
+        action: Option<magnetite_engine::Action>,
+    },
+    /// The Settings page waits for the keys of a shortcut (`on`): until it
+    /// has them no shortcut runs, so they reach the page.
+    RecordShortcut {
+        on: bool,
+    },
     /// Start a new sync chain (fresh sync code) on `server`.
     SyncCreate {
         server: String,
@@ -1341,6 +1360,11 @@ impl MagnetiteApp {
                         "engine": { "chromium": chromium, "cef": cef },
                         "data_dir": self.data_dir.display().to_string(),
                         "adblock": adblock,
+                        "shortcuts": magnetite_engine::Action::ALL.map(|action| json!({
+                            "action": action,
+                            "keys": s.settings.shortcuts.combo_of(action).map(|c| c.to_string()),
+                            "default": action.default_combo().map(|c| c.to_string()),
+                        })),
                     })
                 }));
             }
@@ -1379,6 +1403,13 @@ impl MagnetiteApp {
                 }
                 self.push_state(engine);
             }
+            UiCommand::SetShortcut { action, keys } => {
+                if let Err(error) = self.set_shortcut(engine, action, keys.as_deref()) {
+                    return Ok(json!({ "error": error }));
+                }
+            }
+            UiCommand::ResetShortcut { action } => self.reset_shortcut(engine, action),
+            UiCommand::RecordShortcut { on } => engine.record_shortcut_keys(on),
             UiCommand::OpenEnginePage { page, profile } => {
                 // Over the page in front (Settings), in the logins asked
                 // for: each profile has its own passwords and addresses.

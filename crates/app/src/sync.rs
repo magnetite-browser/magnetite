@@ -130,11 +130,16 @@ fn server_base(url: &str) -> Result<String, String> {
 /// Settings minus device-specific fields; what the `settings` collection
 /// holds. The search engine is not among them: another device holding the
 /// words could otherwise send every search here to an address of its choice.
+/// `shortcuts` is left out while no shortcut has other keys, so a version
+/// from before them writes the same bytes; such a version writes without
+/// them, which reads as "all on their default keys" here.
 #[derive(Serialize, Deserialize)]
 struct SyncedSettings {
     auto_archive_hours: u32,
     unload_minutes: u32,
     external_links: String,
+    #[serde(default, skip_serializing_if = "magnetite_engine::Overrides::is_empty")]
+    shortcuts: magnetite_engine::Overrides,
 }
 
 impl SyncedSettings {
@@ -143,12 +148,14 @@ impl SyncedSettings {
             auto_archive_hours: s.auto_archive_hours,
             unload_minutes: s.unload_minutes,
             external_links: s.external_links.clone(),
+            shortcuts: s.shortcuts.clone(),
         }
     }
     fn apply(self, s: &mut Settings) {
         s.auto_archive_hours = self.auto_archive_hours;
         s.unload_minutes = self.unload_minutes;
         s.external_links = self.external_links;
+        s.shortcuts = self.shortcuts;
     }
 }
 
@@ -816,6 +823,24 @@ pub fn signed_in(data_dir: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn shortcuts_are_sent_only_once_one_has_other_keys() {
+        let mut settings = Settings::default();
+        let sent = |s: &Settings| serde_json::to_string(&super::SyncedSettings::from(s)).unwrap();
+        // As a version from before changeable shortcuts writes them.
+        assert!(!sent(&settings).contains("shortcuts"));
+        let keys = "primary+J".parse().unwrap();
+        (settings.shortcuts)
+            .set(magnetite_engine::Action::NewTab, Some(keys))
+            .unwrap();
+        assert!(sent(&settings).contains(r#""shortcuts":{"new_tab":"primary+J"}"#));
+        // Such a version's settings put every shortcut back on its default keys.
+        let older: super::SyncedSettings =
+            serde_json::from_str(&sent(&Settings::default())).unwrap();
+        older.apply(&mut settings);
+        assert!(settings.shortcuts.is_empty());
+    }
+
     use super::*;
     use magnetite_core::{Profile, SidebarSnapshot, Space};
     use std::io::{BufRead, BufReader, Read, Write};

@@ -8,6 +8,7 @@ import { AddressRow } from "./AddressRow";
 import { Back, Close, Forward, Maximize, Minus, Reload, SidebarIcon, SplitIcon } from "./Icons";
 import { PinnedExtensions, SLOT } from "./PinnedExtensions";
 import { IS_MAC, accentCss, applyAppearance, findTab, hostOf, send, subscribe, type UiState } from "./bridge";
+import { keysHint } from "./settings/shortcutKeys";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
 /** The least the address keeps beside pinned extensions, in points. */
@@ -57,7 +58,7 @@ export function TopBar() {
       onDoubleClick={(e) => e.target === e.currentTarget && send({ cmd: "window_maximize" })}
     >
       <div className={`flex shrink-0 items-center gap-0.5 ${IS_MAC ? "pl-[86px]" : "pl-2"}`}>
-        <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={state.sidebar_visible ? "Hide sidebar (⌘S)" : "Show sidebar (⌘S)"}><SidebarIcon /></button>
+        <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={`${state.sidebar_visible ? "Hide sidebar" : "Show sidebar"}${keysHint(state.keys, "toggle_sidebar")}`}><SidebarIcon /></button>
         <button className="ib no-drag" disabled={!frontRt?.can_go_back} onClick={() => send({ cmd: "go_back" })} title="Back (⌘[)"><Back /></button>
         <button className="ib no-drag" disabled={!frontRt?.can_go_forward} onClick={() => send({ cmd: "go_forward" })} title="Forward (⌘])"><Forward /></button>
         <button className="ib no-drag" disabled={!activeItem && !state.peek} onClick={() => send({ cmd: "reload" })} title="Reload (⌘R)"><Reload /></button>

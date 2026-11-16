@@ -29,6 +29,7 @@ impl EngineDelegate for MagnetiteApp {
                     )
                 });
                 engine.set_quick_search_key(quick);
+                self.apply_shortcut_keys(engine);
                 // Before any profile exists: each gets these when it is made.
                 engine.set_autofill(autofill);
                 engine.set_sidebar_width(width);
@@ -390,7 +391,8 @@ impl EngineDelegate for MagnetiteApp {
             serde_json::from_str(request).map_err(|e| format!("bad command: {e}"))?;
         // The sync code and the chain's lifecycle belong to Settings and to
         // the welcome page, which shows the same controls at the first
-        // start: a flaw in any other page of ours must not reach them.
+        // start: a flaw in any other page of ours must not reach them. Nor
+        // may another page change the shortcuts' keys or switch them off.
         let settings_only = matches!(
             cmd,
             UiCommand::SyncCode
@@ -398,6 +400,9 @@ impl EngineDelegate for MagnetiteApp {
                 | UiCommand::SyncJoin { .. }
                 | UiCommand::SyncLeave
                 | UiCommand::SyncDeleteChain
+                | UiCommand::SetShortcut { .. }
+                | UiCommand::ResetShortcut { .. }
+                | UiCommand::RecordShortcut { .. }
         );
         let trusted = ["magnetite://ui/settings", WELCOME_URL];
         if settings_only && !trusted.iter().any(|page| origin.starts_with(page)) {

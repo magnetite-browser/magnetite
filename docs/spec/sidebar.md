@@ -186,8 +186,10 @@ switches at once, without a restart.
 | Print the page | Cmd+P |
 | Find in the page / next / previous match | Cmd+F / Cmd+G / Cmd+Shift+G |
 
-`Cmd+S`, `Cmd+D`, `Cmd+P`, `Cmd+F` and `Cmd+G` go to the page first, which
-may use them itself. The six shortcuts above `Cmd+D` are taken before the
+These are the keys until the user changes them (`shortcuts.md`); the digits,
+back, forward and reload are fixed. "Show or hide the sidebar", "Pin or
+unpin the active tab", print and find go to the page first, which may use
+the key itself. The six shortcuts above "Pin or unpin" are taken before the
 page sees the key.
 
 `Ctrl+Tab` and `Ctrl+Shift+Tab` go through the rows of the current space

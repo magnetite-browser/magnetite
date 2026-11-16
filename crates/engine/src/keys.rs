@@ -10,11 +10,11 @@
 use cef::sys;
 use cef::*;
 
-use crate::events::Shortcut;
+use std::sync::{Mutex, RwLock};
+use std::time::{Duration, Instant};
 
-const VK_LEFT: i32 = 0x25;
-const VK_RIGHT: i32 = 0x27;
-const VK_TAB: i32 = 0x09;
+use crate::events::Shortcut;
+use crate::keymap::{Action, Combo, Overrides};
 
 // The flags are `u32` on macOS and Linux and `i32` on Windows.
 #[allow(clippy::unnecessary_cast, clippy::cast_sign_loss)]
@@ -35,57 +35,122 @@ const CMD: u32 = if cfg!(target_os = "macos") {
 /// shortcut modifier and its digits select tabs, so the spaces get Alt.
 const SPACE_DIGITS: u32 = if cfg!(target_os = "macos") { CTRL } else { ALT };
 
-/// Map a raw key-down event to a *reserved* shortcut: matched before the page
-/// sees the key, so web apps cannot take it (see docs/spec/site-controls.md).
-pub fn shortcut_for_key(event: &KeyEvent) -> Option<Shortcut> {
+/// The keys of the actions as the user has them (Settings → Shortcuts), and
+/// until when shortcuts are off because Settings records new keys.
+static KEYS: RwLock<Option<Overrides>> = RwLock::new(None);
+static PAUSED_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
+
+/// Use these keys from now on.
+fn set_overrides(overrides: &Overrides) {
+    if let Ok(mut keys) = KEYS.write() {
+        *keys = Some(overrides.clone());
+    }
+}
+
+/// Stop matching shortcuts until `until` (`None`: match again), so the
+/// keys pressed reach the Settings page that records them.
+fn pause(until: Option<Instant>) {
+    if let Ok(mut paused) = PAUSED_UNTIL.lock() {
+        *paused = until;
+    }
+}
+
+pub fn paused() -> bool {
+    (PAUSED_UNTIL.lock().ok())
+        .and_then(|until| *until)
+        .is_some_and(|until| Instant::now() < until)
+}
+
+/// How long Settings may hold shortcuts off for one recording. The page
+/// ends it itself; this is for a page that went away meanwhile.
+const RECORDING: Duration = Duration::from_secs(20);
+
+impl crate::Engine {
+    /// Use the user's keys for the shortcuts from now on (Settings →
+    /// Shortcuts), in the pages and in the menu bar.
+    pub fn set_shortcut_keys(&self, overrides: &Overrides) {
+        set_overrides(overrides);
+        #[cfg(target_os = "macos")]
+        crate::menubar::apply_keys();
+    }
+
+    /// While Settings records new keys (`recording`) no shortcut runs, so
+    /// the keys reach the page. It ends by itself after `RECORDING`.
+    pub fn record_shortcut_keys(&self, recording: bool) {
+        let until = recording.then(|| Instant::now() + RECORDING);
+        pause(until);
+        #[cfg(target_os = "macos")]
+        crate::menubar::apply_keys();
+        if let Some(until) = until {
+            let end = move || {
+                // Still this recording, not a later one.
+                if PAUSED_UNTIL.lock().is_ok_and(|p| *p == Some(until)) {
+                    crate::Engine::global().record_shortcut_keys(false);
+                }
+            };
+            let wait = i64::try_from(RECORDING.as_millis()).unwrap_or(i64::MAX);
+            Self::post_delayed(Box::new(end), wait);
+        }
+    }
+}
+
+/// The keys of `action` now.
+pub fn combo_of(action: Action) -> Option<Combo> {
+    match KEYS.read().ok()?.as_ref() {
+        Some(keys) => keys.combo_of(action),
+        None => action.default_combo(),
+    }
+}
+
+fn action_for(combo: Combo) -> Option<Action> {
+    match KEYS.read().ok()?.as_ref() {
+        Some(keys) => keys.action_for(combo),
+        None => Overrides::default().action_for(combo),
+    }
+}
+
+/// A key-down event's key and modifiers.
+fn pressed(event: &KeyEvent) -> Option<Combo> {
     if event.type_ != KeyEventType::RAWKEYDOWN && event.type_ != KeyEventType::KEYDOWN {
         return None;
     }
+    let held = |flag: u32| event.modifiers & flag != 0;
+    let mut combo = Combo::of_key(event.windows_key_code)?;
+    combo.primary = held(CMD);
+    // Outside macOS Ctrl is the shortcut modifier, and the only Control key.
+    combo.ctrl = cfg!(target_os = "macos") && held(CTRL);
+    combo.alt = held(ALT);
+    combo.shift = held(SHIFT);
+    Some(combo)
+}
+
+/// Map a raw key-down event to a *reserved* shortcut: matched before the page
+/// sees the key, so web apps cannot take it (see docs/spec/site-controls.md).
+pub fn shortcut_for_key(event: &KeyEvent) -> Option<Shortcut> {
+    let combo = pressed(event).filter(|_| !paused())?;
     let mods = event.modifiers & (CMD_FLAG | SHIFT | ALT | CTRL);
     let key = event.windows_key_code;
-    let upper = |c: char| c as i32;
-    match (mods, key) {
-        (m, k) if m == CMD && k == upper('T') => Some(Shortcut::NewTab),
-        (m, k) if m == CMD && k == upper('N') => Some(Shortcut::NewWindow),
-        (m, k) if m == (CMD | SHIFT) && k == upper('W') => Some(Shortcut::CloseWindow),
-        (m, k) if m == CMD && k == upper('W') => Some(Shortcut::CloseTab),
-        (m, k) if m == CMD && k == upper('L') => Some(Shortcut::FocusAddress),
-        (m, k) if m == (CMD | SHIFT) && k == upper('T') => Some(Shortcut::ReopenClosed),
-        (m, k) if m == (CMD | SHIFT) && k == upper('N') => Some(Shortcut::NewSpace),
-        // VK_OEM_PLUS: the "=" / "+" key.
-        (m, 0xBB) if m == (CMD | SHIFT) => Some(Shortcut::NewSplit),
-        (m, k) if m == (CMD | ALT) && k == VK_RIGHT => Some(Shortcut::NextSpace),
-        (m, k) if m == (CMD | ALT) && k == VK_LEFT => Some(Shortcut::PrevSpace),
-        (m, k) if m == CTRL && k == VK_TAB => Some(Shortcut::NextTab),
-        (m, k) if m == (CTRL | SHIFT) && k == VK_TAB => Some(Shortcut::PrevTab),
-        (m, k) if m == CMD && (upper('1')..=upper('9')).contains(&k) => {
-            u8::try_from(k - upper('0')).ok().map(Shortcut::SelectTab)
-        }
-        (m, k) if m == SPACE_DIGITS && (upper('1')..=upper('9')).contains(&k) => {
-            u8::try_from(k - upper('0')).ok().map(Shortcut::SelectSpace)
-        }
-        _ => None,
+    // The digits are fixed: a tab or a space by its place.
+    if (i32::from(b'1')..=i32::from(b'9')).contains(&key) && (mods == CMD || mods == SPACE_DIGITS) {
+        let n = u8::try_from(key - i32::from(b'0')).ok()?;
+        return Some(if mods == CMD {
+            Shortcut::SelectTab(n)
+        } else {
+            Shortcut::SelectSpace(n)
+        });
     }
+    action_for(combo)
+        .filter(|a| a.reserved())
+        .map(Action::shortcut)
 }
 
 /// Magnetite shortcuts a page may claim for itself: they are matched only after
 /// the page had the key and did not handle it (`preventDefault`).
 pub fn yieldable_shortcut(event: &KeyEvent) -> Option<Shortcut> {
-    if event.type_ != KeyEventType::RAWKEYDOWN && event.type_ != KeyEventType::KEYDOWN {
-        return None;
-    }
-    let mods = event.modifiers & (CMD_FLAG | SHIFT | ALT | CTRL);
-    match (mods, event.windows_key_code) {
-        (m, k) if m == CMD && k == 'S' as i32 => Some(Shortcut::ToggleSidebar),
-        (m, k) if m == CMD && k == 'D' as i32 => Some(Shortcut::TogglePin),
-        (m, k) if m == (CMD | SHIFT) && k == 'C' as i32 => Some(Shortcut::CopyLink),
-        (m, k) if m == (CMD | SHIFT) && k == 'O' as i32 => Some(Shortcut::SitePanel),
-        (m, k) if m == (CMD | SHIFT) && k == '2' as i32 => Some(Shortcut::Capture),
-        (m, k) if m == CMD && k == 'F' as i32 => Some(Shortcut::Find),
-        (m, k) if m == CMD && k == 'G' as i32 => Some(Shortcut::FindNext),
-        (m, k) if m == (CMD | SHIFT) && k == 'G' as i32 => Some(Shortcut::FindPrevious),
-        _ => None,
-    }
+    let combo = pressed(event).filter(|_| !paused())?;
+    action_for(combo)
+        .filter(|a| !a.reserved())
+        .map(Action::shortcut)
 }
 
 /// Chromium's own zoom commands; we let Chromium zoom and then report it.
@@ -109,8 +174,20 @@ pub fn peek_shortcut(event: &KeyEvent) -> Option<Shortcut> {
     }
 }
 
-/// Map a Chrome command (by IDC name) to a shortcut.
-pub fn shortcut_for_chrome_command(command_id: i32) -> Option<Shortcut> {
+/// What to do with a command Chromium runs for one of its own keys.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ChromeCommand {
+    /// Not ours: Chromium goes on with it.
+    Pass,
+    /// The keys belong to no action any more: nothing happens.
+    Drop,
+    Run(Shortcut),
+}
+
+/// Map a Chrome command (by IDC name) to a shortcut. Chromium's keys are
+/// fixed, ours are not: the command stands for the default keys of its
+/// action, and what runs is the action that has those keys now.
+pub fn shortcut_for_chrome_command(command_id: i32) -> ChromeCommand {
     const TABLE: &[(&str, Shortcut)] = &[
         ("IDC_NEW_TAB", Shortcut::NewTab),
         ("IDC_NEW_WINDOW", Shortcut::NewWindow),
@@ -143,10 +220,19 @@ pub fn shortcut_for_chrome_command(command_id: i32) -> Option<Shortcut> {
         ("IDC_DEV_TOOLS_CONSOLE", Shortcut::OpenDevTools),
         ("IDC_DEV_TOOLS_INSPECT", Shortcut::OpenDevTools),
     ];
-    TABLE
+    let Some((_, shortcut)) = TABLE
         .iter()
         .find(|(name, _)| command_id_for(name) == Some(command_id))
-        .map(|(_, s)| *s)
+    else {
+        return ChromeCommand::Pass;
+    };
+    let Some(keys) = Action::of(*shortcut).and_then(Action::default_combo) else {
+        return ChromeCommand::Run(*shortcut);
+    };
+    match action_for(keys).filter(|_| !paused()) {
+        Some(action) => ChromeCommand::Run(action.shortcut()),
+        None => ChromeCommand::Drop,
+    }
 }
 
 pub(crate) fn command_id_for(name: &str) -> Option<i32> {

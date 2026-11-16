@@ -9,18 +9,18 @@
 import { useCallback, useEffect, useState } from "react";
 import appIcon from "./assets/icon.png?url";
 import { send, type ImportSource } from "./bridge";
-import { SHORTCUTS } from "./settings/AboutSection";
 import { AdblockChoice } from "./settings/AdblockSection";
 import { Toggle } from "./settings/fields";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
+import { keysLabel, SHORTCUT_LABEL, type ShortcutAction } from "./settings/shortcutKeys";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
 import type { Info, SettingsPatch } from "./settings/types";
 
 const STEPS = ["welcome", "sync", "import", "search", "ads", "tabs", "done"] as const;
 
-/** The keys worth knowing on the first day. */
-const FIRST_KEYS = SHORTCUTS.slice(0, 5);
+/** The shortcuts worth knowing on the first day. */
+const FIRST_KEYS: ShortcutAction[] = ["new_tab", "focus_address", "close_tab", "reopen_closed", "toggle_sidebar"];
 
 export function Welcome() {
   const [info, setInfo] = useState<Info | null>(null);
@@ -199,14 +199,14 @@ export function Welcome() {
             <>
               <Heading title="You are set">
                 {chosen.length > 0 ? `Start browsing brings in your tabs from ${named(chosen).join(" and ")}. ` : ""}
-                A few keys for the first day; the rest is in Settings → About.
+                A few keys for the first day; all of them are in Settings → Shortcuts, where you can change them.
               </Heading>
               <div className="set-card">
                 <div className="shortcuts">
-                  {FIRST_KEYS.map(([keys, what]) => (
-                    <div key={keys} className="contents">
-                      <kbd>{keys}</kbd>
-                      <span>{what}</span>
+                  {FIRST_KEYS.map((action) => (
+                    <div key={action} className="contents">
+                      <kbd>{keysLabel(info.shortcuts.find((s) => s.action === action)?.keys)}</kbd>
+                      <span>{SHORTCUT_LABEL[action]}</span>
                     </div>
                   ))}
                 </div>

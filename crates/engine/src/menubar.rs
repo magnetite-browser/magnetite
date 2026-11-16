@@ -28,6 +28,7 @@ use objc2_foundation::{NSData, NSSize, NSString};
 use crate::engine::ContextProfile;
 use crate::engine::Engine;
 use crate::events::{EngineEvent, ExtensionMenuAction, Shortcut};
+use crate::keymap::{Action, Combo};
 
 /// The product name in the app menu's items.
 const APP: &str = "Magnetite";
@@ -176,6 +177,8 @@ fn fill_extensions(menu: &NSMenu, target: &MagnetiteMenuTarget) {
 thread_local! {
     /// Our commands by item tag, and their target (menu items hold targets weakly).
     static COMMANDS: RefCell<Vec<Shortcut>> = const { RefCell::new(Vec::new()) };
+    /// The items of our commands by tag, each with the keys it was made with.
+    static ITEMS: RefCell<Vec<(Retained<NSMenuItem>, String, NSEventModifierFlags)>> = const { RefCell::new(Vec::new()) };
     static TARGET: RefCell<Option<Retained<MagnetiteMenuTarget>>> = const { RefCell::new(None) };
     /// The Extensions menu's source: profile and pinned ids (from the app).
     static SOURCE: RefCell<(Option<ContextProfile>, Vec<String>)> = const { RefCell::new((None, Vec::new())) };
@@ -205,6 +208,7 @@ struct Builder {
     menu: Option<Retained<NSMenu>>,
     target: Retained<MagnetiteMenuTarget>,
     commands: Vec<Shortcut>,
+    items: Vec<(Retained<NSMenuItem>, String, NSEventModifierFlags)>,
 }
 
 impl Builder {
@@ -228,6 +232,7 @@ impl Builder {
         unsafe { item.setTarget(Some(target)) };
         item.setTag(isize::try_from(self.commands.len()).unwrap_or(isize::MAX));
         self.commands.push(shortcut);
+        self.items.push((item, key.to_string(), mods));
     }
 
     /// An item for an `AppKit` action, sent along the responder chain.
@@ -290,6 +295,7 @@ pub fn install(mtm: MainThreadMarker) {
         menu: None,
         target: target.clone(),
         commands: Vec::new(),
+        items: Vec::new(),
     };
     let app = NSApplication::sharedApplication(mtm);
 
@@ -395,5 +401,64 @@ pub fn install(mtm: MainThreadMarker) {
 
     app.setMainMenu(Some(&b.bar));
     COMMANDS.with(|c| *c.borrow_mut() = b.commands);
+    ITEMS.with(|i| *i.borrow_mut() = b.items);
     TARGET.with(|t| *t.borrow_mut() = Some(target));
+    apply_keys();
+}
+
+/// The character `AppKit` wants as the key equivalent of `combo`'s key.
+fn key_equivalent(combo: Combo) -> Option<String> {
+    let name = combo.key_name();
+    Some(match name.as_str() {
+        "Tab" => "\t".into(),
+        "Enter" => "\r".into(),
+        "Space" => " ".into(),
+        "Backspace" => "\u{8}".into(),
+        "Delete" => "\u{7F}".into(),
+        "Up" => "\u{F700}".into(),
+        "Down" => "\u{F701}".into(),
+        "Left" => LEFT.into(),
+        "Right" => RIGHT.into(),
+        "Home" => "\u{F729}".into(),
+        "End" => "\u{F72B}".into(),
+        "PageUp" => "\u{F72C}".into(),
+        "PageDown" => "\u{F72D}".into(),
+        _ => match name.strip_prefix('F').and_then(|n| n.parse::<u32>().ok()) {
+            // NSF1FunctionKey and the eleven after it.
+            Some(n) => char::from_u32(0xF704 + n - 1)?.to_string(),
+            None => name.to_lowercase(),
+        },
+    })
+}
+
+/// Show the user's keys beside the items (Settings → Shortcuts): an item
+/// whose action has other keys, or none, gets those. While Settings records
+/// keys no item of ours has any, so the menu bar takes none of them.
+pub fn apply_keys() {
+    let recording = crate::keys::paused();
+    let commands = COMMANDS.with(|c| c.borrow().clone());
+    ITEMS.with(|items| {
+        for ((item, key, mods), shortcut) in items.borrow().iter().zip(commands) {
+            let own = match Action::of(shortcut) {
+                Some(action) => crate::keys::combo_of(action).and_then(|combo| {
+                    let mut mods = NSEventModifierFlags::empty();
+                    for (held, flag) in [
+                        (combo.primary, NSEventModifierFlags::Command),
+                        (combo.ctrl, NSEventModifierFlags::Control),
+                        (combo.alt, NSEventModifierFlags::Option),
+                        (combo.shift, NSEventModifierFlags::Shift),
+                    ] {
+                        if held {
+                            mods |= flag;
+                        }
+                    }
+                    Some((key_equivalent(combo)?, mods))
+                }),
+                None => Some((key.clone(), *mods)),
+            };
+            let (key, mods) = own.filter(|_| !recording).unwrap_or((String::new(), NONE));
+            item.setKeyEquivalent(&NSString::from_str(&key));
+            item.setKeyEquivalentModifierMask(mods);
+        }
+    });
 }

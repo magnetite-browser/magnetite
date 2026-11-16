@@ -4,7 +4,8 @@ How Magnetite behaves, feature by feature. Each spec describes what is built
 today, checked against the code, and ends with what is not built yet. A change
 in behaviour changes its spec in the same pull request.
 
-Shortcuts are the macOS ones.
+Shortcuts are the macOS ones, with the keys they have until the user
+changes them ([shortcuts.md](shortcuts.md)).
 
 | Spec | Covers |
 |---|---|
@@ -19,6 +20,7 @@ Shortcuts are the macOS ones.
 | [peek.md](peek.md) | a link opened over the page, without leaving it |
 | [mini-window.md](mini-window.md) | a page in a small window of its own, for links from other apps and the quick search from anywhere |
 | [site-controls.md](site-controls.md) | address row, site panel, permissions, DevTools, capture |
+| [shortcuts.md](shortcuts.md) | giving the shortcuts other keys, which ones are fixed, how they sync |
 | [ad-blocking.md](ad-blocking.md) | blocking ads and trackers with filter lists the user chooses |
 | [passwords-and-autofill.md](passwords-and-autofill.md) | Chromium's password manager and autofill: switches, saved lists, what stays local |
 | [media.md](media.md) | media controls in the sidebar, picture-in-picture |

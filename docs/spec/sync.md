@@ -61,7 +61,7 @@ repository, <https://github.com/magnetite-browser/magnetite-sync>
 | Collection | Content |
 |---|---|
 | `sidebar` | profiles, favorites, spaces with their pinned trees (folders, smart folder definitions), Today tabs and bookmarks |
-| `settings` | when Today tabs are archived, when inactive tabs are suspended, where links from other apps open (a tab, a peek or a mini window; a version that does not know a choice uses a new tab) |
+| `settings` | when Today tabs are archived, when inactive tabs are suspended, where links from other apps open (a tab, a peek or a mini window; a version that does not know a choice uses a new tab), the shortcuts with other keys or none (`shortcuts.md`) |
 
 The server never sees these names, only ids derived from the sync code.
 

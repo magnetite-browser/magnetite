@@ -117,6 +117,8 @@ impl MagnetiteApp {
                 for c in contents {
                     engine.close_content(c);
                 }
+                // Another device may have changed a shortcut's keys.
+                self.apply_shortcut_keys(engine);
                 // Shows what is open already; nothing new loads (`adopt_pull`).
                 self.present(engine);
                 self.push_state(engine);

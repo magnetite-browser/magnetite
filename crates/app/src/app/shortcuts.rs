@@ -1,13 +1,45 @@
 //! Keys and menu bar items, and the command palette they open.
 
 use magnetite_core::split::Side;
-use magnetite_engine::{ContentId, Engine, Shortcut};
+use magnetite_engine::{Action, Combo, ContentId, Engine, Overrides, Shortcut};
 use serde_json::json;
 
 use super::addresses::urlencode;
 use super::{LinkVariant, MagnetiteApp, PaletteMode};
 
 impl MagnetiteApp {
+    /// Hand the engine the keys the shortcuts have now (Settings →
+    /// Shortcuts): at start, and whenever they change here or through sync.
+    pub(super) fn apply_shortcut_keys(&self, engine: &Engine) {
+        let keys = self.with_state(|s| s.settings.shortcuts.clone());
+        engine.set_shortcut_keys(&keys);
+    }
+
+    /// Give `action` the keys `keys` (`None`: no keys), or tell why not.
+    /// Other keys take effect at once, in the menu bar too.
+    pub(super) fn set_shortcut(
+        &self,
+        engine: &Engine,
+        action: Action,
+        keys: Option<&str>,
+    ) -> Result<(), String> {
+        let combo: Option<Combo> = keys.map(str::parse).transpose()?;
+        self.with_state(|s| s.settings.shortcuts.set(action, combo))?;
+        self.apply_shortcut_keys(engine);
+        self.push_state(engine);
+        Ok(())
+    }
+
+    /// Give `action` its default keys back, or every action (`None`).
+    pub(super) fn reset_shortcut(&self, engine: &Engine, action: Option<Action>) {
+        self.with_state(|s| match action {
+            Some(action) => s.settings.shortcuts.reset(action),
+            None => s.settings.shortcuts = Overrides::default(),
+        });
+        self.apply_shortcut_keys(engine);
+        self.push_state(engine);
+    }
+
     /// Open the command palette centred over the page area; the quick
     /// search in a window of its own, on the screen with the pointer.
     pub(super) fn open_palette(

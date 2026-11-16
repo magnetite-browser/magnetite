@@ -5,11 +5,9 @@
 // the progress).
 import { useEffect, useId, useState } from "react";
 import { Archive, BookmarkIcon, DownloadIcon, HistoryIcon, SettingsIcon } from "./Icons";
-import { IS_MAC, onDownloads, send, type DownloadEntry, type LibraryView } from "./bridge";
+import { onDownloads, send, type DownloadEntry, type LibraryView } from "./bridge";
+import { keysLabel, type ShortcutKeys } from "./settings/shortcutKeys";
 
-const DOWNLOADS_KEY = IS_MAC ? "⌥⌘L" : "Ctrl+J";
-const SETTINGS_KEY = IS_MAC ? "⌘," : "Ctrl+,";
-const HISTORY_KEY = IS_MAC ? "⌘Y" : "Ctrl+H";
 
 /**
  * The button's picture: bookmark, archive and download, one behind the other.
@@ -44,7 +42,7 @@ function LibraryGlyph() {
   );
 }
 
-export function LibraryButton({ opens, onOpen }: { opens: LibraryView; onOpen: (view: LibraryView) => void }) {
+export function LibraryButton({ opens, keys, onOpen }: { opens: LibraryView; keys: ShortcutKeys; onOpen: (view: LibraryView) => void }) {
   const [items, setItems] = useState<DownloadEntry[]>([]);
   useEffect(() => onDownloads(setItems), []);
   const running = items.filter((d) => d.status === "in_progress");
@@ -76,12 +74,12 @@ export function LibraryButton({ opens, onOpen }: { opens: LibraryView; onOpen: (
         <button role="menuitem" onClick={() => onOpen("history")}>
           <HistoryIcon width={18} height={18} />
           History
-          <span className="hint">{HISTORY_KEY}</span>
+          <span className="hint">{keysLabel(keys.history)}</span>
         </button>
         <button role="menuitem" onClick={() => onOpen("downloads")}>
           <DownloadIcon width={18} height={18} />
           Downloads
-          <span className="hint">{busy ? (share === null ? `${running.length} running` : `${Math.round(share * 100)} %`) : DOWNLOADS_KEY}</span>
+          <span className="hint">{busy ? (share === null ? `${running.length} running` : `${Math.round(share * 100)} %`) : keysLabel(keys.downloads)}</span>
         </button>
         <button role="menuitem" onClick={() => onOpen("archive")}>
           <Archive width={18} height={18} />
@@ -91,7 +89,7 @@ export function LibraryButton({ opens, onOpen }: { opens: LibraryView; onOpen: (
         <button role="menuitem" onClick={() => send({ cmd: "new_tab", url: "magnetite://ui/settings" })}>
           <SettingsIcon width={18} height={18} />
           Settings
-          <span className="hint">{SETTINGS_KEY}</span>
+          <span className="hint">{keysLabel(keys.settings)}</span>
         </button>
       </div>
     </div>

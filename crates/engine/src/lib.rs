@@ -40,6 +40,7 @@ mod favicon;
 mod floatbar;
 mod frame;
 mod glyphs;
+mod keymap;
 mod keys;
 #[cfg(target_os = "macos")]
 mod mac;
@@ -75,6 +76,7 @@ pub use events::{
     ExtensionMenuAction, MemoryPressure, Shortcut, UrlSource,
 };
 pub use extensions::ExtensionInfo;
+pub use keymap::{Action, Combo, Overrides};
 pub use media::{MediaAction, MediaState};
 pub use prompts::{PermissionPrompt, PromptAnswer, PromptKind};
 pub use router::ReplyTicket;

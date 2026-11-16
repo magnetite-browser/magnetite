@@ -559,7 +559,11 @@ wrap_command_handler! {
             // A window Chromium opened itself (the DevTools of an extension
             // popup): its keys are its own, not commands for our tabs.
             if self.kind == Kind::Stray { return 0; }
-            let Some(shortcut) = keys::shortcut_for_chrome_command(command_id) else { return 0 };
+            let shortcut = match keys::shortcut_for_chrome_command(command_id) {
+                keys::ChromeCommand::Pass => return 0,
+                keys::ChromeCommand::Drop => return 1,
+                keys::ChromeCommand::Run(shortcut) => shortcut,
+            };
             // Keys in DevTools act on their page.
             let owner = engine.devtools_owner(browser.as_deref());
             let from = engine.content_id_for(browser.as_deref()).or(owner);
@@ -594,9 +598,10 @@ wrap_keyboard_handler! {
             _is_keyboard_shortcut: Option<&mut ::std::os::raw::c_int>,
         ) -> ::std::os::raw::c_int {
             let engine = Engine::global();
-            // A hidden sidebar can still hold focus, and Chromium drops input
-            // to hidden pages: its shortcuts (Cmd+S to show it again) run here.
-            if self.kind == Kind::Sidebar && !engine.sidebar_visible() {
+            // The sidebar's and the top bar's shortcuts run here, not in their pages: the keys are
+            // the user's (`keymap.rs`), and a hidden sidebar can still hold
+            // focus while Chromium drops input to hidden pages.
+            if matches!(self.kind, Kind::Sidebar | Kind::TopBar) {
                 let Some(shortcut) = event.and_then(|e| keys::shortcut_for_key(e).or_else(|| keys::yieldable_shortcut(e))) else { return 0 };
                 engine.emit(EngineEvent::Shortcut { from: None, shortcut });
                 return 1;

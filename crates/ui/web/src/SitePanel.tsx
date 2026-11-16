@@ -7,6 +7,7 @@ import { useDismiss } from "./dismiss";
 import { Favicon } from "./Favicon";
 import { CaptureIcon, CodeIcon, Minus, Plus, ShareIcon, Speaker, SpeakerOff } from "./Icons";
 import { Switch } from "./settings/fields";
+import { keysHint, keysLabel } from "./settings/shortcutKeys";
 import { findTabInSpace, hostOf, onSiteDataCleared, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
 const PERMISSION_LABEL: Record<PermissionKind, string> = {
@@ -189,10 +190,10 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
 
         <div className="panel-tools">
           {!internal && (
-            <button title="Capture (⇧⌘2)" onClick={() => { send({ cmd: "capture_start" }); onClose(); }}>
+            <button title={`Capture${keysHint(state.keys, "capture")}`} onClick={() => { send({ cmd: "capture_start" }); onClose(); }}>
               <CaptureIcon width={16} height={16} />
               <span>Capture</span>
-              <kbd>⇧⌘2</kbd>
+              <kbd>{keysLabel(state.keys.capture)}</kbd>
             </button>
           )}
           <button title="Share" onClick={(e) => { send({ cmd: "share", id: item.id, x: e.clientX, y: e.clientY }); onClose(); }}>
@@ -200,10 +201,10 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
             <span>Share</span>
           </button>
           {!internal && (
-            <button title="Developer tools (⌥⌘I)" onClick={() => { send({ cmd: "toggle_devtools" }); onClose(); }}>
+            <button title={`Developer tools${keysHint(state.keys, "toggle_dev_tools")}`} onClick={() => { send({ cmd: "toggle_devtools" }); onClose(); }}>
               <CodeIcon width={16} height={16} />
               <span>Developer tools</span>
-              <kbd>⌥⌘I</kbd>
+              <kbd>{keysLabel(state.keys.toggle_dev_tools)}</kbd>
             </button>
           )}
         </div>

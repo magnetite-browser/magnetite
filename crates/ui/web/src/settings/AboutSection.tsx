@@ -1,4 +1,4 @@
-// Settings → About: version and updates, project links, licences, shortcuts.
+// Settings → About: version and updates, project links, licences.
 import { useEffect, useState } from "react";
 // `?url`: the file's address as a string in every bundler (the website's
 // live demo runs a copy of this code and builds it with Astro).
@@ -10,28 +10,7 @@ import type { Info, SettingsPatch } from "./types";
 
 const WEBSITE = "https://magnetitebrowser.org";
 
-export const SHORTCUTS: [string, string][] = [
-  ["⌘T", "New tab, search, commands"],
-  ["⌘L", "Change the address"],
-  ["⌘W", "Close the tab (it moves to the archive)"],
-  ["⇧⌘T", "Reopen the last closed tab"],
-  ["⌘S", "Show or hide the sidebar"],
-  ["⌘D", "Pin or unpin the tab"],
-  ["⌃Tab", "Next tab"],
-  ["⌥⌘→  ⌥⌘←", "Next or previous space"],
-  ["⇧⌘N", "New space"],
-  ["⇧⌘=", "Split view"],
-  ["⇧⌘C", "Copy the link"],
-  ["⇧⌘2", "Capture the page"],
-  ["⌘Y", "History"],
-  ["⌥⌘L", "Downloads"],
-  ["⌘F", "Find in the page"],
-  ["⌘P", "Print the page"],
-  ["⌘,", "Settings"],
-  ["⇧ click", "Open a link in a peek"],
-];
-
-/** Version and updates, project links, licences, shortcuts. */
+/** Version and updates, project links, licences. */
 export function About({ info, update }: { info: Info; update: (patch: SettingsPatch) => void }) {
   const repo = info.repository.replace(/\/$/, "") || null;
   const open = (url: string) => send({ cmd: "new_tab", url });
@@ -74,17 +53,6 @@ export function About({ info, update }: { info: Info; update: (patch: SettingsPa
           <button className="btn" onClick={() => open("magnetite://ui/licenses#magnetite")}>EUPL-1.2 licence</button>
           <button className="btn" onClick={() => open("magnetite://ui/licenses#notices")}>Open-source licences</button>
           <button className="btn" onClick={() => open("chrome://credits")}>Chromium licences</button>
-        </div>
-      </Field>
-
-      <Field label="Keyboard shortcuts">
-        <div className="shortcuts">
-          {SHORTCUTS.map(([keys, what]) => (
-            <div key={keys} className="contents">
-              <kbd>{keys}</kbd>
-              <span>{what}</span>
-            </div>
-          ))}
         </div>
       </Field>
 

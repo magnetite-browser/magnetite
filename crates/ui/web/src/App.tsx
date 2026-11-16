@@ -18,6 +18,7 @@ import { IconPicker, SpaceGlyph } from "./Glyphs";
 import { SpaceSwitcher } from "./SpaceSwitcher";
 import { dragging, endDrag, indexAfterTaking } from "./dnd";
 import { useSpaceSwipe } from "./useSpaceSwipe";
+import { keysHint, keysLabel } from "./settings/shortcutKeys";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
 /**
@@ -171,7 +172,7 @@ export function App() {
       {/* Traffic-light band: sidebar toggle left, navigation right. Empty space drags the window. */}
       <div className={`titlebar-drag hdr flex h-[42px] shrink-0 items-center gap-0.5 ${FLOAT ? "pl-2" : "pl-[86px]"} pr-2`}>
         {windowButtons}
-        <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={FLOAT ? "Keep the sidebar open (⌘S)" : "Hide sidebar (⌘S)"}><SidebarIcon /></button>
+        <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={`${FLOAT ? "Keep the sidebar open" : "Hide sidebar"}${keysHint(state.keys, "toggle_sidebar")}`}><SidebarIcon /></button>
         <PinnedExtensions state={state} openMenu={openMenu} />
         <span className="flex-1" />
         <button className="ib no-drag" disabled={!frontRt?.can_go_back} onClick={() => send({ cmd: "go_back" })} title="Back (⌘[)"><Back /></button>
@@ -225,7 +226,7 @@ export function App() {
           onDragOver={(e) => dragging()?.kind === "tab" && e.preventDefault()}
           onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); dropToday(space.today.length); endDrag(); }}
         >
-          <button className="row newtab w-full" onClick={() => send({ cmd: "open_palette", mode: "new" })} title="New tab (⌘T)">
+          <button className="row newtab w-full" onClick={() => send({ cmd: "open_palette", mode: "new" })} title={`New tab${keysHint(state.keys, "new_tab")}`}>
             <span className="icon-slot"><Plus width={15} height={15} /></span>
             <span className="title text-left">New Tab</span>
           </button>
@@ -241,7 +242,7 @@ export function App() {
 
       {/* Footer: archive and downloads left (one button), spaces centred, new right */}
       <div className="flex h-12 shrink-0 items-center gap-1 px-2">
-        <LibraryButton opens={state.settings.library_opens} onOpen={setPanel} />
+        <LibraryButton opens={state.settings.library_opens} keys={state.keys} onOpen={setPanel} />
         <SpaceSwitcher spaces={state.sidebar.spaces} current={space.id} onMenu={spaceMenu} />
         <button
           className="ib lg plus-btn"
@@ -259,13 +260,13 @@ export function App() {
           onClose={closeNewMenu}
           groups={[
             [
-              { id: "space", label: "New Space", Icon: SpacePlus, shortcut: "⇧⌘N", run: () => send({ cmd: "open_palette", mode: "new_space" }) },
+              { id: "space", label: "New Space", Icon: SpacePlus, shortcut: keysLabel(state.keys.new_space), run: () => send({ cmd: "open_palette", mode: "new_space" }) },
               { id: "folder", label: "New Folder", Icon: FolderIcon, run: () => send({ cmd: "new_folder", title: "" }) },
               { id: "smart", label: "New Smart Folder", Icon: SmartFolderIcon, run: () => send({ cmd: "smart_folder_dialog" }) },
             ],
             [
               { id: "split", label: "New Split", Icon: SplitIcon, disabled: !activeItem, run: () => send({ cmd: "open_palette", mode: "split" }) },
-              { id: "tab", label: "New Tab", Icon: TabPlus, shortcut: "⌘T", run: () => send({ cmd: "open_palette", mode: "new" }) },
+              { id: "tab", label: "New Tab", Icon: TabPlus, shortcut: keysLabel(state.keys.new_tab), run: () => send({ cmd: "open_palette", mode: "new" }) },
             ],
           ]}
         />
