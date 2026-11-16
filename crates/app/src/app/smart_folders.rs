@@ -230,8 +230,16 @@ impl MagnetiteApp {
             return;
         };
         let id = id.to_string();
+        // Snoozed items are listed too: ask for that many more, so they do
+        // not take the places of items the folder shows.
+        let snoozed = u32::try_from(sf.snoozed.len()).unwrap_or(u32::MAX);
+        let asked = sf.limit.saturating_add(snoozed).min(smart::MOST_ITEMS);
         std::thread::spawn(move || {
-            let result = smart::fetch(&sf.source, &token, &login, sf.limit);
+            let result = smart::fetch(&sf.source, &token, &login, asked).map(|items| {
+                // Fewer than asked for: that is all the source has.
+                let complete = u32::try_from(items.len()).is_ok_and(|n| n < asked);
+                (items, complete)
+            });
             Engine::post(Box::new(move || {
                 if let Some(app) = global() {
                     app.smart_fetched(Engine::global(), &id, result);
@@ -240,24 +248,25 @@ impl MagnetiteApp {
         });
     }
 
-    /// On the UI thread: put fetched items into folder `id`. Open tabs the
-    /// source dropped stay until closed; failures keep the items shown.
+    /// On the UI thread: put fetched items into folder `id`, with whether
+    /// they are all the source has. Open tabs the source dropped stay until
+    /// closed; failures keep the items shown.
     pub(super) fn smart_fetched(
         &self,
         engine: &Engine,
         id: &str,
-        result: Result<Vec<SmartItem>, String>,
+        result: Result<(Vec<SmartItem>, bool), String>,
     ) {
         let changed = self.with_state(|s| {
             let st = s.smart_status.entry(id.to_string()).or_default();
             st.fetching = false;
-            let items = match result {
-                Ok(mut items) => {
+            let (items, complete) = match result {
+                Ok((mut items, complete)) => {
                     st.error = None;
                     st.updated_at = Some(now());
                     // Results come from a server: web addresses only.
                     items.retain(|i| url_policy::allowed(&i.url, url_policy::Source::Stored));
-                    items
+                    (items, complete)
                 }
                 Err(e) => {
                     st.error = Some(e);
@@ -270,8 +279,9 @@ impl MagnetiteApp {
                 .filter(|(_, r)| r.content.is_some())
                 .map(|(t, _)| t.clone())
                 .collect();
-            s.folder_mut(id)
-                .is_some_and(|f| f.apply_smart(&items, |t| open.contains(&t.id), new_id, now()))
+            s.folder_mut(id).is_some_and(|f| {
+                f.apply_smart(&items, complete, |t| open.contains(&t.id), new_id, now())
+            })
         });
         if changed {
             self.push_state(engine);

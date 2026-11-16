@@ -186,11 +186,14 @@ impl Folder {
     /// folder's first fill; items the source dropped go away unless `keep`
     /// says otherwise (the tab is open); snoozed items stay away until
     /// their time has come, and are forgotten once the source drops them.
+    /// `complete`: `items` is all the source has, not its first few; only
+    /// then is a snoozed item that is missing from it known to be dropped.
     /// Tabs the user added by hand keep their place, ahead of the source's
     /// items. Returns whether anything changed.
     pub fn apply_smart(
         &mut self,
         items: &[SmartItem],
+        complete: bool,
         keep: impl Fn(&TabItem) -> bool,
         mut new_id: impl FnMut() -> Id,
         now: UnixSeconds,
@@ -216,7 +219,7 @@ impl Folder {
         // source's titles while it lists them.
         smart.snoozed.retain_mut(|s| {
             let listed = title_of(&s.url).map(|title| s.title.clone_from(title));
-            listed.is_some() && !s.is_due(now)
+            (listed.is_some() || !complete) && !s.is_due(now)
         });
         let listed: Vec<&SmartItem> = items
             .iter()
@@ -365,7 +368,7 @@ mod tests {
             n += 1;
             format!("t{n}")
         };
-        assert!(f.apply_smart(&[item(1), item(2)], |_| false, &mut ids, 0));
+        assert!(f.apply_smart(&[item(1), item(2)], true, |_| false, &mut ids, 0));
         // First fill: nothing is "new" yet; hand-added tabs come first.
         assert_eq!(
             tabs(&f),
@@ -376,7 +379,7 @@ mod tests {
             ]
         );
         // PR 1 merged, PR 3 opened: 3 arrives unread, 2 keeps its tab id.
-        assert!(f.apply_smart(&[item(3), item(2)], |_| false, &mut ids, 0));
+        assert!(f.apply_smart(&[item(3), item(2)], true, |_| false, &mut ids, 0));
         assert_eq!(
             tabs(&f),
             vec![
@@ -387,7 +390,7 @@ mod tests {
         );
         assert!(matches!(&f.children[2], SidebarNode::Tab(t) if t.id == "t2"));
         assert!(
-            !f.apply_smart(&[item(3), item(2)], |_| false, &mut ids, 0),
+            !f.apply_smart(&[item(3), item(2)], true, |_| false, &mut ids, 0),
             "no change"
         );
     }
@@ -402,16 +405,16 @@ mod tests {
                 format!("t{n}")
             }
         };
-        f.apply_smart(&[item(1), item(2)], |_| false, &mut ids, 0);
+        f.apply_smart(&[item(1), item(2)], true, |_| false, &mut ids, 0);
         assert!(f.snooze("t2", None));
         // PR 1 is gone from the source but open: it stays for now.
-        f.apply_smart(&[item(2)], |t| t.title == "PR 1", &mut ids, 0);
+        f.apply_smart(&[item(2)], true, |t| t.title == "PR 1", &mut ids, 0);
         assert_eq!(
             tabs(&f),
             vec![("Notes".into(), false), ("PR 1".into(), false)]
         );
         // Once closed, the next refresh drops it; the snooze ends with PR 2.
-        f.apply_smart(&[], |_| false, &mut ids, 0);
+        f.apply_smart(&[], true, |_| false, &mut ids, 0);
         assert_eq!(tabs(&f), vec![("Notes".into(), false)]);
         assert_eq!(f.smart.as_ref().unwrap().snoozed, vec![] as Vec<Snoozed>);
     }
@@ -427,11 +430,11 @@ mod tests {
             }
         };
         let both = [item(1), item(2)];
-        f.apply_smart(&both, |_| false, &mut ids, 0);
+        f.apply_smart(&both, true, |_| false, &mut ids, 0);
         assert!(!f.snooze("manual", Some(100)), "not the source's item");
         assert!(f.snooze("t1", Some(100)));
         // Still listed, still asleep: a refresh leaves it away.
-        assert!(!f.apply_smart(&both, |_| false, &mut ids, 99));
+        assert!(!f.apply_smart(&both, true, |_| false, &mut ids, 99));
         assert_eq!(
             tabs(&f),
             vec![("Notes".into(), false), ("PR 2".into(), false)]
@@ -440,7 +443,7 @@ mod tests {
         assert!(!f.wake(|s| s.is_due(99), &mut ids, 99));
         assert!(f.wake(|s| s.is_due(100), &mut ids, 100));
         assert_eq!(tabs(&f).last(), Some(&("PR 1".into(), true)));
-        f.apply_smart(&both, |_| false, &mut ids, 100);
+        f.apply_smart(&both, true, |_| false, &mut ids, 100);
         assert_eq!(
             tabs(&f),
             vec![
@@ -451,15 +454,35 @@ mod tests {
         );
         // Without a wake in between, the refresh itself brings a due item back.
         assert!(f.snooze("t3", Some(200)));
-        assert!(f.apply_smart(&both, |_| false, &mut ids, 200));
+        assert!(f.apply_smart(&both, true, |_| false, &mut ids, 200));
         assert_eq!(tabs(&f)[1], ("PR 1".into(), true));
+    }
+
+    #[test]
+    fn a_list_cut_short_does_not_end_a_snooze() {
+        let mut f = folder();
+        let mut ids = {
+            let mut n = 0;
+            move || {
+                n += 1;
+                format!("t{n}")
+            }
+        };
+        f.apply_smart(&[item(1), item(2)], true, |_| false, &mut ids, 0);
+        assert!(f.snooze("t2", None));
+        // Only the first items came: PR 2 may still be listed further down.
+        f.apply_smart(&[item(3)], false, |_| false, &mut ids, 0);
+        assert_eq!(f.smart.as_ref().unwrap().snoozed.len(), 1);
+        // The whole list without it: the source dropped it.
+        f.apply_smart(&[item(3)], true, |_| false, &mut ids, 0);
+        assert_eq!(f.smart.as_ref().unwrap().snoozed, vec![] as Vec<Snoozed>);
     }
 
     #[test]
     fn items_hidden_by_an_older_version_are_snoozed_for_good() {
         let mut f = folder();
         f.smart.as_mut().unwrap().hidden = vec![item(2).url, item(9).url];
-        f.apply_smart(&[item(1), item(2)], |_| false, || "t".into(), 0);
+        f.apply_smart(&[item(1), item(2)], true, |_| false, || "t".into(), 0);
         let smart = f.smart.as_ref().unwrap();
         assert_eq!(
             smart.snoozed,
@@ -477,7 +500,7 @@ mod tests {
     fn limit_caps_items_and_hosts_normalise() {
         let mut f = folder();
         f.smart.as_mut().unwrap().limit = 1;
-        f.apply_smart(&[item(1), item(2)], |_| false, || "t".into(), 0);
+        f.apply_smart(&[item(1), item(2)], true, |_| false, || "t".into(), 0);
         assert_eq!(tabs(&f).len(), 2, "Notes plus one item");
         assert_eq!(normalise_host("https://www.GitHub.com/"), "github.com");
         assert_eq!(normalise_host("acme.youtrack.cloud"), "acme.youtrack.cloud");

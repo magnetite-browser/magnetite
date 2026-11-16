@@ -1,4 +1,4 @@
-import { memo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { Favicon } from "./Favicon";
 import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, SmartFolderIcon, SnoozeIcon, Speaker, SpeakerOff, WakeIcon, WarningIcon } from "./Icons";
 import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./smart";
@@ -236,6 +236,8 @@ const TabRowInner = memo(
     // The user picks a time of their own to snooze until, in the title's place.
     const [pickingTime, setPickingTime] = useState(false);
     const hover = useRef<number | undefined>(undefined);
+    // A row that goes away while the pointer rests on its button opens no menu.
+    useEffect(() => () => window.clearTimeout(hover.current), []);
     const openSnooze = (button: HTMLElement) => {
       window.clearTimeout(hover.current);
       const r = button.getBoundingClientRect();

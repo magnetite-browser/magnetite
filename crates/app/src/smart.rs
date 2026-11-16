@@ -123,15 +123,19 @@ pub fn whoami(service: Service, host: &str, token: &str) -> Result<(String, Stri
     Ok((login, text(name)))
 }
 
-/// What `source` lists now, best first, at most `limit` items. `login` is
-/// the account's user name (GitLab review requests are asked by name).
+/// Most items one request to a service asks for.
+pub const MOST_ITEMS: u32 = 100;
+
+/// What `source` lists now, best first, at most `limit` items (and never
+/// more than `MOST_ITEMS`). `login` is the account's user name (GitLab
+/// review requests are asked by name).
 pub fn fetch(
     source: &SmartSource,
     token: &str,
     login: &str,
     limit: u32,
 ) -> Result<Vec<SmartItem>, String> {
-    let n = limit.clamp(1, 100);
+    let n = limit.clamp(1, MOST_ITEMS);
     let auth = authorization(source.service(), token);
     let items = match source {
         SmartSource::GitHub { host, show, filter } => {
