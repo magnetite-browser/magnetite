@@ -374,7 +374,7 @@ mod tests {
     }
 
     #[test]
-    fn a_tab_opened_by_a_page_stays_on_its_openers_side() {
+    fn a_tab_opened_or_restored_stays_on_its_side_and_no_private_id_is_saved() {
         let mut s = state();
         let first = s.active_space.clone();
         let plain = s.active_space().profile_id.clone();
@@ -395,6 +395,18 @@ mod tests {
         // The user's own tab is one of the space in front.
         let own = s.open_tab_from(None, url, url).unwrap();
         assert!(s.in_private_space(&own));
+
+        // An archived tab whose space is gone is restored beside the
+        // private space, not into it.
+        let gone = s.new_today_tab(&first, url, url);
+        s.archive_tab(&gone);
+        s.archive[0].space_id = "gone".into();
+        let restored = s.restore_archived(0).unwrap();
+        assert_eq!(s.find_tab(&restored).unwrap().0.unwrap().id, first);
+
+        // What Chromium pins is not noted for a profile of the space.
+        assert!(!s.follow_chromium_pins(&of_tab, vec!["vault".into()]));
+        assert!(s.settings.chromium_pins_seen.is_empty());
 
         // The space is closed, a page of it not yet: it opens nothing.
         s.close_private_space();

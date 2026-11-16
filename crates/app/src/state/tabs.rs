@@ -433,7 +433,8 @@ impl AppState {
     }
 
     /// Take the archive record at `pos` back into Today of its space (the
-    /// active space if that one is gone). Returns the tab's id. A tab that
+    /// active space if that one is gone, the space beside the private one if
+    /// that is the active one). Returns the tab's id. A tab that
     /// is in the sidebar again (a sync brought it back) is not added a second
     /// time, and a profile of its own that no longer exists is dropped: with
     /// it the tab would count as private and be gone at the next start.
@@ -452,10 +453,12 @@ impl AppState {
         if tab.profile_id.as_ref().is_some_and(|p| !known(p)) {
             tab.profile_id = None;
         }
+        // Never the private space: an archived tab was not one of it, and
+        // would run there in a profile that is kept.
         let space = if self.space(&space_id).is_some() {
             space_id
         } else {
-            self.active_space.clone()
+            self.lasting_space(&self.active_space)
         };
         self.space_mut(&space)?.today.insert(0, tab);
         Some(id)

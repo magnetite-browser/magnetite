@@ -286,7 +286,12 @@ impl AppState {
     /// extensions page) for `profile`: an extension Chromium newly pins is
     /// pinned here too, one it unpins leaves the sidebar. Pins changed here
     /// stay as they are until Chromium's change. Returns whether any changed.
+    /// A profile of the private space is not followed: its id would be saved
+    /// with what was seen, and its pins are the default profile's anyway.
     pub fn follow_chromium_pins(&mut self, profile: &str, chromium: Vec<String>) -> bool {
+        if self.private_profiles.contains(profile) {
+            return false;
+        }
         let seen = self
             .settings
             .chromium_pins_seen
