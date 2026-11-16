@@ -129,9 +129,9 @@ pub(crate) struct Inner {
     /// an extension's pop-up window. `quit` closes them; each one left open
     /// would keep the app running.
     pub foreign: HashMap<i32, Browser>,
-    /// Keeps the watch on each profile's extension pins alive
-    /// (`extensions::watch_pins`).
-    pub pin_watches: Vec<Registration>,
+    /// Keeps the watches on each profile's Chromium preferences alive
+    /// (`extensions::watch_pins`, `autofill::watch`).
+    pub pref_watches: Vec<Registration>,
     /// Profile ids whose context Chromium has finished making: only then
     /// can a browser be made in it (`context_ready`).
     pub ready_contexts: HashSet<String>,
@@ -256,7 +256,7 @@ impl Engine {
                 ui_reloads: HashMap::new(),
                 contexts: HashMap::new(),
                 foreign: HashMap::new(),
-                pin_watches: Vec::new(),
+                pref_watches: Vec::new(),
                 ready_contexts: HashSet::new(),
                 queued: Vec::new(),
                 chrome_toolbar: config.chrome_toolbar,
@@ -751,6 +751,7 @@ pub(crate) fn prepare_context(ctx: &RequestContext) -> bool {
     if !autofill.apply(ctx) {
         crate::trace("cannot set the password and autofill preferences");
     }
+    crate::autofill::watch(ctx);
     set
 }
 

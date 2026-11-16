@@ -233,6 +233,10 @@ pub enum EngineEvent {
     /// Chromium's own extension pins changed ("Pin to toolbar"): read
     /// [`crate::Engine::extensions`] again.
     ExtensionPinsChanged,
+    /// The password and autofill switches were changed on one of Chromium's
+    /// own pages, to these: keep them and hand them back with
+    /// [`crate::Engine::set_autofill`], which sets every profile alike.
+    AutofillChanged(crate::AutofillPrefs),
     /// A download started, moved on (about every percent), finished or failed.
     Download(DownloadReport),
     /// A page asks for a permission; answer with
@@ -332,6 +336,7 @@ impl EngineEvent {
             Self::MediaChanged { .. } => "MediaChanged",
             Self::ExtensionMenu(..) => "ExtensionMenu",
             Self::ExtensionPinsChanged => "ExtensionPinsChanged",
+            Self::AutofillChanged(_) => "AutofillChanged",
             Self::Download(_) => "Download",
             Self::PermissionPrompt(_) => "PermissionPrompt",
             Self::PermissionPromptClosed { .. } => "PermissionPromptClosed",

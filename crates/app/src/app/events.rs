@@ -153,6 +153,11 @@ impl EngineDelegate for MagnetiteApp {
                 self.show_prompts(engine);
             }
             EngineEvent::ExtensionPinsChanged => self.show_state(engine),
+            EngineEvent::AutofillChanged(autofill) => {
+                self.with_state(|s| s.settings.autofill = autofill);
+                self.save_soon();
+                engine.set_autofill(autofill);
+            }
             EngineEvent::ExtensionMenu(action) => match action {
                 ExtensionMenuAction::Open(id) => self.open_extension(engine, &id),
                 ExtensionMenuAction::TogglePin(id) => {

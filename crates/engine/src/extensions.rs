@@ -62,7 +62,7 @@ wrap_preference_observer! {
 pub(crate) fn watch_pins(ctx: &RequestContext) {
     let name = CefString::from(PINS);
     match ctx.add_preference_observer(Some(&name), Some(&mut PinWatch::new())) {
-        Some(watch) => Engine::global().lock().pin_watches.push(watch),
+        Some(watch) => Engine::global().lock().pref_watches.push(watch),
         None => crate::trace("cannot watch Chromium's extension pins"),
     }
 }
