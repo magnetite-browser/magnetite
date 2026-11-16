@@ -259,7 +259,50 @@ impl Engine {
             w.close();
         }
         self.emulate(id, None, Some(&mode.config));
+        // The device's identity went; a mobile view has its own back.
+        if self.lock().mobile.contains(&id) {
+            self.apply_mobile_view(id, true);
+        }
         self.show_dividers();
+    }
+
+    /// Show page `id` as on a phone from now on (`on`), or as itself
+    /// again: sites see a mobile browser's identity. The page loads again
+    /// to be served that way. Kept for a page that has no browser yet.
+    /// Device mode (above) has its own identity while it is on.
+    pub fn set_mobile_view(&self, id: ContentId, on: bool) {
+        let changed = {
+            let mut inner = self.lock();
+            if on {
+                inner.mobile.insert(id)
+            } else {
+                inner.mobile.remove(&id)
+            }
+        };
+        if changed {
+            self.apply_mobile_view(id, on);
+        }
+    }
+
+    /// The pages shown as on a phone (`set_mobile_view`).
+    pub fn mobile_views(&self) -> Vec<ContentId> {
+        self.lock().mobile.iter().copied().collect()
+    }
+
+    /// `set_mobile_view`'s work on a page with a browser.
+    pub(crate) fn apply_mobile_view(&self, id: ContentId, on: bool) {
+        // An empty identity is none: the browser's own again.
+        let ua = if on { Ua::Android.string() } else { "" };
+        self.devtools(
+            id,
+            "Emulation.setUserAgentOverride",
+            &json!({ "userAgent": ua }),
+            Box::new(move |done| {
+                if done.is_ok() {
+                    Engine::global().content_reload(id);
+                }
+            }),
+        );
     }
 
     /// The bar's question: page `id`'s device, `null` when device mode is off.

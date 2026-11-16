@@ -18,6 +18,7 @@ changes them ([shortcuts.md](shortcuts.md)).
 | [bookmarks.md](bookmarks.md) | saved addresses per space, in folders, in one view for all spaces |
 | [split-view.md](split-view.md) | several pages side by side |
 | [peek.md](peek.md) | a link opened over the page, without leaving it |
+| [web-panels.md](web-panels.md) | a favorite or pinned tab that opens over the page in front, at the sidebar's edge |
 | [mini-window.md](mini-window.md) | a page in a small window of its own, for links from other apps and the quick search from anywhere |
 | [site-controls.md](site-controls.md) | address row, site panel, permissions, own CSS and JavaScript per site, DevTools, capture |
 | [shortcuts.md](shortcuts.md) | giving the shortcuts other keys, which ones are fixed, how they sync |

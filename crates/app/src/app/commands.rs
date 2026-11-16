@@ -173,6 +173,20 @@ pub(super) enum UiCommand {
         id: String,
         keep: bool,
     },
+    /// A favorite opens as a web panel from now on, or as a tab again.
+    SetWebPanel {
+        id: String,
+        panel: bool,
+    },
+    /// Web panel `id`'s page is shown as on a phone, or as itself again.
+    SetPanelMobile {
+        id: String,
+        mobile: bool,
+    },
+    /// Open favorite `id`'s web panel, or close it if it is the open one.
+    ToggleWebPanel {
+        id: String,
+    },
     RenameTab {
         id: String,
         title: String,
@@ -868,6 +882,9 @@ impl MagnetiteApp {
                     self.push_state(engine);
                 }
             }
+            UiCommand::SetWebPanel { id, panel } => self.set_web_panel(engine, &id, panel),
+            UiCommand::SetPanelMobile { id, mobile } => self.set_panel_mobile(engine, &id, mobile),
+            UiCommand::ToggleWebPanel { id } => self.toggle_web_panel(engine, &id),
             UiCommand::RenameTab { id, title } => {
                 self.with_state(|s| {
                     if let Some(t) = s.find_tab_mut(&id) {

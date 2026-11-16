@@ -122,6 +122,7 @@ pub fn sanitise_snapshot(snap: &mut SidebarSnapshot) {
                 t.profile_id = None;
                 t.unread = false;
                 t.keep_active = false;
+                t.end_panel();
                 seen.insert(t.id.clone())
             }
             SidebarNode::Folder(f) => {

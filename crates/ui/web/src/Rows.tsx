@@ -72,7 +72,11 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   // Spared from unloading and auto-archive until it is let go again.
   // Favorites and pinned tabs stay loaded anyway.
   if (section === "today") items.push({ label: tab.keep_active ? "✓ Keep active" : "Keep active", onClick: () => send({ cmd: "set_keep_active", id: tab.id, keep: !tab.keep_active }) });
-  if (ctx.state.active_tab && ctx.state.active_tab !== tab.id && !onScreen && ctx.state.panes.length < MAX_PANES) {
+  // Over the page in front instead of in its place (a translator, a password manager).
+  if (section !== "today") items.push({ label: tab.panel ? "✓ Open as panel" : "Open as panel", onClick: () => send({ cmd: "set_web_panel", id: tab.id, panel: !tab.panel }) });
+  // Sites that have a page for phones serve the panel that one.
+  if (section !== "today" && tab.panel) items.push({ label: tab.panel_mobile ? "✓ Mobile view" : "Mobile view", onClick: () => send({ cmd: "set_panel_mobile", id: tab.id, mobile: !tab.panel_mobile }) });
+  if (ctx.state.active_tab && ctx.state.active_tab !== tab.id && !onScreen && !tab.panel && ctx.state.panes.length < MAX_PANES) {
     items.push({ label: "Open in split view", onClick: () => send({ cmd: "add_split", id: tab.id }) });
   }
   if (inSplit) {
@@ -165,14 +169,15 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
               <button
                 key={t.id}
                 className="fav no-drag"
-                data-active={state.active_tab === t.id || undefined}
+                data-active={state.active_tab === t.id || state.web_panel === t.id || undefined}
+                data-panel={t.panel || undefined}
                 data-unloaded={!rt?.loaded || undefined}
                 draggable
                 onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id })}
                 onDragEnd={endDrag}
-                onClick={() => send({ cmd: "activate_tab", id: t.id })}
+                onClick={() => send(t.panel ? { cmd: "toggle_web_panel", id: t.id } : { cmd: "activate_tab", id: t.id })}
                 onContextMenu={(e) => { e.preventDefault(); ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, t, "favorites", { x: e.clientX, y: e.clientY })); }}
-                title={title ? `${t.title} · ${title}` : t.title}
+                title={[t.title, title, t.panel && "panel"].filter(Boolean).join(" · ")}
               >
                 <Favicon url={t.url} src={rt?.favicon} loading={rt?.loading} />
               </button>
@@ -201,7 +206,7 @@ export function TabRow({ ctx, tab, section, index, folderId, onDropAt }: {
     <TabRowInner
       tab={tab}
       rt={ctx.state.runtime[tab.id]}
-      active={ctx.state.active_tab === tab.id}
+      active={ctx.state.active_tab === tab.id || ctx.state.web_panel === tab.id}
       renaming={ctx.renaming === tab.id}
       section={section}
       index={index}
@@ -283,7 +288,9 @@ const TabRowInner = memo(
         }}
         onClick={(e) => {
           if (renaming) return;
-          if (e.altKey) send({ cmd: "add_split", id: tab.id });
+          // A pinned tab that opens as a web panel: the click opens and closes it.
+          if (tab.panel && section === "pinned") send({ cmd: "toggle_web_panel", id: tab.id });
+          else if (e.altKey) send({ cmd: "add_split", id: tab.id });
           else send({ cmd: "activate_tab", id: tab.id });
         }}
         onDoubleClick={(e) => {
@@ -343,6 +350,9 @@ const TabRowInner = memo(
             <button className="slot" title={rt.muted ? "Unmute tab" : "Mute tab"} onClick={(e) => { e.stopPropagation(); send({ cmd: "set_muted", id: tab.id, muted: !rt.muted }); }}>
               {rt.muted ? <SpeakerOff width={14} height={14} /> : <Speaker width={14} height={14} />}
             </button>
+          )}
+          {tab.panel && section === "pinned" && (
+            <span className="panel-mark" data-open={active || undefined} title="Opens as a web panel" aria-label="Opens as a web panel" />
           )}
           {tab.keep_active && section === "today" && (
             <span className="kept" title="Kept active: this tab is not unloaded" aria-label="Kept active">

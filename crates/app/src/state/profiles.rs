@@ -77,6 +77,7 @@ impl AppState {
         }
         lists.retain(|l| !l.items.is_empty() || l.profile_id == default);
         self.sidebar.favorites = lists;
+        self.settle_panels();
     }
 
     /// Tab `id` runs in a private (in-memory) profile. A tab whose own

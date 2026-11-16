@@ -99,6 +99,8 @@ pub(super) fn move_tab(s: &mut AppState, id: &str, to: &Destination) {
             if tab.home_url.take().is_some() {
                 tab.last_active_at = Some(now());
             }
+            // Only favorites and pinned tabs open as web panels.
+            tab.end_panel();
             if let Some(sp) = s.space_mut(space_id) {
                 let i = index.min(sp.today.len());
                 sp.today.insert(i, tab);
@@ -114,6 +116,11 @@ impl MagnetiteApp {
     /// Make `tab_id` the active tab of its space (switching spaces if needed),
     /// creating its content window on first use.
     pub(super) fn activate_tab(&self, engine: &Engine, tab_id: &str) {
+        // A favorite that opens as a web panel never takes the page area.
+        if self.with_state(|s| s.is_web_panel(tab_id)) {
+            self.open_web_panel(engine, tab_id);
+            return;
+        }
         self.close_peek(engine);
         let space_id = self.with_state(|s| {
             let (space, _) = s.find_tab(tab_id)?;
@@ -276,6 +283,47 @@ impl MagnetiteApp {
         self.push_state(engine);
     }
 
+    /// The page window of tab `tab_id` for the current window, made if the
+    /// tab has none.
+    pub(super) fn page_of(&self, engine: &Engine, tab_id: &str) -> ContentId {
+        let win = engine.current_window();
+        // A page in another window comes over as it is where the engine
+        // can move it; elsewhere it is closed there and made again here.
+        let kept = self.content_of(tab_id).filter(|c| {
+            let movable = engine.content_window(*c) == win || engine.can_move_pages();
+            if !movable {
+                self.with_state(|s| s.detach_content(tab_id));
+                engine.close_content(*c);
+            }
+            movable
+        });
+        if let Some(c) = kept {
+            return c;
+        }
+        let (url, home, profile) = self.with_state(|s| {
+            let (url, home) = s
+                .find_tab(tab_id)
+                .map(|(_, t)| (t.url.clone(), t.home_url.clone()))
+                .unwrap_or_default();
+            // Magnetite's own pages are served by the default context only.
+            let profile = if url.starts_with("magnetite://") {
+                None
+            } else {
+                s.context(s.profile_for_tab(tab_id).as_deref())
+            };
+            (url, home, profile)
+        });
+        let c = engine.create_content(&url, profile.as_ref());
+        self.with_state(|s| {
+            s.content_to_tab.insert(c, tab_id.to_string());
+            let rt = s.runtime.entry(tab_id.to_string()).or_default();
+            rt.content = Some(c);
+            rt.loaded = true;
+        });
+        engine.set_content_lock(c, home.as_deref().and_then(host_of));
+        c
+    }
+
     /// The current window's part of `present`: create windows for its
     /// panes, lay them out, hide its other pages.
     fn present_window(&self, engine: &Engine) {
@@ -283,50 +331,17 @@ impl MagnetiteApp {
         let panes = self.with_state(|s| s.visible_panes());
         let mut contents = Vec::new();
         for tab_id in &panes {
-            // A page in another window comes over as it is where the engine
-            // can move it; elsewhere it is closed there and made again here.
-            let kept = self.content_of(tab_id).filter(|c| {
-                let movable = engine.content_window(*c) == win || engine.can_move_pages();
-                if !movable {
-                    self.with_state(|s| s.detach_content(tab_id));
-                    engine.close_content(*c);
-                }
-                movable
-            });
-            let c = if let Some(c) = kept {
-                c
-            } else {
-                let (url, home, profile) = self.with_state(|s| {
-                    let (url, home) = s
-                        .find_tab(tab_id)
-                        .map(|(_, t)| (t.url.clone(), t.home_url.clone()))
-                        .unwrap_or_default();
-                    // Magnetite's own pages are served by the default context only.
-                    let profile = if url.starts_with("magnetite://") {
-                        None
-                    } else {
-                        s.context(s.profile_for_tab(tab_id).as_deref())
-                    };
-                    (url, home, profile)
-                });
-                let c = engine.create_content(&url, profile.as_ref());
-                self.with_state(|s| {
-                    s.content_to_tab.insert(c, tab_id.clone());
-                    let rt = s.runtime.entry(tab_id.clone()).or_default();
-                    rt.content = Some(c);
-                    rt.loaded = true;
-                });
-                engine.set_content_lock(c, home.as_deref().and_then(host_of));
-                c
-            };
-            contents.push(c);
+            contents.push(self.page_of(engine, tab_id));
         }
-        // The pages of the other windows are theirs to show or hide.
+        // The pages of the other windows are theirs to show or hide, and
+        // the web panel stays over whatever is shown.
+        let over = engine.web_panel_content();
         let others: Vec<ContentId> = self.with_state(|s| {
             s.runtime
                 .values()
                 .filter_map(|r| r.content)
-                .filter(|c| !contents.contains(c) && engine.content_window(*c) == win)
+                .filter(|c| !contents.contains(c) && Some(*c) != over)
+                .filter(|c| engine.content_window(*c) == win)
                 .collect()
         });
         for c in others {
@@ -616,6 +631,8 @@ impl MagnetiteApp {
                     // Its time in Today starts now: it must not be archived
                     // for the hours it was pinned and not looked at.
                     t.last_active_at = Some(now());
+                    // A Today tab opens as no web panel.
+                    t.end_panel();
                 }
             }
         });

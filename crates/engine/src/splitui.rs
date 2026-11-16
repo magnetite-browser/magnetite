@@ -27,7 +27,6 @@ impl Engine {
 
     /// Show the split dividers and one beside each docked `DevTools` on
     /// screen (native windows on macOS; other platforms have none yet).
-    #[cfg_attr(not(target_os = "macos"), allow(clippy::unused_self))]
     pub(crate) fn show_dividers(&self) {
         #[cfg(target_os = "macos")]
         {
@@ -63,10 +62,17 @@ impl Engine {
                 let wanted: Vec<_> = split.chain(devtools).chain(handles).collect();
                 (wanted, inner.win.frame.as_ref().map(|f| f.window.clone()))
             };
+            // The grip beside an open web panel, to resize it.
+            let mut wanted = wanted;
+            wanted.extend(
+                self.web_panel_grip()
+                    .map(|r| (r, crate::mac::DividerKey::WebPanel)),
+            );
             if let Some(frame) = frame {
                 crate::mac::set_dividers(frame.window_handle(), &wanted);
             }
         }
+        self.web_panel_above_dividers();
     }
 
     /// JPEG screenshot of page `id` as a data URL (drop-zone overlay).

@@ -39,6 +39,7 @@ pub(super) fn state() -> AppState {
         history: super::History::load(&dir),
         splits: Vec::new(),
         peek: None,
+        web_panel: None,
         minis: Vec::new(),
         deleted_profiles: vec![],
         unsynced_spaces: std::collections::BTreeSet::new(),

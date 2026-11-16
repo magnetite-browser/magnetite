@@ -21,6 +21,12 @@ export interface TabItem {
   profile_id?: Id;
   /** "Keep active": never unloaded for being out of sight, never auto-archived. */
   keep_active?: boolean;
+  /** A favorite that opens as a web panel, over the page in front. */
+  panel?: boolean;
+  /** The width the web panel was dragged to, in points. */
+  panel_width?: number;
+  /** The web panel's page is shown as on a phone. */
+  panel_mobile?: boolean;
 }
 
 export interface Folder {
@@ -194,6 +200,8 @@ export interface UiState {
   splits: SplitNode[];
   /** The page shown over the tab; `runtime` is what is known about it, as for a tab. */
   peek: { url: string; title: string; runtime: TabRuntime } | null;
+  /** The favorite whose web panel is open. */
+  web_panel: Id | null;
   /** While Ctrl+Tab goes through the tabs by last use: the tabs of the round and the place it stands on. */
   switcher: { tabs: Id[]; at: number } | null;
   settings: Settings;
@@ -271,6 +279,8 @@ export interface Settings {
   auto_pip: boolean;
   several_windows: boolean;
   strip_trackers: boolean;
+  /** A web panel closes by itself when a page behind it is used. */
+  panel_autoclose: boolean;
   devtools_dock: "right" | "bottom" | "window";
   sync: SyncSettings;
   /** Extensions shown in the sidebar; all are in the menu bar's Extensions menu. */
@@ -419,6 +429,9 @@ export type Command =
   | { cmd: "reset_tab"; id: Id }
   | { cmd: "rename_tab"; id: Id; title: string }
   | { cmd: "set_keep_active"; id: Id; keep: boolean }
+  | { cmd: "set_web_panel"; id: Id; panel: boolean }
+  | { cmd: "set_panel_mobile"; id: Id; mobile: boolean }
+  | { cmd: "toggle_web_panel"; id: Id }
   | { cmd: "new_space"; title: string; icon?: string }
   | { cmd: "rename_space"; id: Id; title: string; icon?: string }
   | { cmd: "delete_space"; id: Id }

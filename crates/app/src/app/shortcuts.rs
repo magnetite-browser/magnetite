@@ -175,6 +175,9 @@ impl MagnetiteApp {
                 // A peek is in front: the key closes it, not the tab behind it.
                 if self.with_state(|s| s.peek.is_some()) {
                     self.close_peek(engine);
+                } else if engine.web_panel_focused() {
+                    // The keyboard is in the web panel: the key is for it.
+                    self.close_web_panel(engine);
                 } else if let Some(id) = self.with_state(|s| s.active_tab_id().map(str::to_owned)) {
                     self.close_tab(engine, &id);
                 }

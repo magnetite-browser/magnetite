@@ -65,6 +65,9 @@ pub struct Settings {
     pub several_windows: bool,
     /// Remove tracking parameters (utm_*, fbclid, …) when copying links.
     pub strip_trackers: bool,
+    /// A web panel closes by itself when a page behind it is used
+    /// (`web-panels.md`); off: it stays until it is closed.
+    pub panel_autoclose: bool,
     /// Where DevTools open: right of or below the page, or a separate window.
     pub devtools_dock: magnetite_engine::DevToolsDock,
     /// The size docked DevTools were dragged to, per side. This device's
@@ -593,6 +596,7 @@ impl Default for Settings {
             auto_pip: true,
             several_windows: false,
             strip_trackers: true,
+            panel_autoclose: false,
             devtools_dock: magnetite_engine::DevToolsDock::Right,
             devtools_size: magnetite_engine::DevToolsSize::default(),
             sync: SyncSettings::default(),

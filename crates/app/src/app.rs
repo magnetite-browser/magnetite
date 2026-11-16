@@ -20,6 +20,7 @@ mod commands;
 mod events;
 mod extensions;
 mod mini;
+mod panels;
 mod peek;
 mod screenshots;
 mod shortcuts;
@@ -324,6 +325,7 @@ impl MagnetiteApp {
 
     /// The current window's part of `show_state`.
     fn show_window_state(&self, engine: &Engine) {
+        self.settle_web_panel(engine);
         let context = self.with_state(|s| s.front_context());
         let extensions = engine.extensions(context.as_ref());
         let chromium: Vec<String> = extensions
@@ -398,11 +400,15 @@ impl MagnetiteApp {
     }
 
     /// The page a command acts on: the page window a key came from, else the
-    /// open peek, else the active tab.
+    /// open peek, else the web panel while the keyboard is in it, else the
+    /// active tab.
     fn focused_content(&self, from: Option<ContentId>) -> Option<ContentId> {
         from.or_else(|| {
+            let panel = Engine::try_global()
+                .filter(|e| e.web_panel_focused())
+                .and_then(Engine::web_panel_content);
             self.with_state(|s| {
-                s.peek.as_ref().map(|p| p.content).or_else(|| {
+                (s.peek.as_ref().map(|p| p.content)).or(panel).or_else(|| {
                     s.active_tab_id()
                         .and_then(|t| s.runtime.get(t))
                         .and_then(|r| r.content)
@@ -411,7 +417,8 @@ impl MagnetiteApp {
         })
     }
 
-    /// Run `f` on the page in front: an open peek, else the active tab.
+    /// Run `f` on the page in front: an open peek, a web panel with the
+    /// keyboard, else the active tab.
     fn on_active_content(&self, engine: &Engine, f: impl FnOnce(&Engine, ContentId)) {
         if let Some(c) = self.focused_content(None) {
             f(engine, c);

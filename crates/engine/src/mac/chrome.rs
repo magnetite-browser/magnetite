@@ -397,6 +397,8 @@ pub enum DividerKey {
         id: crate::events::ContentId,
         edge: crate::device::Edge,
     },
+    /// Beside the open web panel, to resize it (`content.rs`).
+    WebPanel,
 }
 
 impl DividerKey {
@@ -405,6 +407,7 @@ impl DividerKey {
         match self {
             Self::Split { row, .. } | Self::DevTools { row, .. } => *row,
             Self::Device { edge, .. } => *edge != crate::device::Edge::Bottom,
+            Self::WebPanel => true,
         }
     }
 }
@@ -538,6 +541,7 @@ impl MagnetiteDividerView {
             // Device handles move with both coordinates (`mouse_dragged`);
             // here only letting go counts.
             DividerKey::Device { id, edge } => engine.device_handle(id, edge, 0, 0, action),
+            DividerKey::WebPanel => engine.web_panel_divider(action),
         }
     }
 

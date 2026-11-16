@@ -495,10 +495,20 @@ impl Engine {
     }
 
     pub(crate) fn reposition_contents(&self) {
-        let (split, peek) = {
+        let (split, peek, panel, panel_width) = {
             let inner = self.lock();
-            (inner.win.split.clone(), inner.win.peek)
+            let win = &inner.win;
+            (
+                win.split.clone(),
+                win.peek,
+                win.web_panel,
+                win.web_panel_width,
+            )
         };
+        if let Some(p) = panel {
+            let rect = crate::content::web_panel_rect(&self.content_rect(), panel_width);
+            self.place(p, &rect);
+        }
         if let Some(p) = peek {
             self.place(p, &crate::content::peek_rect(&self.content_rect()));
             self.update_peek_backdrop();
@@ -519,7 +529,7 @@ impl Engine {
             .map(|(id, _)| *id)
             .collect();
         for id in ids {
-            if Some(id) != peek {
+            if Some(id) != peek && Some(id) != panel {
                 self.place(id, &rect);
             }
         }

@@ -78,9 +78,27 @@ pub struct TabItem {
     /// sight, and a Today tab is not archived by itself.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub keep_active: bool,
+    /// A favorite that opens as a web panel: over the page in front, not
+    /// as a tab in its place. Counts for favorites only.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub panel: bool,
+    /// The width the web panel was dragged to, in points; none: the usual.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub panel_width: Option<u32>,
+    /// The web panel's page is shown as on a phone (a mobile browser's
+    /// identity).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub panel_mobile: bool,
 }
 
 impl TabItem {
+    /// No web panel any more: a plain tab, without a panel's settings.
+    pub fn end_panel(&mut self) {
+        self.panel = false;
+        self.panel_width = None;
+        self.panel_mobile = false;
+    }
+
     /// A tab with just an id, address and title; set the other fields with
     /// struct update syntax (`TabItem { home_url: …, ..TabItem::new(…) }`).
     pub fn new(id: impl Into<Id>, url: impl Into<String>, title: impl Into<String>) -> Self {

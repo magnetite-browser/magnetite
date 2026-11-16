@@ -194,6 +194,7 @@ impl AppState {
             history: super::History::load(data_dir),
             splits,
             peek: None,
+            web_panel: None,
             minis: Vec::new(),
             settings,
             sidebar_visible: true,

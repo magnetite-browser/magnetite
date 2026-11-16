@@ -14,6 +14,7 @@ mod bookmarks;
 mod folders;
 mod history;
 mod import;
+mod panels;
 mod persist;
 mod profiles;
 mod search;
@@ -49,6 +50,8 @@ pub struct UiState<'a> {
     /// Every split, on screen or not; the sidebar shows each as one row.
     pub splits: Vec<SplitNode<Id>>,
     pub peek: Option<&'a Peek>,
+    /// The favorite whose web panel is open.
+    pub web_panel: Option<&'a str>,
     /// The tabs `Ctrl+Tab` is going through and where it stands, while
     /// Ctrl is held: what the switcher's list shows.
     pub switcher: Option<&'a TabSwitch>,
@@ -156,8 +159,8 @@ pub enum ArcImport {
 
 pub struct AppState {
     pub sidebar: SidebarSnapshot,
-    /// The window `active_space`, `active_tab`, `peek` and `sidebar_visible`
-    /// are of: the current one (`windows.rs`).
+    /// The window `active_space`, `active_tab`, `peek`, `web_panel` and
+    /// `sidebar_visible` are of: the current one (`windows.rs`).
     pub window: WindowId,
     /// What the other windows show.
     pub views: HashMap<WindowId, windows::View>,
@@ -175,6 +178,8 @@ pub struct AppState {
     /// is in at most one; the one holding the active tab is on screen.
     pub splits: Vec<SplitNode<Id>>,
     pub peek: Option<Peek>,
+    /// The favorite whose web panel is open (`panels.rs`). In memory only.
+    pub web_panel: Option<Id>,
     /// Pages in mini windows, in the order they opened. Like the peek, they
     /// live in memory only.
     pub minis: Vec<Peek>,
@@ -246,6 +251,7 @@ impl AppState {
             split: self.visible_split(),
             splits: self.live_splits().collect(),
             peek: self.peek.as_ref(),
+            web_panel: self.web_panel.as_deref(),
             switcher: self.switcher.as_ref(),
             settings: &self.settings,
             keys: self.settings.shortcut_keys().collect(),

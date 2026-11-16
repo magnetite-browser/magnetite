@@ -205,7 +205,11 @@ impl EngineDelegate for MagnetiteApp {
                     UrlSource::Chromium => url_policy::Source::Chromium,
                 };
                 let (target, from_mini) = self.with_state(|s| {
-                    let from_peek = from.is_some() && from == s.peek.as_ref().map(|p| p.content);
+                    // A web panel counts as the peek does: narrow, and over
+                    // the page, it is no place for a second page.
+                    let from_peek = from.is_some()
+                        && (from == s.peek.as_ref().map(|p| p.content)
+                            || from == engine.web_panel_content());
                     let ask = Ask {
                         source,
                         locked,
@@ -326,7 +330,9 @@ impl EngineDelegate for MagnetiteApp {
                 DividerAction::Release => self.push_state(engine),
                 DividerAction::Equalize => self.split_equalize(engine, &path),
             },
+            EngineEvent::WebPanelResized { id, width } => self.web_panel_resized(engine, id, width),
             EngineEvent::ContentFocused { id } => {
+                self.page_focused(engine, id);
                 // Clicking into a split page makes it the active tab, so the
                 // address row and sidebar follow the page you work in.
                 let changed = self.with_state(|s| {
@@ -528,7 +534,7 @@ struct Ask {
     /// The user chose "Open Link in New Window".
     own_window: bool,
     background: bool,
-    /// The peek asked: what it opens becomes a tab.
+    /// The peek or a web panel asked: what it opens becomes a tab.
     from_peek: bool,
 }
 

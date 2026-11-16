@@ -1,6 +1,6 @@
 //! Several windows on one sidebar. Every window shows the same spaces and
-//! tabs; what differs is the space and tab in front, the peek and whether
-//! the sidebar is out. `AppState` holds these for one window at a time, the
+//! tabs; what differs is the space and tab in front, the peek, the web
+//! panel and whether the sidebar is out. `AppState` holds these for one window at a time, the
 //! current one (`AppState::window`), in its own fields; the other windows'
 //! wait in `AppState::views`. A tab is on screen in one window at most: the
 //! window that shows it takes it from the others (`claim_panes`).
@@ -19,6 +19,7 @@ pub struct View {
     pub active_space: Id,
     pub active_tab: HashMap<Id, Id>,
     pub peek: Option<Peek>,
+    pub web_panel: Option<Id>,
     pub sidebar_visible: bool,
 }
 
@@ -37,6 +38,7 @@ impl AppState {
         std::mem::swap(&mut self.active_space, &mut view.active_space);
         std::mem::swap(&mut self.active_tab, &mut view.active_tab);
         std::mem::swap(&mut self.peek, &mut view.peek);
+        std::mem::swap(&mut self.web_panel, &mut view.web_panel);
         std::mem::swap(&mut self.sidebar_visible, &mut view.sidebar_visible);
     }
 
@@ -80,6 +82,7 @@ impl AppState {
             active_space: self.active_space.clone(),
             active_tab: HashMap::new(),
             peek: None,
+            web_panel: None,
             sidebar_visible: true,
         };
         self.swap_view(&mut view);

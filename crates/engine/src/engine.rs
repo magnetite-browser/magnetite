@@ -46,6 +46,11 @@ pub(crate) struct WindowState {
     pub split: Option<magnetite_core::split::SplitNode<ContentId>>,
     /// Content window shown as a peek overlay, if any.
     pub peek: Option<ContentId>,
+    /// Content window shown as a web panel: over the pages, at the
+    /// sidebar's edge of the page area, if any.
+    pub web_panel: Option<ContentId>,
+    /// The width asked for the web panel, in points; none: the usual.
+    pub web_panel_width: Option<u32>,
     /// The page last shown alone (`show_content`) and not hidden since.
     pub shown: Option<ContentId>,
     /// Last draggable regions reported by the sidebar page (its own
@@ -75,6 +80,8 @@ impl WindowState {
             pending_sidebar_browser: None,
             split: None,
             peek: None,
+            web_panel: None,
+            web_panel_width: None,
             shown: None,
             sidebar_drag: Vec::new(),
             top_bar_drag: Vec::new(),
@@ -110,6 +117,9 @@ pub(crate) struct Inner {
     /// Pages the app muted. Kept here because a page gets its browser a
     /// moment after it is asked for: the mute is applied once it has one.
     pub muted: HashSet<ContentId>,
+    /// Pages shown as on a phone (`set_mobile_view`). Kept here for the
+    /// same reason, and to give it back after device mode.
+    pub mobile: HashSet<ContentId>,
     /// When one of our own pages was last reloaded after its renderer died,
     /// by browser identifier (`may_reload_ui`).
     pub ui_reloads: HashMap<i32, std::time::Instant>,
@@ -242,6 +252,7 @@ impl Engine {
                 locks: HashMap::new(),
                 autofill: crate::AutofillPrefs::default(),
                 muted: HashSet::new(),
+                mobile: HashSet::new(),
                 ui_reloads: HashMap::new(),
                 contexts: HashMap::new(),
                 foreign: HashMap::new(),

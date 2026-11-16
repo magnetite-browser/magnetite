@@ -174,12 +174,15 @@ impl AppState {
         None
     }
 
-    /// Ordered tabs of the active space as shown: pinned (depth first) then Today.
+    /// Ordered tabs of the active space as shown: pinned (depth first) then
+    /// Today. Without the pinned tabs that open as web panels: the order
+    /// is for going from tab to tab, and those are none to go to.
     pub fn visible_tab_ids(&self) -> Vec<Id> {
         let s = self.active_space();
         s.pinned
             .iter()
             .flat_map(SidebarNode::tabs)
+            .filter(|t| !t.panel)
             .chain(s.today.iter())
             .map(|t| t.id.clone())
             .collect()
@@ -213,9 +216,11 @@ impl AppState {
     /// `recent_tabs`, then (after a restart, say) by `last_active_at`.
     pub fn tabs_by_last_use(&self) -> Vec<Id> {
         let space = self.active_space();
+        // A web panel is no tab to switch to: it opens over one.
         let favorites = self.sidebar.favorites.iter().flat_map(|f| f.items.iter());
         let pinned = space.pinned.iter().flat_map(SidebarNode::tabs);
-        let mut tabs: Vec<&TabItem> = favorites.chain(pinned).chain(&space.today).collect();
+        let kept = favorites.chain(pinned).filter(|t| !t.panel);
+        let mut tabs: Vec<&TabItem> = kept.chain(&space.today).collect();
         let active = self.active_tab_id();
         tabs.sort_by_key(|t| {
             let place = self.recent_tabs.iter().position(|r| *r == t.id);
@@ -370,6 +375,7 @@ impl AppState {
     pub fn pages_in_use(&self) -> HashSet<Id> {
         let mut active: HashSet<Id> = self.active_tab.values().cloned().collect();
         active.extend(self.visible_panes());
+        active.extend(self.web_panel.clone());
         active
     }
 
@@ -388,6 +394,7 @@ impl AppState {
             // sleep: closing it ended "Keep active".
             tab.home_url = None;
             tab.keep_active = false;
+            tab.end_panel();
             self.archive.push(ArchivedTab {
                 tab,
                 space_id: space.unwrap_or_else(|| self.active_space.clone()),

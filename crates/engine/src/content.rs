@@ -7,6 +7,8 @@ use magnetite_core::split::{Bounds, SplitNode};
 
 use crate::client::{Kind, MagnetiteClient};
 use crate::engine::Engine;
+#[cfg(target_os = "macos")]
+use crate::events::DividerAction;
 use crate::events::{ContentId, EngineEvent, Shortcut};
 
 pub(crate) struct ContentState {
@@ -141,10 +143,11 @@ impl Engine {
     /// Put page `id`, whose window was made late, where it was asked to be
     /// while it had none: the peek, in the split on screen, or shown alone.
     fn show_late(&self, id: ContentId) {
-        let (peek, split, focus, shown) = {
+        let (peek, panel, split, focus, shown) = {
             let inner = self.lock();
             (
                 inner.win.peek,
+                inner.win.web_panel,
                 inner.win.split.clone(),
                 inner.win.focused_pane,
                 inner.win.shown,
@@ -152,6 +155,9 @@ impl Engine {
         };
         if peek == Some(id) {
             self.show_peek(id);
+        } else if panel == Some(id) {
+            let width = self.lock().win.web_panel_width;
+            self.show_web_panel(id, width);
         } else if let Some(tree) = split.filter(|t| t.contains(&id)) {
             self.show_split(&tree, focus);
         } else if shown == Some(id) {
@@ -328,6 +334,7 @@ impl Engine {
     pub fn show_content(&self, id: ContentId) {
         self.bring_home(id);
         self.end_peek_if(|p| p == id);
+        self.end_web_panel_if(|p| p == id);
         {
             let mut inner = self.lock();
             inner.win.split = None;
@@ -349,6 +356,7 @@ impl Engine {
         #[cfg(target_os = "macos")]
         crate::mac::hide_status_pill();
         view.request_focus();
+        self.raise_web_panel();
         self.raise_peek();
     }
 
@@ -358,6 +366,7 @@ impl Engine {
             self.bring_home(id);
         }
         self.end_peek_if(|p| tree.contains(&p));
+        self.end_web_panel_if(|p| tree.contains(&p));
         {
             let mut inner = self.lock();
             inner.win.split = Some(tree.clone());
@@ -381,6 +390,7 @@ impl Engine {
         if let Some((_, view)) = focus.and_then(|f| self.content_handles(f)) {
             view.request_focus();
         }
+        self.raise_web_panel();
         self.raise_peek();
     }
 
@@ -487,6 +497,150 @@ impl Engine {
         self.lock().win.peek
     }
 
+    /// The page shown as the current window's web panel.
+    pub fn web_panel_content(&self) -> Option<ContentId> {
+        self.lock().win.web_panel
+    }
+
+    /// Whether the keyboard is in the current window's web panel.
+    pub fn web_panel_focused(&self) -> bool {
+        // Its own statement: `content_handles` locks again.
+        let panel = self.lock().win.web_panel;
+        panel
+            .and_then(|id| self.content_handles(id))
+            .is_some_and(|(window, _)| window.is_active() != 0)
+    }
+
+    /// Show `id` as the window's web panel: over the pages, at the
+    /// sidebar's edge of the page area, `width` points wide (none: the
+    /// usual width), with the keyboard. The panel shown until now is
+    /// hidden and stays loaded. It stays through tab and space changes,
+    /// until `hide_content`/`close_content`.
+    pub fn show_web_panel(&self, id: ContentId, width: Option<u32>) {
+        self.bring_home(id);
+        // Its own statement: `hide_here` locks again.
+        let before = self.lock().win.web_panel;
+        if let Some(before) = before.filter(|b| *b != id) {
+            self.hide_here(before);
+        }
+        {
+            let mut inner = self.lock();
+            inner.win.web_panel = Some(id);
+            inner.win.web_panel_width = width;
+        }
+        let Some((window, view)) = self.content_handles(id) else {
+            return;
+        };
+        self.place(id, &web_panel_rect(&self.content_rect(), width));
+        // A shadow sets it off from the page it lies on.
+        #[cfg(target_os = "macos")]
+        crate::mac::round_window_corners(window.window_handle(), 10.0, true);
+        window.show();
+        self.keep_attached(id, &window);
+        window.bring_to_top();
+        // Its docked DevTools, and with them the dividers
+        // (`show_dividers`): the grip at its edge among them.
+        self.show_docked(id, true);
+        view.request_focus();
+        self.raise_peek();
+    }
+
+    /// Pages were raised (`show_content`, `show_split`): an open web panel
+    /// goes back above them, and its grip with it. The keyboard stays
+    /// where it is.
+    fn raise_web_panel(&self) {
+        // Its own statement: `content_handles` locks again.
+        let panel = self.lock().win.web_panel;
+        let Some(id) = panel else { return };
+        if let Some((window, _)) = self.content_handles(id) {
+            window.bring_to_top();
+            // Its docked DevTools, and with them the dividers
+            // (`show_dividers`): the grip at its edge among them.
+            self.show_docked(id, true);
+        }
+    }
+
+    /// The dividers were put above everything (`show_dividers`): the web
+    /// panel goes above them again, so that only its own grip, which lies
+    /// beside it, is in reach. Not under a peek, which is above them all.
+    pub(crate) fn web_panel_above_dividers(&self) {
+        let panel = {
+            let inner = self.lock();
+            inner.win.web_panel.filter(|_| inner.win.peek.is_none())
+        };
+        let Some(id) = panel else { return };
+        // Only the window: `show_docked` shows the dividers, and so comes
+        // back here.
+        if let Some((window, _)) = self.content_handles(id) {
+            window.bring_to_top();
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    /// Where the grip to resize the web panel lies: a strip beside the
+    /// panel's far edge, over the page.
+    pub(crate) fn web_panel_grip(&self) -> Option<Rect> {
+        let width = {
+            let inner = self.lock();
+            inner.win.web_panel?;
+            inner.win.web_panel_width
+        };
+        let panel = web_panel_rect(&self.content_rect(), width);
+        Some(Rect {
+            x: panel.x + panel.width,
+            width: WEB_PANEL_GRIP,
+            ..panel
+        })
+    }
+
+    #[cfg(target_os = "macos")]
+    /// The grip at the web panel's edge was dragged to screen position
+    /// `Move` (the panel follows), let go or double-clicked (the usual
+    /// width again): the last two are reported, for the width to be kept.
+    pub(crate) fn web_panel_divider(&self, action: DividerAction) {
+        let Some(id) = self.lock().win.web_panel else {
+            return;
+        };
+        let area = self.content_rect();
+        match action {
+            // The pointer stays in the middle of the grip.
+            DividerAction::Move(pos) => {
+                let wanted = pos - area.x - WEB_PANEL_GRIP / 2;
+                let width = web_panel_rect(&area, u32::try_from(wanted.max(0)).ok()).width;
+                self.lock().win.web_panel_width = u32::try_from(width).ok();
+            }
+            DividerAction::Equalize => self.lock().win.web_panel_width = None,
+            DividerAction::Release => {}
+        }
+        let width = self.lock().win.web_panel_width;
+        self.place(id, &web_panel_rect(&area, width));
+        self.show_dividers();
+        if !matches!(action, DividerAction::Move(_)) {
+            self.emit(EngineEvent::WebPanelResized { id, width });
+        }
+    }
+
+    /// The web panel's page stops being one (closed, hidden, or shown as a
+    /// tab) when `ends` says so for it: it is a plain page window again.
+    fn end_web_panel_if(&self, ends: impl FnOnce(ContentId) -> bool) {
+        let ended = {
+            let mut inner = self.lock();
+            let ended = inner.win.web_panel.filter(|p| ends(*p));
+            if ended.is_some() {
+                inner.win.web_panel = None;
+            }
+            ended
+        };
+        #[cfg(target_os = "macos")]
+        if let Some((window, _)) = ended.and_then(|id| self.content_handles(id)) {
+            crate::mac::round_window_corners(window.window_handle(), 10.0, false);
+        }
+        if ended.is_some() {
+            // Its grip goes with it.
+            self.show_dividers();
+        }
+    }
+
     /// Hide page `id` in the window it lives in.
     pub fn hide_content(&self, id: ContentId) {
         self.at_home(id, || self.hide_here(id));
@@ -494,6 +648,7 @@ impl Engine {
 
     fn hide_here(&self, id: ContentId) {
         self.end_peek_if(|p| p == id);
+        self.end_web_panel_if(|p| p == id);
         // A split that loses a page is no longer on screen.
         let was_split = {
             let mut inner = self.lock();
@@ -549,8 +704,12 @@ impl Engine {
             inner.permission_requests.remove(&id);
             inner.locks.remove(&id);
             inner.muted.remove(&id);
+            inner.mobile.remove(&id);
             let home = inner.home_of(id);
             if let Some(w) = inner.window_mut(home) {
+                if w.web_panel == Some(id) {
+                    w.web_panel = None;
+                }
                 if w.focused_pane == Some(id) {
                     w.focused_pane = None;
                 }
@@ -791,6 +950,10 @@ impl Engine {
                         host.set_audio_muted(1);
                     }
                 }
+                // Asked to be shown as on a phone before it had a browser.
+                if let Some(id) = matched.filter(|id| self.lock().mobile.contains(id)) {
+                    self.apply_mobile_view(id, true);
+                }
                 match matched {
                     Some(id) => self.emit(EngineEvent::ContentCreated { id }),
                     // None of our pages: a page's popup window.
@@ -971,6 +1134,30 @@ wrap_window_delegate! {
     }
 }
 
+/// The usual width of a web panel: about a phone's, which most sites lay
+/// out for.
+const WEB_PANEL_WIDTH: i32 = 420;
+/// The narrowest a web panel is dragged to.
+const WEB_PANEL_MIN: i32 = 280;
+/// The least of the page behind a web panel that stays in sight.
+const WEB_PANEL_REST: i32 = 80;
+/// Width of the grip beside a web panel's edge.
+#[cfg(target_os = "macos")]
+const WEB_PANEL_GRIP: i32 = 8;
+
+/// A web panel's place: the full height of the content area, at the edge
+/// the sidebar is on, `width` points wide (none: the usual width) as far
+/// as the area has the room.
+pub(crate) fn web_panel_rect(area: &Rect, width: Option<u32>) -> Rect {
+    let width = width.map_or(WEB_PANEL_WIDTH, |w| i32::try_from(w).unwrap_or(i32::MAX));
+    Rect {
+        width: (width.max(WEB_PANEL_MIN))
+            .min(area.width - WEB_PANEL_REST)
+            .max(1),
+        ..area.clone()
+    }
+}
+
 /// 86% of the content area, centred.
 pub(crate) fn peek_rect(area: &Rect) -> Rect {
     // Room on both sides for the peek's button column (mac::show_peek_backdrop).
@@ -1083,4 +1270,28 @@ wrap_panel_delegate! {
         }
     }
     impl PanelDelegate {}
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_web_panel_keeps_to_its_bounds() {
+        let area = |width| Rect {
+            x: 200,
+            y: 10,
+            width,
+            height: 800,
+        };
+        let width = |area_width, asked| web_panel_rect(&area(area_width), asked).width;
+        assert_eq!(width(1000, None), WEB_PANEL_WIDTH);
+        assert_eq!(width(1000, Some(600)), 600);
+        // Not narrower than a page can be used at, …
+        assert_eq!(width(1000, Some(10)), WEB_PANEL_MIN);
+        // … and some of the page behind stays in sight.
+        assert_eq!(width(1000, Some(5000)), 1000 - WEB_PANEL_REST);
+        assert_eq!(width(300, None), 300 - WEB_PANEL_REST);
+        assert_eq!(web_panel_rect(&area(1000), None).x, 200);
+    }
 }

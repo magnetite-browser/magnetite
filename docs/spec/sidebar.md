@@ -112,6 +112,8 @@ the row turns the icon into a back arrow that takes the page back.
   profile's list, and "New profile for this favorite…" makes a profile and
   a list for it. "Duplicate favorite" plus another profile gives two
   accounts of one site, each in its list.
+- "Open as panel" makes a favorite or a pinned tab a web panel: a click then opens it
+  over the page in front instead of in its place (`web-panels.md`).
 
 ## Folders
 
