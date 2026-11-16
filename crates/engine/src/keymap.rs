@@ -501,10 +501,15 @@ impl Overrides {
         self.0.remove(&action);
     }
 
-    /// Every other action that has `combo` gets no keys.
+    /// Every other action that has `combo` gets no keys: all of them, also
+    /// one listed after `action`, which only waited for the keys to be free
+    /// (two actions can be on the same keys after a sync between systems).
     fn take_from_others(&mut self, action: Action, combo: Combo) {
-        while let Some(other) = self.action_for(combo).filter(|o| *o != action) {
-            self.0.insert(other, None);
+        let combo = Some(combo.here());
+        for other in Action::ALL {
+            if other != action && self.combo_of(other) == combo {
+                self.0.insert(other, None);
+            }
         }
     }
 
@@ -614,6 +619,20 @@ mod tests {
         keys.reset(Action::NewTab);
         assert_eq!(keys.action_for(combo("primary+T")), Some(Action::NewTab));
         assert_eq!(keys.combo_of(Action::Find), None);
+    }
+
+    #[test]
+    fn a_reset_takes_its_keys_from_every_action_that_has_them() {
+        // As after a sync between systems: Find and Print both on New Tab's
+        // default keys, behind New Tab in the list.
+        let mut keys: Overrides =
+            serde_json::from_str(r#"{"find":"primary+T","print":"primary+T"}"#).unwrap();
+        keys.reset(Action::NewTab);
+        assert_eq!(keys.combo_of(Action::Find), None);
+        assert_eq!(keys.combo_of(Action::Print), None);
+        // New Tab on other keys later: nothing else wakes up on the old ones.
+        keys.set(Action::NewTab, Some(combo("primary+K"))).unwrap();
+        assert_eq!(keys.action_for(combo("primary+T")), None);
     }
 
     #[test]
