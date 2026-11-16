@@ -146,7 +146,8 @@ pub fn fetch(
     let n = limit.clamp(1, MOST_ITEMS);
     let auth = authorization(source.service(), token);
     // GitHub, GitLab and YouTrack fill a page while they have more, so a
-    // page with room left is the end of the list.
+    // page with room left is the end of the list (GitHub: of a search that
+    // ran to its end).
     let has_room = |count: usize| count < n as usize;
     let mut complete = true;
     let items = match source {
@@ -158,8 +159,11 @@ pub fn fetch(
                     "{api}/search/issues?q={}&sort=updated&order=desc&per_page={n}",
                     encode(&q)
                 );
-                let page = parse_github(&get_json(&url, &auth)?);
-                complete &= has_room(page.len());
+                let answer = get_json(&url, &auth)?;
+                let page = parse_github(&answer);
+                // GitHub says so when a search ran out of time part-way.
+                let cut_short = answer["incomplete_results"].as_bool().unwrap_or(false);
+                complete &= has_room(page.len()) && !cut_short;
                 found.extend(page);
             }
             newest_first(found)

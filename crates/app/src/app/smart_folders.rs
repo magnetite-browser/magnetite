@@ -238,21 +238,32 @@ impl MagnetiteApp {
             let result = smart::fetch(&sf.source, &token, &login, asked);
             Engine::post(Box::new(move || {
                 if let Some(app) = global() {
-                    app.smart_fetched(Engine::global(), &id, result);
+                    app.smart_fetched(Engine::global(), &id, &sf, result);
                 }
             }));
         });
     }
 
     /// On the UI thread: put what the source answered into folder `id`.
-    /// Open tabs the source dropped stay until closed; failures keep the
-    /// items shown.
+    /// `asked`: the folder as it was when the request went out; an answer
+    /// to a source or account the folder has left since is dropped (the
+    /// request for the new one is on its way). Open tabs the source dropped
+    /// stay until closed; failures keep the items shown.
     pub(super) fn smart_fetched(
         &self,
         engine: &Engine,
         id: &str,
+        asked: &SmartFolder,
         result: Result<smart::Fetched, String>,
     ) {
+        let current = self.with_state(|s| {
+            s.smart_folders()
+                .into_iter()
+                .any(|(f, sf)| f == id && sf.source == asked.source && sf.account == asked.account)
+        });
+        if !current {
+            return;
+        }
         let changed = self.with_state(|s| {
             let st = s.smart_status.entry(id.to_string()).or_default();
             st.fetching = false;
