@@ -543,8 +543,16 @@ impl Engine {
 
     /// Let go of the in-memory contexts of the profiles `ids`, which nothing
     /// uses any more: Chromium drops such a context, with its cookies and
-    /// storage, once its last page has closed.
+    /// storage, once its last page has closed. A popup window a page of
+    /// theirs opened (`foreign`) would keep the context alive: it closes.
     pub fn forget_contexts(&self, ids: &[String]) {
+        let popups: Vec<Browser> = self.lock().foreign.values().cloned().collect();
+        for host in popups.iter().filter_map(ImplBrowser::host) {
+            let context = host.request_context().and_then(|c| self.context_id_of(&c));
+            if context.is_some_and(|id| ids.contains(&id)) {
+                host.close_browser(1);
+            }
+        }
         let mut inner = self.lock();
         for id in ids {
             if inner.contexts.remove(id).is_some() {

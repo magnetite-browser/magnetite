@@ -413,13 +413,21 @@ impl MagnetiteApp {
         self.activate_space(engine, &id);
     }
 
-    /// Close the private space with everything opened from it.
+    /// Close the private space with everything opened from it. Every
+    /// window that showed it shows the space it goes on in.
     pub(super) fn close_private_space(&self, engine: &Engine) {
+        let others = self.with_state(|s| s.other_windows_in_private_space());
         for c in self.with_state(AppState::close_private_space) {
             engine.close_content(c);
         }
-        let space = self.with_state(|s| s.active_space.clone());
-        self.activate_space(engine, &space);
+        let show = || {
+            let space = self.with_state(|s| s.active_space.clone());
+            self.activate_space(engine, &space);
+        };
+        for win in others {
+            engine.in_window(win, show);
+        }
+        show();
     }
 
     /// Open `url` (typed, or from Magnetite's UI) as a new Today tab (see

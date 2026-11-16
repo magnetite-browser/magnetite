@@ -158,6 +158,7 @@ impl AppState {
     pub fn profile_in_use(&self, profile_id: &str) -> bool {
         self.sidebar.uses_profile(profile_id)
             || (self.peek.iter())
+                .chain(self.views.values().filter_map(|v| v.peek.as_ref()))
                 .chain(self.minis.iter())
                 .any(|p| p.profile == profile_id)
     }

@@ -111,17 +111,21 @@ it is the last of the spaces while it is open.
   "Private". In place of the "…" button its title has a close button, and
   "New Tab" reads "New Private Tab". It has only Today tabs: no pinned tabs,
   folders or bookmarks, and the favorites do not show there.
-- **A profile per tab**: every tab opened in it runs in an in-memory profile
-  of its own, so no tab sees the cookies, logins or storage of another, nor
-  those of any other space. A page opened from a private tab (a link in a
-  new tab, a sign-in window, a peek, a mini window) stays in that tab's
-  profile.
+- **A profile per tab**: every tab you open in it (New Private Tab, an
+  address from the command bar) runs in an in-memory profile of its own, so
+  it shares no cookies, logins or storage with another such tab, nor with
+  any other space. What a private tab's page opens (a link in a new tab, a
+  sign-in window, a peek, a mini window) stays in that tab's profile and
+  shares its cookies and logins: a sign-in window has to. Closing the space
+  closes all of them, popup windows included.
 - **Nothing is kept**: the space, its tabs and its profiles are not saved
   and not synced. Its pages leave no history, its closed tabs do not go to
   the archive, and a tab's profile is dropped with its data once the tab
   and everything opened from it are closed.
 - **Tabs stay put**: a tab cannot be moved into the private space or out of
-  it, pinned, or added to the favorites or bookmarks.
+  it, pinned, or added to the favorites or bookmarks. A peek or mini window
+  kept as a tab stays on its side too: a private one becomes a tab of the
+  private space, any other a tab of the space beside it.
 - **Extensions**: only those with "Allow in Incognito" switched on
   (`extensions.md`).
 - **Close**: the close button on its title, its menu in the footer, or

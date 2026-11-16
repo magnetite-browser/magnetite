@@ -70,9 +70,9 @@ impl AppState {
         let Some(id) = self.private_space.take() else {
             return vec![];
         };
+        let before = self.beside_private(&id);
         let spaces = &self.sidebar.spaces;
         let at = spaces.iter().position(|sp| sp.id == id).unwrap_or(0);
-        let before = spaces[at.saturating_sub(1)].id.clone();
         let tabs: Vec<Id> = (spaces[at].pinned.iter())
             .flat_map(SidebarNode::tabs)
             .chain(spaces[at].today.iter())
@@ -123,9 +123,38 @@ impl AppState {
         if !self.is_private_space(space) {
             return space.clone();
         }
+        self.beside_private(space)
+    }
+
+    /// The space that takes the place of the private space `id` where that
+    /// is gone: the one before it, or the one after it if it is the first
+    /// (another space was moved behind it). There always is one
+    /// (`delete_space`).
+    fn beside_private(&self, id: &str) -> Id {
         let spaces = &self.sidebar.spaces;
-        let at = spaces.iter().position(|sp| &sp.id == space).unwrap_or(0);
-        spaces[at.saturating_sub(1)].id.clone()
+        let at = spaces.iter().position(|sp| sp.id == id).unwrap_or(0);
+        let beside = if at == 0 { 1 } else { at - 1 };
+        spaces.get(beside).unwrap_or(&spaces[0]).id.clone()
+    }
+
+    /// The space a kept page of profile `profile` (a peek, a mini window)
+    /// becomes a tab of when `space` is asked for. Nothing crosses the
+    /// private space's border: a private page stays in the private space,
+    /// and another page goes to the space beside it instead.
+    pub(super) fn keep_space(&self, profile: &str, space: &str) -> Id {
+        match &self.private_space {
+            Some(private) if self.private_profiles.contains(profile) => private.clone(),
+            Some(private) if private == space => self.beside_private(private),
+            _ => space.to_string(),
+        }
+    }
+
+    /// The other windows that show the private space.
+    pub fn other_windows_in_private_space(&self) -> Vec<magnetite_engine::WindowId> {
+        (self.views.iter())
+            .filter(|(_, v)| self.is_private_space(&v.active_space))
+            .map(|(win, _)| *win)
+            .collect()
     }
 }
 
@@ -239,5 +268,63 @@ mod tests {
         assert_eq!(space.unwrap().id, private);
         assert_eq!(s.profile_for_tab(&tab).unwrap(), profile);
         assert!(s.is_private_tab(&tab));
+    }
+
+    #[test]
+    fn the_private_space_closes_also_as_the_first_space_and_is_no_reason_to_delete_the_last() {
+        let mut s = state();
+        let private = s.open_private_space();
+        // The only other spaces go behind it.
+        s.move_space(&private, 0);
+        let second = s.sidebar.spaces[1].id.clone();
+        s.active_space.clone_from(&private);
+        assert_eq!(s.lasting_space(&private), second);
+        s.close_private_space();
+        assert_eq!(s.active_space, second);
+
+        // One space and the private one: the one space stays.
+        while s.sidebar.spaces.len() > 1 {
+            let last = s.sidebar.spaces.last().unwrap().id.clone();
+            s.delete_space(&last);
+        }
+        let only = s.sidebar.spaces[0].id.clone();
+        s.open_private_space();
+        s.delete_space(&only);
+        assert_eq!(s.sidebar.spaces[0].id, only);
+    }
+
+    #[test]
+    fn a_kept_page_stays_on_its_side_and_another_windows_peek_keeps_its_profile() {
+        let mut s = state();
+        let first = s.active_space.clone();
+        let plain = s.active_space().profile_id.clone();
+        let private = s.open_private_space();
+        let tab = s.new_today_tab(&private, "https://example.org/1", "1");
+        let of_tab = s.profile_for_tab(&tab).unwrap();
+        let page = |content, profile: &str| Peek {
+            content,
+            url: "https://example.org/kept".into(),
+            title: String::new(),
+            runtime: TabRuntime::default(),
+            profile: profile.into(),
+        };
+        // A private mini window asked into another space, and a plain one
+        // asked into the private space.
+        s.minis = vec![page(7, &of_tab), page(8, &plain)];
+        let kept = s.keep_mini(7, &first).unwrap();
+        assert!(s.in_private_space(&kept));
+        assert_eq!(s.profile_for_tab(&kept).unwrap(), of_tab);
+        let kept = s.keep_mini(8, &private).unwrap();
+        assert!(!s.in_private_space(&kept) && !s.is_private_tab(&kept));
+
+        // The tabs close; a peek of the profile is left in another window.
+        for t in s.space(&private).unwrap().today.clone() {
+            s.archive_tab(&t.id);
+        }
+        s.open_window(2);
+        s.peek = Some(page(9, &of_tab));
+        s.enter(1);
+        assert!(!s.release_private_profiles().contains(&of_tab));
+        assert_eq!(s.close_private_space(), [9]);
     }
 }

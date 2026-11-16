@@ -123,7 +123,7 @@ impl AppState {
     /// window and what is known about its page. Returns the tab's id.
     pub fn keep_peek(&mut self) -> Option<Id> {
         let p = self.peek.take()?;
-        let space = self.active_space.clone();
+        let space = self.keep_space(&p.profile, &self.active_space);
         Some(self.keep_page(p, &space))
     }
 
@@ -134,10 +134,11 @@ impl AppState {
         let pos = self.minis.iter().position(|m| m.content == content)?;
         let page = self.minis.remove(pos);
         let space = if self.space(space).is_some() {
-            space.to_string()
+            space
         } else {
-            self.active_space.clone()
+            &self.active_space
         };
+        let space = self.keep_space(&page.profile, space);
         Some(self.keep_page(page, &space))
     }
 
@@ -463,7 +464,9 @@ impl AppState {
     /// like closed ones (`archive_tab`, so a private profile's leave nothing
     /// behind). Returns the page windows to close.
     pub fn delete_space(&mut self, id: &str) -> Vec<ContentId> {
-        if self.sidebar.spaces.len() <= 1 {
+        // The private space does not count: it is gone at the next start.
+        let private = usize::from(self.private_space.is_some());
+        if self.sidebar.spaces.len() - private <= 1 && !self.is_private_space(id) {
             return vec![];
         }
         let Some(space) = self.space(id) else {
