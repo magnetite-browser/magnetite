@@ -29,12 +29,21 @@ impl MagnetiteApp {
     /// Hide the open web panel. Its page stays loaded, as a favorite's
     /// does, and the keyboard goes back to the page in front.
     pub(super) fn close_web_panel(&self, engine: &Engine) {
-        self.with_state(|s| s.web_panel = None);
-        if let Some(c) = engine.web_panel_content() {
-            engine.hide_content(c);
+        if self.hide_web_panel(engine) {
             self.on_active_content(engine, Engine::focus_content);
         }
         self.push_state(engine);
+    }
+
+    /// Hide the open web panel and leave the keyboard where it is. False
+    /// if none was shown.
+    fn hide_web_panel(&self, engine: &Engine) -> bool {
+        self.with_state(|s| s.web_panel = None);
+        let shown = engine.web_panel_content();
+        if let Some(c) = shown {
+            engine.hide_content(c);
+        }
+        shown.is_some()
     }
 
     /// A click on a panel's favorite: open it, or close it if it is open.
@@ -74,7 +83,9 @@ impl MagnetiteApp {
                 return None;
             }
             s.find_tab_mut(tab_id)?.panel_mobile = mobile;
-            Some(s.runtime.get(tab_id)?.content)
+            // Without a page (never opened, or unloaded) it applies when
+            // the panel opens next.
+            Some(s.runtime.get(tab_id).and_then(|r| r.content))
         });
         let Some(content) = content else { return };
         if let Some(c) = content {
@@ -112,7 +123,10 @@ impl MagnetiteApp {
         // A panel that has the keyboard got it after this page did.
         let stale = engine.web_panel_focused();
         if behind && !stale && engine.web_panel_content().is_some_and(|p| p != content) {
-            self.close_web_panel(engine);
+            // The keyboard stays in the page that took it: in a split that
+            // need not be the active tab's.
+            self.hide_web_panel(engine);
+            self.push_state(engine);
         }
     }
 

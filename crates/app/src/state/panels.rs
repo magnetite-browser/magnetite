@@ -120,5 +120,8 @@ mod tests {
         // Not in the sidebar's round, not by last use.
         assert!(!s.visible_tab_ids().contains(&"p".to_string()));
         assert!(!s.tabs_by_last_use().contains(&"p".to_string()));
+        // And no page to put another beside.
+        assert!(!s.split_insert(Some("p"), "a", Side::Right));
+        assert_eq!(s.visible_panes(), ["b"]);
     }
 }

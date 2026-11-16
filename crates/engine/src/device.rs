@@ -289,8 +289,14 @@ impl Engine {
         self.lock().mobile.iter().copied().collect()
     }
 
-    /// `set_mobile_view`'s work on a page with a browser.
+    /// `set_mobile_view`'s work on a page with a browser. Left to
+    /// `end_device` while the page is in device mode, whose identity
+    /// counts until then.
     pub(crate) fn apply_mobile_view(&self, id: ContentId, on: bool) {
+        let device = (self.lock().docked.get(&id)).is_some_and(|d| d.device.is_some());
+        if device {
+            return;
+        }
         // An empty identity is none: the browser's own again.
         let ua = if on { Ua::Android.string() } else { "" };
         self.devtools(

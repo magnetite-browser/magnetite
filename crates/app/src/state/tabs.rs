@@ -259,11 +259,13 @@ impl AppState {
     }
 
     /// End the round of `Ctrl+Tab`: the tab it stands on, if it is still
-    /// there. `None` without a round.
+    /// there and a tab to go to (not made a web panel meanwhile). `None`
+    /// without a round.
     pub fn end_tab_switch(&mut self) -> Option<Id> {
         let round = self.switcher.take()?;
         let chosen = round.tabs.get(round.at)?;
-        self.find_tab(chosen).is_some().then(|| chosen.clone())
+        let still = self.find_tab(chosen).is_some() && !self.is_web_panel(chosen);
+        still.then(|| chosen.clone())
     }
 
     /// Remove a tab from wherever it is. Returns it and its space (None for favorites).
