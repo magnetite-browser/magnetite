@@ -30,6 +30,7 @@ changes them ([shortcuts.md](shortcuts.md)).
 | [import.md](import.md) | bringing tabs over from another browser |
 | [arc-sidebar-format.md](arc-sidebar-format.md) | the sidebar file of Arc, as far as the importer reads it |
 | [sync.md](sync.md) | optional, end-to-end encrypted sync between devices |
+| [settings.md](settings.md) | the settings page and its search |
 
 Why Magnetite is built the way it is: `docs/adr/`. The rules its own code
 keeps on top of Chromium's protections: `docs/design/security.md`.
