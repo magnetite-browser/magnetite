@@ -89,24 +89,35 @@ pub use sitedata::{
     ClearReport, PermissionKind, PermissionRow, PermissionValue, in_domain, registrable_domain,
 };
 
-/// The Chromium and CEF versions Magnetite is built on (Settings → About).
+/// The Chromium and CEF versions Magnetite is built on (Settings → About):
+/// those of the CEF build it is linked against (`build.rs`), else those the
+/// bindings were made from.
 pub fn engine_versions() -> (String, String) {
     use cef::sys;
-    (
-        format!(
-            "{}.{}.{}.{}",
-            sys::CHROME_VERSION_MAJOR,
-            sys::CHROME_VERSION_MINOR,
-            sys::CHROME_VERSION_BUILD,
-            sys::CHROME_VERSION_PATCH
-        ),
-        format!(
-            "{}.{}.{}",
-            sys::CEF_VERSION_MAJOR,
-            sys::CEF_VERSION_MINOR,
-            sys::CEF_VERSION_PATCH
-        ),
-    )
+    let chromium = option_env!("MAGNETITE_CHROMIUM_VERSION").map_or_else(
+        || {
+            format!(
+                "{}.{}.{}.{}",
+                sys::CHROME_VERSION_MAJOR,
+                sys::CHROME_VERSION_MINOR,
+                sys::CHROME_VERSION_BUILD,
+                sys::CHROME_VERSION_PATCH
+            )
+        },
+        str::to_string,
+    );
+    let cef = option_env!("MAGNETITE_CEF_VERSION").map_or_else(
+        || {
+            format!(
+                "{}.{}.{}",
+                sys::CEF_VERSION_MAJOR,
+                sys::CEF_VERSION_MINOR,
+                sys::CEF_VERSION_PATCH
+            )
+        },
+        str::to_string,
+    );
+    (chromium, cef)
 }
 
 /// Debug tracing to stderr when `MAGNETITE_LOG` is set.

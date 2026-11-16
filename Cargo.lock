@@ -1378,6 +1378,7 @@ dependencies = [
  "base64 0.22.1",
  "block2",
  "cef",
+ "cef-dll-sys",
  "libc",
  "magnetite-core",
  "objc2",
