@@ -11,8 +11,10 @@ use super::{DOWNLOADS_URL, MagnetiteApp, WELCOME_URL, global};
 
 /// The list of the tabs `Ctrl+Tab` goes through (`Switcher.tsx`).
 const SWITCHER_URL: &str = "magnetite://ui/switcher";
-/// The height of one of its rows, in points (`.switcher .result`).
-const SWITCHER_ROW: i32 = 40;
+/// Its width and the height of one of its rows, in points at the normal
+/// text size (`.switcher .result`).
+const SWITCHER_WIDTH: f64 = 440.0;
+const SWITCHER_ROW: f64 = 40.0;
 /// How long the modifier is held before the list shows.
 const SWITCHER_DELAY_MS: i64 = 150;
 /// How often a round looks whether the modifier is still held.
@@ -151,34 +153,49 @@ impl MagnetiteApp {
             }
             return;
         }
+        // The round a first press began, if this was one.
         let began = self.with_state(|s| {
             let began = s.switcher.is_none();
-            s.switch_tab(forward).then_some(began)
+            if !s.switch_tab(forward) {
+                return None;
+            }
+            let round = s.switcher.as_ref()?.round;
+            Some(began.then_some(round))
         });
         match began {
-            Some(true) => {
+            Some(Some(round)) => {
                 Self::watch_tab_switch();
-                // A quick press and release just switches, without the list.
+                // A quick press and release just switches, without the list:
+                // it shows only if this round is still on after the delay.
                 Engine::post_delayed(
-                    Box::new(|| {
+                    Box::new(move || {
                         let Some(app) = global() else { return };
-                        let tabs = app.with_state(|s| s.switcher.as_ref().map(|r| r.tabs.len()));
-                        if let Some(tabs) = tabs {
-                            let height = SWITCHER_ROW * i32::try_from(tabs).unwrap_or(1) + 12;
-                            Engine::global().open_panel(SWITCHER_URL, 440, height);
+                        let size = app.with_state(|s| {
+                            let on = s.switcher.as_ref().filter(|r| r.round == round)?;
+                            // The page zooms with the text size; so must its window.
+                            let scale =
+                                f64::from(s.settings.appearance.clone().clamped().text_scale)
+                                    / 100.0;
+                            let rows = f64::from(u32::try_from(on.tabs.len()).unwrap_or(1));
+                            let points = |n: f64| (n * scale).ceil();
+                            Some((points(SWITCHER_WIDTH), points(SWITCHER_ROW * rows + 12.0)))
+                        });
+                        if let Some((width, height)) = size {
+                            #[allow(clippy::cast_possible_truncation)] // a few hundred points
+                            Engine::global().open_panel(SWITCHER_URL, width as i32, height as i32);
                         }
                     }),
                     SWITCHER_DELAY_MS,
                 );
             }
             // The list follows the round.
-            Some(false) => self.show_state(engine),
+            Some(None) => self.show_state(engine),
             None => {}
         }
     }
 
-    /// Look every `SWITCHER_WATCH_MS` whether the modifier of the round of
-    /// `Ctrl+Tab` is still held, and end the round once it is not. Where
+    /// Look every `SWITCHER_WATCH_MS` whether Ctrl is still held, and end
+    /// the round of `Ctrl+Tab` once it is not. Where
     /// the system does not say, the round ends at once: every press
     /// switches to the tab used before.
     fn watch_tab_switch() {
@@ -189,7 +206,7 @@ impl MagnetiteApp {
                 if app.with_state(|s| s.switcher.is_none()) {
                     return;
                 }
-                if engine.command_modifier_held() == Some(true) {
+                if engine.control_key_held() == Some(true) {
                     Self::watch_tab_switch();
                 } else {
                     app.end_tab_switch(engine);
@@ -199,8 +216,7 @@ impl MagnetiteApp {
         );
     }
 
-    /// The modifier was let go: the tab the round of `Ctrl+Tab` stands on is
-    /// chosen.
+    /// Ctrl was let go: the tab the round of `Ctrl+Tab` stands on is chosen.
     fn end_tab_switch(&self, engine: &Engine) {
         let Some(chosen) = self.with_state(|s| s.switcher.is_some().then(|| s.end_tab_switch()))
         else {
@@ -367,8 +383,12 @@ impl MagnetiteApp {
         match switched {
             Some(Some(tab)) => self.activate_tab(engine, &tab),
             // A space without tabs: every page leaves the screen, the other
-            // pages of a split and a peek included.
+            // pages of a split and a peek included. A round of `Ctrl+Tab`
+            // is over, as when a tab is chosen.
             Some(None) => {
+                if self.with_state(|s| s.switcher.take().is_some()) {
+                    engine.close_overlay();
+                }
                 self.close_peek(engine);
                 self.present(engine);
             }

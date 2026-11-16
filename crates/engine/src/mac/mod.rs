@@ -962,15 +962,10 @@ pub fn app_is_active() -> bool {
     MainThreadMarker::new().is_some_and(|mtm| NSApplication::sharedApplication(mtm).isActive())
 }
 
-/// Whether Ctrl, Option or Cmd is down right now, whichever app has the
+/// Whether the Control key is down right now, whichever app has the
 /// keyboard (the keyboard's state, not that of the last event).
-pub fn command_modifier_held() -> bool {
-    let held = NSEvent::modifierFlags_class();
-    held.intersects(
-        objc2_app_kit::NSEventModifierFlags::Control
-            | objc2_app_kit::NSEventModifierFlags::Option
-            | objc2_app_kit::NSEventModifierFlags::Command,
-    )
+pub fn control_key_held() -> bool {
+    NSEvent::modifierFlags_class().contains(objc2_app_kit::NSEventModifierFlags::Control)
 }
 
 /// Hand the keyboard back to the app that was in front before Magnetite.

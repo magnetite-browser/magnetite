@@ -40,6 +40,10 @@ const SWITCH_TABS: usize = 9;
 pub struct TabSwitch {
     pub tabs: Vec<Id>,
     pub at: usize,
+    /// Which round this is, counted while Magnetite runs: what was set off
+    /// for one round (showing its list) must not act on the next.
+    #[serde(skip)]
+    pub round: u64,
 }
 
 impl AppState {
@@ -243,7 +247,9 @@ impl AppState {
         // The round begins on the active tab, the first of the list.
         let from_active = usize::from(self.active_tab_id().is_some());
         let at = if forward { from_active } else { tabs.len() - 1 };
-        self.switcher = Some(TabSwitch { tabs, at });
+        static ROUNDS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let round = ROUNDS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        self.switcher = Some(TabSwitch { tabs, at, round });
         true
     }
 

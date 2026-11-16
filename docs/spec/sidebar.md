@@ -195,8 +195,8 @@ the tabs are taken by last use, the favorites and the tabs of the current
 space together. With Ctrl held, each further Tab goes one tab further back
 (`Ctrl+Shift+Tab`: the other way), around the nine used last, and after
 150 ms a list over the page shows them with the one it stands on marked.
-Letting go of Ctrl chooses that tab; choosing a tab some other way ends
-the round. The list never takes the keyboard.
+Letting go of Ctrl chooses that tab; choosing a tab or a space some other
+way ends the round. The list never takes the keyboard.
 
 | Setting | Values | Default |
 |---|---|---|

@@ -61,14 +61,14 @@ impl Engine {
         self.open_overlay_with(bounds, url, 14.0, true, false)
     }
 
-    /// Whether Ctrl, Alt/Option or Cmd is held right now; `None` where the
-    /// system does not say (outside macOS). Chromium hands on no key-up
-    /// after a shortcut it took, so this is how the end of a round with a
-    /// key held (the tab switcher) is seen.
+    /// Whether the Control key is held right now; `None` where the system
+    /// does not say (outside macOS). Chromium hands on no key-up after a
+    /// shortcut it took, so this is how the end of a round with Ctrl held
+    /// (the tab switcher) is seen.
     #[allow(clippy::unused_self)] // an Engine method like its siblings
-    pub fn command_modifier_held(&self) -> Option<bool> {
+    pub fn control_key_held(&self) -> Option<bool> {
         #[cfg(target_os = "macos")]
-        return Some(crate::mac::command_modifier_held());
+        return Some(crate::mac::control_key_held());
         #[cfg(not(target_os = "macos"))]
         None
     }
