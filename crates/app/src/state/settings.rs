@@ -311,6 +311,24 @@ fn host_and_path(address: &str) -> Option<(String, &str)> {
     (host.contains('.') && host.chars().all(fine)).then(|| (host, path.trim_end_matches('/')))
 }
 
+/// `path` with its `.` and `..` segments resolved, as a browser does
+/// before it asks for the page (also written `%2e`): `/a/./b/../c` is
+/// `/a/c`. Without the `/` at its end, like `host_and_path`'s paths.
+fn without_dot_segments(path: &str) -> String {
+    let mut kept: Vec<&str> = Vec::new();
+    for segment in path.split('/').skip(1) {
+        match segment.to_ascii_lowercase().replace("%2e", ".").as_str() {
+            "." => {}
+            ".." => {
+                kept.pop();
+            }
+            _ => kept.push(segment),
+        }
+    }
+    let joined: String = kept.iter().flat_map(|segment| ["/", segment]).collect();
+    joined.trim_end_matches('/').to_string()
+}
+
 impl LinkRule {
     /// This rule as Magnetite keeps it, or `None` without a site: what was
     /// typed may be a whole address (`https://www.GitHub.com/acme/`), of
@@ -331,6 +349,8 @@ impl LinkRule {
             return None;
         }
         let (host, path) = host_and_path(url)?;
+        // As the browser will load it: `/acme/../other` is `/other`.
+        let path = without_dot_segments(path);
         let (site, under) = host_and_path(&self.site)?;
         let on_host = host == site || host.ends_with(&format!(".{site}"));
         // `/acme` is above `/acme/app`, not above `/acmecorp`.
@@ -561,6 +581,19 @@ mod tests {
         assert_eq!(space("https://example.org/"), None);
         assert_eq!(space("https://notgithub.com/acme"), None);
         assert_eq!(space("file:///github.com/acme"), None);
+        // The page that loads counts, not the address as written.
+        assert_eq!(
+            space("https://github.com/acme/../other/repo"),
+            Some("personal")
+        );
+        assert_eq!(
+            space("https://github.com/acme/%2E%2e/other"),
+            Some("personal")
+        );
+        assert_eq!(
+            space("https://github.com/other/./../acme/app/"),
+            Some("work")
+        );
         // The space of the closest rule is gone: the next one counts.
         let without_work = settings.link_space("https://github.com/acme/app", |id| id != "work");
         assert_eq!(without_work.map(String::as_str), Some("personal"));
