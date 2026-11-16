@@ -83,6 +83,9 @@ export function SettingsPage() {
   // the matching settings of all sections instead of one section.
   const [query, setQuery] = useState("");
   const searching = query.trim() !== "";
+  // The sections that hold a match; the others are greyed out in the list.
+  const [found, setFound] = useState<string[]>([]);
+  const onFound = useCallback((ids: string[]) => setFound((now) => (now.join() === ids.join() ? now : ids)), []);
   const openSection = (id: string) => {
     setQuery("");
     setPlace({ id });
@@ -300,7 +303,7 @@ export function SettingsPage() {
           <div key={g.label} className="mt-3">
             <div className="set-nav-label">{g.label}</div>
             {g.sections.map((s) => (
-              <button key={s.id} className="row w-full" data-active={(!searching && sectionId === s.id) || undefined} onClick={() => openSection(s.id)}>
+              <button key={s.id} className="row w-full" data-dim={(searching && !found.includes(s.id)) || undefined} data-active={(!searching && sectionId === s.id) || undefined} onClick={() => openSection(s.id)}>
                 <span className="icon-slot" style={{ color: !searching && sectionId === s.id ? "var(--accent)" : "var(--muted)" }}><s.Icon width={16} height={16} /></span>
                 <span className="title text-left">{s.label}</span>
               </button>
@@ -311,7 +314,7 @@ export function SettingsPage() {
       <main className="scroll flex-1 min-h-0 px-10 py-8">
         <div className="max-w-[680px]">
           {searching ? (
-            <SearchResults query={query} sections={SECTIONS} body={body} open={openSection} />
+            <SearchResults query={query} sections={SECTIONS} body={body} open={openSection} onFound={onFound} none={found.length === 0} />
           ) : (
             <>
               <header className="mb-6 flex items-start gap-4">

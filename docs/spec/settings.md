@@ -10,16 +10,18 @@ What each setting does is in the spec of its feature.
 The field "Search settings" above the list of sections finds a setting
 without knowing its section.
 
-- While the field holds text, the page shows the matching settings of all
-  sections instead of one section, each group under the name of its
-  section. No section is marked in the list.
+- While the field holds text, the page shows every section that holds a
+  match instead of one section, each under its name. The settings that
+  match look as always; the other settings of these sections are greyed
+  out, and so are the sections without a match in the list on the left. No
+  section is marked there.
 - A setting matches when every typed word is in its name or its
   description. Upper and lower case make no difference.
-- A section whose name matches is shown whole, before the other sections.
-- Of the shortcuts, only the matching ones are listed, by the name of the
-  command; the name of a group ("Tabs") shows the whole group.
-- The settings found work where they are: a switch can be flipped in the
-  results.
+- A section whose name matches comes first, with nothing greyed out.
+- The shortcuts match one by one, by the name of the command; the name of
+  a group ("Tabs") matches the whole group.
+- All settings shown work where they are, greyed out or not: a switch can
+  be flipped in the results.
 - A click on a section's name in the results, or on a section in the list,
   opens that section and empties the field. So does Esc in the field, which
   goes back to the section shown before.

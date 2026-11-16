@@ -1,84 +1,82 @@
-// Settings search: every section on one page, cut down to the settings that
-// match what was typed. The sections are rendered as they are and filtered
-// by what they show, so a new setting is found without being listed anywhere.
-import { useLayoutEffect, useRef, useState } from "react";
+// Settings search: the sections that hold a match on one page, the settings
+// that do not match greyed out. The sections are rendered as they are and
+// marked by what they show, so a new setting is found without being listed
+// anywhere.
+import { useLayoutEffect, useRef } from "react";
 import type { IconComponent } from "../Icons";
 
 export type SearchSection = { id: string; title: string; Icon: IconComponent };
 
 /**
- * Hides what does not match `query` below `root` and returns how many
- * settings are left. A setting is a card (`.set-card`), or a part of a
- * section outside any card. It matches by its name and description, every
- * typed word somewhere in them; a section whose title matches shows whole,
- * ahead of the others.
- * In a card of rows (`data-search-row`, the shortcuts) only the matching
- * rows stay, unless the card's own name matches.
+ * Marks what `query` finds below `root` and returns the ids of the sections
+ * with a match. A setting is a card (`.set-card`), or a part of a section
+ * outside any card. It matches by its name and description, every typed
+ * word somewhere in them; the others are greyed out (`data-dim`), and a
+ * section without any match is left out (`data-miss`). A section whose
+ * title matches comes first, with nothing greyed out. In a card of rows
+ * (`data-search-row`, the shortcuts) the rows are marked one by one, unless
+ * the card's own name matches.
  */
-function filter(root: HTMLElement, query: string): number {
+function filter(root: HTMLElement, query: string): string[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   const has = (text: string | null | undefined) => {
     const lower = (text ?? "").toLowerCase();
     return words.every((w) => lower.includes(w));
   };
-  const show = (el: Element, on: boolean) => el.toggleAttribute("data-miss", !on);
-  let total = 0;
+  const light = (el: Element, on: boolean) => el.toggleAttribute("data-dim", !on);
+  const found: string[] = [];
   for (const section of root.querySelectorAll<HTMLElement>("[data-search-section]")) {
     const whole = has(section.dataset.searchSection);
     section.style.order = whole ? "-1" : "";
-    let found = 0;
+    let hits = 0;
     for (const child of section.querySelector("[data-search-body]")?.children ?? []) {
       const cards = child.matches(".set-card") ? [child] : [...child.querySelectorAll(".set-card")].filter((c) => !c.parentElement?.closest(".set-card"));
-      const units = cards.length > 0 ? cards : [child];
-      let hits = 0;
-      for (const unit of units) {
+      for (const unit of cards.length > 0 ? cards : [child]) {
         const named = [...unit.querySelectorAll(".set-label, .set-hint")];
         const own = whole || has(named.length > 0 ? named.map((n) => n.textContent).join(" ") : unit.textContent);
         let rows = 0;
         for (const row of unit.querySelectorAll("[data-search-row]")) {
           const hit = own || has(row.textContent);
-          show(row, hit);
+          light(row, hit);
           if (hit) rows++;
         }
-        const hit = own || rows > 0;
-        show(unit, hit);
-        if (hit) hits++;
+        // A card with a matching row stays lit; its other rows are grey.
+        light(unit, own || rows > 0);
+        if (own || rows > 0) hits++;
       }
-      // A wrapper around cards goes when none of its cards is left.
-      if (units[0] !== child) show(child, hits > 0);
-      found += hits;
     }
-    show(section, found > 0);
-    total += found;
+    section.toggleAttribute("data-miss", hits === 0);
+    if (hits > 0 && section.dataset.searchId) found.push(section.dataset.searchId);
   }
-  return total;
+  return found;
 }
 
 /**
  * The page while a search is typed: each section with a match under its
- * name, which leads to the section itself. `body` draws a section's settings.
+ * name, which leads to the section itself. `body` draws a section's
+ * settings; `onFound` hears which sections hold a match, `none` says that
+ * none does.
  */
-export function SearchResults({ query, sections, body, open }: { query: string; sections: SearchSection[]; body: (id: string) => React.ReactNode; open: (id: string) => void }) {
+export function SearchResults({ query, sections, body, open, onFound, none }: { query: string; sections: SearchSection[]; body: (id: string) => React.ReactNode; open: (id: string) => void; onFound: (ids: string[]) => void; none: boolean }) {
   const root = useRef<HTMLDivElement>(null);
-  const [none, setNone] = useState(false);
   // Sections change after they are drawn (lists that load, a switch that
-  // brings more settings): filtered again whenever they do.
+  // brings more settings): marked again whenever they do.
   useLayoutEffect(() => {
     const el = root.current;
     if (!el) return;
-    const apply = () => setNone(filter(el, query) === 0);
+    const apply = () => onFound(filter(el, query));
     apply();
     // Other words, other settings: back to the top of the page.
     el.closest("main")?.scrollTo(0, 0);
     const changes = new MutationObserver(apply);
     changes.observe(el, { childList: true, subtree: true, characterData: true });
     return () => changes.disconnect();
-  }, [query]);
+  }, [query, onFound]);
   return (
     <>
       <div ref={root} className="flex flex-col gap-8">
         {sections.map((s) => (
-          <section key={s.id} data-search-section={s.title}>
+          <section key={s.id} data-search-id={s.id} data-search-section={s.title}>
             <button className="set-found" onClick={() => open(s.id)} title={`Open ${s.title}`}>
               <s.Icon width={15} height={15} />
               {s.title}
