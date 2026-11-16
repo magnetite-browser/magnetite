@@ -148,7 +148,7 @@ pub fn fetch(
     // GitHub, GitLab and YouTrack fill a page while they have more, so a
     // page with room left is the end of the list (GitHub: of a search that
     // ran to its end).
-    let has_room = |count: usize| count < n as usize;
+    let has_room = |list: &Value| page_has_room(list, n);
     let mut complete = true;
     let items = match source {
         SmartSource::GitHub { host, show, filter } => {
@@ -163,7 +163,7 @@ pub fn fetch(
                 let page = parse_github(&answer);
                 // GitHub says so when a search ran out of time part-way.
                 let cut_short = answer["incomplete_results"].as_bool().unwrap_or(false);
-                complete &= has_room(page.len()) && !cut_short;
+                complete &= has_room(&answer["items"]) && !cut_short;
                 found.extend(page);
             }
             newest_first(found)
@@ -171,9 +171,9 @@ pub fn fetch(
         SmartSource::GitLab { host, show, group } => {
             let mut found = Vec::new();
             for url in gitlab_requests(&base_url(host)?, *show, group, login, n) {
-                let page = parse_gitlab(&get_json(&url, &auth)?);
-                complete &= has_room(page.len());
-                found.extend(page);
+                let answer = get_json(&url, &auth)?;
+                complete &= has_room(&answer);
+                found.extend(parse_gitlab(&answer));
             }
             newest_first(found)
         }
@@ -190,9 +190,8 @@ pub fn fetch(
                 encode(jql)
             );
             let answer = get_json(&request, &auth)?;
-            let issues = parse_jira(&answer, &base);
-            complete = jira_is_all(&answer, issues.len());
-            issues
+            complete = jira_is_all(&answer);
+            parse_jira(&answer, &base)
         }
         SmartSource::YouTrack { url, query } => {
             let base = base_url(url)?;
@@ -200,9 +199,9 @@ pub fn fetch(
                 "{base}/api/issues?query={}&fields=idReadable,summary&$top={n}",
                 encode(query)
             );
-            let issues = parse_youtrack(&get_json(&request, &auth)?, &base);
-            complete = has_room(issues.len());
-            issues
+            let answer = get_json(&request, &auth)?;
+            complete = has_room(&answer);
+            parse_youtrack(&answer, &base)
         }
     };
     let complete = complete && items.len() <= limit as usize;
@@ -217,13 +216,22 @@ pub fn fetch(
     Ok(Fetched { items, complete })
 }
 
-/// Whether a Jira search answer with `count` issues holds every match. A
-/// Jira server may send fewer issues than asked for while it has more, so
-/// only its own word counts: `isLast` (Jira Cloud) or `total` (Data Center).
-fn jira_is_all(answer: &Value, count: usize) -> bool {
+/// Whether `list`, the records of one page a service sent when asked for
+/// `n`, has room left. Counted as sent, before records Magnetite cannot
+/// read are left out; anything but a list has no room.
+fn page_has_room(list: &Value, n: u32) -> bool {
+    list.as_array().is_some_and(|l| l.len() < n as usize)
+}
+
+/// Whether a Jira search answer holds every match. A Jira server may send
+/// fewer issues than asked for while it has more, so only its own word
+/// counts: `isLast` (Jira Cloud) or `total` against the issues it sent
+/// (Data Center).
+fn jira_is_all(answer: &Value) -> bool {
+    let sent = answer["issues"].as_array().map_or(0, Vec::len);
     match (answer.get("isLast"), answer.get("total")) {
         (Some(last), _) => last.as_bool().unwrap_or(false),
-        (None, Some(total)) => total.as_u64().is_some_and(|total| total <= count as u64),
+        (None, Some(total)) => total.as_u64().is_some_and(|total| total <= sent as u64),
         (None, None) => false,
     }
 }
@@ -738,12 +746,24 @@ mod tests {
 
     #[test]
     fn only_jira_itself_says_that_a_page_is_the_whole_list() {
-        let all = |answer: &str| jira_is_all(&serde_json::from_str(answer).unwrap(), 2);
+        let all = |answer: &str| jira_is_all(&serde_json::from_str(answer).unwrap());
         assert!(all(r#"{"isLast":true}"#));
         assert!(!all(r#"{"isLast":false}"#));
-        assert!(all(r#"{"total":2}"#));
+        assert!(all(r#"{"total":2,"issues":[{},{}]}"#));
         // A server that caps its pages: two came, five match.
-        assert!(!all(r#"{"total":5}"#));
+        assert!(!all(r#"{"total":5,"issues":[{},{}]}"#));
         assert!(!all("{}"));
+    }
+
+    #[test]
+    fn a_full_page_has_no_room_even_with_records_that_cannot_be_read() {
+        let page: Value = serde_json::from_str(
+            r#"[{"web_url":"https://git/a/-/merge_requests/1","title":"One"},{}]"#,
+        )
+        .unwrap();
+        assert_eq!(parse_gitlab(&page).len(), 1);
+        assert!(!page_has_room(&page, 2));
+        assert!(page_has_room(&page, 3));
+        assert!(!page_has_room(&Value::Null, 3), "not a list");
     }
 }
