@@ -294,6 +294,34 @@ mod tests {
     }
 
     #[test]
+    fn a_tab_opened_by_a_page_stays_on_its_openers_side() {
+        let mut s = state();
+        let first = s.active_space.clone();
+        let plain = s.active_space().profile_id.clone();
+        let private = s.open_private_space();
+        let tab = s.new_today_tab(&private, "https://example.org/1", "1");
+        let of_tab = s.profile_for_tab(&tab).unwrap();
+        let url = "https://example.org/opened";
+
+        // A private page opens a tab while another space is in front.
+        let opened = s.open_tab_from(Some(&of_tab), url, url).unwrap();
+        assert!(s.in_private_space(&opened));
+        assert_eq!(s.profile_for_tab(&opened).unwrap(), of_tab);
+        // A plain page does so while the private space is in front.
+        s.active_space.clone_from(&private);
+        let opened = s.open_tab_from(Some(&plain), url, url).unwrap();
+        assert_eq!(s.find_tab(&opened).unwrap().0.unwrap().id, first);
+        assert!(!s.is_private_tab(&opened));
+        // The user's own tab is one of the space in front.
+        let own = s.open_tab_from(None, url, url).unwrap();
+        assert!(s.in_private_space(&own));
+
+        // The space is closed, a page of it not yet: it opens nothing.
+        s.close_private_space();
+        assert_eq!(s.open_tab_from(Some(&of_tab), url, url), None);
+    }
+
+    #[test]
     fn a_kept_page_stays_on_its_side_and_another_windows_peek_keeps_its_profile() {
         let mut s = state();
         let first = s.active_space.clone();

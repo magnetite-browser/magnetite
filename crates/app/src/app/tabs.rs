@@ -460,7 +460,9 @@ impl MagnetiteApp {
     /// Open `url` from `source` as a new Today tab of the active space, in
     /// the opener's `context` (profile id, `""` the default) when there is
     /// one, so a page opened from a private or separate profile does not get
-    /// the space's cookies. Addresses the policy refuses are not opened.
+    /// the space's cookies. A private opener's tab goes to the private space
+    /// instead, and no other one into it (`open_tab_from`). Addresses the
+    /// policy refuses are not opened.
     /// Returns the tab's id; internal pages are singletons and return the
     /// existing tab.
     pub(super) fn open_url_from(
@@ -493,7 +495,6 @@ impl MagnetiteApp {
         // An internal page that is open already, asked for at another place.
         let mut revisit = false;
         let id = self.with_state(|s| {
-            let space = s.active_space.clone();
             // Internal pages are singletons: focus an existing one instead.
             // The part after `#` is a place in the page (a section of
             // Settings), not another page.
@@ -507,25 +508,15 @@ impl MagnetiteApp {
                     .map(|t| t.id.clone())
             {
                 revisit = s.find_tab(&existing).is_some_and(|(_, t)| t.url != url);
-                return existing;
+                return Some(existing);
             }
-            let id = s.new_today_tab(&space, &url, &title);
-            let space_profile = s.active_space().profile_id.clone();
-            // An override only when it differs from the space's profile.
-            let profile = context
-                .and_then(|c| s.profile_for_context(c))
-                .filter(|p| *p != space_profile);
+            let opener = context.and_then(|c| s.profile_for_context(c));
+            let id = s.open_tab_from(opener.as_deref(), &url, &title)?;
             if let Some(t) = s.find_tab_mut(&id) {
                 t.unread = background;
-                // Opened from a page of another profile: it stays there. A
-                // tab of the private space otherwise keeps the profile it
-                // was made with (`new_today_tab`).
-                if profile.is_some() {
-                    t.profile_id = profile;
-                }
             }
-            id
-        });
+            Some(id)
+        })?;
         if background {
             self.push_state(engine);
         } else {

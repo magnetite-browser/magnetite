@@ -142,6 +142,35 @@ impl AppState {
         Some(self.keep_page(page, &space))
     }
 
+    /// A new Today tab for `url`, opened by a page of profile `opener`
+    /// (none: by the user or another app) while the active space is in
+    /// front. The tab runs in the opener's profile and stays on its side of
+    /// the private space's border (`keep_space`): a private page's tab goes
+    /// to the private space, also when another space is in front. None for
+    /// a private page whose space is closed: its pages are closing, and
+    /// nothing of it opens elsewhere.
+    pub fn open_tab_from(&mut self, opener: Option<&str>, url: &str, title: &str) -> Option<Id> {
+        let private = opener.is_some_and(|p| self.private_profiles.contains(p));
+        if private && self.private_space.is_none() {
+            return None;
+        }
+        let space = opener.map_or_else(
+            || self.active_space.clone(),
+            |p| self.keep_space(p, &self.active_space),
+        );
+        let id = self.new_today_tab(&space, url, title);
+        // An override only when it differs from the space's profile. A tab
+        // of the private space otherwise keeps the profile it was made with
+        // (`new_today_tab`).
+        let space_profile = self.space(&space).map(|sp| sp.profile_id.clone());
+        if let Some(p) = opener.filter(|p| Some(*p) != space_profile.as_deref())
+            && let Some(t) = self.find_tab_mut(&id)
+        {
+            t.profile_id = Some(p.to_string());
+        }
+        Some(id)
+    }
+
     /// Page `p` becomes a Today tab at the top of space `space`: its window
     /// and what is known about it carry over, and it stays in its profile
     /// (its page already runs there), also when that is not the space's.

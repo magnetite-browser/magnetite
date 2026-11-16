@@ -125,7 +125,8 @@ it is the last of the spaces while it is open.
 - **Tabs stay put**: a tab cannot be moved into the private space or out of
   it, pinned, or added to the favorites or bookmarks. A peek or mini window
   kept as a tab stays on its side too: a private one becomes a tab of the
-  private space, any other a tab of the space beside it.
+  private space, any other a tab of the space beside it. The same holds for
+  a tab that a page opens while another space is in front.
 - **Extensions**: only those with "Allow in Incognito" switched on
   (`extensions.md`).
 - **Close**: the close button on its title, its menu in the footer, or
