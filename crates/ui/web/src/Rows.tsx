@@ -135,8 +135,10 @@ export function FavoriteLists({ ctx, lists }: { ctx: RowContext; lists: Favorite
 }
 
 /**
- * The favorites of one profile: an icon per favorite. Drop a tab on the list
- * (also on its title while collapsed) to add it to this profile's favorites.
+ * The favorites of one profile: an icon per favorite. A tab dragged over the
+ * list is shown where it would land, and the others make room: over another
+ * tile it takes that tile's place. Dropped on the title (also while the list
+ * is collapsed) it is added at the end.
  */
 function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; title?: string }) {
   const { state } = ctx;
@@ -148,14 +150,45 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
       return !o;
     });
   };
+  /** The tab being carried over this list and its place among the other tiles. */
+  const [place, setPlace] = useState<{ id: string; index: number } | null>(null);
+  /** A tab this list takes: nothing of the private space is kept. */
+  const takes = (d: ReturnType<typeof dragging>): d is NonNullable<typeof d> =>
+    d?.kind === "tab" && (state.private_space !== ctx.spaceId || state.sidebar.favorites.some((f) => f.items.some((t) => t.id === d.id)));
+  // A place left over from a drag that ended elsewhere counts for nothing.
+  const carried = place && dragging()?.id === place.id ? findTab(state, place.id) : null;
+  const others = carried ? list.items.filter((t) => t.id !== carried.id) : list.items;
+  const shown = carried && place ? [...others.slice(0, place.index), carried, ...others.slice(place.index)] : others;
   return (
     <div
       className="shrink-0 px-2 pt-3"
-      onDragOver={(e) => dragging()?.kind === "tab" && e.preventDefault()}
+      onDragOver={(e) => {
+        const d = dragging();
+        if (!takes(d)) return;
+        e.preventDefault();
+        const rest = list.items.filter((t) => t.id !== d.id);
+        const target = e.target as HTMLElement;
+        const over = target.closest<HTMLElement>("[data-fav]")?.dataset.fav;
+        const k = rest.findIndex((t) => t.id === over);
+        const onTitle = !!target.closest(".favs-title");
+        // One of the list's own tiles starts from where it stands.
+        const own = list.items.findIndex((t) => t.id === d.id);
+        setPlace((p) => {
+          const index = p?.id === d.id ? p.index : own >= 0 ? own : null;
+          // Over another tile: take its place, so it moves to the side the
+          // carried one came from. Over the title: the end. Over the carried
+          // tile or a gap: stay.
+          const next = k >= 0 ? (index !== null && index <= k ? k + 1 : k) : onTitle ? rest.length : (index ?? rest.length);
+          return p?.id === d.id && p.index === next ? p : { id: d.id, index: next };
+        });
+      }}
+      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setPlace(null)}
       onDrop={(e) => {
         e.preventDefault();
         const d = dragging();
-        if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "favorites", index: list.items.length, profile: list.profile_id });
+        // The index counts the list without the tab, as the app takes it out first.
+        if (takes(d)) send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "favorites", index: place?.id === d.id ? place.index : list.items.length, profile: list.profile_id });
+        setPlace(null);
         endDrag();
       }}
     >
@@ -168,18 +201,20 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
       )}
       {(open || !title) && (
         <div className="favs">
-          {list.items.map((t) => {
+          {shown.map((t) => {
             const rt = state.runtime[t.id];
             return (
               <button
                 key={t.id}
                 className="fav no-drag"
+                data-fav={t.id}
+                data-carried={t === carried || undefined}
                 data-active={state.active_tab === t.id || state.web_panel === t.id || undefined}
                 data-panel={t.panel || undefined}
                 data-unloaded={!rt?.loaded || undefined}
                 draggable
                 onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id })}
-                onDragEnd={endDrag}
+                onDragEnd={() => { setPlace(null); endDrag(); }}
                 onClick={() => send(t.panel ? { cmd: "toggle_web_panel", id: t.id } : { cmd: "activate_tab", id: t.id })}
                 onContextMenu={(e) => { e.preventDefault(); ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, t, "favorites", { x: e.clientX, y: e.clientY })); }}
                 title={[t.title, title, t.panel && "panel"].filter(Boolean).join(" · ")}

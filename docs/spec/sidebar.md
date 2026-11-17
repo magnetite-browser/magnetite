@@ -79,9 +79,12 @@ the row turns the icon into a back arrow that takes the page back.
 
 ## Moving tabs
 
-- Drag a tab to reorder it, or to a favorites list (added at the end),
-  Pinned, a folder or Today. Dropped on the middle of another tab's row or
-  on the page area, it opens in split view (`split-view.md`).
+- Drag a tab to reorder it, or to a favorites list, Pinned, a folder or
+  Today. Dropped on the middle of another tab's row or on the page area, it
+  opens in split view (`split-view.md`).
+- Over a favorites list the dragged tab or favorite shows as a tile where it
+  would land, and the other tiles make room: over another tile it takes
+  that tile's place. Dropped on the list's title, it is added at the end.
 - `Cmd+D` pins the active Today tab at the top of Pinned, or moves the active
   pinned tab to the top of Today. It does nothing for a favorite.
 - A tab that comes to Today from Pinned or the favorites counts as used at
