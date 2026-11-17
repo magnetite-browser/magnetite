@@ -461,8 +461,16 @@ pub(super) enum UiCommand {
         #[serde(default)]
         keys: Option<String>,
     },
+    /// Give space `id` the keys `keys` (as `Combo` saves them), or none.
+    /// A shortcut or space that had these keys loses them. Answers
+    /// `{"error": …}` for keys a shortcut cannot have.
+    SetSpaceShortcut {
+        id: String,
+        #[serde(default)]
+        keys: Option<String>,
+    },
     /// Give shortcut `action` its default keys back, or every shortcut
-    /// without `action`.
+    /// without `action`; then no space has keys of its own either.
     ResetShortcut {
         #[serde(default)]
         action: Option<magnetite_engine::Action>,
@@ -1004,6 +1012,7 @@ impl MagnetiteApp {
                             blue: 1.0,
                         }),
                         profile_id: profile,
+                        shortcut: None,
                         pinned: vec![],
                         today: vec![],
                         bookmarks: Vec::new(),
@@ -1546,6 +1555,7 @@ impl MagnetiteApp {
                     // What stays on this device: the spaces marked so, and
                     // the profiles that only they use.
                     let kept_profiles = s.unsynced_profiles();
+                    let space_keys = s.space_keys();
                     json!({
                         "keychain": keychain,
                         "extensions": extensions,
@@ -1556,7 +1566,7 @@ impl MagnetiteApp {
                             profile["synced"] = json!(!kept_profiles.contains(&p.id));
                             profile
                         }).collect::<Vec<_>>(),
-                        "spaces": s.sidebar.spaces.iter().filter(|sp| !s.is_private_space(&sp.id)).map(|sp| json!({"id": sp.id, "title": sp.title, "icon": sp.icon, "accent": sp.accent, "profile_id": sp.profile_id, "synced": !s.unsynced_spaces.contains(&sp.id)})).collect::<Vec<_>>(),
+                        "spaces": s.sidebar.spaces.iter().filter(|sp| !s.is_private_space(&sp.id)).map(|sp| json!({"id": sp.id, "title": sp.title, "icon": sp.icon, "accent": sp.accent, "profile_id": sp.profile_id, "synced": !s.unsynced_spaces.contains(&sp.id), "keys": space_keys.iter().find_map(|(own, keys)| (own.id == sp.id).then(|| keys.to_string()))})).collect::<Vec<_>>(),
                         "active_space": s.active_space,
                         "favorites": s.sidebar.favorites.iter().flat_map(|f| f.items.iter()).map(|t| json!({"id": t.id, "title": t.title, "url": t.url, "profile_id": s.profile_for_tab(&t.id)})).collect::<Vec<_>>(),
                         "archive_count": s.archive.len(),
@@ -1568,11 +1578,11 @@ impl MagnetiteApp {
                         "engine": { "chromium": chromium, "cef": cef },
                         "data_dir": self.data_dir.display().to_string(),
                         "adblock": adblock,
-                        "shortcuts": magnetite_engine::Action::ALL.map(|action| json!({
+                        "shortcuts": magnetite_engine::Action::ALL.iter().map(|action| json!({
                             "action": action,
-                            "keys": s.settings.shortcuts.combo_of(action).map(|c| c.to_string()),
+                            "keys": s.settings.shortcuts.combo_of(*action).map(|c| c.to_string()),
                             "default": action.default_combo().map(|c| c.to_string()),
-                        })),
+                        })).collect::<Vec<_>>(),
                     })
                 }));
             }
@@ -1668,6 +1678,11 @@ impl MagnetiteApp {
             }
             UiCommand::SetShortcut { action, keys } => {
                 if let Err(error) = self.set_shortcut(engine, action, keys.as_deref()) {
+                    return Ok(json!({ "error": error.to_string() }));
+                }
+            }
+            UiCommand::SetSpaceShortcut { id, keys } => {
+                if let Err(error) = self.set_space_shortcut(engine, &id, keys.as_deref()) {
                     return Ok(json!({ "error": error.to_string() }));
                 }
             }

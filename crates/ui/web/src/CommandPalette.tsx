@@ -4,6 +4,7 @@
 // anywhere else closes it.
 import { useEffect, useRef, useState } from "react";
 import { CommandBar } from "./CommandBar";
+import { SpacePicker } from "./SpacePicker";
 import { PALETTE_MODES, applyAppearance, send, type UiState } from "./bridge";
 
 export function CommandPalette() {
@@ -39,7 +40,8 @@ export function CommandPalette() {
   const close = () => send({ cmd: "palette_close" });
   return (
     <div ref={root}>
-      {state && (
+      {state && mode === "spaces" && <SpacePicker state={state} onClose={close} />}
+      {state && mode !== "spaces" && (
         <CommandBar
           mode={mode}
           splitSide={side}

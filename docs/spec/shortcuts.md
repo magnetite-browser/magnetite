@@ -5,8 +5,8 @@ keys, or none.
 
 ## Settings → Shortcuts
 
-The page lists every shortcut whose keys can be changed, in four groups,
-each with the keys it has now.
+The page lists every shortcut whose keys can be changed, in groups, each
+with the keys it has now, and then the spaces ("Keys for a space" below).
 
 | Control | What it does |
 |---|---|
@@ -29,6 +29,25 @@ each with the keys it has now.
   the keys of the commands below that cannot be changed.
 - New keys count at once, in every window, and show in the menu bar, in
   tooltips, in the "+" menu and in the footer's menu.
+
+## Keys for a space
+
+The card "Spaces" lists every space but the private one. "Change" gives a
+space keys that go to it from anywhere, "Remove" takes them away; a space
+has none until it is given some.
+
+- The same rules as for a shortcut apply: Cmd, Ctrl or Option or a function
+  key, no keys with a fixed meaning, and keys something else has are asked
+  about ("Use here": the other shortcut or space has none from then on).
+- The keys are taken before the page sees them, like the other shortcuts
+  for spaces.
+- A shortcut that is given a space's keys, or reset to them, takes them:
+  the space has none from then on. "Reset all" also takes the keys of every
+  space.
+- The keys are saved with the space, so they sync with the sidebar and go
+  when the space is deleted. Keys that arrive from another device and are
+  fixed here, or that a shortcut or an earlier space has here, do nothing
+  on this device.
 
 ## Keys that cannot be changed
 
@@ -73,6 +92,7 @@ have no Cmd, Ctrl or Option (a function key), each press switches at once.
 | What | Where |
 |---|---|
 | The shortcuts with other keys or none: `{"new_tab": "primary+J", "print": null}` | `settings.shortcuts` in `state.json`, and the synced settings |
+| A space's keys: `"shortcut": "ctrl+alt+M"` | the space in the sidebar (`state.json`, and the synced sidebar) |
 
 ## Not built yet
 

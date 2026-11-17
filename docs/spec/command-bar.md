@@ -123,7 +123,7 @@ Open settings match by keyword only ("archive"; "settings", "preferences").
 
 | Group | Commands |
 |---|---|
-| Spaces and tabs | New space, New folder, Archive all Today tabs, Reopen last archived tab, Switch to <space> (each other space) |
+| Spaces and tabs | New space, Show all spaces… (the list of spaces, `spaces.md`), New folder, Archive all Today tabs, Reopen last archived tab, Switch to <space> (each other space) |
 | This tab | Pin tab or Unpin tab, Back to pinned page (a pinned tab or favorite away from its page), Add tab to favorites or Remove tab from favorites, Keep tab active or Stop keeping tab active, Move tab to <space> (each other space), Duplicate tab, Close other Today tabs |
 | Views | Open archive, Open history, Open downloads, Open bookmarks, Open settings, Toggle sidebar, Toggle top bar, Import from another browser… |
 | Links | Copy link without trackers, Copy original link, Copy link as Markdown, Bookmark this page |

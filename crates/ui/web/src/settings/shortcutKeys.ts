@@ -28,6 +28,7 @@ export const SHORTCUT_GROUPS = [
       hide_private_space: "Hide the private space",
       next_space: "Next space",
       prev_space: "Previous space",
+      space_picker: "Show all spaces, to go to one",
       toggle_sidebar: "Show or hide the sidebar",
     },
   },

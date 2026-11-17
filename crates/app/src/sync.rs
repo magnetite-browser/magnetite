@@ -959,6 +959,7 @@ mod tests {
             icon: None,
             accent: None,
             profile_id: "default".into(),
+            shortcut: None,
             pinned: vec![],
             today: vec![],
             bookmarks: Vec::new(),

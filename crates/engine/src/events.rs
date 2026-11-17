@@ -34,6 +34,12 @@ pub enum Shortcut {
     SelectTab(u8),
     /// 1-based, `Ctrl+1` to `Ctrl+9` (`Alt` outside macOS).
     SelectSpace(u8),
+    /// `Ctrl+0` (`Alt+0` outside macOS): the list of all spaces by name,
+    /// to choose one from.
+    SpacePicker,
+    /// Keys a space has of its own were pressed (Settings → Shortcuts);
+    /// the app knows whose they are.
+    SpaceKeys(crate::keymap::Combo),
     /// Escape inside the peek window.
     ClosePeek,
     /// `Cmd+O` inside the peek window: keep the page as a tab.

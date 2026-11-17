@@ -115,6 +115,8 @@ export interface Space {
   icon?: string;
   accent?: Color;
   profile_id: Id;
+  /** The keys saved for the space; those that count are in `UiState.space_keys`. */
+  shortcut?: string;
   pinned: SidebarNode[];
   today: TabItem[];
   /** Saved addresses in folders. No tabs: one opens as a new tab of this space. */
@@ -261,6 +263,8 @@ export interface UiState {
   settings: Settings;
   /** The keys each shortcut has now (Settings → Shortcuts). */
   keys: ShortcutKeys;
+  /** The keys that go to a space, by space (Settings → Shortcuts); one without keys of its own is missing. */
+  space_keys: Record<Id, string>;
   chrome: string;
   /** Connected smart folder accounts. */
   accounts: Account[];
@@ -287,8 +291,8 @@ export const extensionIcon = (id: string) => `/ext-icons/${id}`;
 
 export type Axis = "row" | "column";
 export type Side = "left" | "right" | "top" | "bottom";
-/** What the centred command palette opens for; every command-bar prompt uses it. `quick`: the quick search from anywhere (⌥⌘N), whose pick opens in a mini window. */
-export const PALETTE_MODES = ["new", "split", "navigate", "new_space", "new_profile", "quick"] as const;
+/** What the centred command palette opens for; every command-bar prompt uses it. `quick`: the quick search from anywhere (⌥⌘N), whose pick opens in a mini window. `spaces`: the list of all spaces, to go to one (`SpacePicker`). */
+export const PALETTE_MODES = ["new", "split", "navigate", "new_space", "new_profile", "quick", "spaces"] as const;
 export type PaletteMode = (typeof PALETTE_MODES)[number];
 export type SplitNode =
   | { kind: "pane"; id: Id }
@@ -638,6 +642,7 @@ export type Command =
   | { cmd: "import_bookmarks"; html: string }
   | { cmd: "shortcut"; shortcut: string | { select_tab: number } | { select_space: number } }
   | { cmd: "set_shortcut"; action: ShortcutAction; keys: string | null }
+  | { cmd: "set_space_shortcut"; id: Id; keys: string | null }
   | { cmd: "reset_shortcut"; action?: ShortcutAction }
   | { cmd: "record_shortcut"; on: boolean };
 
@@ -713,6 +718,7 @@ interface Replies {
   get_settings: Info;
   /** `error`: why these keys cannot be a shortcut; nothing changed. */
   set_shortcut: { error?: string };
+  set_space_shortcut: { error?: string };
   search: { results: SearchResult[] };
   archive: { items: ArchiveItem[] };
   history: { items: Visit[] };

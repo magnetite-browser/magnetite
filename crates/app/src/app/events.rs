@@ -459,6 +459,7 @@ impl EngineDelegate for MagnetiteApp {
                 | UiCommand::SyncLeave
                 | UiCommand::SyncDeleteChain
                 | UiCommand::SetShortcut { .. }
+                | UiCommand::SetSpaceShortcut { .. }
                 | UiCommand::ResetShortcut { .. }
                 | UiCommand::RecordShortcut { .. }
         );

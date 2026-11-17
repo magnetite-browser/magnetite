@@ -90,6 +90,7 @@ pub(super) fn default_sidebar() -> SidebarSnapshot {
             blue: 1.0,
         }),
         profile_id: "default".into(),
+        shortcut: None,
         pinned: vec![],
         // No tab: a new installation contacts no site before the user
         // opens one.

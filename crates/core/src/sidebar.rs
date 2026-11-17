@@ -101,6 +101,7 @@ mod tests {
             icon: None,
             accent: None,
             profile_id: "p".into(),
+            shortcut: None,
             pinned: vec![
                 SidebarNode::Tab(tab("p1")),
                 SidebarNode::Folder(Folder {

@@ -394,6 +394,7 @@ pub fn install(mtm: MainThreadMarker) {
     b.menu("Spaces");
     b.command("Next Space", RIGHT, OPT_CMD, S::NextSpace);
     b.command("Previous Space", LEFT, OPT_CMD, S::PrevSpace);
+    b.command("Show All Spaces…", "0", CTRL, S::SpacePicker);
 
     let extensions = b.menu("Extensions");
     extensions.setDelegate(Some(ProtocolObject::from_ref(&*target)));

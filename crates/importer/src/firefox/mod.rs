@@ -179,6 +179,7 @@ fn new_space(ids: &mut Ids, title: &str) -> Result<Space, ImportError> {
         icon: None,
         accent: None,
         profile_id: DEFAULT_PROFILE.into(),
+        shortcut: None,
         pinned: Vec::new(),
         today: Vec::new(),
         bookmarks: Vec::new(),

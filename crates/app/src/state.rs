@@ -22,6 +22,7 @@ mod profiles;
 mod search;
 mod settings;
 mod share;
+mod space_keys;
 mod splits;
 mod tabs;
 #[cfg(test)]
@@ -67,6 +68,9 @@ pub struct UiState<'a> {
     /// The keys each shortcut has now (as `Combo` saves them), for the
     /// hints beside buttons and menu entries; one without keys is left out.
     pub keys: std::collections::BTreeMap<magnetite_engine::Action, String>,
+    /// The keys that go to a space, by space; one without keys of its own
+    /// is left out.
+    pub space_keys: std::collections::BTreeMap<&'a str, String>,
     /// Chrome colour behind the page cards, `#rrggbb`, derived from the space accent.
     pub chrome: String,
     /// Connected smart folder accounts (never their tokens).
@@ -296,6 +300,9 @@ impl AppState {
             switcher: self.switcher.as_ref(),
             settings: &self.settings,
             keys: self.settings.shortcut_keys().collect(),
+            space_keys: (self.space_keys().into_iter())
+                .map(|(space, keys)| (space.id.as_str(), keys.to_string()))
+                .collect(),
             chrome: format!("#{:06x}", self.chrome_rgb()),
             accounts: self.accounts.list(),
             smart: &self.smart_status,

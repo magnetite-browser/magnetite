@@ -57,6 +57,7 @@ pub fn to_snapshot(file: &raw::SidebarFile) -> Result<SidebarSnapshot, ImportErr
         };
 
         snapshot.spaces.push(Space {
+            shortcut: None,
             id: space.id.clone(),
             title: space.title.clone(),
             icon: icon_name(&space.custom_info.icon_type),

@@ -39,6 +39,8 @@ const SPACE_DIGITS: u32 = if cfg!(target_os = "macos") { CTRL } else { ALT };
 /// until when shortcuts are off because Settings records new keys.
 static KEYS: RwLock<Option<Overrides>> = RwLock::new(None);
 static PAUSED_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
+/// The keys that spaces have of their own (from the app).
+static SPACE_KEYS: RwLock<Vec<Combo>> = RwLock::new(Vec::new());
 
 /// Use these keys from now on.
 fn set_overrides(overrides: &Overrides) {
@@ -72,6 +74,15 @@ impl crate::Engine {
         set_overrides(overrides);
         #[cfg(target_os = "macos")]
         crate::menubar::apply_keys();
+    }
+
+    /// The keys that spaces have of their own (Settings → Shortcuts).
+    /// Pressing one sends `Shortcut::SpaceKeys`, before the page sees the
+    /// key; keys an action has stay that action's.
+    pub fn set_space_keys(&self, keys: &[Combo]) {
+        if let Ok(mut own) = SPACE_KEYS.write() {
+            *own = keys.iter().map(|combo| combo.here()).collect();
+        }
     }
 
     /// While Settings records new keys (`recording`) no shortcut runs, so
@@ -110,6 +121,12 @@ fn action_for(combo: Combo) -> Option<Action> {
     }
 }
 
+/// The shortcut of the space that has `combo`, if one does.
+fn space_keys(combo: Combo) -> Option<Shortcut> {
+    let combo = combo.here();
+    (SPACE_KEYS.read().ok()?.contains(&combo)).then_some(Shortcut::SpaceKeys(combo))
+}
+
 /// A key-down event's key and modifiers.
 fn pressed(event: &KeyEvent) -> Option<Combo> {
     if event.type_ != KeyEventType::RAWKEYDOWN && event.type_ != KeyEventType::KEYDOWN {
@@ -140,9 +157,10 @@ pub fn shortcut_for_key(event: &KeyEvent) -> Option<Shortcut> {
             Shortcut::SelectSpace(n)
         });
     }
-    action_for(combo)
-        .filter(|a| a.reserved())
-        .map(Action::shortcut)
+    match action_for(combo) {
+        Some(action) => action.reserved().then(|| action.shortcut()),
+        None => space_keys(combo),
+    }
 }
 
 /// Magnetite shortcuts a page may claim for itself: they are matched only after
@@ -236,8 +254,14 @@ pub fn shortcut_for_chrome_command(command_id: i32) -> ChromeCommand {
     let Some(keys) = Action::of(*shortcut).and_then(Action::default_combo) else {
         return ChromeCommand::Run(*shortcut);
     };
-    match action_for(keys).filter(|_| !paused()) {
-        Some(action) => ChromeCommand::Run(action.shortcut()),
+    if paused() {
+        return ChromeCommand::Drop;
+    }
+    match action_for(keys)
+        .map(Action::shortcut)
+        .or_else(|| space_keys(keys))
+    {
+        Some(shortcut) => ChromeCommand::Run(shortcut),
         None => ChromeCommand::Drop,
     }
 }

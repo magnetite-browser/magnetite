@@ -93,6 +93,7 @@ impl AppState {
                 blue: 0.68,
             }),
             profile_id,
+            shortcut: None,
             pinned: vec![],
             today: vec![],
             bookmarks: vec![],

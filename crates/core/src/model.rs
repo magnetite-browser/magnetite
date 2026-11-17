@@ -144,6 +144,11 @@ pub struct Space {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub accent: Option<Color>,
     pub profile_id: Id,
+    /// The keys that go to this space, as Settings → Shortcuts saves keys
+    /// (`ctrl+shift+W`). The app reads them and leaves out what cannot be
+    /// a shortcut.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shortcut: Option<String>,
     #[serde(default)]
     pub pinned: Vec<SidebarNode>,
     #[serde(default)]

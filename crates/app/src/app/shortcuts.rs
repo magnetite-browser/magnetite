@@ -24,17 +24,45 @@ impl MagnetiteApp {
         keys: Option<&str>,
     ) -> Result<(), KeysError> {
         let combo: Option<Combo> = keys.map(str::parse).transpose()?;
-        self.with_state(|s| s.settings.shortcuts.set(action, combo))?;
+        self.with_state(|s| {
+            s.settings.shortcuts.set(action, combo)?;
+            s.drop_shadowed_space_keys();
+            Ok(())
+        })?;
         self.apply_shortcut_keys(engine);
         self.push_state(engine);
         Ok(())
     }
 
-    /// Give `action` its default keys back, or every action (`None`).
+    /// Give space `id` the keys `keys` (`None`: no keys), or tell why not.
+    /// A shortcut or space that had them loses them.
+    pub(super) fn set_space_shortcut(
+        &self,
+        engine: &Engine,
+        id: &str,
+        keys: Option<&str>,
+    ) -> Result<(), KeysError> {
+        let combo: Option<Combo> = keys.map(str::parse).transpose()?;
+        self.with_state(|s| s.set_space_shortcut(id, combo))?;
+        // The keys may have been an action's.
+        self.apply_shortcut_keys(engine);
+        self.push_state(engine);
+        Ok(())
+    }
+
+    /// Give `action` its default keys back, or every action (`None`); then
+    /// no space has keys of its own either.
     pub(super) fn reset_shortcut(&self, engine: &Engine, action: Option<Action>) {
-        self.with_state(|s| match action {
-            Some(action) => s.settings.shortcuts.reset(action),
-            None => s.settings.shortcuts = Overrides::default(),
+        self.with_state(|s| {
+            if let Some(action) = action {
+                s.settings.shortcuts.reset(action);
+            } else {
+                s.settings.shortcuts = Overrides::default();
+                for space in &mut s.sidebar.spaces {
+                    space.shortcut = None;
+                }
+            }
+            s.drop_shadowed_space_keys();
         });
         self.apply_shortcut_keys(engine);
         self.push_state(engine);
@@ -232,6 +260,16 @@ impl MagnetiteApp {
                 }
             }
             Shortcut::NewSpace => Self::open_palette(engine, PaletteMode::NewSpace, None, None),
+            Shortcut::SpacePicker => Self::open_palette(engine, PaletteMode::Spaces, None, None),
+            Shortcut::SpaceKeys(keys) => {
+                let target = self.with_state(|s| {
+                    let space = s.space_for_keys(keys)?;
+                    (space.id != s.active_space).then(|| space.id.clone())
+                });
+                if let Some(id) = target {
+                    self.activate_space(engine, &id);
+                }
+            }
             Shortcut::PrivateSpace => self.open_private_space(engine),
             Shortcut::ClosePrivateSpace => self.close_private_space(engine),
             Shortcut::HidePrivateSpace => self.hide_private_space(engine),

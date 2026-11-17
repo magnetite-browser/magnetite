@@ -33,6 +33,7 @@ pub enum Action {
     HidePrivateSpace,
     NextSpace,
     PrevSpace,
+    SpacePicker,
     ToggleSidebar,
     SitePanel,
     CopyLink,
@@ -54,7 +55,7 @@ pub enum Action {
 impl Action {
     /// Every action, in the order Settings lists them. Of two actions on
     /// the same keys the earlier one gets them.
-    pub const ALL: [Self; 32] = [
+    pub const ALL: [Self; 33] = [
         Self::NewTab,
         Self::FocusAddress,
         Self::CloseTab,
@@ -71,6 +72,7 @@ impl Action {
         Self::HidePrivateSpace,
         Self::NextSpace,
         Self::PrevSpace,
+        Self::SpacePicker,
         Self::ToggleSidebar,
         Self::SitePanel,
         Self::CopyLink,
@@ -108,6 +110,7 @@ impl Action {
             Self::HidePrivateSpace => Shortcut::HidePrivateSpace,
             Self::NextSpace => Shortcut::NextSpace,
             Self::PrevSpace => Shortcut::PrevSpace,
+            Self::SpacePicker => Shortcut::SpacePicker,
             Self::ToggleSidebar => Shortcut::ToggleSidebar,
             Self::SitePanel => Shortcut::SitePanel,
             Self::CopyLink => Shortcut::CopyLink,
@@ -153,6 +156,7 @@ impl Action {
                 | Self::HidePrivateSpace
                 | Self::NextSpace
                 | Self::PrevSpace
+                | Self::SpacePicker
         )
     }
 
@@ -177,6 +181,9 @@ impl Action {
             Self::HidePrivateSpace => "primary+shift+D",
             Self::NextSpace => "primary+alt+Right",
             Self::PrevSpace => "primary+alt+Left",
+            // Beside the digits that choose a space by its place.
+            Self::SpacePicker if mac => "ctrl+0",
+            Self::SpacePicker => "alt+0",
             Self::ToggleSidebar => "primary+S",
             Self::SitePanel => "primary+shift+O",
             Self::CopyLink => "primary+shift+C",
@@ -317,6 +324,11 @@ impl Combo {
     /// The key's name: `T`, `Tab`, `F6`, `=`.
     pub fn key_name(self) -> String {
         key_name(self.key).unwrap_or_default()
+    }
+
+    /// Why these keys cannot be a shortcut, if they cannot (`refusal`).
+    pub fn refused(self) -> Option<KeysError> {
+        refusal(self)
     }
 
     fn is_function_key(self) -> bool {
@@ -509,7 +521,7 @@ impl Overrides {
             if let Some(why) = refusal(combo) {
                 return Err(why);
             }
-            self.take_from_others(action, combo);
+            self.take_from_others(Some(action), combo);
         }
         if combo.map(Combo::here) == action.default_combo() {
             // The default keys of this system: nothing to save.
@@ -525,18 +537,25 @@ impl Overrides {
     /// system it has that system's default keys again.
     pub fn reset(&mut self, action: Action) {
         if let Some(keys) = action.default_combo() {
-            self.take_from_others(action, keys);
+            self.take_from_others(Some(action), keys);
         }
         self.0.remove(&action);
     }
 
-    /// Every other action that has `combo` gets no keys: all of them, also
-    /// one listed after `action`, which only waited for the keys to be free
-    /// (two actions can be on the same keys after a sync between systems).
-    fn take_from_others(&mut self, action: Action, combo: Combo) {
+    /// No action has `combo` from now on: the keys go to something that is
+    /// no action (a space).
+    pub fn release(&mut self, combo: Combo) {
+        self.take_from_others(None, combo);
+    }
+
+    /// Every action but `keeper` that has `combo` gets no keys: all of
+    /// them, also one listed after `keeper`, which only waited for the keys
+    /// to be free (two actions can be on the same keys after a sync between
+    /// systems).
+    fn take_from_others(&mut self, keeper: Option<Action>, combo: Combo) {
         let combo = Some(combo.here());
         for other in Action::ALL {
-            if other != action && self.combo_of(other) == combo {
+            if Some(other) != keeper && self.combo_of(other) == combo {
                 self.0.insert(other, None);
             }
         }

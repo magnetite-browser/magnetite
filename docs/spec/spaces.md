@@ -12,6 +12,7 @@ by all spaces. The profile decides which logins the pages of a space use.
 | `icon` | One of 27 glyphs, drawn in the space colour. An imported icon without a matching glyph shows as its emoji or as the first letter of the title. |
 | `accent` | The space colour. It tints the sidebar and outlines the focused page in split view. |
 | `profile_id` | The profile the space's pages run in. |
+| `shortcut` | The keys that go to the space, if it has some of its own (`shortcuts.md`). |
 | `pinned`, `today` | The pinned tree (tabs and folders) and the Today list (`sidebar.md`). |
 
 ## Create, change, delete
@@ -78,6 +79,25 @@ pictures.
   before the page sees them. On Linux they are `Alt+1` to `Alt+9`, since
   `Ctrl` with a number selects a tab there.
 - The command "Switch to <space>" in the command bar.
+- The list of all spaces ("The list of spaces" below).
+- Keys of its own for a space (Settings → Shortcuts, `shortcuts.md`).
+
+## The list of spaces
+
+`Ctrl+0` (`Alt+0` on Linux; the keys can be changed), "Show All Spaces…" in
+the Spaces menu and the command "Show all spaces…" open a list of every
+space in the place of the command bar: icon and name in the space colour,
+"Current" beside the space the window shows, the profile where the spaces
+do not all use the same one, and the keys that go to the space (its own, or
+the digit keys of its place).
+
+- The list starts on the current space. Up and Down move, Enter goes to the
+  selected space, Esc closes the list.
+- Typing shortens the list to the spaces whose name contains the text:
+  first those whose name starts with it, then those where a word does, then
+  the others, each in the footer's order. The first one is selected.
+- A hidden private space is not listed.
+
 - Showing a tab of another space, for example from the command bar or the
   archive, switches to its space.
 

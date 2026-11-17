@@ -92,6 +92,8 @@ pub struct MagnetiteApp {
     blocker: adblocking::Blocker,
     /// The recording of a page that runs (`record.rs`).
     record: Mutex<record::Recorder>,
+    /// The spaces' own keys the engine was last told (`apply_space_keys`).
+    space_keys: Mutex<Vec<magnetite_engine::Combo>>,
 }
 
 /// When the sidebar was last sent the state, and whether another sending
@@ -198,6 +200,8 @@ enum PaletteMode {
     NewProfile,
     /// The quick search, from anywhere: the pick opens in a mini window.
     Quick,
+    /// The spaces by name, to go to one.
+    Spaces,
 }
 
 impl PaletteMode {
@@ -210,6 +214,7 @@ impl PaletteMode {
             Self::NewSpace => "new_space",
             Self::NewProfile => "new_profile",
             Self::Quick => "quick",
+            Self::Spaces => "spaces",
         }
     }
 }
@@ -242,6 +247,7 @@ impl MagnetiteApp {
             show_pace: Mutex::new(ShowPace::default()),
             blocker,
             record: Mutex::new(record::Recorder::default()),
+            space_keys: Mutex::new(Vec::new()),
         }
     }
 
@@ -343,8 +349,21 @@ impl MagnetiteApp {
         for win in windows {
             engine.in_window(win, || self.show_window_state(engine));
         }
+        self.apply_space_keys(engine);
         // Another tab, split or peek on screen: other prompts may show.
         self.show_prompts(engine);
+    }
+
+    /// Tell the engine the keys that spaces have of their own, when they
+    /// changed: here, by a space that came or went, or through sync.
+    fn apply_space_keys(&self, engine: &Engine) {
+        let keys: Vec<_> =
+            self.with_state(|s| s.space_keys().into_iter().map(|(_, keys)| keys).collect());
+        let mut told = lock(&self.space_keys);
+        if *told != keys {
+            engine.set_space_keys(&keys);
+            *told = keys;
+        }
     }
 
     /// The current window's part of `show_state`.

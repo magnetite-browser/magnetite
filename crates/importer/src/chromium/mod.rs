@@ -214,6 +214,7 @@ fn space(
         }
     }
     Ok(Space {
+        shortcut: None,
         id: ids.next()?,
         title,
         icon: None,
