@@ -21,9 +21,12 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
   const [recording, setRecording] = useState<Recording | null>(null);
   // Why the last keys were refused, shown in that target's row.
   const [problem, setProblem] = useState<{ target: Target; text: string } | null>(null);
-  /** The keys `target` has now and those it began with (a space: none). */
-  const current = (target: Target) =>
-    target.kind === "action" ? info.shortcuts.find((s) => s.action === target.action) : { keys: info.spaces.find((s) => s.id === target.id)?.keys ?? null, default: null };
+  /** The keys `target` has now and those it began with (a space: none). `unused`: keys saved for a space that do nothing here. */
+  const current = (target: Target): { keys: string | null; default: string | null; unused?: string | null } | undefined => {
+    if (target.kind === "action") return info.shortcuts.find((s) => s.action === target.action);
+    const space = info.spaces.find((s) => s.id === target.id);
+    return { keys: space?.keys ?? null, default: null, unused: space?.keys ? null : space?.shortcut };
+  };
   const name = (target: Target) => (target.kind === "action" ? SHORTCUT_LABEL[target.action] : `Go to ${info.spaces.find((s) => s.id === target.id)?.title ?? "the space"}`);
   /** What else has `keys` now. */
   const holder = (keys: string, except: Target): Target | undefined => {
@@ -91,9 +94,13 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
             <span className="text-[13px] text-[var(--accent)]">Press the new keys · Esc cancels</span>
           ) : (
             <>
-              {now?.keys ? <kbd>{keysLabel(now.keys)}</kbd> : <span className="text-[13px] text-[var(--muted)]">No keys</span>}
+              {now?.keys ? <kbd>{keysLabel(now.keys)}</kbd> : (
+                <span className="text-[13px] text-[var(--muted)]" title={now?.unused ? "These keys are fixed on this device, or something else has them" : undefined}>
+                  {now?.unused ? `${keysLabel(now.unused)}, not used here` : "No keys"}
+                </span>
+              )}
               <button className="btn sm" onClick={() => { setProblem(null); setRecording({ target }); }}>Change</button>
-              <button className="btn sm" disabled={!now?.keys} title="No keys from now on" onClick={() => void save(target, null)}>Remove</button>
+              <button className="btn sm" disabled={!now?.keys && !now?.unused} title="No keys from now on" onClick={() => void save(target, null)}>Remove</button>
               {target.kind === "action" && (
                 <button className="btn sm" disabled={now?.keys === now?.default} title={now?.default ? `Back to ${keysLabel(now.default)}` : "Back to no keys"} onClick={() => reset(target.action)}>Reset</button>
               )}
