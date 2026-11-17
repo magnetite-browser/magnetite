@@ -202,13 +202,13 @@ impl MagnetiteApp {
     /// in front if this device does not have that one) and note it as taken,
     /// so its device closes it. `background`: unread, behind the tab in front.
     fn take_device_tab(&self, engine: &Engine, tab: &RemoteTab, background: bool) {
-        // Taken either way: an address this device does not open would
-        // otherwise come back with every sync.
         let opened = self.with_state(|s| {
-            s.settings.sync.taken.push(tab.id.clone());
+            // The round lists none this device does not open (`devices`);
+            // checked again here, where the address is opened.
             if !url_policy::allowed(&tab.url, url_policy::Source::Stored) {
                 return None;
             }
+            s.settings.sync.taken.push(tab.id.clone());
             let space = s.device_tab_space(tab.space.as_ref());
             let title = if tab.title.is_empty() {
                 &tab.url

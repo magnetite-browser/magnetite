@@ -96,8 +96,9 @@ first, it reads again. Devices cannot overwrite each other there.
   alone: the tab then opens in the space in front, or, if that is such a
   space too, in the first space that syncs. Only a device none of whose
   spaces sync opens it in the space in front regardless.
-- Addresses Magnetite does not open from stored data are not opened (they
-  still count as taken, so they do not come back).
+- A tab with an address Magnetite does not open from stored data (a local
+  file, for example) is not shown and not taken: it stays open on its
+  device.
 
 Not synced: the archive, downloads, cookies and logins, which pages are
 open, split views, the search engine (a device holding the words could

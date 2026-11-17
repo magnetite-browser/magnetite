@@ -20,6 +20,8 @@ use serde_json::{Map, Value};
 
 use magnetite_core::UnixSeconds;
 
+use crate::url_policy;
+
 /// The collection's name (`ChainKeys::collection_id`).
 pub const DEVICES: &str = "devices";
 /// An entry not written for this long is of a device that is gone.
@@ -92,7 +94,8 @@ pub struct RemoteTab {
 /// What a round over the collection found.
 #[derive(Debug, PartialEq)]
 pub struct Round {
-    /// The tabs open on other devices that no device has taken.
+    /// The tabs open on other devices that no device has taken, of those
+    /// this device opens (`url_policy`).
     pub tabs: Vec<RemoteTab>,
     /// The tabs sent to the other devices that this round takes: they are
     /// in `taken`, and open once `all` is written (or needs no write).
@@ -118,7 +121,10 @@ pub fn round(all: &mut Devices, me: &Me, now: UnixSeconds) -> Round {
     for d in others() {
         for t in &d.tabs {
             let elsewhere = others().any(|o| o.taken.contains(&t.id));
-            if elsewhere || taken.contains(&t.id) {
+            // One this device would not open stays with its device: taken,
+            // it would be closed there and open nowhere.
+            let opens = url_policy::allowed(&t.url, url_policy::Source::Stored);
+            if elsewhere || !opens || taken.contains(&t.id) {
                 continue;
             }
             let tab = RemoteTab {
@@ -249,6 +255,19 @@ mod tests {
         // Opened and noted: the next round leaves it alone.
         let next = round(&mut all, &me(&["b"]), NOW);
         assert!(next.sent.is_empty() && !next.write);
+    }
+
+    #[test]
+    fn a_tab_this_device_would_not_open_is_neither_shown_nor_taken() {
+        let local = format!(
+            r#",{{"id":"tablet","name":"iPad","updated_at":{NOW},"tabs":[
+                {{"id":"f","url":"file:///etc/passwd"}},
+                {{"id":"j","url":"javascript:alert(1)","later":true}}]}}"#
+        );
+        let mut all = phone(&local);
+        let round = round(&mut all, &me(&[]), NOW);
+        assert_eq!(ids(&round.tabs), ["a", "b"]);
+        assert!(round.sent.is_empty() && !round.write);
     }
 
     #[test]
