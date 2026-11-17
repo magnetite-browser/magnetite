@@ -1,9 +1,10 @@
 // The top bar's pop-ups (magnetite://ui/popup?kind=…): the site panel, the
-// copy menu and an extension's menu, each in a window just below the top bar,
+// copy menu, an extension's menu and the developer tools' panels, each in a window just below the top bar,
 // which is too short to hold them. Closes on Esc, on a pick or when it loses
 // the keyboard.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
+import { EmulationPanel, TimezonePanel } from "./DevBar";
 import { extensionMenu } from "./PinnedExtensions";
 import { SitePanel } from "./SitePanel";
 import { accentCss, applyAppearance, findTab, send, subscribe, type LinkVariant, type UiState } from "./bridge";
@@ -54,6 +55,16 @@ export function TopBarPopup() {
     return (
       <div ref={root}>
         <SitePanel state={state} item={item} rt={state.runtime[item.id]} onClose={close} inWindow />
+      </div>
+    );
+  }
+  if (KIND === "emulate" || KIND === "timezone") {
+    const emulation = state.active_tab ? state.runtime[state.active_tab]?.dev.emulation : undefined;
+    if (!emulation) return null;
+    const Panel = KIND === "emulate" ? EmulationPanel : TimezonePanel;
+    return (
+      <div ref={root}>
+        <Panel emulation={emulation} onClose={close} />
       </div>
     );
   }

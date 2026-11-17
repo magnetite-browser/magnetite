@@ -407,6 +407,20 @@ impl Engine {
         }
     }
 
+    /// Page `id`'s size was overridden by someone else (a capture set): in
+    /// device mode it is told its device's again.
+    pub fn restore_device(&self, id: ContentId) {
+        let device = self
+            .lock()
+            .docked
+            .get_mut(&id)
+            .and_then(|d| d.device.as_mut())
+            .map(|m| m.told = None);
+        if device.is_some() {
+            self.replace_page(id);
+        }
+    }
+
     /// Lay page `id` out again where it is.
     fn replace_page(&self, id: ContentId) {
         let slot = self.lock().contents.get(&id).and_then(|c| c.slot.clone());

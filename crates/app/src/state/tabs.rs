@@ -93,18 +93,36 @@ impl AppState {
         None
     }
 
-    /// The page outside the sidebar in window `id`: the peek, or a mini
-    /// window's page.
+    /// The page outside the sidebar in window `id`: the peek, a mini
+    /// window's page, or the phone of a responsive split.
     pub fn page_outside(&self, id: ContentId) -> Option<&Peek> {
         (self.peek.iter())
             .chain(self.minis.iter())
+            .chain(self.phones.iter().map(|p| &p.page))
             .find(|p| p.content == id)
     }
 
     pub fn page_outside_mut(&mut self, id: ContentId) -> Option<&mut Peek> {
         (self.peek.iter_mut())
             .chain(self.minis.iter_mut())
+            .chain(self.phones.iter_mut().map(|p| &mut p.page))
             .find(|p| p.content == id)
+    }
+
+    /// The phone in window `id` is gone: its tab has none beside it.
+    pub fn drop_phone(&mut self, id: ContentId) {
+        let Some(at) = self.phones.iter().position(|p| p.page.content == id) else {
+            return;
+        };
+        let phone = self.phones.remove(at);
+        if let Some(rt) = self.runtime.get_mut(&phone.tab) {
+            rt.dev.responsive = false;
+        }
+    }
+
+    /// Whether window `id` holds the phone of a responsive split.
+    pub fn is_phone(&self, id: ContentId) -> bool {
+        self.phones.iter().any(|p| p.page.content == id)
     }
 
     /// What is known about the page in window `id`: the peek's or a mini

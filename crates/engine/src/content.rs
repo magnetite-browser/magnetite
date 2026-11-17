@@ -915,6 +915,10 @@ impl Engine {
                             f.top_bar_browser = Some(browser);
                             return;
                         }
+                        Some(f) if matches!(&f.dev_bar_view, Some(v) if is(v)) => {
+                            f.dev_bar_browser = Some(browser);
+                            return;
+                        }
                         Some(_) => {}
                         None => unbuilt = Some(w),
                     }

@@ -9,7 +9,7 @@ use std::str::FromStr;
 use serde::de::IntoDeserializer as _;
 use serde::{Deserialize, Serialize};
 
-use crate::events::Shortcut;
+use crate::events::{DevPanel, Shortcut};
 
 const MAC: bool = cfg!(target_os = "macos");
 
@@ -45,12 +45,16 @@ pub enum Action {
     Downloads,
     Settings,
     ToggleDevTools,
+    DevConsole,
+    DevPicker,
+    DevNetwork,
+    DevReset,
 }
 
 impl Action {
     /// Every action, in the order Settings lists them. Of two actions on
     /// the same keys the earlier one gets them.
-    pub const ALL: [Self; 28] = [
+    pub const ALL: [Self; 32] = [
         Self::NewTab,
         Self::FocusAddress,
         Self::CloseTab,
@@ -79,6 +83,10 @@ impl Action {
         Self::Downloads,
         Self::Settings,
         Self::ToggleDevTools,
+        Self::DevConsole,
+        Self::DevPicker,
+        Self::DevNetwork,
+        Self::DevReset,
     ];
 
     /// The command the action runs.
@@ -112,6 +120,10 @@ impl Action {
             Self::Downloads => Shortcut::Downloads,
             Self::Settings => Shortcut::Settings,
             Self::ToggleDevTools => Shortcut::ToggleDevTools,
+            Self::DevConsole => Shortcut::DevPanel(DevPanel::Console),
+            Self::DevPicker => Shortcut::DevPanel(DevPanel::Picker),
+            Self::DevNetwork => Shortcut::DevPanel(DevPanel::Network),
+            Self::DevReset => Shortcut::DevReset,
         }
     }
 
@@ -181,6 +193,11 @@ impl Action {
             Self::Settings => return None,
             Self::ToggleDevTools if mac => "primary+alt+I",
             Self::ToggleDevTools => "primary+shift+I",
+            Self::DevConsole if mac => "primary+alt+J",
+            Self::DevConsole => "primary+shift+J",
+            Self::DevPicker => "primary+alt+C",
+            Self::DevNetwork => "primary+alt+E",
+            Self::DevReset => "primary+alt+R",
         })
     }
 
@@ -407,8 +424,6 @@ fn taken() -> impl Iterator<Item = (Combo, &'static str)> {
         ("primary+[", "Back"),
         ("primary+]", "Forward"),
         ("primary+alt+N", "Quick search from anywhere"),
-        ("primary+alt+J", "Developer Tools"),
-        ("primary+alt+C", "Developer Tools"),
         ("primary+Tab", "the system's app switcher"),
         ("primary+Space", "the system's search"),
     ];
@@ -417,7 +432,6 @@ fn taken() -> impl Iterator<Item = (Combo, &'static str)> {
         ("alt+Left", "Back"),
         ("alt+Right", "Forward"),
         ("F5", "Reload Page"),
-        ("primary+shift+J", "Developer Tools"),
         ("primary+shift+V", "Paste and Match Style"),
         ("alt+F4", "closing the window"),
     ];

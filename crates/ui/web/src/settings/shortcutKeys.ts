@@ -49,7 +49,16 @@ export const SHORTCUT_GROUPS = [
       history: "History",
       downloads: "Downloads",
       settings: "Settings",
+    },
+  },
+  {
+    label: "Developer",
+    actions: {
       toggle_dev_tools: "Developer tools",
+      dev_console: "Console",
+      dev_picker: "Pick an element",
+      dev_network: "Network",
+      dev_reset: "Reset the page (reload past the cache)",
     },
   },
 ] as const;

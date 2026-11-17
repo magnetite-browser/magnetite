@@ -438,6 +438,53 @@ impl<T: Clone + PartialEq> SplitNode<T> {
         true
     }
 
+    /// The page at `path` (child indices from the root), if a page is there.
+    pub fn pane_at(&self, path: &[usize]) -> Option<&T> {
+        match (self, path.split_first()) {
+            (Self::Pane { id }, None) => Some(id),
+            (Self::Split { children, .. }, Some((first, rest))) => {
+                children.get(*first)?.pane_at(rest)
+            }
+            _ => None,
+        }
+    }
+
+    /// The tree with `new` right of page `id`, in that page's place: `new`
+    /// gets `px` pixels of its width, and both keep at least `min`. The
+    /// tree as it is if `id` is not in it.
+    #[must_use]
+    pub fn with_beside(&self, id: &T, new: T, px: i32, area: Bounds, gap: i32, min: i32) -> Self {
+        let Some((_, place)) = self.layout(area, gap).into_iter().find(|(p, _)| p == id) else {
+            return self.clone();
+        };
+        let both = (place.width - gap).max(1);
+        let px = px.clamp(min, (both - min).max(min)).min(both);
+        let share = f64::from(px) / f64::from(both);
+        let pair = Self::Split {
+            axis: Axis::Row,
+            children: vec![Self::pane(id.clone()), Self::pane(new)],
+            sizes: vec![1.0 - share, share],
+        };
+        self.replaced(id, &pair)
+    }
+
+    /// The tree with `node` in the place of page `id`.
+    fn replaced(&self, id: &T, node: &Self) -> Self {
+        match self {
+            Self::Pane { id: p } if p == id => node.clone(),
+            Self::Pane { .. } => self.clone(),
+            Self::Split {
+                axis,
+                children,
+                sizes,
+            } => Self::Split {
+                axis: *axis,
+                children: children.iter().map(|c| c.replaced(id, node)).collect(),
+                sizes: sizes.clone(),
+            },
+        }
+    }
+
     /// Give all children of the split at `path` the same size.
     pub fn equalize(&mut self, path: &[usize], area: Bounds, gap: i32) -> bool {
         let Some((Self::Split { sizes, .. }, _)) = self.split_at(path, area, gap) else {
@@ -511,6 +558,27 @@ mod tests {
         assert_eq!(t.ids(), vec!["d", "a", "b", "c"]);
         assert!(!t.insert(&"a", "e", Side::Top), "four pages at most");
         assert!(!t.insert(&"a", "b", Side::Top), "already shown");
+    }
+
+    #[test]
+    fn a_page_gets_another_beside_it_in_its_own_place() {
+        // One page alone: the other takes 390 pixels of the area.
+        let t = SplitNode::pane("a").with_beside(&"a", "phone", 390, AREA, 8, 200);
+        let rects = t.layout(AREA, 8);
+        assert_eq!((rects[0].1.width, rects[1].1.width), (610, 390));
+        // In a split, inside its page's place only; the split's own
+        // dividers keep their paths, the new one is where the page was.
+        let split = tree(&[("b", Side::Right), ("c", Side::Bottom)]);
+        let t = split.with_beside(&"c", "phone", 300, AREA, 8, 200);
+        assert_eq!(t.ids(), vec!["a", "b", "c", "phone"]);
+        let rects = t.layout(AREA, 8);
+        assert_eq!((rects[2].1.width, rects[3].1.width), (200, 292));
+        assert_eq!(rects[0].1.width, 500);
+        assert_eq!(split.pane_at(&[1, 1]), Some(&"c"));
+        assert_eq!(split.pane_at(&[1]), None, "a split, not a page");
+        assert_eq!(SplitNode::pane("a").pane_at(&[]), Some(&"a"));
+        // A page that is not there: nothing changes.
+        assert_eq!(split.with_beside(&"x", "phone", 300, AREA, 8, 200), split);
     }
 
     #[test]

@@ -57,6 +57,9 @@ focus returns to the chip.
 - **Block ads:** shown while the ad blocker is on (`ad-blocking.md`). Off
   lets the whole site load everything and loads the page again.
 - **Mute tab:** mutes this tab's audio until unmuted or the tab is unloaded.
+- **Developer mode:** the developer bar, a caution border on its tab and the console error
+  count for this site (`developer.md`). Always on for pages this computer
+  serves.
 
 **Permissions.** Rows exist for camera, microphone, location, notifications,
 pop-ups and redirects, and clipboard. A row shows when the setting for the
@@ -208,6 +211,7 @@ or written without one of these actions.
 | `Cmd+Shift+O` | Site panel | the page keeps it |
 | `Cmd+Shift+2` | Capture | the page keeps it |
 | `Cmd+Option+I` | Open or close DevTools | Chromium's own command |
+| `Cmd+Option+J`, `Cmd+Option+C`, `Cmd+Option+E`, `Cmd+Option+R` | Console, element picker, Network, reset (`developer.md`) | the page keeps it |
 | `Cmd+P` | Print the page (Chromium's print preview); also File → Print… and the command "Print page" | the page keeps it |
 | `Cmd+F` | Find in the page: Chromium's find bar at the page's top right, with the number of matches; also Edit → Find… and the command "Find in page…". `Esc` closes it | the page keeps it |
 | `Cmd+G`, `Cmd+Shift+G` | Next or previous match of the last search; also Enter and Shift+Enter in the find bar | the page keeps it |
@@ -230,7 +234,7 @@ or written without one of these actions.
 - Custom CSS and JavaScript: syncing them, code for one path of a site
   only, JavaScript before the page's own scripts run, and an editor with
   highlighting.
-- Developer mode per site: status, load times and console counters in a strip.
+- Load times and request status in the developer bar (`developer.md`).
 - Device mode without DevTools, and devices of one's own in the list.
 - Dividers beside docked DevTools, and the device mode's resize handles,
   on other platforms than macOS.

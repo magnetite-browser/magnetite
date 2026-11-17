@@ -4,6 +4,7 @@ import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, SmartFolderI
 import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./smart";
 import { Glyph, glyphFor } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
+import { errorCount } from "./DevBar";
 import { findTab, hostOf, send, splitIds, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 
@@ -296,6 +297,7 @@ const TabRowInner = memo(
       <div
         className={"row drop"}
         data-active={active || undefined}
+        data-dev={(rt?.dev?.local && ctx.state.settings.developer.enabled) || undefined}
         data-unloaded={!rt?.loaded || undefined}
         data-before={over === "before" || undefined}
         data-after={over === "after" || undefined}
@@ -390,6 +392,9 @@ const TabRowInner = memo(
             <button className="slot" title={rt.muted ? "Unmute tab" : "Mute tab"} onClick={(e) => { e.stopPropagation(); send({ cmd: "set_muted", id: tab.id, muted: !rt.muted }); }}>
               {rt.muted ? <SpeakerOff width={14} height={14} /> : <Speaker width={14} height={14} />}
             </button>
+          )}
+          {!!rt?.dev?.errors && !active && (
+            <span className="dev-errors" title={`${rt.dev.errors} error${rt.dev.errors === 1 ? "" : "s"} in the console`} aria-label={`${rt.dev.errors} console errors`}>{errorCount(rt.dev.errors)}</span>
           )}
           {tab.panel && section === "pinned" && (
             <span className="panel-mark" data-open={active || undefined} title="Opens as a web panel" aria-label="Opens as a web panel" />

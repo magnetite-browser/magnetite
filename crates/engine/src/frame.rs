@@ -1,5 +1,6 @@
 //! The frame window: the top bar view (when on) above the body, which holds
-//! the sidebar view and the content panel.
+//! the sidebar view and, right of it, the developer bar (while the page in
+//! front has developer tools) above the content panel.
 
 use cef::*;
 
@@ -15,6 +16,11 @@ pub(crate) struct FrameState {
     /// The top bar's view, made the first time it is turned on.
     pub top_bar_view: Option<BrowserView>,
     pub top_bar_browser: Option<Browser>,
+    /// Right of the sidebar: the developer bar above the content panel.
+    pub pages_column: Panel,
+    /// The developer bar's view, made the first time it shows.
+    pub dev_bar_view: Option<BrowserView>,
+    pub dev_bar_browser: Option<Browser>,
     pub content_panel: Panel,
     pub sidebar_browser: Option<Browser>,
     /// The hint in the content panel for a window without a page.
@@ -105,6 +111,7 @@ impl Engine {
             (is(frame.and_then(|f| f.sidebar_browser.as_ref()))
                 || is(empty.as_ref())
                 || is(frame.and_then(|f| f.top_bar_browser.as_ref()))
+                || is(frame.and_then(|f| f.dev_bar_browser.as_ref()))
                 || is(float.as_ref()))
             .then_some(win)
         })
@@ -134,6 +141,8 @@ impl Engine {
     const GRAB_OVERLAP: i32 = 6;
     /// Height of the top bar (`magnetite://ui/topbar`).
     pub const TOP_BAR_HEIGHT: i32 = 42;
+    /// Height of the developer bar (`magnetite://ui/devbar`).
+    pub const DEV_BAR_HEIGHT: i32 = 36;
 
     /// Keep the window-drag strip along the top of the page area, above the
     /// page windows (see `mac::set_grab_strip`).
@@ -236,7 +245,7 @@ impl Engine {
     }
 
     /// The content panel's place in the window: right of the sidebar, below
-    /// the top bar. Worked out from the window's size, not asked of the
+    /// the top bar and the developer bar. Worked out from the window's size, not asked of the
     /// panel: Chromium lays out the nested body lazily, so the panel can
     /// still report where it was before a change.
     fn content_panel_in_window(&self) -> Rect {
@@ -250,11 +259,17 @@ impl Engine {
         } else {
             0
         };
-        let y = if inner.top_bar_visible {
+        let top_bar = if inner.top_bar_visible {
             Self::TOP_BAR_HEIGHT
         } else {
             0
         };
+        let dev_bar = if inner.win.dev_bar_visible {
+            Self::DEV_BAR_HEIGHT
+        } else {
+            0
+        };
+        let y = top_bar + dev_bar;
         Rect {
             x,
             y,
@@ -306,7 +321,7 @@ impl Engine {
         match view {
             Some(view) => View::from(&view).set_visible(visible.into()),
             None if visible => {
-                let Some(view) = create_top_bar_view() else {
+                let Some(view) = create_bar_view("topbar", Self::TOP_BAR_HEIGHT) else {
                     return;
                 };
                 // Before the view is added: its browser is matched to its
@@ -327,6 +342,46 @@ impl Engine {
         if self.float_sidebar_shown() {
             self.show_float_sidebar(true);
         }
+    }
+
+    /// Show the developer bar above the current window's pages, or hide it.
+    /// Its page is made the first time. The pages move down by its height.
+    pub fn set_dev_bar_visible(&self, visible: bool) {
+        let frame = {
+            let mut inner = self.lock();
+            if std::mem::replace(&mut inner.win.dev_bar_visible, visible) == visible {
+                return;
+            }
+            let frame = inner.win.frame.as_ref();
+            frame.map(|f| {
+                (
+                    f.window.clone(),
+                    f.pages_column.clone(),
+                    f.dev_bar_view.clone(),
+                )
+            })
+        };
+        let Some((window, column, view)) = frame else {
+            return;
+        };
+        match view {
+            Some(view) => View::from(&view).set_visible(visible.into()),
+            None if visible => {
+                let Some(view) = create_bar_view("devbar", Self::DEV_BAR_HEIGHT) else {
+                    return;
+                };
+                // Before the view is added, as for the top bar.
+                if let Some(f) = self.lock().win.frame.as_mut() {
+                    f.dev_bar_view = Some(view.clone());
+                }
+                column.add_child_view_at(Some(&mut View::from(&view)), 0);
+            }
+            None => {}
+        }
+        window.layout();
+        self.reposition_contents();
+        self.apply_drag_regions();
+        self.update_edge_zone();
     }
 
     /// The window buttons of the top bar (Linux and Windows) and of the
@@ -362,14 +417,24 @@ impl Engine {
         }
     }
 
-    /// Open `url` in an overlay below the top bar, `width` by `height`, its
-    /// top-left at (`x`, `y`) in the top bar page's coordinates: the top
-    /// bar's pop-ups (site controls, menus), which its short page cannot hold.
-    pub fn open_top_bar_popup(&self, url: &str, x: i32, y: i32, width: i32, height: i32) -> bool {
+    /// Open `url` in an overlay below the top bar (the developer bar with
+    /// `dev`), `width` by `height`, its top-left at (`x`, `y`) in that
+    /// bar's page's coordinates: the bars' pop-ups (site controls, menus,
+    /// panels), which their short pages cannot hold.
+    pub fn open_bar_popup(
+        &self,
+        dev: bool,
+        url: &str,
+        (x, y): (i32, i32),
+        (width, height): (i32, i32),
+    ) -> bool {
         let Some(bar) = (self.lock().win.frame.as_ref()).and_then(|f| {
-            f.top_bar_view
-                .as_ref()
-                .map(|v| View::from(v).bounds_in_screen())
+            let view = if dev {
+                &f.dev_bar_view
+            } else {
+                &f.top_bar_view
+            };
+            view.as_ref().map(|v| View::from(v).bounds_in_screen())
         }) else {
             return false;
         };
@@ -453,11 +518,15 @@ impl Engine {
     /// paints the same colour so there is no seam.
     pub fn set_chrome_color(&self, argb: u32) {
         self.lock().win.chrome_color = argb;
-        let panels =
-            (self.lock().win.frame.as_ref()).map(|f| (f.content_panel.clone(), f.body.clone()));
-        if let Some((content, body)) = panels {
-            content.set_background_color(argb);
-            body.set_background_color(argb);
+        let panels = (self.lock().win.frame.as_ref()).map(|f| {
+            [
+                f.content_panel.clone(),
+                f.body.clone(),
+                f.pages_column.clone(),
+            ]
+        });
+        for panel in panels.into_iter().flatten() {
+            panel.set_background_color(argb);
         }
     }
 
@@ -563,16 +632,18 @@ wrap_browser_view_delegate! {
 }
 
 /// The top bar's view: our UI at `magnetite://ui/topbar`, full width.
-fn create_top_bar_view() -> Option<BrowserView> {
+/// The view of a bar of Magnetite's own UI at `path` (`topbar`, `devbar`),
+/// `height` points high.
+fn create_bar_view(path: &str, height: i32) -> Option<BrowserView> {
     let engine = Engine::global();
     let mut client = MagnetiteClient::top_bar();
-    let mut delegate = TopBarViewDelegate::new();
+    let mut delegate = BarViewDelegate::new(height);
     let settings = BrowserSettings {
         background_color: engine.lock().win.chrome_color,
         ..Default::default()
     };
     // Next to the sidebar's page, also on a development server.
-    let url = format!("{}/topbar", engine.config().ui_url.trim_end_matches('/'));
+    let url = format!("{}/{path}", engine.config().ui_url.trim_end_matches('/'));
     browser_view_create(
         Some(&mut client),
         Some(&CefString::from(url.as_str())),
@@ -584,21 +655,23 @@ fn create_top_bar_view() -> Option<BrowserView> {
 }
 
 wrap_browser_view_delegate! {
-    struct TopBarViewDelegate {}
+    struct BarViewDelegate {
+        height: i32,
+    }
     impl ViewDelegate {
         // A size with no width counts as none: CEF would use the page's own.
         fn preferred_size(&self, _view: Option<&mut View>) -> Size {
-            Size { width: 1, height: Engine::TOP_BAR_HEIGHT }
+            Size { width: 1, height: self.height }
         }
         fn minimum_size(&self, _view: Option<&mut View>) -> Size {
-            Size { width: 1, height: Engine::TOP_BAR_HEIGHT }
+            Size { width: 1, height: self.height }
         }
         fn maximum_size(&self, _view: Option<&mut View>) -> Size {
-            Size { width: i32::MAX, height: Engine::TOP_BAR_HEIGHT }
+            Size { width: i32::MAX, height: self.height }
         }
-        // The window's column layout asks this, not the preferred size.
+        // A column layout asks this, not the preferred size.
         fn height_for_width(&self, _view: Option<&mut View>, _width: ::std::os::raw::c_int) -> ::std::os::raw::c_int {
-            Engine::TOP_BAR_HEIGHT
+            self.height
         }
     }
     impl BrowserViewDelegate {
@@ -609,7 +682,7 @@ wrap_browser_view_delegate! {
             _popup_browser_view: Option<&mut BrowserView>,
             _is_devtools: ::std::os::raw::c_int,
         ) -> ::std::os::raw::c_int {
-            // No popups from the top bar page.
+            // No popups from a bar's page.
             1
         }
     }
@@ -678,11 +751,27 @@ wrap_window_delegate! {
             )
             .expect("sidebar view");
 
-            let mut sv = View::from(&sidebar);
+            // Right of the sidebar, top to bottom: the developer bar (added
+            // when it first shows), the content panel.
+            let mut pd = BodyPanelDelegate::new();
+            let pages = panel_create(Some(&mut pd)).expect("pages column");
+            pages.set_background_color(0xFF1B_1B1E);
+            let pages_layout = pages
+                .set_to_box_layout(Some(&BoxLayoutSettings {
+                    horizontal: 0,
+                    cross_axis_alignment: AxisAlignment::STRETCH,
+                    ..Default::default()
+                }))
+                .expect("box layout");
             let mut cv = View::from(&content);
+            pages.add_child_view(Some(&mut cv));
+            pages_layout.set_flex_for_view(Some(&mut cv), 1);
+
+            let mut sv = View::from(&sidebar);
+            let mut pv = View::from(&pages);
             body.add_child_view(Some(&mut sv));
-            body.add_child_view(Some(&mut cv));
-            layout.set_flex_for_view(Some(&mut cv), 1);
+            body.add_child_view(Some(&mut pv));
+            layout.set_flex_for_view(Some(&mut pv), 1);
             let mut bv = View::from(&body);
             window.add_child_view(Some(&mut bv));
             column.set_flex_for_view(Some(&mut bv), 1);
@@ -702,6 +791,9 @@ wrap_window_delegate! {
                 sidebar_view: sidebar,
                 top_bar_view: None,
                 top_bar_browser: None,
+                pages_column: pages,
+                dev_bar_view: None,
+                dev_bar_browser: None,
                 empty,
                 content_panel: content,
                 sidebar_browser,

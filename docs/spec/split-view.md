@@ -94,6 +94,10 @@ fewer than four pages show.
 - A click on a page or a divider counts at once: no extra click is needed
   to activate its window first.
 
+- A tab with a responsive split (`developer.md`) has its phone to its
+  right inside its own place, here too; the phone counts as one of the four
+  pages when it is added.
+
 ## Closing
 
 - `Cmd+W` closes the focused page like any tab. A Today tab moves to the

@@ -90,6 +90,10 @@ pub(super) enum TopBarPopup {
     Copy,
     /// A pinned extension's menu.
     Extension,
+    /// What the page in front is shown as (the developer tools).
+    Emulate,
+    /// The time zone the page in front sees.
+    Timezone,
 }
 
 impl TopBarPopup {
@@ -98,6 +102,8 @@ impl TopBarPopup {
             Self::Site => "site",
             Self::Copy => "copy",
             Self::Extension => "extension",
+            Self::Emulate => "emulate",
+            Self::Timezone => "timezone",
         }
     }
 }
@@ -501,6 +507,49 @@ pub(super) enum UiCommand {
     },
     /// Toggle DevTools for the focused page.
     ToggleDevtools,
+    /// Open the focused page's DevTools on `panel`.
+    DevPanel {
+        panel: magnetite_engine::DevPanel,
+    },
+    /// Load the focused page anew, past the cache; a local page loses its
+    /// site data first.
+    DevReset,
+    /// Show the focused page as `patch` says (`dev::Emulation`'s fields).
+    DevEmulate {
+        patch: Value,
+    },
+    /// The programs listening on this computer's ports.
+    DevServers,
+    /// Settings: whether the agent bridge runs, and the command for agents.
+    DevAgentStatus,
+    /// Open the page in front again, beside itself, with the logins of
+    /// `profile`: two users of one site at once.
+    DevSplitAs {
+        profile: String,
+    },
+    /// Show the page in front a second time beside itself, as a phone that
+    /// follows its address; or end that.
+    DevResponsive,
+    /// One picture of the page in front in light and dark at three sizes.
+    DevCaptureSet,
+    /// Record the page in front as a video, or end the recording that
+    /// runs.
+    DevRecord,
+    /// A page that stays (the sidebar, the top bar) makes the video.
+    DevRecordStart,
+    /// The recording page: the next picture of the recorded page.
+    DevRecordFrame,
+    /// The recording page: a piece of the video (base64), MP4 or `WebM`.
+    DevRecordData {
+        data: String,
+        mp4: bool,
+    },
+    /// The recording page: the video is complete.
+    DevRecordEnd,
+    /// Copy the last recording's file, or show it in the file manager.
+    DevRecordFile {
+        reveal: bool,
+    },
     /// Zoom the focused page to `percent` (100 resets).
     SetZoom {
         percent: u32,
@@ -510,8 +559,12 @@ pub(super) enum UiCommand {
     /// Overlay asks for the frozen frame.
     CaptureFrame,
     /// Overlay picked an element or region (CSS px of the frozen frame).
+    /// `context`: an element was picked and its description (selector,
+    /// markup, styles, the picture's file) goes to the clipboard as text.
     CaptureSelect {
         rect: [f64; 4],
+        #[serde(default)]
+        context: bool,
     },
     CaptureVisible,
     CaptureFull,
@@ -606,6 +659,9 @@ pub(super) enum UiCommand {
         y: i32,
         width: i32,
         height: i32,
+        /// Asked by the developer bar, and placed below it.
+        #[serde(default)]
+        dev_bar: bool,
     },
     /// A sidebar pop-up opened: give the sidebar keyboard focus.
     FocusSidebar,
@@ -1549,6 +1605,8 @@ impl MagnetiteApp {
                 Self::apply_devtools_dock(engine, settings.devtools_dock);
                 engine.set_autofill(settings.autofill);
                 engine.set_quick_search_key(settings.quick_search);
+                self.apply_agent_bridge();
+                self.dev_settings_changed(engine);
                 // Open pages get changed CSS at once.
                 if code_changed {
                     engine.set_site_code(settings.site_code.clone());
@@ -1601,6 +1659,7 @@ impl MagnetiteApp {
                 y,
                 width,
                 height,
+                dev_bar,
             } => {
                 let id = id.map(|id| format!("&id={}", urlencode(&id)));
                 let url = format!(
@@ -1608,7 +1667,7 @@ impl MagnetiteApp {
                     popup.as_str(),
                     id.unwrap_or_default()
                 );
-                engine.open_top_bar_popup(&url, x, y, width, height);
+                engine.open_bar_popup(dev_bar, &url, (x, y), (width, height));
             }
             UiCommand::FocusSidebar => engine.focus_sidebar(),
             UiCommand::FloatSidebar { show } => {
@@ -1686,7 +1745,9 @@ impl MagnetiteApp {
             }
             UiCommand::GetState => {
                 let extensions = self.front_extensions(engine);
-                return Ok(self.with_state(|s| for_ui(json!(s.ui_state(&extensions)))));
+                let agents = self.agent_clients();
+                let recording = lock(&self.record).for_ui();
+                return Ok(self.with_state(|s| super::ui_json(s, &extensions, agents, recording)));
             }
             UiCommand::OpenExtension { id } => self.open_extension(engine, &id),
             UiCommand::PinExtension { id, pinned } => self.pin_extension(engine, &id, pinned),
@@ -1925,7 +1986,14 @@ impl MagnetiteApp {
                     None => json!({}),
                 });
             }
-            UiCommand::CaptureSelect { rect } => self.capture_region(engine, Some(rect)),
+            UiCommand::CaptureSelect {
+                rect,
+                context: false,
+            } => self.capture_region(engine, Some(rect)),
+            UiCommand::CaptureSelect {
+                rect,
+                context: true,
+            } => self.capture_context(engine, rect),
             UiCommand::CaptureVisible => self.capture_region(engine, None),
             UiCommand::CaptureFull => self.capture_full(engine),
             UiCommand::CaptureCancel => {
@@ -2023,6 +2091,25 @@ impl MagnetiteApp {
                 }
             }
             UiCommand::ToggleDevtools => self.toggle_devtools(engine, None),
+            UiCommand::DevPanel { panel } => self.dev_panel(engine, None, panel),
+            UiCommand::DevReset => self.dev_reset(engine, None),
+            UiCommand::DevEmulate { patch } => return self.dev_emulate(engine, patch),
+            UiCommand::DevServers => Self::dev_servers(engine),
+            UiCommand::DevAgentStatus => return Ok(self.agent_status()),
+            UiCommand::DevSplitAs { profile } => self.dev_split_as(engine, &profile),
+            UiCommand::DevResponsive => self.dev_responsive(engine),
+            UiCommand::DevCaptureSet => self.capture_set(engine),
+            UiCommand::DevRecordStart => return self.record_start(engine),
+            UiCommand::DevRecord => self.record_toggle(engine),
+            UiCommand::DevRecordFrame => return Ok(self.record_frame(engine)),
+            UiCommand::DevRecordData { data, mp4 } => self.record_data(&data, mp4)?,
+            UiCommand::DevRecordEnd => self.record_end(engine, None),
+            UiCommand::DevRecordFile { reveal } => {
+                let text = self.record_file(engine, reveal);
+                if !text.is_empty() {
+                    Self::ui_call(engine, "notice", &json!({ "text": text }));
+                }
+            }
             UiCommand::SetZoom { percent } => {
                 if let Some(c) = self.focused_content(None) {
                     engine.set_content_zoom(c, percent.clamp(25, 500));

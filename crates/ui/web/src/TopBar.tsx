@@ -5,10 +5,11 @@
 // Empty space drags the window; a double-click there maximizes it.
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { AddressRow } from "./AddressRow";
+import { record } from "./recorder";
 import { Back, Close, Forward, Maximize, Minus, Reload, SidebarIcon, SplitIcon } from "./Icons";
 import { PinnedExtensions, SLOT } from "./PinnedExtensions";
 import { windowBackground } from "./backgrounds";
-import { IS_MAC, accentCss, applyAppearance, findTab, hostOf, lookOf, send, subscribe, type UiState } from "./bridge";
+import { IS_MAC, accentCss, applyAppearance, findTab, hostOf, lookOf, onRecord, send, subscribe, type UiState } from "./bridge";
 import { keysHint } from "./settings/shortcutKeys";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
@@ -26,6 +27,7 @@ export function TopBar() {
     send({ cmd: "get_state" }).then((s) => window.__magnetite?.setState(s));
   }, []);
   useSidebarShortcuts(false, () => {});
+  useEffect(() => onRecord(() => void record()), []);
   // The window's width in points: how many pinned extensions fit depends on it.
   const [width, setWidth] = useState(window.innerWidth);
   useEffect(() => {

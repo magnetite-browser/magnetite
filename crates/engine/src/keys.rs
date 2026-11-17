@@ -13,7 +13,7 @@ use cef::*;
 use std::sync::{Mutex, RwLock};
 use std::time::{Duration, Instant};
 
-use crate::events::Shortcut;
+use crate::events::{DevPanel, Shortcut};
 use crate::keymap::{Action, Combo, Overrides};
 
 // The flags are `u32` on macOS and Linux and `i32` on Windows.
@@ -218,8 +218,14 @@ pub fn shortcut_for_chrome_command(command_id: i32) -> ChromeCommand {
         // DevTools open through us, so they dock and get our menu items.
         ("IDC_DEV_TOOLS", Shortcut::ToggleDevTools),
         ("IDC_DEV_TOOLS_TOGGLE", Shortcut::ToggleDevTools),
-        ("IDC_DEV_TOOLS_CONSOLE", Shortcut::OpenDevTools),
-        ("IDC_DEV_TOOLS_INSPECT", Shortcut::OpenDevTools),
+        (
+            "IDC_DEV_TOOLS_CONSOLE",
+            Shortcut::DevPanel(DevPanel::Console),
+        ),
+        (
+            "IDC_DEV_TOOLS_INSPECT",
+            Shortcut::DevPanel(DevPanel::Picker),
+        ),
     ];
     let Some((_, shortcut)) = TABLE
         .iter()

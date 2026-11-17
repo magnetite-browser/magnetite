@@ -50,8 +50,12 @@ pub enum Shortcut {
     NewSplit,
     /// `Cmd+Option+I` / F12: open or close the page's `DevTools`.
     ToggleDevTools,
-    /// `Cmd+Option+J` / `Cmd+Option+C`: open the page's `DevTools`.
-    OpenDevTools,
+    /// `Cmd+Option+J`, `Cmd+Option+C`, `Cmd+Option+E`: open the page's
+    /// `DevTools` on that panel, or start their element picker.
+    DevPanel(DevPanel),
+    /// `Cmd+Option+R`: clear the site's storage and load the page anew,
+    /// past the cache (the page may claim the key).
+    DevReset,
     /// Menu bar, `Cmd+,`: open Settings.
     Settings,
     /// Menu bar, `Cmd+Option+L` (Chromium's downloads command): the sidebar's
@@ -79,6 +83,32 @@ pub enum Shortcut {
     /// `Cmd+Option+N`, system-wide or from the menu bar: the quick search,
     /// whose pick opens in a mini window.
     NewMini,
+}
+
+/// Where `DevTools` open (`Engine::content_show_panel`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DevPanel {
+    Elements,
+    Console,
+    Network,
+    Sources,
+    Application,
+    /// The Elements panel with the element picker started.
+    Picker,
+}
+
+impl DevPanel {
+    /// The panel's name in the `DevTools` frontend.
+    pub(crate) fn frontend_name(self) -> &'static str {
+        match self {
+            Self::Elements | Self::Picker => "elements",
+            Self::Console => "console",
+            Self::Network => "network",
+            Self::Sources => "sources",
+            Self::Application => "resources",
+        }
+    }
 }
 
 /// A choice from our items in the `DevTools` menu (`EngineEvent::DevToolsMenu`).
@@ -185,6 +215,26 @@ pub enum EngineEvent {
         path: Vec<usize>,
         index: usize,
         action: DividerAction,
+    },
+    /// Page `id` logged an error to its console: an uncaught exception, a
+    /// failed request, `console.error`. `text` is the message with where it
+    /// came from.
+    ConsoleError {
+        id: ContentId,
+        text: String,
+    },
+    /// A picture of page `id`, which is being recorded
+    /// (`Engine::screencast`): a JPEG, base64.
+    ScreencastFrame {
+        id: ContentId,
+        jpeg: String,
+    },
+    /// Page `id` could not load `url`. `refused`: nothing listens at that
+    /// address (a development server that is not running).
+    LoadFailed {
+        id: ContentId,
+        url: String,
+        refused: bool,
     },
     /// CEF is initialised; the delegate may create the frame now.
     Ready,
@@ -322,6 +372,9 @@ impl EngineEvent {
             Self::SplitDivider { .. } => "SplitDivider",
             Self::DevToolsResized(_) => "DevToolsResized",
             Self::WebPanelResized { .. } => "WebPanelResized",
+            Self::ConsoleError { .. } => "ConsoleError",
+            Self::LoadFailed { .. } => "LoadFailed",
+            Self::ScreencastFrame { .. } => "ScreencastFrame",
             Self::Ready => "Ready",
             Self::FrameCreated { .. } => "FrameCreated",
             Self::WindowClosed { .. } => "WindowClosed",

@@ -169,6 +169,17 @@ fn kind_name(kind: ResourceType) -> Option<&'static str> {
     })
 }
 
+/// Whether `host` names this computer: `localhost`, a name under it, or a
+/// loopback address.
+fn is_this_computer(host: &str) -> bool {
+    let host = host.trim_start_matches('[').trim_end_matches(']');
+    host == "localhost"
+        || host.ends_with(".localhost")
+        || host
+            .parse::<std::net::IpAddr>()
+            .is_ok_and(|ip| ip.is_loopback())
+}
+
 fn is_web(url: &str) -> bool {
     url.starts_with("https://") || url.starts_with("http://")
 }
@@ -176,6 +187,11 @@ fn is_web(url: &str) -> bool {
 /// The filters in use, unless the user let the site of the page at `page`
 /// load everything.
 fn filters_for(page: &str) -> Option<Arc<Filters>> {
+    // A page this computer serves is the user's own work: a script named
+    // `ads.js` there is theirs.
+    if host_of(page).is_some_and(|h| is_this_computer(&h)) {
+        return None;
+    }
     let filters = FILTERS.read().ok().and_then(|f| f.clone())?;
     let allowed = ALLOWED.read().is_ok_and(|sites| {
         let site = host_of(page).map(|h| registrable_domain(&h));

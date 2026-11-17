@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { TIMEZONES } from "./DevBar";
 import { Favicon } from "./Favicon";
 import { Arrow, Command as CommandIcon } from "./Icons";
-import { IS_MAC, findTab, findTabInSpace, hostOf, send, type Command, type PaletteMode, type SearchResult, type Side, type SiteSearch, type UiState } from "./bridge";
+import { IS_MAC, findTab, findTabInSpace, hostOf, send, type Command, type DevServer, type PaletteMode, type SearchResult, type Side, type SiteSearch, type UiState } from "./bridge";
 import { useDismiss } from "./dismiss";
 
 /**
@@ -40,6 +41,25 @@ const ACTIONS: Action[] = [
   { id: "split_grid", title: "Arrange split as grid", keywords: ["split", "grid", "tile", "2x2", "quarters"], cmd: { cmd: "split_grid" } },
   { id: "separate", title: "Separate split tabs", keywords: ["split", "separate", "unsplit"], cmd: { cmd: "separate_all" } },
   { id: "devtools", title: "Toggle developer tools", keywords: ["devtools", "developer", "console", "inspect", "f12"], cmd: { cmd: "toggle_devtools" } },
+  { id: "dev_console", title: "Open console", keywords: ["console", "devtools", "developer", "errors", "log"], cmd: { cmd: "dev_panel", panel: "console" } },
+  { id: "dev_picker", title: "Pick an element", keywords: ["inspect", "element", "picker", "devtools", "select"], cmd: { cmd: "dev_panel", panel: "picker" } },
+  { id: "dev_network", title: "Open network panel", keywords: ["network", "requests", "devtools", "xhr", "fetch"], cmd: { cmd: "dev_panel", panel: "network" } },
+  { id: "dev_application", title: "Open storage and service workers", keywords: ["application", "storage", "cookies", "service", "worker", "devtools"], cmd: { cmd: "dev_panel", panel: "application" } },
+  { id: "dev_reset", title: "Reset page (reload past the cache)", keywords: ["reset", "hard", "reload", "cache", "clear", "storage"], cmd: { cmd: "dev_reset" } },
+  { id: "emu_dark", title: "Show page in dark mode", keywords: ["dark", "emulate", "color", "scheme", "theme"], cmd: { cmd: "dev_emulate", patch: { color_scheme: "dark" } } },
+  { id: "emu_light", title: "Show page in light mode", keywords: ["light", "emulate", "color", "scheme", "theme"], cmd: { cmd: "dev_emulate", patch: { color_scheme: "light" } } },
+  { id: "emu_motion", title: "Show page with reduced motion", keywords: ["reduced", "motion", "animation", "emulate"], cmd: { cmd: "dev_emulate", patch: { reduced_motion: true } } },
+  { id: "emu_print", title: "Show page as it prints", keywords: ["print", "media", "emulate", "styles"], cmd: { cmd: "dev_emulate", patch: { print: true } } },
+  { id: "emu_offline", title: "Take page offline", keywords: ["offline", "network", "emulate"], cmd: { cmd: "dev_emulate", patch: { network: "offline" } } },
+  { id: "emu_slow", title: "Slow down page's network", keywords: ["slow", "network", "throttle", "3g", "4g", "emulate"], cmd: { cmd: "dev_emulate", patch: { network: "slow" } } },
+  { id: "emu_cpu", title: "Slow down page's processor", keywords: ["cpu", "slow", "throttle", "processor", "emulate"], cmd: { cmd: "dev_emulate", patch: { slow_cpu: true } } },
+  { id: "emu_cache", title: "Turn off cache for page", keywords: ["cache", "disable", "emulate"], cmd: { cmd: "dev_emulate", patch: { no_cache: true } } },
+  { id: "dev_responsive", title: "Responsive split (the page as a phone beside itself)", keywords: ["responsive", "phone", "mobile", "split", "beside", "viewport", "breakpoint"], cmd: { cmd: "dev_responsive" } },
+  { id: "dev_capture_set", title: "Capture set (light and dark at three sizes)", keywords: ["capture", "screenshot", "set", "light", "dark", "sizes", "widths", "responsive"], cmd: { cmd: "dev_capture_set" } },
+  { id: "dev_record", title: "Record page as a video (or end the recording)", keywords: ["record", "recording", "video", "screencast", "gif", "stop"], cmd: { cmd: "dev_record" } },
+  ...TIMEZONES.map(([zone, place]): Action => ({ id: `emu_zone_${zone}`, title: `Show page in ${place} time`, keywords: ["time", "zone", "timezone", "emulate", zone.toLowerCase()], cmd: { cmd: "dev_emulate", patch: { timezone: zone } } })),
+  { id: "emu_zone_off", title: "Show page in this computer's time zone", keywords: ["time", "zone", "timezone", "emulate", "system", "local"], cmd: { cmd: "dev_emulate", patch: { timezone: null } } },
+  { id: "emu_off", title: "Show page as it is", keywords: ["emulate", "reset", "online", "system", "normal"], cmd: { cmd: "dev_emulate", patch: { color_scheme: null, reduced_motion: false, print: false, network: "online", slow_cpu: false, no_cache: false, timezone: null } } },
   { id: "capture", title: "Capture page…", keywords: ["capture", "screenshot", "snap"], cmd: { cmd: "capture_start" } },
   { id: "capture_copy", title: "Copy last capture", keywords: ["capture", "screenshot", "copy"], cmd: { cmd: "capture_copy", notify: true } },
   { id: "find", title: "Find in page…", keywords: ["find", "search", "text"], cmd: { cmd: "shortcut", shortcut: "find" } },
@@ -64,6 +84,12 @@ function tabActions(state: UiState): Action[] {
   const id = state.active_tab;
   const tab = id ? findTab(state, id) : null;
   if (!id || !tab) return actions;
+  // The same page beside this one with another profile's logins: two users at once.
+  if (state.active_space !== state.private_space) {
+    for (const p of state.sidebar.profiles) {
+      if (!p.is_default && !p.ephemeral) actions.push({ id: `split_as_${p.id}`, title: `Open beside as ${p.name}`, keywords: ["split", "beside", "user", "profile", "second", "login", "account"], cmd: { cmd: "dev_split_as", profile: p.id } });
+    }
+  }
   const owner = spaces.find((sp) => findTabInSpace(sp, id));
   // A tab of the private space stays what and where it is.
   if (owner && owner.id === state.private_space) {
@@ -148,6 +174,12 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
   // The site search the hint line names while nothing is typed: another one each time the bar opens.
   const [example] = useState(() => state.settings.site_searches[Math.floor(Math.random() * state.settings.site_searches.length)]);
   const quick = mode === "quick";
+  // The programs listening on this computer's ports (Settings → Developer), asked once per opening.
+  const [servers, setServers] = useState<DevServer[]>([]);
+  const wantsServers = state.settings.developer.enabled && !quick && !naming;
+  useEffect(() => {
+    if (wantsServers) void send({ cmd: "dev_servers" }).then((r) => setServers(r.servers));
+  }, [wantsServers]);
   const sites = naming ? [] : state.settings.site_searches;
   // The palette window is focused already; it closes on Esc or when it loses focus.
   useDismiss(onClose, { takeFocus: false });
@@ -225,8 +257,17 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
     const saved: Item[] = results.filter((r) => r.kind === "bookmark").map((r) => ({ ...r, peek: r.url, run: () => (quick ? open(r.url) : send({ cmd: "open_bookmark", id: r.id })) }));
     const visited: Item[] = results.filter((r) => r.kind === "history").map((r) => ({ ...r, peek: r.url, run: () => open(r.url) }));
     const archived: Item[] = results.filter((r) => r.kind === "archived" && !quick).map((r) => ({ ...r, run: () => send({ cmd: "restore_archived", id: r.id }) }));
+    // What listens on this computer's ports: by project, port, or "local".
+    const lower = q.toLowerCase();
+    const local: Item[] = !q ? [] : servers
+      .filter((s) => s.project?.toLowerCase().includes(lower) || String(s.port).startsWith(lower) || ["localhost", "servers", "ports"].some((w) => w.startsWith(lower)))
+      .map((s) => {
+        const url = `http://localhost:${s.port}/`;
+        return { kind: "url", title: `${s.project ?? s.command} · localhost:${s.port}`, url, peek: url, run: () => open(url) };
+      });
     if (top.length) groups.push({ label: "", items: top });
     if (tabs.length) groups.push({ label: "Tabs", items: tabs });
+    if (local.length) groups.push({ label: "Local servers", items: local });
     if (actions.length) groups.push({ label: "Commands", items: actions });
     if (saved.length) groups.push({ label: "Bookmarks", items: saved });
     if (visited.length) groups.push({ label: "History", items: visited });

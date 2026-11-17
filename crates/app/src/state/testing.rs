@@ -41,6 +41,7 @@ pub(super) fn state() -> AppState {
         peek: None,
         web_panel: None,
         minis: Vec::new(),
+        phones: Vec::new(),
         deleted_profiles: vec![],
         private_space: None,
         private_hidden: false,

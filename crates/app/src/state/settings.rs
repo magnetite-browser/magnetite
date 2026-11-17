@@ -99,6 +99,9 @@ pub struct Settings {
     pub smart_allowed: Option<Vec<String>>,
     /// The ad blocker. Not synced: each device downloads its own lists.
     pub adblock: AdblockSettings,
+    /// Developer features: the row for local pages, the hosts that count
+    /// as local. Not synced.
+    pub developer: crate::dev::DeveloperSettings,
 }
 
 /// The ad blocker (Settings → Ad blocking, `adblock.rs`). Off, with no list,
@@ -478,6 +481,7 @@ impl Settings {
         self.history_days = self.history_days.min(MAX_ARCHIVE_DAYS);
         self.appearance = self.appearance.clamped();
         self.adblock = self.adblock.sanitised();
+        self.developer = self.developer.sanitised();
         if !usable_search(&self.search_template) {
             self.search_template = defaults.search_template;
         }
@@ -608,6 +612,7 @@ impl Default for Settings {
             autofill: magnetite_engine::AutofillPrefs::default(),
             smart_allowed: None,
             adblock: AdblockSettings::default(),
+            developer: crate::dev::DeveloperSettings::default(),
         }
     }
 }

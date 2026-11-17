@@ -144,6 +144,59 @@ export interface TabRuntime {
   site: SiteState | null;
   camera: boolean;
   microphone: boolean;
+  dev: DevState;
+}
+
+/** What a page is shown as instead of this computer's own settings (`dev.rs`). */
+export interface Emulation {
+  color_scheme: "light" | "dark" | null;
+  reduced_motion: boolean;
+  print: boolean;
+  network: "online" | "slow" | "offline";
+  slow_cpu: boolean;
+  no_cache: boolean;
+  /** The time zone the page sees (`Asia/Tokyo`); `null`: this computer's. */
+  timezone: string | null;
+}
+
+/** A page for developers (`dev.rs`). */
+export interface DevState {
+  /** Served from this computer or a host named in Settings → Developer. */
+  local: boolean;
+  /** Console errors since the page began to load. */
+  errors: number;
+  /** `host:port` nothing listens at yet; the page loads once something does. */
+  waiting: string | null;
+  /** The folder of the program serving the page. */
+  project: string | null;
+  emulation: Emulation;
+  /** The page has a phone beside it (a responsive split): both show one address. */
+  responsive: boolean;
+}
+
+/** The agent bridge (Settings → Developer). */
+export interface AgentStatus {
+  running: boolean;
+  /** Coding agents connected now. */
+  clients: number;
+  /** Why it could not start. */
+  error: string | null;
+  /** The program and argument an agent is given to reach the bridge. */
+  command: string[];
+}
+
+/** Whether the page at `url` is served by this computer (`dev::loopback_address`): the only pages "Reset" clears the data of. */
+export function servedHere(url: string): boolean {
+  if (!/^https?:/.test(url) || !URL.canParse(url)) return false;
+  const host = new URL(url).hostname.toLowerCase();
+  return host === "localhost" || host.endsWith(".localhost") || host === "127.0.0.1" || host === "[::1]";
+}
+
+/** A program listening on one of this computer's ports. */
+export interface DevServer {
+  port: number;
+  command: string;
+  project: string | null;
 }
 
 /** Connection and zoom of a page, from the engine. */
@@ -163,7 +216,7 @@ export type LinkVariant = "clean" | "original" | "markdown";
 export type PermissionKind = "camera" | "microphone" | "location" | "notifications" | "popups" | "clipboard";
 export type PermissionValue = "allow" | "ask" | "block";
 export interface PermissionRow { kind: PermissionKind; origin: string; value: PermissionValue; requested: boolean }
-export interface CaptureInfo { width: number; height: number; thumb: string; cut_at: number | null }
+export interface CaptureInfo { width: number; height: number; thumb: string; cut_at: number | null; /** The element's description went to the clipboard as text. */ context: boolean }
 
 /** `moved`: the page had left the confirmed site, so nothing was removed. */
 export interface ClearReport { domain: string; cookies: number | null; origins: string[]; failed_origins: string[]; moved: boolean }
@@ -218,6 +271,10 @@ export interface UiState {
   smart: Record<Id, SmartStatus>;
   /** Installed extensions of the profile the page in front uses. */
   extensions: ExtensionInfo[];
+  /** Coding agents connected to the agent bridge. */
+  agents: number;
+  /** The page being recorded as a video: its tab, and since when (ms since 1970). */
+  recording: { tab: Id | null; since: number } | null;
 }
 
 /** An installed Chrome extension with a toolbar action. */
@@ -298,6 +355,8 @@ export interface Settings {
   /** Chromium's password manager and autofill: which parts are on (Settings → Passwords & autofill). */
   autofill: { passwords: boolean; addresses: boolean; cards: boolean; breach_check: boolean };
   /** The ad blocker (Settings → Ad blocking); this device's own choice, never synced. */
+  /** Developer features (Settings → Developer). */
+  developer: { enabled: boolean; hosts: string[]; agent_bridge: boolean };
   adblock: {
     enabled: boolean;
     /** Ids of the filter lists subscribed to (`Info.adblock.lists`). */
@@ -408,7 +467,7 @@ export type Command =
   | { cmd: "set_zoom"; percent: number }
   | { cmd: "capture_start" }
   | { cmd: "capture_frame" }
-  | { cmd: "capture_select"; rect: [number, number, number, number] }
+  | { cmd: "capture_select"; rect: [number, number, number, number]; context?: boolean }
   | { cmd: "capture_visible" }
   | { cmd: "capture_full" }
   | { cmd: "capture_cancel" }
@@ -512,12 +571,30 @@ export type Command =
   | { cmd: "window_maximize" }
   | { cmd: "window_fullscreen" }
   | { cmd: "window_close" }
-  | { cmd: "top_bar_popup"; popup: TopBarPopupKind; id?: string; x: number; y: number; width: number; height: number }
+  /** `dev_bar`: asked by the developer bar, and placed below it. */
+  | { cmd: "top_bar_popup"; popup: TopBarPopupKind; id?: string; x: number; y: number; width: number; height: number; dev_bar?: boolean }
   | { cmd: "focus_sidebar" }
   | { cmd: "float_sidebar"; show: boolean }
   | { cmd: "set_space_color"; id: Id; color: Color | null }
   | { cmd: "set_folder_icon"; id: Id; icon: string | null }
   | { cmd: "toggle_devtools" }
+  | { cmd: "dev_panel"; panel: "elements" | "console" | "network" | "sources" | "application" | "picker" }
+  | { cmd: "dev_reset" }
+  | { cmd: "dev_emulate"; patch: Partial<Emulation> }
+  | { cmd: "dev_servers" }
+  | { cmd: "dev_agent_status" }
+  /** The page in front again, beside itself, with the logins of `profile`. */
+  | { cmd: "dev_split_as"; profile: Id }
+  | { cmd: "dev_responsive" }
+  | { cmd: "dev_capture_set" }
+  /** Start recording the page in front, or end the recording that runs. */
+  | { cmd: "dev_record" }
+  /** `recorder.ts` only: this page makes the video. */
+  | { cmd: "dev_record_start" }
+  | { cmd: "dev_record_frame" }
+  | { cmd: "dev_record_data"; data: string; mp4: boolean }
+  | { cmd: "dev_record_end" }
+  | { cmd: "dev_record_file"; reveal: boolean }
   | { cmd: "open_palette"; mode: PaletteMode; side?: Side; tab?: Id }
   /** The welcome page is done: the app reads the chosen browsers (`import_sources` keys) and closes the page. */
   | { cmd: "finish_welcome"; import: string[]; default_browser?: boolean }
@@ -642,6 +719,11 @@ interface Replies {
   archive: { items: ArchiveItem[] };
   history: { items: Visit[] };
   make_default_browser: { default_browser: DefaultBrowser };
+  dev_emulate: Emulation;
+  dev_servers: { servers: DevServer[] };
+  dev_agent_status: AgentStatus;
+  /** The recorded page's next picture (a JPEG, base64), or the end. */
+  dev_record_frame: { frame?: string; done?: boolean };
   new_profile: { id: Id };
   smart_save: { id: Id };
   smart_connect: Account;
@@ -697,6 +779,10 @@ declare global {
       captureReady: (r: CaptureInfo) => void;
       captureFailed: (r: { error: string }) => void;
       captureBusy: (r: { what: string }) => void;
+      /** A recording is asked for: a page that stays makes it (`recorder.ts`). */
+      record: () => void;
+      /** The recording is in the Downloads folder as `name`. */
+      recordingReady: (r: { name: string }) => void;
       /** macOS: a two-finger swipe began somewhere in the app. */
       swipeBegan: () => void;
       /** The window this page is in has this size now, in window points. */
@@ -706,7 +792,7 @@ declare global {
 }
 
 /** The top bar's pop-ups, each a window below the bar (`TopBarPopup.tsx`). */
-export type TopBarPopupKind = "site" | "copy" | "extension";
+export type TopBarPopupKind = "site" | "copy" | "extension" | "emulate" | "timezone";
 
 /** Run `command` in the app; resolves with its reply (see `Replies`). */
 export function send<K extends Command["cmd"]>(command: Extract<Command, { cmd: K }>): Promise<Reply<K>> {
@@ -793,7 +879,7 @@ export interface UpdateInfo {
   version: string;
 }
 
-export type CaptureEvent = { kind: "ready"; info: CaptureInfo } | { kind: "failed"; error: string } | { kind: "busy"; what: string };
+export type CaptureEvent = { kind: "ready"; info: CaptureInfo } | { kind: "failed"; error: string } | { kind: "busy"; what: string } | { kind: "recorded"; name: string };
 
 /** Listeners for one kind of message from the app; `on` returns the unsubscribe. */
 function signal<T = void>() {
@@ -850,6 +936,7 @@ const updates = cached(() => send({ cmd: "update_status" }).then((u) => (u.statu
 const notices = signal<string>();
 const captures = signal<CaptureEvent>();
 const swipes = signal();
+const records = signal();
 
 /**
  * Keep the window's size where the styles read it (`--win-w`, `--win-h`):
@@ -878,6 +965,8 @@ window.__magnetite = {
   captureReady: (info) => captures.emit({ kind: "ready", info }),
   captureFailed: ({ error }) => captures.emit({ kind: "failed", error }),
   captureBusy: ({ what }) => captures.emit({ kind: "busy", what }),
+  record: records.emit,
+  recordingReady: ({ name }) => captures.emit({ kind: "recorded", name }),
   swipeBegan: swipes.emit,
   windowSize,
 };
@@ -886,6 +975,8 @@ windowSize(window.outerWidth, window.outerHeight);
 
 /** The UI state, now (once the app sent it) and on every push. */
 export const subscribe = states.on;
+/** A recording is asked for (the sidebar, the top bar and the developer bar listen). */
+export const onRecord = records.on;
 /** Short messages from the app ("Split view holds up to four pages"). */
 export const onNotice = notices.on;
 /** The download list, now and on every change (fetched on first use). */

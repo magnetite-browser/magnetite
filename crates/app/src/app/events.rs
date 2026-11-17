@@ -44,6 +44,7 @@ impl EngineDelegate for MagnetiteApp {
                 // from the first one; due ones are fetched meanwhile.
                 self.blocker.started();
                 self.apply_adblock(false);
+                self.apply_agent_bridge();
                 if self.import == ArcImport::Now {
                     eprintln!(
                         "magnetite: state imported from Arc ({})",
@@ -59,6 +60,7 @@ impl EngineDelegate for MagnetiteApp {
             | EngineEvent::ContentCreated { .. } => {}
             EngineEvent::SidebarLoaded => self.push_state(engine),
             EngineEvent::ContentClosed { id } => {
+                self.record_page_closed(engine, id);
                 self.with_prompts(|p| p.open.retain(|q| q.content != id));
                 self.show_prompts(engine);
                 // Closed by the app, the window is unknown here by now; one
@@ -71,6 +73,7 @@ impl EngineDelegate for MagnetiteApp {
                         s.peek = None;
                     }
                     s.minis.retain(|m| m.content != id);
+                    s.drop_phone(id);
                     let tab = s.content_to_tab.remove(&id);
                     if let Some(rt) = tab.as_ref().and_then(|tab| s.runtime.get_mut(tab)) {
                         rt.unload();
@@ -102,13 +105,18 @@ impl EngineDelegate for MagnetiteApp {
                     if let Some(p) = s.page_outside_mut(id) {
                         p.url.clone_from(&url);
                     }
-                    s.record_visit(id, &url);
+                    // The phone of a responsive split shows what its tab
+                    // shows: one visit, the tab's.
+                    if !s.is_phone(id) {
+                        s.record_visit(id, &url);
+                    }
                     if let Some(tab) = s.content_to_tab.get(&id).cloned()
                         && let Some(t) = s.find_tab_mut(&tab)
                     {
-                        t.url = url;
+                        t.url.clone_from(&url);
                     }
                 });
+                self.dev_url_changed(engine, id, &url);
                 self.push_state(engine);
             }
             EngineEvent::FaviconChanged { id, url } => {
@@ -190,6 +198,11 @@ impl EngineDelegate for MagnetiteApp {
                 can_go_back,
                 can_go_forward,
             } => {
+                if loading {
+                    self.dev_load_started(id);
+                } else {
+                    self.dev_load_ended(id);
+                }
                 self.with_state(|s| {
                     if let Some(rt) = s.page_runtime(id) {
                         rt.loading = loading;
@@ -305,12 +318,17 @@ impl EngineDelegate for MagnetiteApp {
                 }
             }
             EngineEvent::Shortcut {
-                shortcut: Shortcut::OpenDevTools,
+                shortcut: Shortcut::DevPanel(panel),
                 from,
-            } => {
-                if let Some(c) = self.focused_content(from) {
-                    engine.content_show_devtools(c);
-                }
+            } => self.dev_panel(engine, from, panel),
+            EngineEvent::Shortcut {
+                shortcut: Shortcut::DevReset,
+                from,
+            } => self.dev_reset(engine, from),
+            EngineEvent::ConsoleError { id, text } => self.dev_console_error(engine, id, text),
+            EngineEvent::ScreencastFrame { id, jpeg } => self.record_picture(engine, id, jpeg),
+            EngineEvent::LoadFailed { id, url, refused } => {
+                self.dev_load_failed(engine, id, &url, refused);
             }
             EngineEvent::Shortcut { shortcut, .. } => self.handle_shortcut(engine, shortcut),
             EngineEvent::SiteChanged { id, state } => {
@@ -390,6 +408,10 @@ impl EngineDelegate for MagnetiteApp {
                     s.persist();
                     s.history.save();
                 });
+                // The picture of the last element copied as context.
+                let _ = std::fs::remove_file(self.context_picture());
+                // The agent bridge's socket goes with Magnetite.
+                self.close_agent_bridge();
                 engine.quit();
             }
             EngineEvent::MemoryPressure(level) => self.unload_under_pressure(engine, level),

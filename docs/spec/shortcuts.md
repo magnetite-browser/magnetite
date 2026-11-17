@@ -34,8 +34,8 @@ each with the keys it has now.
 
 Reload, back, forward and zoom (the engine's own), `Cmd+1` to `Cmd+9` (a tab
 by its place) and `Ctrl+1` to `Ctrl+9` (a space by its place), the quick
-search from anywhere (`mini-window.md`), `F12` and the other two ways to
-open DevTools, and the keys inside a peek (`peek.md`).
+search from anywhere (`mini-window.md`), `F12`, and the keys inside a peek
+(`peek.md`).
 
 ## Who gets a key first
 

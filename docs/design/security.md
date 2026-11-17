@@ -113,6 +113,33 @@ from a context Magnetite did not make is not opened.
   that ever ran with `--mock-keychain` keeps that mode (Chromium resets its
   protected settings when the key changes) and Settings says so.
 
+## Developer features
+
+- Console errors are counted, and their texts kept (the last 50, in
+  memory), only for local pages: served by this computer or a host the user
+  named (`dev::is_local`, on the parsed host, so `localhost.example.org` is
+  not local).
+- Developer mode for a site that this computer does not serve (the switch
+  in its site controls) gives it the bar, the caution border and the error count,
+  nothing more: no reset of its data by key, and no agent access.
+- Waiting for a server connects only to loopback addresses, whatever the
+  page's host resolves to.
+- "Reset page" clears site data only for a page this computer serves; on
+  any other page, a named "also local" host included, the key only reloads.
+- The agent bridge (ADR-0014) is off until turned on. It is a socket in the
+  data folder (0600), not a port. Its tools only read, only pages this
+  computer serves, never the private space; named "also local" hosts are
+  excluded. What an agent sends goes into fixed functions as JSON values,
+  never into script.
+- The picture of an element copied as context is a 0600 file in the data
+  folder, removed at quit.
+- A recording is made only when the user starts one, of one page, and
+  written only to the user's Downloads folder under a name Magnetite makes.
+  The page's pictures and the video's pieces travel between the app and
+  Magnetite's own UI pages (`magnetite://ui`), which web pages cannot reach.
+- The time zone a page is shown in is checked to be a zone's name before it
+  goes to the browser.
+
 ## Pages and extensions are untrusted input
 
 - Media reports from pages are capped (4 KiB, 200-character texts) and built

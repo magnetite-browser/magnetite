@@ -105,6 +105,17 @@ pub struct Peek {
     pub profile: String,
 }
 
+/// The phone of a responsive split: a second page of tab `tab`, shown right
+/// of it while that tab is on screen. No tab of its own: it is in no
+/// sidebar, archive or sync, and goes with its tab.
+#[derive(Debug, Clone)]
+pub struct Phone {
+    pub tab: Id,
+    pub page: Peek,
+    /// Its width in points.
+    pub width: i32,
+}
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct TabRuntime {
     #[serde(skip)]
@@ -122,6 +133,10 @@ pub struct TabRuntime {
     /// The page uses the camera / microphone right now.
     pub camera: bool,
     pub microphone: bool,
+    /// For developers: whether the page is a local one, its console errors,
+    /// what it is shown as (`dev.rs`).
+    #[serde(default)]
+    pub dev: crate::dev::DevState,
 }
 
 impl TabRuntime {
@@ -137,6 +152,7 @@ impl TabRuntime {
         self.site = None;
         self.camera = false;
         self.microphone = false;
+        self.dev = crate::dev::DevState::default();
         self.content.take()
     }
 }
@@ -187,6 +203,8 @@ pub struct AppState {
     /// Pages in mini windows, in the order they opened. Like the peek, they
     /// live in memory only.
     pub minis: Vec<Peek>,
+    /// The phones of responsive splits (`dev_responsive`), in memory only.
+    pub phones: Vec<Phone>,
     pub settings: Settings,
     /// Tabs in the order they were last chosen, the latest first: what
     /// `Ctrl+Tab` goes through. In memory only; a tab not in it counts by

@@ -16,12 +16,15 @@ use crate::{capture, lock};
 
 mod adblocking;
 mod addresses;
+mod agent;
 mod commands;
+mod dev;
 mod events;
 mod extensions;
 mod mini;
 mod panels;
 mod peek;
+mod record;
 mod screenshots;
 mod shortcuts;
 mod site;
@@ -46,6 +49,21 @@ fn for_ui(mut state: Value) -> Value {
         }
     }
     state
+}
+
+/// The state as the sidebar gets it, with how many coding agents are
+/// connected to the agent bridge (`agents`) and the recording that runs
+/// (`recording`, `Recorder::for_ui`).
+fn ui_json(
+    state: &AppState,
+    extensions: &[magnetite_engine::ExtensionInfo],
+    agents: usize,
+    recording: Value,
+) -> Value {
+    let mut ui = for_ui(json!(state.ui_state(extensions)));
+    ui["agents"] = json!(agents);
+    ui["recording"] = recording;
+    ui
 }
 
 /// Where "Chrome Web Store…" goes: its extensions section.
@@ -76,6 +94,10 @@ pub struct MagnetiteApp {
     save_queued: AtomicBool,
     show_pace: Mutex<ShowPace>,
     blocker: adblocking::Blocker,
+    /// The agent bridge, while Settings → Developer has it on.
+    agent: Mutex<agent::AgentBridge>,
+    /// The recording of a page that runs (`record.rs`).
+    record: Mutex<record::Recorder>,
 }
 
 /// When the sidebar was last sent the state, and whether another sending
@@ -136,6 +158,8 @@ const LATE_DROP: std::time::Duration = std::time::Duration::from_secs(1);
 #[derive(Default)]
 struct CaptureState {
     session: Option<(ContentId, magnetite_engine::FrozenFrame)>,
+    /// A capture set is being taken: the page changes size and colours.
+    set_running: bool,
     result: Option<capture::Capture>,
 }
 
@@ -223,6 +247,8 @@ impl MagnetiteApp {
             save_queued: AtomicBool::new(false),
             show_pace: Mutex::new(ShowPace::default()),
             blocker,
+            agent: Mutex::new(agent::AgentBridge::default()),
+            record: Mutex::new(record::Recorder::default()),
         }
     }
 
@@ -344,15 +370,18 @@ impl MagnetiteApp {
                 s.persist();
             }
         });
+        let agents = self.agent_clients();
+        let recording = lock(&self.record).for_ui();
         let (json, chrome, accent, pinned) = self.with_state(|s| {
             (
-                for_ui(json!(s.ui_state(&extensions))).to_string(),
+                ui_json(s, &extensions, agents, recording).to_string(),
                 s.chrome_rgb(),
                 s.accent_rgb(),
                 s.settings.pinned_extensions.clone(),
             )
         });
         engine.set_extension_menu(context, pinned);
+        engine.set_dev_bar_visible(self.dev_bar_wanted());
         // "Open in" of mini windows: the active space first.
         let spaces = self.with_state(|s| {
             // Not the private space: a page from elsewhere would not be

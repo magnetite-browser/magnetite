@@ -27,6 +27,7 @@ use objc2_foundation::{NSData, NSSize, NSString};
 
 use crate::engine::ContextProfile;
 use crate::engine::Engine;
+use crate::events::DevPanel;
 use crate::events::{EngineEvent, ExtensionMenuAction, Shortcut};
 use crate::keymap::{Action, Combo};
 
@@ -366,6 +367,15 @@ pub fn install(mtm: MainThreadMarker) {
     b.command("Actual Size", "0", CMD, S::ZoomReset);
     b.separator();
     b.command("Developer Tools", "i", OPT_CMD, S::ToggleDevTools);
+    b.command("Console", "j", OPT_CMD, S::DevPanel(DevPanel::Console));
+    b.command(
+        "Pick an Element",
+        "c",
+        OPT_CMD,
+        S::DevPanel(DevPanel::Picker),
+    );
+    b.command("Network", "e", OPT_CMD, S::DevPanel(DevPanel::Network));
+    b.command("Reset Page", "r", OPT_CMD, S::DevReset);
 
     b.menu("History");
     b.command("Back", "[", CMD, S::Back);

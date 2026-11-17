@@ -152,11 +152,26 @@ wrap_display_handler! {
         fn on_console_message(
             &self,
             browser: Option<&mut Browser>,
-            _level: LogSeverity,
+            level: LogSeverity,
             message: Option<&CefString>,
-            _source: Option<&CefString>,
-            _line: ::std::os::raw::c_int,
+            source: Option<&CefString>,
+            line: ::std::os::raw::c_int,
         ) -> ::std::os::raw::c_int {
+            if self.kind == Kind::Content {
+                // Errors only. The app keeps them for local pages alone.
+                let engine = Engine::global();
+                if *level.as_ref() as i32 >= sys::cef_log_severity_t::LOGSEVERITY_ERROR as i32
+                    && let Some(id) = engine.content_id_for(browser.as_deref())
+                {
+                    let message = message.map(CefString::to_string).unwrap_or_default();
+                    let text = match source.map(CefString::to_string).filter(|s| !s.is_empty()) {
+                        Some(source) => format!("{message} ({source}:{line})"),
+                        None => message,
+                    };
+                    engine.emit(EngineEvent::ConsoleError { id, text });
+                }
+                return 0;
+            }
             if self.kind != Kind::DevTools { return 0; }
             let text = message.map(CefString::to_string).unwrap_or_default();
             Engine::global().devtools_menu_message(browser.as_deref(), &text).into()
@@ -396,6 +411,22 @@ wrap_load_handler! {
                     // Before the page shows anything: the user's own CSS.
                     engine.put_site_style(f);
                 }
+            }
+        }
+        fn on_load_error(
+            &self,
+            browser: Option<&mut Browser>,
+            frame: Option<&mut Frame>,
+            error_code: Errorcode,
+            _error_text: Option<&CefString>,
+            failed_url: Option<&CefString>,
+        ) {
+            if self.kind != Kind::Content || frame.is_some_and(|f| f.is_main() == 0) { return; }
+            let engine = Engine::global();
+            if let Some(id) = engine.content_id_for(browser.as_deref()) {
+                let refused = *error_code.as_ref() as i32 == sys::cef_errorcode_t::ERR_CONNECTION_REFUSED as i32;
+                let url = failed_url.map(CefString::to_string).unwrap_or_default();
+                engine.emit(EngineEvent::LoadFailed { id, url, refused });
             }
         }
         fn on_loading_state_change(
@@ -794,6 +825,12 @@ wrap_drag_handler! {
             }
             let regions = regions.map(<[DraggableRegion]>::to_vec).unwrap_or_default();
             let engine = Engine::global();
+            // The developer bar drags nothing: it is no part of the frame's
+            // draggable area (`apply_drag_regions`).
+            let id = browser.as_ref().map(|b| b.identifier());
+            if id.is_some() && engine.dev_bar_browser().map(|b| b.identifier()) == id {
+                return;
+            }
             // The window whose sidebar or top bar this is, current or not.
             let win = browser
                 .and_then(|b| engine.window_of_browser(b.identifier()))

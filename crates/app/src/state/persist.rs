@@ -196,6 +196,7 @@ impl AppState {
             peek: None,
             web_panel: None,
             minis: Vec::new(),
+            phones: Vec::new(),
             settings,
             sidebar_visible: true,
             window: 1,

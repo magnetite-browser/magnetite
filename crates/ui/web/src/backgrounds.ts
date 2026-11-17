@@ -36,14 +36,17 @@ const patch = (colour: string, at: string, size: string) => `radial-gradient(${s
  * A part of the window that paints its own background: the sidebar (docked
  * or floating), the frame around the pages, the top bar.
  */
-export type WindowPart = "sidebar" | "frame" | "topbar";
+export type WindowPart = "sidebar" | "frame" | "topbar" | "devbar";
+
+/** How far above the developer bar the window begins: the top bar's height while it is on (`--above`, set by the bar). */
+const ABOVE = "var(--above, 0px)";
 
 /**
  * The corner of the window each part reaches, whatever the sidebar's width
  * and with or without the top bar: a picture as large as the window, held at
  * that corner, shows the part's own slice of it.
  */
-const ANCHOR: Record<WindowPart, string> = { sidebar: "left bottom", frame: "right bottom", topbar: "left top" };
+const ANCHOR: Record<WindowPart, string> = { sidebar: "left bottom", frame: "right bottom", topbar: "left top", devbar: `right ${ABOVE}` };
 
 /** The window's width and height on this page (`--win-w` and `--win-h` are the app's, in window points; `--zoom` is the text size). */
 const WINDOW_W = "calc(var(--win-w) / var(--zoom, 1))";
@@ -60,6 +63,7 @@ const GRAIN_AT: Record<WindowPart, string> = {
   sidebar: `0 calc(100% - ${WINDOW_H})`,
   frame: `calc(100% - ${WINDOW_W}) calc(100% - ${WINDOW_H})`,
   topbar: "0 0",
+  devbar: `calc(100% - ${WINDOW_W}) ${ABOVE}`,
 };
 
 /**

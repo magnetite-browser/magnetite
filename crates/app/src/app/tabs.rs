@@ -256,6 +256,7 @@ impl MagnetiteApp {
     /// its panes, and a window that showed one of them until now (a tab is
     /// on screen in one window at most) shows what it has left.
     pub(super) fn present(&self, engine: &Engine) {
+        self.dev_drop_stale_phones(engine);
         let before = self.on_screen();
         let robbed = self.with_state(AppState::claim_panes);
         // The current window first: a page that moves leaves the other
@@ -352,22 +353,34 @@ impl MagnetiteApp {
         // The pages of the other windows are theirs to show or hide, and
         // the web panel stays over whatever is shown.
         let over = engine.web_panel_content();
+        // The phone of a responsive split shows with its tab.
+        let phones: Vec<ContentId> = self.with_state(|s| {
+            (s.phones.iter())
+                .filter(|p| panes.contains(&p.tab))
+                .map(|p| p.page.content)
+                .collect()
+        });
         let others: Vec<ContentId> = self.with_state(|s| {
             s.runtime
                 .values()
                 .filter_map(|r| r.content)
-                .filter(|c| !contents.contains(c) && Some(*c) != over)
+                .chain(s.phones.iter().map(|p| p.page.content))
+                .filter(|c| !contents.contains(c) && !phones.contains(c) && Some(*c) != over)
                 .filter(|c| engine.content_window(*c) == win)
                 .collect()
         });
         for c in others {
             engine.hide_content(c);
         }
-        match (self.split_on_screen(&panes, &contents), contents.as_slice()) {
+        match (
+            self.split_on_screen(engine, &panes, &contents),
+            contents.as_slice(),
+        ) {
             (_, []) => {}
             (Some((tree, focus)), _) => engine.show_split(&tree, focus),
             (None, [one, ..]) => engine.show_content(*one),
         }
+        contents.extend(phones);
         lock(&self.visible).insert(win, contents);
     }
 

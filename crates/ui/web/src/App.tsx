@@ -9,12 +9,13 @@ import { ContextMenu, SEPARATOR, type MenuItem } from "./ContextMenu";
 import { Back, Close, Dots, FolderIcon, Forward, Plus, MaskIcon, PrivateIcon, Reload, SidebarIcon, SmartFolderIcon, SpacePlus, SplitIcon, TabPlus } from "./Icons";
 import { AddressRow } from "./AddressRow";
 import { CaptureToast } from "./CaptureToast";
+import { record } from "./recorder";
 import { MediaBar, type MediaEntry } from "./MediaBar";
 import { NewMenu } from "./NewMenu";
 import { PinnedExtensions } from "./PinnedExtensions";
 import { FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, type RowContext } from "./Rows";
 import { windowBackground } from "./backgrounds";
-import { IS_MAC, accentCss, applyAppearance, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
+import { IS_MAC, accentCss, applyAppearance, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, onRecord, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
 import { IconPicker, SpaceGlyph } from "./Glyphs";
 import { SpaceSwitcher } from "./SpaceSwitcher";
 import { dragging, endDrag, indexAfterTaking } from "./dnd";
@@ -53,6 +54,7 @@ export function App() {
   useEffect(() => onOpenDownloads(() => setPanel("downloads")), []);
   useEffect(() => onOpenBookmarks(() => setPanel("bookmarks")), []);
   useEffect(() => onOpenHistory(() => setPanel("history")), []);
+  useEffect(() => onRecord(() => void record()), []);
   const [notice, setNotice] = useState<string | null>(null);
   useEffect(() => {
     // Three seconds from the last notice: the same text sent again stays its full time.

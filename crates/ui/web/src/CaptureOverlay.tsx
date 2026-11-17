@@ -14,6 +14,8 @@ export function CaptureOverlay() {
   const [start, setStart] = useState<[number, number] | null>(null);
   const [drag, setDrag] = useState<Box | null>(null);
   const [padded, setPadded] = useState(false);
+  // An element's pick also copies its description as text (selector, markup, styles).
+  const [context, setContext] = useState(false);
 
   // Clicking anywhere outside the overlay (sidebar, another app) cancels.
   useEffect(() => {
@@ -37,6 +39,7 @@ export function CaptureOverlay() {
     [padded, frame],
   );
   const pick = useCallback((rect: Box) => send({ cmd: "capture_select", rect }), []);
+  const pickElement = useCallback((rect: Box) => send({ cmd: "capture_select", rect, context }), [context]);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -45,13 +48,14 @@ export function CaptureOverlay() {
       else if (k === "v") send({ cmd: "capture_visible" });
       else if (k === "f") send({ cmd: "capture_full" });
       else if (k === "p") setPadded((p) => !p);
-      else if (k === "enter" && hover) pick(pad(hover));
+      else if (k === "c") setContext((c) => !c);
+      else if (k === "enter" && hover) pickElement(pad(hover));
       else return;
       e.preventDefault();
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [hover, pad, pick]);
+  }, [hover, pad, pickElement]);
 
   // Smallest element box under the pointer (boxes come largest first).
   const boxAt = useMemo(() => (x: number, y: number): Box | null => {
@@ -81,7 +85,7 @@ export function CaptureOverlay() {
       onMouseDown={(e) => { setStart(point(e)); setDrag(null); }}
       onMouseUp={() => {
         if (drag && drag[2] > 4 && drag[3] > 4) pick(drag);
-        else if (hover) pick(pad(hover));
+        else if (hover) pickElement(pad(hover));
         setStart(null);
         setDrag(null);
       }}
@@ -98,6 +102,7 @@ export function CaptureOverlay() {
         <button onClick={() => send({ cmd: "capture_visible" })}><kbd>V</kbd> Visible</button>
         <button onClick={() => send({ cmd: "capture_full" })}><kbd>F</kbd> Full page</button>
         {frame.element_ok && <button onClick={() => setPadded((p) => !p)} aria-pressed={padded}><kbd>P</kbd> Padding {padded ? "on" : "off"}</button>}
+        {frame.element_ok && <button onClick={() => setContext((c) => !c)} aria-pressed={context} title="Also copy the element's selector, markup and styles as text, with the picture's file: for an issue or a coding agent"><kbd>C</kbd> Context {context ? "on" : "off"}</button>}
         <button onClick={() => send({ cmd: "capture_cancel" })}><kbd>Esc</kbd> Cancel</button>
       </div>
     </div>

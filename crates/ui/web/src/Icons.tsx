@@ -76,6 +76,20 @@ export const NotesIcon = icon(L.ScrollText);
 export const BugIcon = icon(L.Bug);
 export const CodeIcon = icon(L.SquareCode);
 export const BracesIcon = icon(L.Braces);
+// The developer bar (DevBar.tsx).
+export const PickerIcon = icon(L.SquareMousePointer);
+export const ConsoleIcon = icon(L.SquareTerminal);
+export const RequestsIcon = icon(L.ArrowDownUp);
+export const EmulateIcon = icon(L.Contrast);
+/** Clear a local page's site data and load it again. */
+export const ClearDataIcon = icon(L.Eraser);
+export const TimezoneIcon = icon(L.Globe);
+export const ResponsiveIcon = icon(L.TabletSmartphone);
+export const CaptureSetIcon = icon(L.Images);
+export const RecordIcon = icon(L.Video);
+export const StopIcon = icon(L.Square);
+/** A coding agent is connected (the agent bridge). */
+export const AgentIcon = icon(L.Bot);
 export const CaptureIcon = icon(L.Focus);
 export const TabPlus = icon(L.SquarePlus);
 export const SmartFolderIcon = icon(L.FolderSync);

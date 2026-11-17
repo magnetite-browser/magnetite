@@ -171,6 +171,48 @@ pub fn finish_tiles(tiles: &[Vec<u8>], cut_at: Option<f64>) -> Result<Capture, S
     finish(&stack(&images), cut_at.map(|c| c as u32))
 }
 
+/// Pictures as one sheet: in rows of `per_row`, side by side from the top
+/// of their row, `SHEET_GAP` pixels apart and from the edge, on grey (light
+/// and dark pictures both stand out from it).
+pub fn sheet(images: &[Image], per_row: usize) -> Image {
+    let gap = SHEET_GAP;
+    let across = |row: &[Image]| row.iter().map(|i| i.width + gap).sum::<u32>() + gap;
+    let tall = |row: &[Image]| row.iter().map(|i| i.height).max().unwrap_or(0);
+    let rows: Vec<&[Image]> = images.chunks(per_row.max(1)).collect();
+    let width = rows.iter().map(|r| across(r)).max().unwrap_or(gap);
+    let height = rows.iter().map(|r| tall(r) + gap).sum::<u32>() + gap;
+    let mut rgba = [128, 128, 128, 255].repeat(width as usize * height as usize);
+    let mut top = gap;
+    for row in rows {
+        let mut left = gap;
+        for img in row {
+            let line = img.width as usize * 4;
+            for y in 0..img.height as usize {
+                let to = ((top as usize + y) * width as usize + left as usize) * 4;
+                rgba[to..to + line].copy_from_slice(&img.rgba[y * line..(y + 1) * line]);
+            }
+            left += img.width + gap;
+        }
+        top += tall(row) + gap;
+    }
+    Image {
+        width,
+        height,
+        rgba,
+    }
+}
+
+const SHEET_GAP: u32 = 32;
+
+/// PNG pictures → one sheet of them (`sheet`).
+pub fn finish_sheet(pictures: &[Vec<u8>], per_row: usize) -> Result<Capture, String> {
+    let images = pictures
+        .iter()
+        .map(|p| decode(p))
+        .collect::<Result<Vec<_>, _>>()?;
+    finish(&sheet(&images, per_row), None)
+}
+
 fn finish(img: &Image, cut_at: Option<u32>) -> Result<Capture, String> {
     let png = encode(img)?;
     let thumb = data_url(&encode(&thumbnail(img, 480))?);
@@ -185,6 +227,11 @@ fn finish(img: &Image, cut_at: Option<u32>) -> Result<Capture, String> {
 
 /// "Magnetite capture 2026-11-06 at 16.20.11.png" in local time.
 pub fn file_name() -> String {
+    dated_name("capture", "png")
+}
+
+/// "Magnetite `what` 2026-11-06 at 16.20.11.`ext`" in local time.
+pub fn dated_name(what: &str, ext: &str) -> String {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
@@ -200,7 +247,7 @@ pub fn file_name() -> String {
         libc::localtime_s(&raw mut tm, &raw const t)
     };
     format!(
-        "Magnetite capture {:04}-{:02}-{:02} at {:02}.{:02}.{:02}.png",
+        "Magnetite {what} {:04}-{:02}-{:02} at {:02}.{:02}.{:02}.{ext}",
         tm.tm_year + 1900,
         tm.tm_mon + 1,
         tm.tm_mday,
@@ -271,6 +318,32 @@ mod tests {
 
         let t = thumbnail(&gradient(100, 50), 30);
         assert!(t.width <= 30 && t.height >= 1);
+    }
+
+    #[test]
+    fn a_sheet_holds_its_pictures_in_rows() {
+        let s = sheet(&[gradient(40, 30), gradient(20, 50), gradient(10, 10)], 2);
+        // Two in the first row (the taller sets its height), one in the second.
+        assert_eq!(
+            (s.width, s.height),
+            (32 + 40 + 32 + 20 + 32, 32 + 50 + 32 + 10 + 32)
+        );
+        let at = |x: u32, y: u32| {
+            let i = ((y * s.width + x) * 4) as usize;
+            [s.rgba[i], s.rgba[i + 1], s.rgba[i + 2], s.rgba[i + 3]]
+        };
+        assert_eq!(at(0, 0), [128, 128, 128, 255], "grey around the pictures");
+        assert_eq!(at(32 + 5, 32 + 7), [5, 7, 0, 255], "the first picture");
+        assert_eq!(
+            at(32 + 40 + 32 + 3, 32 + 49),
+            [3, 49, 0, 255],
+            "the second, beside it"
+        );
+        assert_eq!(
+            at(32 + 9, 32 + 50 + 32 + 9),
+            [9, 9, 0, 255],
+            "the third, below"
+        );
     }
 
     #[test]

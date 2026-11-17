@@ -1,7 +1,10 @@
 //! One DevTools-protocol channel per page, in process. Requests carry our own
 //! message ids; replies arrive on the UI thread through an observer that is
-//! registered the first time a page is used. Pages never see any of this:
-//! the one domain a page could detect, `Runtime`, is never enabled.
+//! registered the first time a page is used. The same observer gets the two
+//! events we ask for: the browser's log entries of a watched page
+//! (`watch_errors`) and the pictures of a page being recorded
+//! (`screencast`). Pages never see any of this: the one domain a page
+//! could detect, `Runtime`, is never enabled.
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -46,6 +49,28 @@ impl Engine {
         }
     }
 
+    /// Report page `id`'s failed requests and other errors of the browser's
+    /// own (`EngineEvent::ConsoleError`), which never reach the console
+    /// handler; what the page logs itself does. Holds for the page's
+    /// lifetime, across its navigations.
+    pub fn watch_errors(&self, id: ContentId) {
+        self.devtools(id, "Log.enable", &serde_json::json!({}), Box::new(|_| {}));
+    }
+
+    /// Send page `id`'s picture whenever it changes
+    /// (`EngineEvent::ScreencastFrame`, JPEG, at most 1920 px a side), or
+    /// stop doing so. Only a page on screen draws pictures.
+    pub fn screencast(&self, id: ContentId, on: bool, reply: Reply) {
+        if on {
+            let params = serde_json::json!({
+                "format": "jpeg", "quality": 85, "maxWidth": 1920, "maxHeight": 1920,
+            });
+            self.devtools(id, "Page.startScreencast", &params, reply);
+        } else {
+            self.devtools(id, "Page.stopScreencast", &serde_json::json!({}), reply);
+        }
+    }
+
     fn ensure_devtools_observer(&self, id: ContentId, host: &BrowserHost) {
         let missing = self
             .lock()
@@ -87,6 +112,40 @@ pub(crate) fn page_closed(id: ContentId) {
 wrap_dev_tools_message_observer! {
     struct Observer {}
     impl DevToolsMessageObserver {
+        fn on_dev_tools_event(
+            &self,
+            browser: Option<&mut Browser>,
+            method: Option<&CefString>,
+            params: Option<&[u8]>,
+        ) {
+            // The two events we ask for (`watch_errors`, `screencast`).
+            let method = method.map(CefString::to_string);
+            let engine = Engine::global();
+            if method.as_deref() == Some("Page.screencastFrame") {
+                let frame: Value = params.and_then(|p| serde_json::from_slice(p).ok()).unwrap_or(Value::Null);
+                let Some(id) = engine.content_id_for(browser.as_deref()) else { return };
+                // The page sends its next picture once this one is taken.
+                let taken = serde_json::json!({ "sessionId": frame["sessionId"] });
+                engine.devtools(id, "Page.screencastFrameAck", &taken, Box::new(|_| {}));
+                if let Value::String(jpeg) = &frame["data"] {
+                    engine.emit(crate::events::EngineEvent::ScreencastFrame { id, jpeg: jpeg.clone() });
+                }
+                return;
+            }
+            if method.as_deref() != Some("Log.entryAdded") { return; }
+            let entry: Value = params.and_then(|p| serde_json::from_slice(p).ok()).unwrap_or(Value::Null);
+            if entry["entry"]["level"] == "error"
+                && let Some(id) = engine.content_id_for(browser.as_deref())
+            {
+                let entry = &entry["entry"];
+                let message = entry["text"].as_str().unwrap_or_default();
+                let text = match entry["url"].as_str().filter(|u| !u.is_empty()) {
+                    Some(url) => format!("{message} ({url})"),
+                    None => message.to_string(),
+                };
+                engine.emit(crate::events::EngineEvent::ConsoleError { id, text });
+            }
+        }
         fn on_dev_tools_method_result(
             &self,
             _browser: Option<&mut Browser>,

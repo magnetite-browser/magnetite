@@ -74,7 +74,7 @@ pub use default_browser::DefaultBrowser;
 pub use devdock::{DevToolsDock, DevToolsSize};
 pub use engine::{ContextProfile, Engine, EngineDelegate, WindowId};
 pub use events::{
-    ContentId, DevToolsAction, DividerAction, DownloadReport, DownloadState, EngineEvent,
+    ContentId, DevPanel, DevToolsAction, DividerAction, DownloadReport, DownloadState, EngineEvent,
     ExtensionMenuAction, MemoryPressure, Shortcut, UrlSource,
 };
 pub use extensions::ExtensionInfo;

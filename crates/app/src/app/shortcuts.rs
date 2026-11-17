@@ -122,11 +122,8 @@ impl MagnetiteApp {
             | Shortcut::Find
             | Shortcut::FindNext
             | Shortcut::FindPrevious => self.page_command(engine, shortcut),
-            Shortcut::OpenDevTools => {
-                if let Some(c) = self.focused_content(None) {
-                    engine.content_show_devtools(c);
-                }
-            }
+            Shortcut::DevPanel(panel) => self.dev_panel(engine, None, panel),
+            Shortcut::DevReset => self.dev_reset(engine, None),
             Shortcut::CopyLink => {
                 let result = self.copy_link(engine, None, LinkVariant::Clean);
                 Self::ui_call(engine, "copied", &result);

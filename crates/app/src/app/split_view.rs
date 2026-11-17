@@ -15,6 +15,9 @@ impl MagnetiteApp {
     /// Move divider `index` of the split at `path` to screen position `pos`
     /// (both neighbours keep at least 200 px).
     pub(super) fn split_resize(&self, engine: &Engine, path: &[usize], index: usize, pos: i32) {
+        if self.dev_phone_resized(engine, path, Some(pos)) {
+            return self.retile_split(engine);
+        }
         let area = engine.split_area();
         let moved = self.with_state(|s| {
             s.visible_split_mut().is_some_and(|t| {
@@ -28,6 +31,9 @@ impl MagnetiteApp {
 
     /// Give every page of the split at `path` the same size.
     pub(super) fn split_equalize(&self, engine: &Engine, path: &[usize]) {
+        if self.dev_phone_resized(engine, path, None) {
+            return self.retile_split(engine);
+        }
         let area = engine.split_area();
         self.with_state(|s| {
             if let Some(t) = s.visible_split_mut() {
@@ -69,24 +75,27 @@ impl MagnetiteApp {
         self.present(engine);
     }
 
-    /// The visible split with window ids (`panes` and `contents` are
-    /// parallel), plus the window to focus; `None` when one page shows.
+    /// What tiles the page area, with window ids (`panes` and `contents`
+    /// are parallel): the visible split, and the phones of responsive
+    /// splits beside their pages. Plus the window to focus; `None` when one
+    /// page shows alone.
     pub(super) fn split_on_screen(
         &self,
+        engine: &Engine,
         panes: &[String],
         contents: &[ContentId],
     ) -> Option<(SplitNode<ContentId>, Option<ContentId>)> {
-        let tree = self.with_state(|s| s.visible_split())?;
         let by_tab: HashMap<&str, ContentId> = panes
             .iter()
             .map(String::as_str)
             .zip(contents.iter().copied())
             .collect();
+        let split = self.with_state(|s| s.visible_split()).map(|tree| {
+            tree.map(&|t: &String| by_tab.get(t.as_str()).copied().unwrap_or_default())
+        });
+        let tree = self.dev_with_phones(engine, split, contents.first().copied())?;
         let focus = self.with_state(|s| s.active_tab_id().and_then(|t| by_tab.get(t).copied()));
-        Some((
-            tree.map(&|t: &String| by_tab.get(t.as_str()).copied().unwrap_or_default()),
-            focus,
-        ))
+        Some((tree, focus))
     }
 
     /// Screenshot the visible pages, then show drop zones over them.
@@ -158,24 +167,21 @@ impl MagnetiteApp {
         tab
     }
 
-    /// Tile the split again after a divider moved (no raising or focusing).
+    /// Tile the page area again after a divider moved (no raising or focusing).
     pub(super) fn retile_split(&self, engine: &Engine) {
-        let windows = self.with_state(|s| {
-            let tree = s.visible_split()?;
-            let ids: Option<Vec<ContentId>> = tree
-                .ids()
-                .iter()
-                .map(|t| s.runtime.get(t).and_then(|r| r.content))
-                .collect();
-            Some((tree, ids?))
+        let (split, alone) = self.with_state(|s| {
+            let content = |t: &String| s.runtime.get(t).and_then(|r| r.content);
+            let split = s
+                .visible_split()
+                .filter(|tree| tree.ids().iter().all(|t| content(t).is_some()));
+            let alone = s.active_tab_id().and_then(|t| content(&t.to_owned()));
+            (
+                split.map(|tree| tree.map(&|t: &String| content(t).unwrap_or_default())),
+                alone,
+            )
         });
-        if let Some((tree, contents)) = windows {
-            let panes = tree.ids();
-            let by_tab: HashMap<&str, ContentId> =
-                panes.iter().map(String::as_str).zip(contents).collect();
-            engine.update_split(
-                &tree.map(&|t: &String| by_tab.get(t.as_str()).copied().unwrap_or_default()),
-            );
+        if let Some(tree) = self.dev_with_phones(engine, split, alone) {
+            engine.update_split(&tree);
         }
     }
 }

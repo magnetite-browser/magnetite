@@ -1,4 +1,5 @@
 // Full-page settings, opened as its own tab (magnetite://ui/settings).
+import { DeveloperSection } from "./settings/DeveloperSection";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AdblockIcon, Archive, BracesIcon, Close, CodeIcon, CookieIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SmartFolderIcon, type IconComponent, KeyIcon, KeyboardIcon } from "./Icons";
 import { IsolationSection } from "./IsolationSection";
@@ -235,7 +236,7 @@ export function SettingsPage() {
         </>
       )}
       {sectionId === "spaces" && <IsolationSection info={info} reload={reload} />}
-      {sectionId === "developer" && (
+      {sectionId === "developer" && (<>
         <Field label="Developer tools open" hint="F12, the shortcut for developer tools, or Developer tools in the site panel. Docked tools sit next to the page inside the window; the page gets narrower or shorter to make room.">
           <div className="seg">
             {([["right", "Right of the page"], ["bottom", "Below the page"], ["window", "In a separate window"]] as const).map(([v, label]) => (
@@ -243,7 +244,8 @@ export function SettingsPage() {
             ))}
           </div>
         </Field>
-      )}
+        <DeveloperSection key={settings.developer.hosts.join()} settings={settings} update={update} />
+      </>)}
       {sectionId === "extensions" && (
         <>
           <Field label="In the sidebar" hint="Pinned extensions sit above your tabs. Chromium's own “Pin” on its extensions page works too.">

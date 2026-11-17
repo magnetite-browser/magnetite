@@ -58,6 +58,9 @@ pub(crate) struct WindowState {
     pub sidebar_drag: Vec<DraggableRegion>,
     /// Last draggable regions reported by the top bar page (window coordinates).
     pub top_bar_drag: Vec<DraggableRegion>,
+    /// The developer bar shows above this window's pages
+    /// (`set_dev_bar_visible`).
+    pub dev_bar_visible: bool,
     /// The split view's dividers as last laid out (`update_dividers`),
     /// shown together with the docked DevTools' ones (`show_dividers`).
     pub split_dividers: Vec<magnetite_core::split::Divider>,
@@ -85,6 +88,7 @@ impl WindowState {
             shown: None,
             sidebar_drag: Vec::new(),
             top_bar_drag: Vec::new(),
+            dev_bar_visible: false,
             split_dividers: Vec::new(),
             focused_pane: None,
             float_bar: None,
@@ -145,6 +149,8 @@ pub(crate) struct Inner {
     /// Where DevTools open, and the docked ones per page.
     pub devtools_dock: crate::DevToolsDock,
     pub docked: HashMap<ContentId, crate::devdock::DockedDevTools>,
+    /// The panel `DevTools` that are opening show first, per page.
+    pub pending_panels: HashMap<ContentId, crate::DevPanel>,
     /// The docked DevTools' size the user dragged, per side.
     pub devtools_size: crate::DevToolsSize,
     /// The device device mode used last (`device.rs`), to start with next.
@@ -263,6 +269,7 @@ impl Engine {
                 top_bar_visible: false,
                 devtools_dock: crate::DevToolsDock::default(),
                 docked: HashMap::new(),
+                pending_panels: HashMap::new(),
                 devtools_size: crate::DevToolsSize::default(),
                 last_device: None,
                 overlay: None,
@@ -390,7 +397,8 @@ impl Engine {
             .top_bar_visible()
             .then(|| self.top_bar_browser())
             .flatten();
-        for frame in [browser, top_bar]
+        let dev_bar = self.dev_bar_browser();
+        for frame in [browser, top_bar, dev_bar]
             .into_iter()
             .flatten()
             .filter_map(|b| b.main_frame())
@@ -409,6 +417,7 @@ impl Engine {
             self.docked_sidebar_browser(),
             self.float_sidebar_browser(),
             self.top_bar_browser(),
+            self.dev_bar_browser(),
             self.empty_browser(),
             overlay,
         ]
@@ -453,6 +462,14 @@ impl Engine {
             .frame
             .as_ref()
             .and_then(|f| f.top_bar_browser.clone())
+    }
+
+    pub(crate) fn dev_bar_browser(&self) -> Option<Browser> {
+        self.lock()
+            .win
+            .frame
+            .as_ref()
+            .and_then(|f| f.dev_bar_browser.clone())
     }
 
     fn docked_sidebar_browser(&self) -> Option<Browser> {

@@ -1,8 +1,10 @@
 //! magnetite: wires the engine, the domain model and the sidebar UI.
 
 mod adblock;
+mod agent;
 mod app;
 mod capture;
+mod dev;
 mod downloads;
 mod files;
 mod smart;
@@ -86,8 +88,36 @@ fn parse_cli(args: impl IntoIterator<Item = String>) -> Result<Cli, clap::Error>
     }
 }
 
+/// `magnetite mcp [--data-dir DIR]`: what a coding agent starts to reach the
+/// agent bridge of the running Magnetite (`agent.rs`). No browser starts.
+fn run_mcp(args: &[String]) -> ! {
+    let data_dir = match args {
+        [flag, dir] if flag == "--data-dir" => PathBuf::from(dir),
+        [] => default_data_dir(),
+        _ => {
+            eprintln!("usage: magnetite mcp [--data-dir DIR]");
+            std::process::exit(2);
+        }
+    };
+    match agent::bridge_stdio(&data_dir) {
+        Ok(()) => std::process::exit(0),
+        Err(e) => {
+            eprintln!(
+                "magnetite: no agent bridge at {} ({e}). Magnetite must be running with \
+                 Settings → Developer → Agent bridge turned on.",
+                data_dir.join(agent::SOCKET).display()
+            );
+            std::process::exit(1);
+        }
+    }
+}
+
 fn main() {
-    let cli = parse_cli(std::env::args()).unwrap_or_else(|e| e.exit());
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(1).map(String::as_str) == Some("mcp") {
+        run_mcp(&args[2..]);
+    }
+    let cli = parse_cli(args).unwrap_or_else(|e| e.exit());
 
     let data_dir = cli.data_dir.unwrap_or_else(default_data_dir);
     // Sidebar, tokens and Chromium's profiles: the user's only.
