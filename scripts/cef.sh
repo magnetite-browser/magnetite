@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Fetch Magnetite's own build of CEF: CEF as its official builds are, plus
-# the H.264, AAC and HEVC decoders those leave out and our patches
+# the H.264, AAC and HEVC decoders and the H.264 encoder for calls those
+# leave out, and our patches
 # (https://github.com/magnetite-browser/magnetite-cef). There is one for
 # macOS on Apple silicon and one for Linux on x86_64; every other system
 # builds with the official CEF, which the build downloads by itself.
@@ -20,7 +21,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # The release this version of Magnetite builds with, and its archive for
 # each system. A new one is pinned here after it was checked (magnetite-cef's
 # README, "Checking a release").
-RELEASE=156.0.30-2
+RELEASE=156.0.30-3
 NAME="cef_binary_156.0.30+g6028375+chromium-156.0.8078.107"
 
 case ${1:-} in
@@ -29,11 +30,11 @@ esac
 case "$(host_os)-$(host_arch)" in
   macos-aarch64)
     ARCHIVE="${NAME}_macosarm64_minimal.tar.bz2"
-    SHA256=fe525f5aeaefdc2c9187d784eb0863e4bfc1cb6ca1d0ca006fb730f8f44ab328
+    SHA256=a4e7ce81b6c3fd8c447b9e1cf4164a7218ea30a3b63dd26308855801e98b7b78
     ;;
   linux-x86_64)
     ARCHIVE="${NAME}_linux64_minimal.tar.bz2"
-    SHA256=312b53f4f100c08df2cb8c9665cf93fb9c5c8bc8e3aa9b94fa0ba13a471a80de
+    SHA256=b1c59b058e1e780060b5033333052bd25fa2a9f4b5a88d87b8a53621a78cdff4
     ;;
   *) die "Magnetite's own CEF build is for macOS on Apple silicon and Linux on x86_64 only" ;;
 esac
