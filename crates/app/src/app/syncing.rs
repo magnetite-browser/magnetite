@@ -3,7 +3,7 @@
 
 use magnetite_engine::Engine;
 
-use crate::devices::{Me, RemoteTab};
+use crate::devices::{DEVICES, Me, RemoteTab};
 use crate::state::{SyncSettings, now};
 use crate::sync::{self, Job, Outcome, SyncClient};
 use crate::url_policy;
@@ -140,16 +140,23 @@ impl MagnetiteApp {
                 self.present(engine);
                 self.push_state(engine);
             }
-            Outcome::Devices { tabs, forgotten } => {
+            Outcome::Devices {
+                tabs,
+                sent,
+                forgotten,
+                version,
+            } => {
                 let sent = self.with_state(|s| {
                     let sync = &mut s.settings.sync;
+                    // A stored version never goes down (rollback protection).
+                    let known = sync.versions.entry(DEVICES.into()).or_insert(0);
+                    *known = (*known).max(version);
                     sync.taken.retain(|id| !forgotten.contains(id));
-                    // Taken with a click while this round was under way.
-                    let (sent, listed): (Vec<_>, Vec<_>) = tabs
-                        .into_iter()
-                        .filter(|t| !sync.taken.contains(&t.id))
-                        .partition(|t| t.later);
-                    s.device_tabs = listed;
+                    // Not those taken while this round was under way: with a
+                    // click, or opened after an earlier round's answer.
+                    let new = |t: &RemoteTab| !sync.taken.contains(&t.id);
+                    let sent: Vec<_> = sent.into_iter().filter(new).collect();
+                    s.device_tabs = tabs.into_iter().filter(new).collect();
                     sent
                 });
                 // Tabs sent here open by themselves, in the background.
@@ -205,12 +212,11 @@ impl MagnetiteApp {
             let space = tab
                 .space
                 .as_ref()
-                .filter(|id| s.space(id).is_some())
-                .cloned()
                 // Never into the private space: its tabs are not kept.
+                .filter(|id| s.space(id).is_some() && !s.is_private_space(id))
+                .cloned()
                 .or_else(|| {
-                    let private = s.private_space.as_deref() == Some(s.active_space.as_str());
-                    private
+                    s.is_private_space(&s.active_space)
                         .then(|| s.sidebar.spaces.first().map(|sp| sp.id.clone()))
                         .flatten()
                 })

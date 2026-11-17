@@ -205,12 +205,15 @@ pub enum Outcome {
     Pushed {
         versions: Vec<(String, u64)>,
     },
-    /// The tabs open on the chain's other devices, and which of the tabs
-    /// this device took over no device lists any more (`forgotten`): their
-    /// handover is done.
+    /// The tabs open on the chain's other devices, those sent here that
+    /// this device took with this round (`sent`: to open now), and which of
+    /// the tabs it took over no device lists any more (`forgotten`): their
+    /// handover is done. `version`: the `devices` collection's, to remember.
     Devices {
         tabs: Vec<RemoteTab>,
+        sent: Vec<RemoteTab>,
         forgotten: Vec<String>,
+        version: u64,
     },
     Error(String),
     Disconnected,
@@ -808,8 +811,10 @@ impl Worker {
 
     /// Read the tabs open on the chain's other devices, and write which of
     /// them this device took over. Only this device's entry changes; when
-    /// another device wrote in between, the round starts over.
-    fn devices(&self, me: &Me) -> Vec<Outcome> {
+    /// another device wrote in between, the round starts over. A version
+    /// older than one this device has seen is refused, as in `sync`: an old
+    /// copy could list a tab again whose handover is done.
+    fn devices(&mut self, me: &Me) -> Vec<Outcome> {
         let Some(code) = self.code.clone() else {
             return Vec::new();
         };
@@ -817,13 +822,23 @@ impl Worker {
         let id = keys.collection_id(DEVICES);
         let path = format!("/collections/{id}");
         let unreadable = || "devices: cannot read them; is Magnetite up to date?".to_string();
+        let applied = self.settings.versions.get(DEVICES).copied().unwrap_or(0);
         for _ in 0..4 {
+            let seen = applied.max(self.known.get(DEVICES).copied().unwrap_or(0));
+            let back = |has: &str| {
+                vec![Outcome::Error(format!(
+                    "devices: the server has {has} but this device has version {seen}; not going back"
+                ))]
+            };
             let (version, mut all) = match self.request(&keys, "GET", &path, None) {
                 Ok(r) if r.status == 200 => {
                     let remote: CollectionResponse = match r.json() {
                         Ok(c) => c,
                         Err(e) => return vec![Outcome::Error(e)],
                     };
+                    if remote.version < seen {
+                        return back(&format!("version {}", remote.version));
+                    }
                     // Data this version cannot read is not written over.
                     let read = keys
                         .open(&id, remote.version, &remote.sealed())
@@ -835,26 +850,35 @@ impl Worker {
                     }
                 }
                 // No device listed a tab yet.
-                Ok(r) if r.status == 404 => (0, Devices::default()),
+                Ok(r) if r.status == 404 && seen == 0 => (0, Devices::default()),
+                Ok(r) if r.status == 404 => return back("none"),
                 Ok(r) => return vec![Outcome::Error(r.error())],
                 Err(e) => return vec![Outcome::Error(e)],
             };
+            self.known.insert(DEVICES.to_string(), version);
             let round = devices::round(&mut all, me, crate::state::now());
-            let done = Outcome::Devices {
-                tabs: round.tabs,
-                forgotten: me
-                    .taken
-                    .iter()
-                    .filter(|id| !round.taken.contains(id))
-                    .cloned()
-                    .collect(),
+            let done = |version| {
+                vec![Outcome::Devices {
+                    tabs: round.tabs,
+                    sent: round.sent,
+                    forgotten: me
+                        .taken
+                        .iter()
+                        .filter(|id| !round.taken.contains(id))
+                        .cloned()
+                        .collect(),
+                    version,
+                }]
             };
             if !round.write {
-                return vec![done];
+                return done(version);
             }
             let bytes = serde_json::to_vec(&all).unwrap_or_default();
             match self.push(&keys, DEVICES, version, &bytes) {
-                Ok(_) => return vec![done],
+                Ok(written) => {
+                    self.known.insert(DEVICES.to_string(), written);
+                    return done(written);
+                }
                 // Another device wrote first: read again.
                 Err(e) if e.contains("another device wrote first") => {}
                 Err(e) => return vec![Outcome::Error(e)],
@@ -1058,6 +1082,94 @@ mod tests {
             panic!("{:?}", out.iter().map(describe).collect::<Vec<_>>())
         };
         assert_eq!(versions, &[(SIDEBAR.into(), 1), (SETTINGS.into(), 1)]);
+    }
+
+    /// A worker whose server holds a phone's sent tab in `devices`, at the
+    /// version in the first counter (0: nothing there); it answers writes
+    /// with the status in the second.
+    fn worker_with_sent_tab(name: &str) -> (Worker, Arc<AtomicU64>, Arc<AtomicU64>) {
+        let (serving, put) = (Arc::new(AtomicU64::new(3)), Arc::new(AtomicU64::new(200)));
+        let code = SyncCode::generate();
+        let keys = code.keys();
+        let id = keys.collection_id(DEVICES);
+        let server = {
+            let (serving, put) = (serving.clone(), put.clone());
+            fake_server(move |method, _| {
+                let version = serving.load(Ordering::SeqCst);
+                if method == "PUT" {
+                    let status = u16::try_from(put.load(Ordering::SeqCst)).unwrap();
+                    return (status, format!(r#"{{"version":{}}}"#, version + 1));
+                }
+                if version == 0 {
+                    return (404, r#"{"error":"no such collection"}"#.into());
+                }
+                let plain = br#"{"devices":[{"id":"phone","name":"iPhone","tabs":[
+                    {"id":"a","url":"https://a.example/","later":true}]}]}"#;
+                let sealed = keys.seal(&id, version, plain).unwrap();
+                let body = CollectionResponse::new(version, sealed);
+                (200, serde_json::to_string(&body).unwrap())
+            })
+        };
+        let dir = data_dir(name);
+        save_code(&dir, &code).unwrap();
+        let settings = SyncSettings {
+            server_url: server,
+            ..SyncSettings::default()
+        };
+        (Worker::new(dir, settings), serving, put)
+    }
+
+    fn me() -> Me {
+        Me {
+            id: "mac".into(),
+            name: "Mac".into(),
+            taken: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn a_sent_tab_opens_only_once_taking_it_is_written() {
+        let (mut w, _, put) = worker_with_sent_tab("devices-claim");
+        // Another device keeps writing first: the tab is not this one's.
+        put.store(409, Ordering::SeqCst);
+        let out = w.devices(&me());
+        assert!(
+            matches!(out.as_slice(), [Outcome::Error(e)] if e.contains("kept writing first")),
+            "{:?}",
+            out.iter().map(describe).collect::<Vec<_>>()
+        );
+        put.store(200, Ordering::SeqCst);
+        let out = w.devices(&me());
+        let [Outcome::Devices { sent, version, .. }] = out.as_slice() else {
+            panic!("{:?}", out.iter().map(describe).collect::<Vec<_>>())
+        };
+        assert_eq!((sent[0].id.as_str(), *version), ("a", 4));
+    }
+
+    #[test]
+    fn an_older_devices_collection_is_refused() {
+        let (mut w, serving, _) = worker_with_sent_tab("devices-rollback");
+        w.settings.versions.insert(DEVICES.into(), 5);
+        // Replayed, or deleted: either could bring a finished handover back.
+        for old in [3, 0] {
+            serving.store(old, Ordering::SeqCst);
+            let out = w.devices(&me());
+            assert!(
+                matches!(out.as_slice(), [Outcome::Error(e)] if e.contains("not going back")),
+                "{old}: {:?}",
+                out.iter().map(describe).collect::<Vec<_>>()
+            );
+        }
+        // What the worker wrote counts too, before the app has stored it.
+        w.settings.versions.clear();
+        serving.store(6, Ordering::SeqCst);
+        assert!(matches!(
+            w.devices(&me()).as_slice(),
+            [Outcome::Devices { version: 7, .. }]
+        ));
+        assert!(
+            matches!(w.devices(&me()).as_slice(), [Outcome::Error(e)] if e.contains("not going back"))
+        );
     }
 
     #[test]

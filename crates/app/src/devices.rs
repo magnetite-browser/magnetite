@@ -8,8 +8,12 @@
 //!
 //! Taking a tab over: a phone lists a tab; this device opens it and puts
 //! the tab's id into its own `taken`; the phone sees its tab there, closes
-//! it and stops listing it; this device then drops the id. A tab with
-//! `later` asks for that ("send to desktop"): it is taken without a click.
+//! it and stops listing it; this device then drops the id. A tab another
+//! device took is left to that one.
+//!
+//! A tab with `later` asks for that ("send to desktop"): it is taken without
+//! a click, by one device only. The round puts it into `taken`, and it opens
+//! once that write went through; a device that reads after sees the claim.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -83,17 +87,17 @@ pub struct RemoteTab {
     pub url: String,
     pub title: String,
     pub space: Option<String>,
-    /// Its device sent it here; it is opened without a click.
-    #[serde(skip)]
-    pub later: bool,
 }
 
 /// What a round over the collection found.
 #[derive(Debug, PartialEq)]
 pub struct Round {
-    /// The tabs open on other devices that this one has not taken.
+    /// The tabs open on other devices that no device has taken.
     pub tabs: Vec<RemoteTab>,
-    /// `Me::taken` without the tabs no device lists any more.
+    /// The tabs sent to the other devices that this round takes: they are
+    /// in `taken`, and open once `all` is written (or needs no write).
+    pub sent: Vec<RemoteTab>,
+    /// `Me::taken` without the tabs no device lists any more, with `sent`.
     pub taken: Vec<String>,
     /// This device's entry differs from the stored one: write `all`.
     pub write: bool,
@@ -104,27 +108,34 @@ pub struct Round {
 /// took nothing has none.
 pub fn round(all: &mut Devices, me: &Me, now: UnixSeconds) -> Round {
     let others = || all.devices.iter().filter(|d| d.id != me.id);
-    let taken: Vec<String> = me
+    let mut taken: Vec<String> = me
         .taken
         .iter()
         .filter(|id| others().any(|d| d.tabs.iter().any(|t| &t.id == *id)))
         .cloned()
         .collect();
-    let tabs = others()
-        .flat_map(|d| {
-            d.tabs
-                .iter()
-                .filter(|t| !taken.contains(&t.id))
-                .map(|t| RemoteTab {
-                    device: d.name.clone(),
-                    id: t.id.clone(),
-                    url: t.url.clone(),
-                    title: t.title.clone(),
-                    space: t.space.clone(),
-                    later: t.later,
-                })
-        })
-        .collect();
+    let (mut tabs, mut sent) = (Vec::new(), Vec::new());
+    for d in others() {
+        for t in &d.tabs {
+            let elsewhere = others().any(|o| o.taken.contains(&t.id));
+            if elsewhere || taken.contains(&t.id) {
+                continue;
+            }
+            let tab = RemoteTab {
+                device: d.name.clone(),
+                id: t.id.clone(),
+                url: t.url.clone(),
+                title: t.title.clone(),
+                space: t.space.clone(),
+            };
+            if t.later {
+                taken.push(t.id.clone());
+                sent.push(tab);
+            } else {
+                tabs.push(tab);
+            }
+        }
+    }
     let stored = all
         .devices
         .iter()
@@ -149,7 +160,12 @@ pub fn round(all: &mut Devices, me: &Me, now: UnixSeconds) -> Round {
             });
         }
     }
-    Round { tabs, taken, write }
+    Round {
+        tabs,
+        sent,
+        taken,
+        write,
+    }
 }
 
 #[cfg(test)]
@@ -162,14 +178,24 @@ mod tests {
         serde_json::from_str(json).unwrap()
     }
 
-    fn phone(taken_by_mac: &str) -> Devices {
+    /// A phone with the tabs "a" and "b", and `more` entries after it.
+    fn phone(more: &str) -> Devices {
+        phone_with("", more)
+    }
+
+    /// `b`: more fields of the phone's tab "b".
+    fn phone_with(b: &str, more: &str) -> Devices {
         stored(&format!(
             r#"{{"devices":[
                 {{"id":"phone","name":"iPhone","updated_at":{NOW},"battery":80,"tabs":[
                     {{"id":"a","url":"https://a.example/","title":"A","space":"s1","group":"x"}},
-                    {{"id":"b","url":"https://b.example/","title":"B","later":true}}]}}
-                {taken_by_mac}]}}"#
+                    {{"id":"b","url":"https://b.example/","title":"B"{b}}}]}}
+                {more}]}}"#
         ))
+    }
+
+    fn ids(tabs: &[RemoteTab]) -> Vec<&str> {
+        tabs.iter().map(|t| t.id.as_str()).collect()
     }
 
     fn me(taken: &[&str]) -> Me {
@@ -192,7 +218,7 @@ mod tests {
             ),
             ("iPhone", Some("s1"))
         );
-        assert!(round.tabs[1].later && !round.write);
+        assert!(round.sent.is_empty() && !round.write);
         assert_eq!(all, phone(""));
     }
 
@@ -201,15 +227,38 @@ mod tests {
         let mut all = phone("");
         let round = round(&mut all, &me(&["a"]), NOW);
         assert!(round.write);
-        assert_eq!(
-            round.tabs.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(),
-            ["b"]
-        );
+        assert_eq!(ids(&round.tabs), ["b"]);
         let json = serde_json::to_value(&all).unwrap();
         assert_eq!(json["devices"][1]["taken"][0], "a");
         // What a newer version wrote in the phone's entry is still there.
         assert_eq!(json["devices"][0]["battery"], 80);
         assert_eq!(json["devices"][0]["tabs"][0]["group"], "x");
+    }
+
+    #[test]
+    fn a_sent_tab_is_taken_by_the_round_itself() {
+        let sent = r#","later":true"#;
+        let mut all = phone_with(sent, "");
+        let first = round(&mut all, &me(&[]), NOW);
+        assert_eq!((ids(&first.tabs), ids(&first.sent)), (vec!["a"], vec!["b"]));
+        assert!(first.write && first.taken == ["b"]);
+        assert_eq!(
+            serde_json::to_value(&all).unwrap()["devices"][1]["taken"][0],
+            "b"
+        );
+        // Opened and noted: the next round leaves it alone.
+        let next = round(&mut all, &me(&["b"]), NOW);
+        assert!(next.sent.is_empty() && !next.write);
+    }
+
+    #[test]
+    fn a_tab_another_device_took_is_left_to_it() {
+        let other = format!(
+            r#",{{"id":"pc","name":"Linux PC","updated_at":{NOW},"tabs":[],"taken":["a","b"]}}"#
+        );
+        let mut all = phone_with(r#","later":true"#, &other);
+        let round = round(&mut all, &me(&[]), NOW);
+        assert!(round.tabs.is_empty() && round.sent.is_empty() && !round.write);
     }
 
     #[test]

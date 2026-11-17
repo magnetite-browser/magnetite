@@ -81,8 +81,11 @@ first, it reads again. Devices cannot overwrite each other there.
 - A click takes it over: it opens here as a Today tab in front, and this
   device notes its id as taken. The other device sees that at its next sync,
   closes the tab and stops listing it; this device then forgets the id.
+- A tab another device took is no longer shown here.
 - A tab the other device sent here ("Send to Desktop") is taken without a
-  click: it opens in the background, marked unread.
+  click: it opens in the background, marked unread. With several desktops
+  in the chain it opens on one: a desktop opens it only after its note of
+  having taken it is stored, and the others see that note.
 - A desktop lists no tabs of its own: its Today tabs are in the sidebar
   already. Its entry holds only what it took, and is gone when that is
   nothing. It names itself by its kind ("Mac", "Linux PC"), never by the
