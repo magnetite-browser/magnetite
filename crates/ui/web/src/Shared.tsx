@@ -52,8 +52,8 @@ export function Shared() {
   }, [shared]);
   if (!shared) return null;
   const { url, folder } = shared;
-  // "Added" only once the app says so: the private space, for one, takes no folder.
-  const add = () => void send({ cmd: "add_shared", url }).then((r) => setAdded(r.added === true));
+  // "Added" only once the app says so (the private space, for one, takes no folder), and only for the link still shown.
+  const add = () => void send({ cmd: "add_shared", url }).then((r) => url === location.href && setAdded(r.added === true));
   const tabs = folder ? count(folder.children) : 0;
   return (
     <div className="scroll h-full px-8 py-10" style={{ background: "var(--bg)" }}>
