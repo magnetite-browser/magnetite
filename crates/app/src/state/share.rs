@@ -68,7 +68,7 @@ impl fmt::Display for ShareError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Empty => "This folder has no tabs to share",
-            Self::TooMany => "Too many tabs for one link",
+            Self::TooMany => "Too much for one link",
             Self::Unreadable => "This link could not be read",
             Self::Private => "The private space keeps no folders",
         })
@@ -91,7 +91,7 @@ fn pack(folder: &Folder, tabs: &mut usize) -> Shared {
                 is_web(&url).then(|| {
                     *tabs += 1;
                     Node::Tab {
-                        title: t.title.clone(),
+                        title: short(&t.title, ""),
                         url,
                     }
                 })
@@ -116,6 +116,10 @@ pub fn share_link(folder: &Folder) -> Result<String, ShareError> {
         _ => {}
     }
     let json = serde_json::to_vec(&shared).map_err(|_| ShareError::Unreadable)?;
+    // What `read_link` would refuse must not go out as a link.
+    if json.len() > MAX_JSON {
+        return Err(ShareError::TooMany);
+    }
     let mut packed = flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::best());
     let data = (packed.write_all(&json))
         .and_then(|()| packed.finish())
@@ -290,6 +294,26 @@ mod tests {
             ))],
         );
         assert_eq!(share_link(&only_settings), Err(ShareError::Empty));
+    }
+
+    #[test]
+    fn a_folder_too_large_to_read_back_is_not_shared() {
+        let long = "a".repeat(MAX_URL - 30);
+        let tabs = |n: usize| {
+            (0..n)
+                .map(|i| {
+                    let url = format!("https://example.org/{i}?{long}");
+                    SidebarNode::Tab(TabItem::new(format!("t{i}"), url, "x".repeat(5000)))
+                })
+                .collect()
+        };
+        // Long titles are cut, so this one still fits and reads back whole.
+        let link = share_link(&folder("Fits", tabs(200))).unwrap();
+        assert_eq!(read_link(&link).unwrap().children.len(), 200);
+        assert_eq!(
+            share_link(&folder("Big", tabs(MAX_TABS))),
+            Err(ShareError::TooMany)
+        );
     }
 
     #[test]

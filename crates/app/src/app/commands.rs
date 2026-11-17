@@ -250,7 +250,8 @@ pub(super) enum UiCommand {
     ReadShared {
         url: String,
     },
-    /// Add the folder of shared link `url` to the active space's pinned tabs.
+    /// Add the folder of shared link `url` to the active space's pinned tabs;
+    /// answers whether it was added.
     AddShared {
         url: String,
     },
@@ -1079,12 +1080,14 @@ impl MagnetiteApp {
                 return Ok(json!({ "folder": crate::state::read_shared(&url).ok() }));
             }
             UiCommand::AddShared { url } => {
-                let text = match self.with_state(|s| s.add_shared(&url)) {
+                let added = self.with_state(|s| s.add_shared(&url));
+                let text = match &added {
                     Ok(title) => format!("Added \u{201c}{title}\u{201d}"),
                     Err(e) => e.to_string(),
                 };
                 self.push_state(engine);
                 Self::ui_call(engine, "notice", &json!({ "text": text }));
+                return Ok(json!({ "added": added.is_ok() }));
             }
             UiCommand::SetFolderIcon { id, icon } => {
                 self.with_state(|s| {

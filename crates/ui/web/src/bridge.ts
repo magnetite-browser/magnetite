@@ -730,6 +730,7 @@ interface Replies {
   sync_code: { words: string | null };
   copy_link: CopyResult;
   read_shared: { folder: Folder | null };
+  add_shared: { added: boolean };
   downloads: { items: DownloadEntry[] };
   permission_prompts: { items: PermissionPrompt[] };
   update_status: UpdateInfo;

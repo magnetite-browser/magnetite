@@ -30,24 +30,30 @@ function Nodes({ nodes }: { nodes: SidebarNode[] }) {
 }
 
 export function Shared() {
-  // Undefined until the app answered; null for a link it could not read.
-  const [folder, setFolder] = useState<Folder | null>();
+  // The link that was read and its folder (null: unreadable); undefined until the app answered.
+  const [shared, setShared] = useState<{ url: string; folder: Folder | null }>();
   const [added, setAdded] = useState(false);
   useEffect(() => {
     document.title = "Shared folder";
     void send({ cmd: "get_state" }).then((s) => s.settings && applyAppearance(s.settings.appearance));
     const read = () => {
+      const url = location.href;
+      // Nothing of the link before stays on screen, and an answer for it that comes late is dropped.
+      setShared(undefined);
       setAdded(false);
-      void send({ cmd: "read_shared", url: location.href }).then((r) => setFolder(r.folder ?? null));
+      void send({ cmd: "read_shared", url }).then((r) => url === location.href && setShared({ url, folder: r.folder ?? null }));
     };
     read();
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);
   }, []);
   useEffect(() => {
-    if (folder) document.title = folder.title;
-  }, [folder]);
-  if (folder === undefined) return null;
+    if (shared?.folder) document.title = shared.folder.title;
+  }, [shared]);
+  if (!shared) return null;
+  const { url, folder } = shared;
+  // "Added" only once the app says so: the private space, for one, takes no folder.
+  const add = () => void send({ cmd: "add_shared", url }).then((r) => setAdded(r.added === true));
   const tabs = folder ? count(folder.children) : 0;
   return (
     <div className="scroll h-full px-8 py-10" style={{ background: "var(--bg)" }}>
@@ -57,7 +63,7 @@ export function Shared() {
           <>
             <div className="mt-1 flex items-center gap-3">
               <h1 className="min-w-0 flex-1 truncate text-[22px] font-semibold">{folder.title}</h1>
-              <button className="btn" disabled={added} onClick={() => { void send({ cmd: "add_shared", url: location.href }); setAdded(true); }}>
+              <button className="btn" disabled={added} onClick={add}>
                 {added ? "Added" : "Add to sidebar"}
               </button>
             </div>

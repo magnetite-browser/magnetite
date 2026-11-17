@@ -42,18 +42,25 @@ export const GLYPH_NAMES = Object.keys(ICONS);
 const EMOJI_TO_GLYPH: Record<string, string> = { "⚡": "bolt", "🏠": "home", "💼": "briefcase", "📚": "book", "🎨": "flame", "🎧": "music", "🛠️": "wrench", "🧪": "flask", "🌍": "globe", "🛒": "cart", "💬": "chat", "📷": "camera", "🎮": "gamepad", "✈️": "plane", "🌿": "leaf", "🔥": "flame", "💡": "bolt", "🧭": "compass", "🗂️": "folder", "✦": "star", "◆": "diamond", "●": "circle", "▲": "triangle", "■": "square", "🏥": "medical", "🐙": "github", "❤️": "heart", "⭐": "star" };
 const NAME_ALIASES: Record<string, string> = { flash: "bolt", work: "briefcase", terminal: "code", gamecontroller: "gamepad", paintbrush: "flame", graduationcap: "book", film: "camera", airplane: "plane" };
 
+/**
+ * `map[key]`, but only for a name the map has itself. An icon value can come
+ * from outside (an import, sync, a shared link), and "constructor" must not
+ * find what every object inherits.
+ */
+function own<T>(map: Record<string, T>, key: string): T | undefined {
+  return Object.hasOwn(map, key) ? map[key] : undefined;
+}
+
 /** Resolve an icon value (glyph name, an imported icon name or emoji) to a glyph name. */
 export function glyphFor(icon?: string): string | null {
   if (!icon) return null;
-  if (ICONS[icon]) return icon;
+  if (own(ICONS, icon)) return icon;
   const lower = icon.toLowerCase();
-  if (NAME_ALIASES[lower]) return NAME_ALIASES[lower];
-  if (ICONS[lower]) return lower;
-  return EMOJI_TO_GLYPH[icon] ?? null;
+  return own(NAME_ALIASES, lower) ?? (own(ICONS, lower) ? lower : (own(EMOJI_TO_GLYPH, icon) ?? null));
 }
 
 export function Glyph({ name, size = 14, ...rest }: { name: string; size?: number } & LucideProps) {
-  const Icon = ICONS[name] ?? L.Circle;
+  const Icon = own(ICONS, name) ?? L.Circle;
   return <Icon size={size} strokeWidth={1.75} {...rest} />;
 }
 

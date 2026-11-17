@@ -18,7 +18,8 @@ Nothing is uploaded: the folder travels in the link itself.
   out. A folder without any web page is not shared.
 - A smart folder is shared as the tabs it holds at that moment; the
   receiver gets a plain folder.
-- One link carries at most 500 tabs.
+- One link carries at most 500 tabs and 512 KB of text; a larger folder is
+  not shared ("Too much for one link"). Titles are cut at 200 characters.
 - Nothing else leaves the device: no profile, no login, no history, and no
   word about who shared it.
 
