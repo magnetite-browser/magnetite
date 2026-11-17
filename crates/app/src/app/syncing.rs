@@ -221,12 +221,9 @@ impl MagnetiteApp {
                         && !s.unsynced_spaces.contains(*id)
                 })
                 .cloned()
-                .or_else(|| {
-                    s.is_private_space(&s.active_space)
-                        .then(|| s.sidebar.spaces.first().map(|sp| sp.id.clone()))
-                        .flatten()
-                })
-                .unwrap_or_else(|| s.active_space.clone());
+                // Else the space in front, also one kept on this device:
+                // the tab was sent to this device, and has to open somewhere.
+                .unwrap_or_else(|| s.lasting_space(&s.active_space));
             let title = if tab.title.is_empty() {
                 &tab.url
             } else {
