@@ -13,7 +13,7 @@ import { record } from "./recorder";
 import { MediaBar, type MediaEntry } from "./MediaBar";
 import { NewMenu } from "./NewMenu";
 import { PinnedExtensions } from "./PinnedExtensions";
-import { FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, type RowContext } from "./Rows";
+import { DeviceTabRow, FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, type RowContext } from "./Rows";
 import { windowBackground } from "./backgrounds";
 import { IS_MAC, accentCss, applyAppearance, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, onRecord, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
 import { IconPicker, SpaceGlyph } from "./Glyphs";
@@ -84,6 +84,10 @@ export function App() {
   const space = state.sidebar.spaces.find((s) => s.id === state.active_space) ?? state.sidebar.spaces[0]!;
   // The private space: only Today tabs, each in a profile of its own, and nothing of it is kept.
   const isPrivate = state.private_space === space.id;
+  // Other devices' tabs show in the space they are open in there; one of a
+  // space this device does not have shows in whichever space is in front.
+  const deviceTabs = isPrivate ? [] : state.device_tabs.filter((t) =>
+    t.space === space.id || !state.sidebar.spaces.some((s) => s.id === t.space));
   // The same in every space but the private one (a favorite runs in its own
   // profile, which is kept): one list of favorites per profile that has some.
   const favoriteLists = isPrivate ? [] : state.sidebar.favorites.filter((f) => f.items.length > 0);
@@ -255,6 +259,7 @@ export function App() {
           {space.today.map((t, i) => (
             <TabRow key={t.id} ctx={ctx} tab={t} section="today" index={i} onDropAt={dropToday} />
           ))}
+          {deviceTabs.map((t) => <DeviceTabRow key={t.id} tab={t} />)}
         </div>
       </div>
 

@@ -3,8 +3,10 @@
 
 use magnetite_engine::Engine;
 
+use crate::devices::{Me, RemoteTab};
 use crate::state::{SyncSettings, now};
 use crate::sync::{self, Job, Outcome, SyncClient};
+use crate::url_policy;
 
 use super::{MagnetiteApp, global};
 
@@ -61,7 +63,22 @@ impl MagnetiteApp {
                 return None;
             }
             let snapshot = s.sidebar_for_sync();
+            if s.settings.sync.device_id.is_empty() {
+                s.settings.sync.device_id = crate::state::new_id();
+            }
+            let me = Me {
+                id: s.settings.sync.device_id.clone(),
+                // The kind of device is all the others need to tell them apart.
+                name: if cfg!(target_os = "macos") {
+                    "Mac"
+                } else {
+                    "Linux PC"
+                }
+                .into(),
+                taken: s.settings.sync.taken.clone(),
+            };
             Some(Job::Sync {
+                me,
                 sidebar_unchanged: s.synced_sidebar.as_ref() == Some(&snapshot),
                 snapshot: Box::new(snapshot),
                 settings: Box::new(s.settings.clone()),
@@ -123,6 +140,28 @@ impl MagnetiteApp {
                 self.present(engine);
                 self.push_state(engine);
             }
+            Outcome::Devices { tabs, forgotten } => {
+                let sent = self.with_state(|s| {
+                    let sync = &mut s.settings.sync;
+                    sync.taken.retain(|id| !forgotten.contains(id));
+                    // Taken with a click while this round was under way.
+                    let (sent, listed): (Vec<_>, Vec<_>) = tabs
+                        .into_iter()
+                        .filter(|t| !sync.taken.contains(&t.id))
+                        .partition(|t| t.later);
+                    s.device_tabs = listed;
+                    sent
+                });
+                // Tabs sent here open by themselves, in the background.
+                let any = !sent.is_empty();
+                for tab in sent {
+                    self.take_device_tab(engine, &tab, true);
+                }
+                self.push_state(engine);
+                if any {
+                    self.sync_now();
+                }
+            }
             Outcome::Error(msg) | Outcome::ConnectFailed(msg) => {
                 self.with_state(|s| s.settings.sync.last_error = Some(msg));
                 self.push_state(engine);
@@ -131,9 +170,62 @@ impl MagnetiteApp {
                 self.with_state(|s| {
                     s.settings.sync = SyncSettings::default();
                     s.synced_sidebar = None;
+                    s.device_tabs.clear();
                 });
                 self.push_state(engine);
             }
+        }
+    }
+
+    /// Take the tab with `id` over from the device it is open on (a click
+    /// on its row): it opens here in front, and its device closes it.
+    pub(super) fn take_device_tab_by_id(&self, engine: &Engine, id: &str) {
+        let tab = self.with_state(|s| {
+            let at = s.device_tabs.iter().position(|t| t.id == id)?;
+            Some(s.device_tabs.remove(at))
+        });
+        if let Some(tab) = tab {
+            self.take_device_tab(engine, &tab, false);
+            self.push_state(engine);
+            self.sync_now();
+        }
+    }
+
+    /// Open `tab` of another device as a Today tab of its space (the space
+    /// in front if this device does not have that one) and note it as taken,
+    /// so its device closes it. `background`: unread, behind the tab in front.
+    fn take_device_tab(&self, engine: &Engine, tab: &RemoteTab, background: bool) {
+        // Taken either way: an address this device does not open would
+        // otherwise come back with every sync.
+        let opened = self.with_state(|s| {
+            s.settings.sync.taken.push(tab.id.clone());
+            if !url_policy::allowed(&tab.url, url_policy::Source::Stored) {
+                return None;
+            }
+            let space = tab
+                .space
+                .as_ref()
+                .filter(|id| s.space(id).is_some())
+                .cloned()
+                .unwrap_or_else(|| s.active_space.clone());
+            let title = if tab.title.is_empty() {
+                &tab.url
+            } else {
+                &tab.title
+            };
+            let id = s.new_today_tab(&space, &tab.url, title);
+            if background && let Some(t) = s.find_tab_mut(&id) {
+                t.unread = true;
+            }
+            Some((space, id))
+        });
+        if let Some((space, id)) = opened
+            && !background
+        {
+            if self.with_state(|s| s.active_space != space) {
+                self.activate_space(engine, &space);
+            }
+            self.activate_tab(engine, &id);
         }
     }
 }

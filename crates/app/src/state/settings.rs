@@ -463,6 +463,11 @@ pub struct SyncSettings {
     /// This device started its chain. Only that device writes into a chain
     /// that holds nothing yet; one that joined waits for the first data.
     pub started_here: bool,
+    /// This install among the chain's devices; made up when it first syncs.
+    pub device_id: String,
+    /// Tabs of other devices taken over here that their devices may still
+    /// list (`devices` module).
+    pub taken: Vec<String>,
 }
 
 impl Settings {

@@ -29,6 +29,7 @@ use magnetite_sync_proto::{
 };
 use serde::{Deserialize, Serialize};
 
+use crate::devices::{self, DEVICES, Devices, Me, RemoteTab};
 use crate::lock;
 use crate::state::{Settings, SyncSettings};
 
@@ -176,6 +177,8 @@ pub enum Job {
         /// what a device always keeps of its own): there is nothing to write,
         /// even where it differs from the server's.
         sidebar_unchanged: bool,
+        /// This device among the chain's devices (`devices` module).
+        me: Me,
     },
     /// Stop syncing on this device; the chain stays on the server.
     Leave,
@@ -201,6 +204,13 @@ pub enum Outcome {
     /// Pushed successfully (or nothing to push); remember the new versions.
     Pushed {
         versions: Vec<(String, u64)>,
+    },
+    /// The tabs open on the chain's other devices, and which of the tabs
+    /// this device took over no device lists any more (`forgotten`): their
+    /// handover is done.
+    Devices {
+        tabs: Vec<RemoteTab>,
+        forgotten: Vec<String>,
     },
     Error(String),
     Disconnected,
@@ -244,6 +254,7 @@ struct SyncRequest {
     snapshot: Box<SidebarSnapshot>,
     settings: Box<Settings>,
     sidebar_unchanged: bool,
+    me: Me,
 }
 
 /// Shared by the UI thread and the sync thread.
@@ -313,11 +324,13 @@ impl SyncClient {
                 snapshot,
                 settings,
                 sidebar_unchanged,
+                me,
             } => {
                 let request = SyncRequest {
                     snapshot,
                     settings,
                     sidebar_unchanged,
+                    me,
                 };
                 if lock(&self.shared.pending).replace(request).is_some() {
                     return; // the wake-up queued for the older one runs this
@@ -371,7 +384,9 @@ fn run(mut w: Worker, rx: &Receiver<Msg>, shared: &Shared, notify: &Notify) {
                 // Not inside the `match`: its lock would last the whole sync.
                 let request = lock(&shared.pending).take();
                 request.map_or_else(Vec::new, |r| {
-                    w.sync(&r.snapshot, &r.settings, r.sidebar_unchanged)
+                    let mut outcomes = w.sync(&r.snapshot, &r.settings, r.sidebar_unchanged);
+                    outcomes.extend(w.devices(&r.me));
+                    outcomes
                 })
             }
             Msg::DeleteRemote { server, code } => w.delete_remote(&server, &code),
@@ -791,6 +806,65 @@ impl Worker {
         }
     }
 
+    /// Read the tabs open on the chain's other devices, and write which of
+    /// them this device took over. Only this device's entry changes; when
+    /// another device wrote in between, the round starts over.
+    fn devices(&self, me: &Me) -> Vec<Outcome> {
+        let Some(code) = self.code.clone() else {
+            return Vec::new();
+        };
+        let keys = code.keys();
+        let id = keys.collection_id(DEVICES);
+        let path = format!("/collections/{id}");
+        let unreadable = || "devices: cannot read them; is Magnetite up to date?".to_string();
+        for _ in 0..4 {
+            let (version, mut all) = match self.request(&keys, "GET", &path, None) {
+                Ok(r) if r.status == 200 => {
+                    let remote: CollectionResponse = match r.json() {
+                        Ok(c) => c,
+                        Err(e) => return vec![Outcome::Error(e)],
+                    };
+                    // Data this version cannot read is not written over.
+                    let read = keys
+                        .open(&id, remote.version, &remote.sealed())
+                        .ok()
+                        .and_then(|data| serde_json::from_slice::<Devices>(&data).ok());
+                    match read {
+                        Some(all) => (remote.version, all),
+                        None => return vec![Outcome::Error(unreadable())],
+                    }
+                }
+                // No device listed a tab yet.
+                Ok(r) if r.status == 404 => (0, Devices::default()),
+                Ok(r) => return vec![Outcome::Error(r.error())],
+                Err(e) => return vec![Outcome::Error(e)],
+            };
+            let round = devices::round(&mut all, me, crate::state::now());
+            let done = Outcome::Devices {
+                tabs: round.tabs,
+                forgotten: me
+                    .taken
+                    .iter()
+                    .filter(|id| !round.taken.contains(id))
+                    .cloned()
+                    .collect(),
+            };
+            if !round.write {
+                return vec![done];
+            }
+            let bytes = serde_json::to_vec(&all).unwrap_or_default();
+            match self.push(&keys, DEVICES, version, &bytes) {
+                Ok(_) => return vec![done],
+                // Another device wrote first: read again.
+                Err(e) if e.contains("another device wrote first") => {}
+                Err(e) => return vec![Outcome::Error(e)],
+            }
+        }
+        vec![Outcome::Error(
+            "devices: other devices kept writing first; trying again later".into(),
+        )]
+    }
+
     /// Erase `code`'s chain on `server`. This device left it already, so only
     /// a failure is reported; the pending record stays for another try.
     fn delete_remote(&self, server: &str, code: &SyncCode) -> Vec<Outcome> {
@@ -881,6 +955,7 @@ mod tests {
             Outcome::ConnectFailed(e) => format!("ConnectFailed({e})"),
             Outcome::Pulled { .. } => "Pulled".into(),
             Outcome::Pushed { .. } => "Pushed".into(),
+            Outcome::Devices { .. } => "Devices".into(),
             Outcome::Error(e) => format!("Error({e})"),
             Outcome::Disconnected => "Disconnected".into(),
         }
@@ -1441,6 +1516,7 @@ mod tests {
             snapshot: Box::new(snapshot("Work")),
             settings: Box::new(settings_with(&w.settings)),
             sidebar_unchanged: false,
+            me: Me::default(),
         };
         client.submit(sync());
         let _connection = stalled.accept().unwrap(); // the worker is now stuck

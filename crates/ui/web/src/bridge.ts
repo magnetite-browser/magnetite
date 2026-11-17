@@ -234,6 +234,17 @@ export interface MediaState {
 
 export type MediaAction = "play" | "pause" | "next" | "previous" | "seekforward" | "seekbackward";
 
+/** A tab open on another device of the sync chain. */
+export interface DeviceTab {
+  /** The device's name: "iPhone". */
+  device: string;
+  id: Id;
+  url: string;
+  title: string;
+  /** The space it is open in there, if this device has it. */
+  space: Id | null;
+}
+
 export interface UiState {
   sidebar: Snapshot;
   active_space: Id;
@@ -243,6 +254,8 @@ export interface UiState {
   runtime: Record<Id, TabRuntime>;
   sidebar_visible: boolean;
   archive_count: number;
+  /** Tabs open on other devices of the sync chain; a click takes one over. */
+  device_tabs: DeviceTab[];
   /** Visits in the history; the history view asks again when it changes. */
   history_count: number;
   panes: Id[];
@@ -516,6 +529,7 @@ export type Command =
   | { cmd: "separate_all"; id?: Id }
   /** Archive the current space's Today tabs, all but `keep`. */
   | { cmd: "archive_today"; keep?: Id }
+  | { cmd: "take_device_tab"; id: Id }
   | { cmd: "reopen_closed" }
   | { cmd: "restore_archived"; id: Id }
   | { cmd: "remove_archived"; id: Id }

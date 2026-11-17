@@ -5,6 +5,7 @@ mod agent;
 mod app;
 mod capture;
 mod dev;
+mod devices;
 mod downloads;
 mod files;
 mod smart;

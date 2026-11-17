@@ -323,6 +323,11 @@ pub(super) enum UiCommand {
         keep: Option<String>,
     },
     ReopenClosed,
+    /// Take the tab `id` over from the device of the sync chain it is open
+    /// on.
+    TakeDeviceTab {
+        id: String,
+    },
     RestoreArchived {
         id: String,
     },
@@ -1199,6 +1204,7 @@ impl MagnetiteApp {
                 });
                 self.present(engine);
             }
+            UiCommand::TakeDeviceTab { id } => self.take_device_tab_by_id(engine, &id),
             UiCommand::ArchiveToday { keep } => {
                 let contents = self.with_state(|s| {
                     let space = s.active_space.clone();

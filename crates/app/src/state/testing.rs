@@ -51,6 +51,7 @@ pub(super) fn state() -> AppState {
         recent_tabs: Vec::new(),
         switcher: None,
         synced_sidebar: None,
+        device_tabs: Vec::new(),
         settings: Settings::default(),
         sidebar_visible: true,
         window: 1,

@@ -45,6 +45,8 @@ pub struct UiState<'a> {
     pub runtime: &'a HashMap<Id, TabRuntime>,
     pub sidebar_visible: bool,
     pub archive_count: usize,
+    /// Tabs open on other devices of the sync chain; a click takes one over.
+    pub device_tabs: &'a [crate::devices::RemoteTab],
     /// Visits in the history: the history view asks again when it changes.
     pub history_count: usize,
     /// Tabs currently on screen in the active space (one, or a split's pages).
@@ -221,6 +223,9 @@ pub struct AppState {
     /// took one from sync: while what it would send now is still this, the
     /// device has changed nothing and writes nothing. Not saved.
     pub synced_sidebar: Option<SidebarSnapshot>,
+    /// The tabs open on the chain's other devices, as of the last sync.
+    /// Not saved.
+    pub device_tabs: Vec<crate::devices::RemoteTab>,
     /// Nothing was saved in this data folder before this start. Not saved.
     pub first_start: bool,
     /// Spaces kept on this device alone ("Only on this device"). The
@@ -279,6 +284,7 @@ impl AppState {
             runtime: &self.runtime,
             sidebar_visible: self.sidebar_visible,
             archive_count: self.archive.len(),
+            device_tabs: &self.device_tabs,
             history_count: self.history.len(),
             panes: self.visible_panes(),
             split: self.visible_split(),

@@ -68,6 +68,7 @@ export const PaletteIcon = icon(L.Palette);
 export const CookieIcon = icon(L.Cookie);
 export const PuzzleIcon = icon(L.Puzzle);
 export const DevicesIcon = icon(L.MonitorSmartphone);
+export const PhoneIcon = icon(L.Smartphone);
 export const PrivacyIcon = icon(L.ShieldCheck);
 export const AdblockIcon = icon(L.ShieldBan);
 export const InfoIcon = icon(L.Info);

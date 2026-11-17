@@ -1,11 +1,11 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Favicon } from "./Favicon";
-import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, SmartFolderIcon, SnoozeIcon, Speaker, SpeakerOff, WakeIcon, WarningIcon } from "./Icons";
+import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, PhoneIcon, SmartFolderIcon, SnoozeIcon, Speaker, SpeakerOff, WakeIcon, WarningIcon } from "./Icons";
 import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./smart";
 import { Glyph, glyphFor } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
 import { errorCount } from "./DevBar";
-import { findTab, hostOf, send, splitIds, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { findTab, hostOf, send, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 
 export type Section = "favorites" | "pinned" | "today";
@@ -855,5 +855,21 @@ function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
         </button>
       )}
     </div>
+  );
+}
+
+/** A tab open on another device of the sync chain, marked by the device's
+ *  icon on the right. A click takes it over: it opens here, and its device
+ *  closes it at its next sync. */
+export function DeviceTabRow({ tab }: { tab: DeviceTab }) {
+  const hint = `Open on ${tab.device}. Click to continue here.`;
+  return (
+    <button className="row device-tab w-full" title={hint} onClick={() => send({ cmd: "take_device_tab", id: tab.id })}>
+      <Favicon url={tab.url} />
+      <span className="title text-left">{tab.title || hostOf(tab.url)}</span>
+      <span className="from-device" aria-label={`Open on ${tab.device}`}>
+        <PhoneIcon width={13} height={13} />
+      </span>
+    </button>
   );
 }

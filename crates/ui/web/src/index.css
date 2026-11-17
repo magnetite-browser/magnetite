@@ -93,6 +93,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 /* "Keep active": a mark, not a button. It makes room for the close button. */
 .row .kept { width: 16px; height: 20px; flex: none; display: grid; place-items: center; color: var(--muted); }
 .row:hover .kept, .row:focus-within .kept { visibility: hidden; }
+/* The device a tab of another device is open on; it stays on hover: the row has no other button. */
+.row .from-device { width: 16px; height: 20px; flex: none; display: grid; place-items: center; color: var(--muted); }
 .row:hover .slot.ghost, .row:focus-within .slot.ghost { opacity: 1; }
 .row .slot:hover { background: rgba(255,255,255,0.1); color: var(--fg); }
 /* A toggle that is on (a smart folder showing its snoozed items). */

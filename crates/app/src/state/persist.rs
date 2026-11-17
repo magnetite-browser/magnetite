@@ -214,6 +214,7 @@ impl AppState {
             recent_tabs: Vec::new(),
             switcher: None,
             synced_sidebar: None,
+            device_tabs: Vec::new(),
             saver: Saver::new(path.clone()),
             path,
         };
