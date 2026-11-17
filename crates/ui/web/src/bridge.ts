@@ -368,6 +368,7 @@ export const lookOf = (a: Appearance, id: Id): SpaceLook => a.looks[id] ?? DEFAU
 export function applyAppearance(a: Pick<Appearance, "text_scale" | "density">) {
   const root = document.documentElement;
   root.style.zoom = String(a.text_scale / 100);
+  root.style.setProperty("--zoom", root.style.zoom);
   root.dataset.density = a.density;
 }
 
@@ -696,6 +697,8 @@ declare global {
       captureBusy: (r: { what: string }) => void;
       /** macOS: a two-finger swipe began somewhere in the app. */
       swipeBegan: () => void;
+      /** The window this page is in has this size now, in window points. */
+      windowSize: (width: number, height: number) => void;
     };
   }
 }
@@ -846,6 +849,17 @@ const notices = signal<string>();
 const captures = signal<CaptureEvent>();
 const swipes = signal();
 
+/**
+ * Keep the window's size where the styles read it (`--win-w`, `--win-h`):
+ * a background across the whole window is cut to this page with it
+ * (`windowBackground`).
+ */
+function windowSize(width: number, height: number) {
+  const root = document.documentElement;
+  root.style.setProperty("--win-w", `${width}px`);
+  root.style.setProperty("--win-h", `${height}px`);
+}
+
 window.__magnetite = {
   setState: states.emit,
   copied: copies.emit,
@@ -863,7 +877,10 @@ window.__magnetite = {
   captureFailed: ({ error }) => captures.emit({ kind: "failed", error }),
   captureBusy: ({ what }) => captures.emit({ kind: "busy", what }),
   swipeBegan: swipes.emit,
+  windowSize,
 };
+// Until the app's first word: a page's outer size is its window's.
+windowSize(window.outerWidth, window.outerHeight);
 
 /** The UI state, now (once the app sent it) and on every push. */
 export const subscribe = states.on;

@@ -46,11 +46,14 @@ is chosen at first), and the settings below it change that space.
 - **Colour**: the space colour (`accent`). It syncs with the space.
 - **Colour strength**: how much of the space colour the window takes, 0 to
   30 percent; 8 unless changed.
-- **Sidebar background**: None, or an effect in the space colour: Grain
+- **Background**: None, or an effect in the space colour: Grain
   (fine noise), Glow (soft patches in two corners), Aurora (the space colour
   and two neighbouring hues) and Fade (the colour running out from the top);
   the last three carry the grain too. Or a picture of your own, which lies
-  under a veil of the sidebar's colour so the rows stay readable.
+  under a veil of the sidebar's colour so the rows stay readable. An
+  effect is drawn once across the whole window: the sidebar, the frame
+  around the pages, the gaps of a split and the top bar each show their
+  part of it, with no edge between them. A picture stays in the sidebar.
 - **Empty window**: a picture of your own behind the window while no tab of
   the space is on screen, in place of the logo.
 
@@ -231,7 +234,7 @@ in front, the space beside it comes to the front for the link.
 
 - Choosing icon, colour and profile while creating a space.
 - A light appearance.
-- Syncing a space's look, and a background effect behind the empty window.
+- Syncing a space's look.
 
 Code: `crates/core/src/model.rs`, `crates/app/src/app/commands.rs`,
 `crates/app/src/state/profiles.rs`, `crates/app/src/state/private.rs`,

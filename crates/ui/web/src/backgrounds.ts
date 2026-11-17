@@ -1,6 +1,6 @@
-// Backgrounds from Settings → Appearance, each space its own: the effect or
-// own image over the sidebar's colour, and the user's own images (stored by
-// the app, served at /user-images/<slot>-<space>).
+// Backgrounds from Settings → Appearance, each space its own: the effect
+// across the window or the own image in the sidebar, and the user's own
+// images (stored by the app, served at /user-images/<slot>-<space>).
 import type { CSSProperties } from "react";
 import { DEFAULT_ACCENT, accentCss, send, type Color, type Id, type SpaceLook } from "./bridge";
 
@@ -33,29 +33,55 @@ function turned(c: Color | undefined, degrees: number, alpha: number): string {
 const patch = (colour: string, at: string, size: string) => `radial-gradient(${size} at ${at}, ${colour}, transparent 72%)`;
 
 /**
- * The sidebar's background: its colour `chrome` and, over it, the effect of
- * the space's `look`. Effects take the space colour `accent` and carry the
- * grain; an own image lies under a veil of `chrome`, so the rows stay
+ * A part of the window that paints its own background: the sidebar (docked
+ * or floating), the frame around the pages, the top bar.
+ */
+export type WindowPart = "sidebar" | "frame" | "topbar";
+
+/**
+ * The corner of the window each part reaches, whatever the sidebar's width
+ * and with or without the top bar: a picture as large as the window, held at
+ * that corner, shows the part's own slice of it.
+ */
+const ANCHOR: Record<WindowPart, string> = { sidebar: "left bottom", frame: "right bottom", topbar: "left top" };
+
+/** The window's size on this page (`--win-w` and `--win-h` are the app's, in window points; `--zoom` is the text size). */
+const WINDOW_SIZE = "calc(var(--win-w) / var(--zoom, 1)) calc(var(--win-h) / var(--zoom, 1))";
+
+/**
+ * The background of `part` of the window: its colour `chrome` and, over it,
+ * the effect of the space's `look`. An effect is one picture across the
+ * whole window, in the space colour `accent` and under the grain; each part
+ * shows its slice, so no edge shows between them. An own image is the
+ * sidebar's alone and lies under a veil of `chrome`, so the rows stay
  * readable on any picture.
  */
-export function sidebarBackground(chrome: string, space: Id, look: SpaceLook, accent?: Color): CSSProperties {
-  const layers = (...images: string[]): CSSProperties => ({ backgroundColor: chrome, backgroundImage: images.join(", ") });
+export function windowBackground(part: WindowPart, chrome: string, space: Id, look: SpaceLook, accent?: Color): CSSProperties {
+  const flat: CSSProperties = { backgroundColor: chrome };
+  // The grain repeats; the effect's layers under it span the window once.
+  const effect = (...images: string[]): CSSProperties => ({
+    ...flat,
+    backgroundImage: [GRAIN, ...images].join(", "),
+    backgroundRepeat: ["repeat", ...images.map(() => "no-repeat")].join(", "),
+    backgroundSize: ["auto", ...images.map(() => WINDOW_SIZE)].join(", "),
+    backgroundPosition: ["0 0", ...images.map(() => ANCHOR[part])].join(", "),
+  });
   switch (look.sidebar_effect) {
     case "grain":
-      return layers(GRAIN);
+      return effect();
     case "glow":
-      return layers(GRAIN, patch(accentCss(accent, 0.34), "0% 0%", "130% 55%"), patch(accentCss(accent, 0.2), "100% 100%", "110% 45%"));
+      return effect(patch(accentCss(accent, 0.34), "0% 0%", "45% 60%"), patch(accentCss(accent, 0.22), "100% 100%", "45% 55%"));
     case "aurora":
-      return layers(GRAIN, patch(accentCss(accent, 0.32), "0% 0%", "120% 45%"), patch(turned(accent, 70, 0.24), "100% 45%", "110% 40%"), patch(turned(accent, -60, 0.26), "0% 100%", "120% 45%"));
+      return effect(patch(accentCss(accent, 0.32), "0% 0%", "45% 50%"), patch(turned(accent, 70, 0.24), "100% 30%", "40% 50%"), patch(turned(accent, -60, 0.26), "20% 100%", "50% 45%"));
     case "fade":
-      return layers(GRAIN, `linear-gradient(${accentCss(accent, 0.3)}, transparent 70%)`);
+      return effect(`linear-gradient(${accentCss(accent, 0.3)}, transparent 70%)`);
     case "image": {
-      if (look.sidebar_image == null) return { backgroundColor: chrome };
+      if (part !== "sidebar" || look.sidebar_image == null) return flat;
       const veil = `color-mix(in srgb, ${chrome} 62%, transparent)`;
-      return { ...layers(`linear-gradient(${veil}, ${veil})`, `url("${userImageUrl("sidebar", space, look.sidebar_image)}")`), backgroundSize: "cover", backgroundPosition: "center" };
+      return { ...flat, backgroundImage: `linear-gradient(${veil}, ${veil}), url("${userImageUrl("sidebar", space, look.sidebar_image)}")`, backgroundSize: "cover", backgroundPosition: "center" };
     }
     default:
-      return { backgroundColor: chrome };
+      return flat;
   }
 }
 

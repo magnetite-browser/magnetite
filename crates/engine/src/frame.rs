@@ -717,9 +717,17 @@ wrap_window_delegate! {
             });
         }
 
-        fn on_window_bounds_changed(&self, _window: Option<&mut Window>, _new_bounds: Option<&Rect>) {
+        fn on_window_bounds_changed(&self, _window: Option<&mut Window>, new_bounds: Option<&Rect>) {
             let engine = Engine::global();
             engine.in_window(self.win, || {
+                // Our pages draw one background across the window: each
+                // needs the window's size, which only some of them see change.
+                if let Some(b) = new_bounds {
+                    engine.ui_eval_all(&format!(
+                        "window.__magnetite && window.__magnetite.windowSize({}, {})",
+                        b.width, b.height
+                    ));
+                }
                 engine.reposition_contents();
                 engine.apply_drag_regions();
                 engine.update_edge_zone();

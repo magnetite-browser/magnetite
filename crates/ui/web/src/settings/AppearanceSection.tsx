@@ -117,7 +117,7 @@ export function AppearanceSection({ info, update, reload }: { info: Info; update
       <Field label="Colour strength" hint="How much of the space colour the window takes.">
         <Slider value={look.tint} min={0} max={30} step={1} unit="%" reset={8} onChange={(v, now) => setLook({ tint: v }, now)} />
       </Field>
-      <Field label="Sidebar background" hint="An effect in the space colour over the sidebar, or a picture of your own under its rows.">
+      <Field label="Background" hint="An effect in the space colour across the window, or a picture of your own under the sidebar's rows.">
         <div className="flex flex-wrap items-center gap-3">
           <div className="seg">
             {EFFECTS.map(([label, effect]) => (

@@ -1,8 +1,9 @@
-//! What the page area shows while no page is on screen: our own page
-//! `magnetite://ui/empty` (the logo and how to open a tab, or the user's
-//! background). A browser view filling the frame's content panel, behind
-//! where the pages go; hidden while a page is shown, so it never flashes up
-//! between two tabs.
+//! What the page area shows behind the pages: our own page
+//! `magnetite://ui/empty`. A browser view filling the frame's content panel,
+//! always shown: around the pages it is the window's frame (with the look of
+//! the space), and while no page is on screen it shows the logo and how to
+//! open a tab, or the user's background. The page itself tells the two apart
+//! from the state it is sent, so the logo never flashes up between two tabs.
 
 use cef::*;
 
@@ -15,8 +16,8 @@ pub(crate) struct EmptyPage {
 }
 
 impl EmptyPage {
-    /// Fill `panel` with the page, hidden. `argb` is what it shows until it
-    /// has loaded. Call without the engine's lock held.
+    /// Fill `panel` with the page. `argb` is what it shows until it has
+    /// loaded. Call without the engine's lock held.
     pub(crate) fn new(panel: &Panel, argb: u32) -> Option<Self> {
         panel.set_to_fill_layout()?;
         let settings = BrowserSettings {
@@ -35,7 +36,6 @@ impl EmptyPage {
             Some(&mut EmptyViewDelegate::new()),
         )?;
         let mut child = View::from(&view);
-        child.set_visible(0);
         panel.add_child_view(Some(&mut child));
         Some(Self { view })
     }
@@ -46,19 +46,6 @@ impl EmptyPage {
 }
 
 impl Engine {
-    /// Show the page for an empty window, or hide it: call with whether no
-    /// page is on screen.
-    pub fn set_empty_hint(&self, visible: bool) {
-        let view = (self.lock().win.frame.as_ref())
-            .and_then(|f| f.empty.as_ref())
-            .map(|e| View::from(&e.view));
-        if let Some(view) = view
-            && (view.is_visible() != 0) != visible
-        {
-            view.set_visible(visible.into());
-        }
-    }
-
     /// The empty page's browser in the current window.
     pub(crate) fn empty_browser(&self) -> Option<Browser> {
         (self.lock().win.frame.as_ref()).and_then(|f| f.empty.as_ref()?.browser())
