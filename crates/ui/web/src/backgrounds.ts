@@ -45,8 +45,22 @@ export type WindowPart = "sidebar" | "frame" | "topbar";
  */
 const ANCHOR: Record<WindowPart, string> = { sidebar: "left bottom", frame: "right bottom", topbar: "left top" };
 
-/** The window's size on this page (`--win-w` and `--win-h` are the app's, in window points; `--zoom` is the text size). */
-const WINDOW_SIZE = "calc(var(--win-w) / var(--zoom, 1)) calc(var(--win-h) / var(--zoom, 1))";
+/** The window's width and height on this page (`--win-w` and `--win-h` are the app's, in window points; `--zoom` is the text size). */
+const WINDOW_W = "calc(var(--win-w) / var(--zoom, 1))";
+const WINDOW_H = "calc(var(--win-h) / var(--zoom, 1))";
+const WINDOW_SIZE = `${WINDOW_W} ${WINDOW_H}`;
+
+/**
+ * Where the grain starts in each part so that its tiles count from the
+ * window's top left corner everywhere. A percentage places a tile against
+ * the part's far edge, and a whole tile more or less changes nothing, so
+ * "100% minus the window's size" is the window's near edge.
+ */
+const GRAIN_AT: Record<WindowPart, string> = {
+  sidebar: `0 calc(100% - ${WINDOW_H})`,
+  frame: `calc(100% - ${WINDOW_W}) calc(100% - ${WINDOW_H})`,
+  topbar: "0 0",
+};
 
 /**
  * The background of `part` of the window: its colour `chrome` and, over it,
@@ -64,7 +78,7 @@ export function windowBackground(part: WindowPart, chrome: string, space: Id, lo
     backgroundImage: [GRAIN, ...images].join(", "),
     backgroundRepeat: ["repeat", ...images.map(() => "no-repeat")].join(", "),
     backgroundSize: ["auto", ...images.map(() => WINDOW_SIZE)].join(", "),
-    backgroundPosition: ["0 0", ...images.map(() => ANCHOR[part])].join(", "),
+    backgroundPosition: [GRAIN_AT[part], ...images.map(() => ANCHOR[part])].join(", "),
   });
   switch (look.sidebar_effect) {
     case "grain":
