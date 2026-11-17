@@ -92,9 +92,10 @@ first, it reads again. Devices cannot overwrite each other there.
   computer's name.
 - Entries not written for 90 days are dropped with the next write. Fields a
   newer version wrote are kept.
-- Never in the private space, and addresses Magnetite does not open from
-  stored data are not opened (they still count as taken, so they do not
-  come back).
+- Never in the private space, and a tab that names a space kept on this
+  device alone opens in the space in front instead. Addresses Magnetite
+  does not open from stored data are not opened (they still count as taken,
+  so they do not come back).
 
 Not synced: the archive, downloads, cookies and logins, which pages are
 open, split views, the search engine (a device holding the words could

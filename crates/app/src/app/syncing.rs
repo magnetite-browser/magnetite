@@ -212,8 +212,14 @@ impl MagnetiteApp {
             let space = tab
                 .space
                 .as_ref()
-                // Never into the private space: its tabs are not kept.
-                .filter(|id| s.space(id).is_some() && !s.is_private_space(id))
+                // Never into the private space: its tabs are not kept. Nor
+                // into a space kept on this device: other devices do not
+                // change those.
+                .filter(|id| {
+                    s.space(id).is_some()
+                        && !s.is_private_space(id)
+                        && !s.unsynced_spaces.contains(*id)
+                })
                 .cloned()
                 .or_else(|| {
                     s.is_private_space(&s.active_space)
