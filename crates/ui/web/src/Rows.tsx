@@ -351,7 +351,7 @@ const TabRowInner = memo(
               {tab.title || hostOf(tab.url)}
             </span>
           )}
-          {(rt?.media?.playing || rt?.muted) && (
+          {((rt?.media?.playing && !rt.media.silent) || rt?.muted) && (
             <button className="slot" title={rt.muted ? "Unmute tab" : "Mute tab"} onClick={(e) => { e.stopPropagation(); send({ cmd: "set_muted", id: tab.id, muted: !rt.muted }); }}>
               {rt.muted ? <SpeakerOff width={14} height={14} /> : <Speaker width={14} height={14} />}
             </button>

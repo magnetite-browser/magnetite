@@ -3,6 +3,8 @@
 // play/pause/next/previous/seek from the sidebar and the picture-in-picture
 // controls. `report` is a native function
 // that only this closure can reach; nothing is added to the page's globals.
+// It also makes the page read as visible while its video is in the floating
+// window.
 // Pages can change prototypes after this ran, so the report is built from
 // functions taken now, on an object without a prototype (no `toJSON` to
 // slip in), with text cut short; the browser treats it as untrusted anyway.
@@ -69,24 +71,64 @@
       schedule();
     }
   }, true);
-  window.addEventListener("enterpictureinpicture", schedule, true);
-  window.addEventListener("leavepictureinpicture", schedule, true);
+
+  // A page whose video is in the floating window is on screen there, so it
+  // reads as visible. Sites that pause their video while the tab is hidden
+  // (Instagram) would otherwise stop the video we just popped out. The page
+  // hears of the change like of a real one, so it can resume or pause.
+  const inPicture = Object.getOwnPropertyDescriptor(Document.prototype, "pictureInPictureElement")?.get;
+  const visibility = Object.getOwnPropertyDescriptor(Document.prototype, "visibilityState")?.get;
+  const hidden = Object.getOwnPropertyDescriptor(Document.prototype, "hidden")?.get;
+  const dispatch = EventTarget.prototype.dispatchEvent.bind(document);
+  const NewEvent = Event;
+  const reads = !!(inPicture && visibility && hidden);
+  if (reads) {
+    const shown = {
+      get visibilityState() {
+        return inPicture.call(this) ? "visible" : visibility.call(this);
+      },
+      get hidden() {
+        return inPicture.call(this) ? false : hidden.call(this);
+      },
+    };
+    for (const name of ["visibilityState", "hidden"]) {
+      Object.defineProperty(Document.prototype, name, {
+        configurable: true,
+        enumerable: true,
+        get: Object.getOwnPropertyDescriptor(shown, name).get,
+      });
+    }
+  }
+  const onPicture = () => {
+    // Only a hidden tab's page sees a change: a shown one was visible anyway.
+    if (reads && visibility.call(document) === "hidden") dispatch(new NewEvent("visibilitychange", { bubbles: true }));
+    schedule();
+  };
+  window.addEventListener("enterpictureinpicture", onPicture, true);
+  window.addEventListener("leavepictureinpicture", onPicture, true);
 
   // The element that matters: an audible one that really plays, else the
-  // last one that played and is paused now.
+  // last one that played and is paused now, else a muted video that plays
+  // or is in the floating window (Instagram starts its videos muted; such a
+  // video can still pop out).
   const current = () => {
     let paused = null;
+    let silent = null;
+    const floating = document.pictureInPictureElement;
     for (const el of elements) {
       if (el.ended || (el.paused && el.readyState === 0)) {
         if (!el.isConnected) elements.delete(el);
         continue;
       }
-      if (el.muted || el.volume === 0) continue;
       if (!played.has(el)) continue;
+      if (el.muted || el.volume === 0) {
+        if (!silent && el instanceof HTMLVideoElement && (!el.paused || el === floating)) silent = el;
+        continue;
+      }
       if (!el.paused) return el;
       if (el === lastPlayed) paused = el;
     }
-    return paused;
+    return paused || silent;
   };
 
   let last = "";
@@ -107,6 +149,7 @@
       state.video = el instanceof HTMLVideoElement && el.videoWidth > 0;
       state.pip = !!document.pictureInPictureElement;
       state.live = el.duration === Infinity;
+      state.silent = el.muted || el.volume === 0;
       state.can_next = handlers.has("nexttrack");
       state.can_prev = handlers.has("previoustrack");
     }

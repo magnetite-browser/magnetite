@@ -28,6 +28,9 @@ screen, in any space. There are at most two rows, playing ones first.
 
 - An audio or video element that is audible (not muted, volume above zero)
   and really played its current source.
+- A muted video too, while it plays or is in the floating window, so that
+  it can pop out (Instagram starts its videos muted). Its tab row gets no
+  speaker button.
 - Paused media keeps its row, so it can be resumed. Media that was loaded
   but never started (a queued next video, an ad in a background tab) gets
   none. Ended media loses its row.
@@ -42,6 +45,10 @@ screen, in any space. There are at most two rows, playing ones first.
 - Showing the tab again puts the video back into the page, whatever the
   setting says.
 - The picture-in-picture button of a media row does both by hand.
+- While a page's video is in the floating window, the page reads as
+  visible, although its tab is hidden. Sites that pause their video when
+  the tab is hidden (Instagram) so keep playing there; once the window
+  goes, they pause it as they do in any hidden tab.
 
 On macOS the floating video has Magnetite's own controls:
 
@@ -55,7 +62,8 @@ On macOS the floating video has Magnetite's own controls:
 
 - The controls show while the pointer is over the video and briefly when it
   pops out. They hide when the pointer rests for 2.5 s. A narrow window
-  shows the top buttons as icons only.
+  (an upright video) shows the top buttons as icons only and moves the
+  seek buttons closer to play/pause.
 - Dragging the video moves the window. Dragging an edge or corner resizes
   it with the video's proportions, never narrower than 160 pt or wider than
   the screen. A two-finger swipe flings it to the screen edge in that
@@ -69,15 +77,20 @@ On macOS the floating video has Magnetite's own controls:
   (not in the worlds extensions run content scripts in), before the page's
   scripts. It wraps `MediaSession.setActionHandler` and
   `HTMLMediaElement.play` to learn the page's handlers and media elements,
-  and reports `{playing, title, artist, video, pip, live, can_next,
+  and reports `{playing, title, artist, video, pip, live, silent, can_next,
   can_prev}` on change through a native function only its closure can
-  reach. It adds nothing to the page's globals.
+  reach. It adds nothing to the page's globals. It also replaces
+  `document.visibilityState` and `document.hidden` so that they say
+  "visible" while `document.pictureInPictureElement` is set, and sends the
+  page a `visibilitychange` event when a hidden tab's video enters or
+  leaves picture-in-picture.
 - Commands go back to the renderer as a process message. It calls the
   closure's `control` function: the page's own Media Session handler when
   there is one, else the element.
 - Entering picture-in-picture needs a user gesture, so the engine runs
   `Runtime.evaluate` with `userGesture` on CEF's in-process DevTools
-  channel. Mute is `CefBrowserHost::SetAudioMuted`; a page muted before it
+  channel. It takes the playing video, else the loaded one most of which
+  is in the viewport (a page may have paused it when the tab was hidden). Mute is `CefBrowserHost::SetAudioMuted`; a page muted before it
   has its window is muted as soon as it has one.
 - The macOS controls are a nearly clear panel that lies over Chromium's
   video window as its child window. It takes the pointer, so Chromium's own

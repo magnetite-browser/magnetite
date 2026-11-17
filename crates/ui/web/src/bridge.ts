@@ -178,6 +178,8 @@ export interface MediaState {
   pip: boolean;
   /** A stream without an end: nothing to seek in. */
   live: boolean;
+  /** A muted video: no sound to control, but it can pop out. */
+  silent: boolean;
   can_next: boolean;
   can_prev: boolean;
 }

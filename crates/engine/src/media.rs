@@ -40,6 +40,8 @@ pub struct MediaState {
     pub pip: bool,
     /// A stream without an end (live video): nothing to seek in.
     pub live: bool,
+    /// A muted video: it has no sound to control, but can pop out.
+    pub silent: bool,
     pub can_next: bool,
     pub can_prev: bool,
 }
@@ -128,8 +130,12 @@ impl Engine {
 
     /// Enter or leave picture-in-picture for the page's playing video.
     pub fn content_picture_in_picture(&self, id: ContentId, enter: bool) {
-        const ENTER: &str = "(() => { const vs = [...document.querySelectorAll('video')]; \
-            const v = vs.find(v => !v.paused && v.readyState > 1) || vs.find(v => v.readyState > 1); \
+        // The playing video, else (a page can pause its video the moment the
+        // tab is hidden) the loaded one most of which is in the viewport.
+        const ENTER: &str = "(() => { const vs = [...document.querySelectorAll('video')].filter(v => v.readyState > 1); \
+            const seen = v => { const r = v.getBoundingClientRect(); \
+            return Math.max(0, Math.min(r.right, innerWidth) - Math.max(r.left, 0)) * Math.max(0, Math.min(r.bottom, innerHeight) - Math.max(r.top, 0)); }; \
+            const v = vs.find(v => !v.paused) || vs.sort((a, b) => seen(b) - seen(a))[0]; \
             if (!v || v.disablePictureInPicture || document.pictureInPictureElement) return false; \
             return v.requestPictureInPicture().then(() => true, () => false); })()";
         const LEAVE: &str = "document.pictureInPictureElement ? document.exitPictureInPicture().then(() => true, () => false) : false";
@@ -311,7 +317,7 @@ mod tests {
         assert!(parse_report("null").unwrap().is_none());
         let long = "x".repeat(500);
         let json = format!(
-            r#"{{"playing":true,"title":"{long}","artist":"A","video":false,"pip":false,"live":false,"can_next":true,"can_prev":false}}"#
+            r#"{{"playing":true,"title":"{long}","artist":"A","video":false,"pip":false,"live":false,"silent":false,"can_next":true,"can_prev":false}}"#
         );
         let state = parse_report(&json).unwrap().unwrap();
         assert!(state.playing && state.can_next);
