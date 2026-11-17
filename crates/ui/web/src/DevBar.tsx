@@ -8,7 +8,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { windowBackground } from "./backgrounds";
 import { record } from "./recorder";
 import { useDismiss } from "./dismiss";
-import { AgentIcon, CaptureSetIcon, Check, ClearDataIcon, ConsoleIcon, EmulateIcon, PickerIcon, RecordIcon, RequestsIcon, Reset, ResponsiveIcon, StopIcon, TimezoneIcon } from "./Icons";
+import { CaptureSetIcon, Check, ClearDataIcon, ConsoleIcon, EmulateIcon, PickerIcon, RecordIcon, RequestsIcon, Reset, ResponsiveIcon, StopIcon, TimezoneIcon } from "./Icons";
 import { Switch } from "./settings/fields";
 import { keysHint } from "./settings/shortcutKeys";
 import { IS_MAC, accentCss, applyAppearance, findTab, hostOf, lookOf, onRecord, send, subscribe, type DevState, type Emulation, type TabItem, type TopBarPopupKind, type UiState } from "./bridge";
@@ -238,7 +238,7 @@ function DevTools({ state, dev, clears, onPanel }: { state: UiState; dev: DevSta
 }
 
 /** Whose page it is: the project's name, else the address; "Waiting for …" while its server is down. */
-function DevName({ state, item, dev }: { state: UiState; item: TabItem; dev: DevState }) {
+function DevName({ item, dev }: { item: TabItem; dev: DevState }) {
   return (
     <>
       {dev.waiting ? (
@@ -249,11 +249,6 @@ function DevName({ state, item, dev }: { state: UiState; item: TabItem; dev: Dev
       ) : (
         <span className="dev-name" title={dev.project ? `${dev.project} serves ${hostOf(item.url)}` : item.url}>
           <span className="truncate">{dev.project ?? hostOf(item.url)}</span>
-        </span>
-      )}
-      {state.agents > 0 && dev.local && (
-        <span className="dev-agent" title={`${state.agents === 1 ? "A coding agent is" : `${state.agents} coding agents are`} connected and can read this page (Settings → Developer)`} aria-label="A coding agent can read this page">
-          <AgentIcon width={13} height={13} />
         </span>
       )}
     </>
@@ -302,7 +297,7 @@ export function DevBar() {
     >
       {item && showsDevTools(state, dev) && (
         <div className="dev-row" data-waiting={dev.waiting ? true : undefined}>
-          <DevName state={state} item={item} dev={dev} />
+          <DevName item={item} dev={dev} />
           <span className="flex-1" />
           <DevTools state={state} dev={dev} clears={dev.clears} onPanel={onPanel} />
         </div>

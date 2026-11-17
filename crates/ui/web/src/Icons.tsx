@@ -89,8 +89,6 @@ export const ResponsiveIcon = icon(L.TabletSmartphone);
 export const CaptureSetIcon = icon(L.Images);
 export const RecordIcon = icon(L.Video);
 export const StopIcon = icon(L.Square);
-/** A coding agent is connected (the agent bridge). */
-export const AgentIcon = icon(L.Bot);
 export const CaptureIcon = icon(L.Focus);
 export const TabPlus = icon(L.SquarePlus);
 export const SmartFolderIcon = icon(L.FolderSync);

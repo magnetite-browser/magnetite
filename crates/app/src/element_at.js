@@ -1,10 +1,9 @@
-// Describes the element at a point of the page, or the first one matching
-// `find` (a CSS selector), for "copy as context" and coding agents
+// Describes the element at a point of the page, for "copy as context"
 // (dev.rs): a selector that finds it again, its markup and text (cut to a
 // readable length) and the computed styles that shape it. Returns null when
 // nothing is there.
-(x, y, find) => {
-  const el = find ? document.querySelector(find) : document.elementFromPoint(x, y);
+(x, y) => {
+  const el = document.elementFromPoint(x, y);
   if (!el) return null;
   // From the element up through its ancestors, until the selector matches
   // this element alone (an id ends it at once, if it is the only one).

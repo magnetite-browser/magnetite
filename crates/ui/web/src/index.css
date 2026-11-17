@@ -604,7 +604,6 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
 .dev-pulse { flex: none; width: 6px; height: 6px; margin-right: 7px; border-radius: 50%; background: var(--warn); animation: dev-pulse 1.2s ease-in-out infinite; }
 @keyframes dev-pulse { 50% { opacity: 0.25; } }
 @media (prefers-reduced-motion: reduce) { .dev-pulse { animation: none; } }
-.dev-agent { flex: none; width: 22px; height: 24px; display: grid; place-items: center; color: var(--accent); }
 .row .dev-errors { flex: none; min-width: 16px; height: 16px; padding: 0 4px 1px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; border-radius: 8px; background: rgba(240,93,93,0.18); color: #f08c8c; font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* a shared folder's page (Shared.tsx) */

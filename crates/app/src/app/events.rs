@@ -44,7 +44,6 @@ impl EngineDelegate for MagnetiteApp {
                 // from the first one; due ones are fetched meanwhile.
                 self.blocker.started();
                 self.apply_adblock(false);
-                self.apply_agent_bridge();
                 if self.import == ArcImport::Now {
                     eprintln!(
                         "magnetite: state imported from Arc ({})",
@@ -325,7 +324,7 @@ impl EngineDelegate for MagnetiteApp {
                 shortcut: Shortcut::DevReset,
                 from,
             } => self.dev_reset(engine, from),
-            EngineEvent::ConsoleError { id, text } => self.dev_console_error(engine, id, text),
+            EngineEvent::ConsoleError { id } => self.dev_console_error(engine, id),
             EngineEvent::ScreencastFrame { id, jpeg } => self.record_picture(engine, id, jpeg),
             EngineEvent::LoadFailed { id, url, refused } => {
                 self.dev_load_failed(engine, id, &url, refused);
@@ -410,8 +409,6 @@ impl EngineDelegate for MagnetiteApp {
                 });
                 // The picture of the last element copied as context.
                 let _ = std::fs::remove_file(self.context_picture());
-                // The agent bridge's socket goes with Magnetite.
-                self.close_agent_bridge();
                 engine.quit();
             }
             EngineEvent::MemoryPressure(level) => self.unload_under_pressure(engine, level),

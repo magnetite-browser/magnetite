@@ -21,7 +21,7 @@ changes them ([shortcuts.md](shortcuts.md)).
 | [web-panels.md](web-panels.md) | a favorite or pinned tab that opens over the page in front, at the sidebar's edge |
 | [mini-window.md](mini-window.md) | a page in a small window of its own, for links from other apps and the quick search from anywhere |
 | [site-controls.md](site-controls.md) | address row, site panel, permissions, own CSS and JavaScript per site, DevTools, capture |
-| [developer.md](developer.md) | the developer bar for local pages, emulation, the responsive split, capture sets, recording, copying an element as context, the agent bridge |
+| [developer.md](developer.md) | the developer bar for local pages, emulation, the responsive split, capture sets, recording, copying an element as context |
 | [shortcuts.md](shortcuts.md) | giving the shortcuts other keys, which ones are fixed, how they sync |
 | [ad-blocking.md](ad-blocking.md) | blocking ads and trackers with filter lists the user chooses |
 | [passwords-and-autofill.md](passwords-and-autofill.md) | Chromium's password manager and autofill: switches, saved lists, what stays local |

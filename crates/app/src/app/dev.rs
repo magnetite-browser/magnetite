@@ -128,19 +128,18 @@ impl MagnetiteApp {
         self.with_state(|s| {
             if let Some(rt) = s.page_runtime(id) {
                 rt.dev.errors = 0;
-                rt.dev.log.clear();
             }
         });
     }
 
     /// Page `id` logged an error. Counted for local pages only.
-    pub(super) fn dev_console_error(&self, engine: &Engine, id: ContentId, text: String) {
+    pub(super) fn dev_console_error(&self, engine: &Engine, id: ContentId) {
         let counted = self.with_state(|s| {
             let rt = s.page_runtime(id)?;
             if !rt.dev.local || rt.dev.waiting.is_some() {
                 return None;
             }
-            rt.dev.note_error(text);
+            rt.dev.note_error();
             Some(())
         });
         if counted.is_some() {

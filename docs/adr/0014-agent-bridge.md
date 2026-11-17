@@ -1,7 +1,8 @@
 # ADR-0014: Coding agents read local pages over a socket in the data folder
 
-- Status: accepted (2026-11-17), built and checked in a running build
-  (`docs/spec/developer.md`, "Agent bridge").
+- Status: withdrawn (2026-11-17). The bridge was built, checked in a running
+  build and released in 0.0.7, then removed: see "Withdrawn" at the end.
+  The rest is kept as written, for the reasoning about reach.
 
 ## Context
 
@@ -84,3 +85,41 @@ Option 3.
 - Acting on a page (click, fill, navigate) is left out on purpose. If it is
   wanted later it needs its own decision: per-page consent and a visible
   session, not another tool in this list.
+
+## Withdrawn
+
+The bridge was removed the day it was released. What it could do was too
+little to be used, and what would have made it useful is what this decision
+ruled out.
+
+- **It could not look at a website.** Only pages served by this computer
+  were in reach, so a question about any other site could not be asked
+  through it.
+- **It could not check a change.** An agent that edits code has to reload
+  the page, click through it and look again. Every tool only read, so the
+  agent needed a browser it can drive anyway.
+- **Agents bring that browser.** The tools people run coding agents in come
+  with a browser of their own, or with one that speaks the DevTools
+  protocol. It reads and acts, on any page.
+- **What was left is covered by hand.** The one thing only the bridge could
+  do is show an agent the very tab the person is looking at, with its
+  session and state. "Copy as context" in the capture overlay
+  (`docs/spec/developer.md`) does that for one element when the person
+  chooses to, without a way in from outside.
+
+Making the bridge useful would have meant reaching every site and acting on
+pages: any program running as the user could then read and drive signed-in
+pages. That is options 1 and 2 above under another name.
+
+Against that stood its cost: the only way into a page from outside the
+process, about 800 lines to keep correct, a setting, and the texts of
+console errors kept in memory only for it.
+
+So "nothing outside its process can reach a page" holds again without an
+exception. With the bridge went `magnetite mcp`, the setting, the agent
+mark in the developer bar and the kept error texts; the error count stays.
+A `developer.agent_bridge` left in a `state.json` from 0.0.7 is ignored.
+
+If a way in for agents is wanted again, the last point under
+"Consequences" still stands: it needs its own decision, with consent per
+page and a visible session.

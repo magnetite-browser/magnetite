@@ -16,7 +16,6 @@ use crate::{capture, lock};
 
 mod adblocking;
 mod addresses;
-mod agent;
 mod commands;
 mod dev;
 mod events;
@@ -51,17 +50,14 @@ fn for_ui(mut state: Value) -> Value {
     state
 }
 
-/// The state as the sidebar gets it, with how many coding agents are
-/// connected to the agent bridge (`agents`) and the recording that runs
+/// The state as the sidebar gets it, with the recording that runs
 /// (`recording`, `Recorder::for_ui`).
 fn ui_json(
     state: &AppState,
     extensions: &[magnetite_engine::ExtensionInfo],
-    agents: usize,
     recording: Value,
 ) -> Value {
     let mut ui = for_ui(json!(state.ui_state(extensions)));
-    ui["agents"] = json!(agents);
     ui["recording"] = recording;
     ui
 }
@@ -94,8 +90,6 @@ pub struct MagnetiteApp {
     save_queued: AtomicBool,
     show_pace: Mutex<ShowPace>,
     blocker: adblocking::Blocker,
-    /// The agent bridge, while Settings → Developer has it on.
-    agent: Mutex<agent::AgentBridge>,
     /// The recording of a page that runs (`record.rs`).
     record: Mutex<record::Recorder>,
 }
@@ -247,7 +241,6 @@ impl MagnetiteApp {
             save_queued: AtomicBool::new(false),
             show_pace: Mutex::new(ShowPace::default()),
             blocker,
-            agent: Mutex::new(agent::AgentBridge::default()),
             record: Mutex::new(record::Recorder::default()),
         }
     }
@@ -370,11 +363,10 @@ impl MagnetiteApp {
                 s.persist();
             }
         });
-        let agents = self.agent_clients();
         let recording = lock(&self.record).for_ui();
         let (json, chrome, accent, pinned) = self.with_state(|s| {
             (
-                ui_json(s, &extensions, agents, recording).to_string(),
+                ui_json(s, &extensions, recording).to_string(),
                 s.chrome_rgb(),
                 s.accent_rgb(),
                 s.settings.pinned_extensions.clone(),

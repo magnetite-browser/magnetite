@@ -49,30 +49,15 @@ pub struct DevState {
     /// not go back there.
     #[serde(skip)]
     pub following: bool,
-    /// The last errors' texts, oldest first, in memory only: for a coding
-    /// agent that asks (`agent.rs`).
-    #[serde(skip)]
-    pub log: std::collections::VecDeque<String>,
 }
 
 /// The most errors counted for a page; the badge shows "99+" long before.
 pub const MAX_ERRORS: u32 = 999;
-/// The most error texts kept per page, and the longest a text may be.
-const MAX_LOG: usize = 50;
-const MAX_LOG_TEXT: usize = 1000;
 
 impl DevState {
     /// One more error in the page's console.
-    pub fn note_error(&mut self, mut text: String) {
+    pub fn note_error(&mut self) {
         self.errors = (self.errors + 1).min(MAX_ERRORS);
-        if let Some((cut, _)) = text.char_indices().nth(MAX_LOG_TEXT) {
-            text.truncate(cut);
-            text.push('…');
-        }
-        if self.log.len() == MAX_LOG {
-            self.log.pop_front();
-        }
-        self.log.push_back(text);
     }
 }
 
@@ -275,8 +260,6 @@ pub struct DeveloperSettings {
     /// Hosts that count as local besides this computer: `staging.example.org`,
     /// or `*.test` for every name under one.
     pub hosts: Vec<String>,
-    /// Coding agents on this computer may read local pages (`agent.rs`).
-    pub agent_bridge: bool,
 }
 
 impl Default for DeveloperSettings {
@@ -284,7 +267,6 @@ impl Default for DeveloperSettings {
         Self {
             enabled: true,
             hosts: Vec::new(),
-            agent_bridge: false,
         }
     }
 }
@@ -667,19 +649,6 @@ mod tests {
             names,
             ["Network.enable", "Network.emulateNetworkConditions"]
         );
-    }
-
-    #[test]
-    fn errors_are_counted_and_the_last_kept() {
-        let mut dev = DevState::default();
-        for n in 0..60 {
-            dev.note_error(format!("error {n}"));
-        }
-        assert_eq!(dev.errors, 60);
-        assert_eq!(dev.log.len(), 50);
-        assert_eq!(dev.log.front().map(String::as_str), Some("error 10"));
-        dev.note_error("ä".repeat(2000));
-        assert_eq!(dev.log.back().map(|t| t.chars().count()), Some(1001));
     }
 
     #[test]

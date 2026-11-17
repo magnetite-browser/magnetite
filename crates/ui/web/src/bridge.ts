@@ -176,17 +176,6 @@ export interface DevState {
   responsive: boolean;
 }
 
-/** The agent bridge (Settings → Developer). */
-export interface AgentStatus {
-  running: boolean;
-  /** Coding agents connected now. */
-  clients: number;
-  /** Why it could not start. */
-  error: string | null;
-  /** The program and argument an agent is given to reach the bridge. */
-  command: string[];
-}
-
 /** A program listening on one of this computer's ports. */
 export interface DevServer {
   port: number;
@@ -279,8 +268,6 @@ export interface UiState {
   smart: Record<Id, SmartStatus>;
   /** Installed extensions of the profile the page in front uses. */
   extensions: ExtensionInfo[];
-  /** Coding agents connected to the agent bridge. */
-  agents: number;
   /** The page being recorded as a video: its tab, and since when (ms since 1970). */
   recording: { tab: Id | null; since: number } | null;
 }
@@ -364,7 +351,7 @@ export interface Settings {
   autofill: { passwords: boolean; addresses: boolean; cards: boolean; breach_check: boolean };
   /** The ad blocker (Settings → Ad blocking); this device's own choice, never synced. */
   /** Developer features (Settings → Developer). */
-  developer: { enabled: boolean; hosts: string[]; agent_bridge: boolean };
+  developer: { enabled: boolean; hosts: string[] };
   adblock: {
     enabled: boolean;
     /** Ids of the filter lists subscribed to (`Info.adblock.lists`). */
@@ -594,7 +581,6 @@ export type Command =
   | { cmd: "dev_reset" }
   | { cmd: "dev_emulate"; patch: Partial<Emulation> }
   | { cmd: "dev_servers" }
-  | { cmd: "dev_agent_status" }
   /** The page in front again, beside itself, with the logins of `profile`. */
   | { cmd: "dev_split_as"; profile: Id }
   | { cmd: "dev_responsive" }
@@ -733,7 +719,6 @@ interface Replies {
   make_default_browser: { default_browser: DefaultBrowser };
   dev_emulate: Emulation;
   dev_servers: { servers: DevServer[] };
-  dev_agent_status: AgentStatus;
   dev_record_start: { id: number };
   /** The recorded page's next picture (a JPEG, base64), or the end. */
   dev_record_frame: { frame?: string; done?: boolean };

@@ -137,13 +137,7 @@ wrap_dev_tools_message_observer! {
             if entry["entry"]["level"] == "error"
                 && let Some(id) = engine.content_id_for(browser.as_deref())
             {
-                let entry = &entry["entry"];
-                let message = entry["text"].as_str().unwrap_or_default();
-                let text = match entry["url"].as_str().filter(|u| !u.is_empty()) {
-                    Some(url) => format!("{message} ({url})"),
-                    None => message.to_string(),
-                };
-                engine.emit(crate::events::EngineEvent::ConsoleError { id, text });
+                engine.emit(crate::events::EngineEvent::ConsoleError { id });
             }
         }
         fn on_dev_tools_method_result(

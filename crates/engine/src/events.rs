@@ -217,11 +217,9 @@ pub enum EngineEvent {
         action: DividerAction,
     },
     /// Page `id` logged an error to its console: an uncaught exception, a
-    /// failed request, `console.error`. `text` is the message with where it
-    /// came from.
+    /// failed request, `console.error`.
     ConsoleError {
         id: ContentId,
-        text: String,
     },
     /// A picture of page `id`, which is being recorded
     /// (`Engine::screencast`): a JPEG, base64.

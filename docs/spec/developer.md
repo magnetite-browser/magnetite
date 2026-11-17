@@ -3,9 +3,8 @@
 What Magnetite does for people who build websites: tools for the pages
 their own computer serves, commands that show any page under other
 conditions, a split that shows a page as a phone beside itself, pictures and
-videos of a page, a capture that describes an element in words, and a bridge
-that lets a coding agent look at local pages. DevTools themselves (docking,
-device mode) are in `site-controls.md`.
+videos of a page, and a capture that describes an element in words. DevTools
+themselves (docking, device mode) are in `site-controls.md`.
 
 ## Local pages
 
@@ -28,9 +27,9 @@ default):
 - **An error count.** Errors in the page's console since it began to load
   are counted: uncaught exceptions, `console.error`, failed requests. The
   count shows on the console button and, while another tab is in
-  front, as a badge on the page's tab row ("99+" beyond 99). The last 50
-  texts are kept in memory for the agent bridge; nothing is kept of other
-  pages' consoles.
+  front, as a badge on the page's tab row ("99+" beyond 99). Only the
+  number is kept, not what the errors say; other pages' errors are not
+  counted.
 - **Waiting for its server.** If nothing listens at the page's address
   (connection refused), the bar says "Waiting for localhost:5173" and
   Magnetite tries the address twice a second, for at most ten minutes. Once
@@ -54,7 +53,6 @@ for all its pages and acts on the page in front.
 | Part | Does |
 |---|---|
 | Name | The project, or the address; "Waiting for …" while the server is down |
-| Agent mark | Shows while a coding agent is connected to the agent bridge |
 | Pick an element | DevTools on Elements with the element picker started |
 | Console | DevTools on the Console; shows the error count |
 | Network | DevTools on the Network panel |
@@ -184,55 +182,14 @@ the user only, written over by the next one and removed when Magnetite quits.
 The text is meant for an issue or a coding agent, which reads the picture
 from that path. A dragged region has no element and copies nothing.
 
-## Agent bridge
-
-Off by default. Settings → Developer → "Agent bridge" lets coding agents on
-this computer look at local pages, over the Model Context Protocol
-(ADR-0014). Settings shows the command an agent starts:
-
-```
-/Applications/Magnetite.app/Contents/MacOS/magnetite mcp
-```
-
-For Claude Code: `claude mcp add magnetite -- <that command>`. The command
-starts no browser; it connects to the running Magnetite and ends when the
-agent does. `--data-dir DIR` names another data folder; Settings shows the
-command with it when Magnetite itself was started with one.
-
-| Tool | Answers with |
-|---|---|
-| `list_pages` | the local pages that are loaded: id, address, title, project, error count, which is in front |
-| `screenshot` | a PNG of the visible part of a page; `full_page` for the whole page (up to 40 megapixels) |
-| `console_errors` | the last 50 console errors since the page loaded |
-| `read_page` | the markup or the visible text of the page or of the first element matching a selector, cut to `max_chars` (default 20 000, at most 200 000) |
-| `describe_element` | one element by selector, as "copy as context" describes it, without a picture file |
-
-Without a `page`, a tool takes the local page in front, else the only one
-open.
-
-What agents cannot do:
-
-- read a page that is not served by this computer; hosts under "Also local"
-  do not count here;
-- read anything of the private space;
-- click, type, navigate, reload or run their own script: every tool reads.
-
-A page's content reaches the agent as it is. A local page that shows text
-from elsewhere (user content from a database, an embedded frame) hands that
-text to the agent too.
-
-While an agent is connected, local pages show the agent mark in their
-developer bar.
-
 ## What is stored
 
 | Data | Where | Until |
 |---|---|---|
-| Developer bar on or off, "Also local" hosts, agent bridge on or off (`settings.developer`) | `state.json`, this device only (not synced) | changed |
-| Error count and the last 50 error texts of a local page | memory | the page loads again, or its tab unloads or closes |
+| Developer bar on or off, "Also local" hosts (`settings.developer`) | `state.json`, this device only (not synced) | changed |
+| Error count of a local page | memory | the page loads again, or its tab unloads or closes |
 | Emulation of a page, its time zone included | memory | turned off, or its tab unloads or closes |
 | The phone of a responsive split and its width | memory | ended, or its tab unloads or closes, or Magnetite quits |
 | A recording | a video file in the Downloads folder | the user deletes it |
 | A capture set | memory, as the last capture | the next capture, or dismissed |
 | Picture of the last element copied as context | `capture-context.png` in the data folder | the next one, or Magnetite quits |
-| The agent bridge's socket | `agent.sock` in the data folder | the bridge is turned off, or Magnetite quits |

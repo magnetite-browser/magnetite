@@ -158,17 +158,12 @@ wrap_display_handler! {
             line: ::std::os::raw::c_int,
         ) -> ::std::os::raw::c_int {
             if self.kind == Kind::Content {
-                // Errors only. The app keeps them for local pages alone.
+                // Errors only. The app counts them for local pages alone.
                 let engine = Engine::global();
                 if *level.as_ref() as i32 >= sys::cef_log_severity_t::LOGSEVERITY_ERROR as i32
                     && let Some(id) = engine.content_id_for(browser.as_deref())
                 {
-                    let message = message.map(CefString::to_string).unwrap_or_default();
-                    let text = match source.map(CefString::to_string).filter(|s| !s.is_empty()) {
-                        Some(source) => format!("{message} ({source}:{line})"),
-                        None => message,
-                    };
-                    engine.emit(EngineEvent::ConsoleError { id, text });
+                    engine.emit(EngineEvent::ConsoleError { id });
                 }
                 return 0;
             }

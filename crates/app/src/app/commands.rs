@@ -538,8 +538,6 @@ pub(super) enum UiCommand {
     },
     /// The programs listening on this computer's ports.
     DevServers,
-    /// Settings: whether the agent bridge runs, and the command for agents.
-    DevAgentStatus,
     /// Open the page in front again, beside itself, with the logins of
     /// `profile`: two users of one site at once.
     DevSplitAs {
@@ -1654,7 +1652,6 @@ impl MagnetiteApp {
                 Self::apply_devtools_dock(engine, settings.devtools_dock);
                 engine.set_autofill(settings.autofill);
                 engine.set_quick_search_key(settings.quick_search);
-                self.apply_agent_bridge();
                 self.dev_settings_changed(engine);
                 // Open pages get changed CSS at once.
                 if code_changed {
@@ -1794,9 +1791,8 @@ impl MagnetiteApp {
             }
             UiCommand::GetState => {
                 let extensions = self.front_extensions(engine);
-                let agents = self.agent_clients();
                 let recording = lock(&self.record).for_ui();
-                return Ok(self.with_state(|s| super::ui_json(s, &extensions, agents, recording)));
+                return Ok(self.with_state(|s| super::ui_json(s, &extensions, recording)));
             }
             UiCommand::OpenExtension { id } => self.open_extension(engine, &id),
             UiCommand::PinExtension { id, pinned } => self.pin_extension(engine, &id, pinned),
@@ -2144,7 +2140,6 @@ impl MagnetiteApp {
             UiCommand::DevReset => self.dev_reset(engine, None),
             UiCommand::DevEmulate { patch } => return self.dev_emulate(engine, patch),
             UiCommand::DevServers => Self::dev_servers(engine),
-            UiCommand::DevAgentStatus => return Ok(self.agent_status()),
             UiCommand::DevSplitAs { profile } => self.dev_split_as(engine, &profile),
             UiCommand::DevResponsive => self.dev_responsive(engine),
             UiCommand::DevCaptureSet => self.capture_set(engine),
