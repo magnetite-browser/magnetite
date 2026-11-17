@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeSet, HashSet};
 
-use magnetite_core::{SidebarNode, SidebarSnapshot, TabItem, UnixSeconds};
+use magnetite_core::{Id, SidebarNode, SidebarSnapshot, TabItem, UnixSeconds};
 use magnetite_engine::ContentId;
 
 use super::{AppState, now};
@@ -381,6 +381,26 @@ impl AppState {
         } else {
             self.unsynced_spaces.insert(id.to_string())
         }
+    }
+
+    /// The space a tab taken over from another device opens in: the one it
+    /// `names`, else the one in front, else the first that may take it. Never the
+    /// private space: its tabs are not kept. Nor a space kept on this
+    /// device, which other devices do not change, unless no space here
+    /// syncs: the tab was sent to this device, and has to open somewhere.
+    pub fn device_tab_space(&self, names: Option<&Id>) -> Id {
+        let usable = |id: &Id| {
+            self.space(id).is_some()
+                && !self.is_private_space(id)
+                && !self.unsynced_spaces.contains(id)
+        };
+        let front = self.lasting_space(&self.active_space);
+        let synced = || (self.sidebar.spaces.iter().map(|sp| &sp.id)).find(|id| usable(id));
+        (names.filter(|id| usable(id)))
+            .or_else(|| usable(&front).then_some(&front))
+            .or_else(synced)
+            .unwrap_or(&front)
+            .clone()
     }
 
     /// The profiles that stay on this device with the spaces kept here
@@ -849,6 +869,37 @@ mod tests {
         assert_eq!(s.runtime["a"].content, Some(1), "and it stays open");
         assert_eq!(close, vec![2], "the moved page closes");
         assert_eq!(s.runtime["b"].content, None);
+    }
+
+    #[test]
+    fn a_tab_of_another_device_opens_in_a_space_that_syncs_and_is_kept() {
+        let mut s = state();
+        let first = s.active_space.clone();
+        let local: Id = "local".into();
+        s.sidebar.spaces.push(magnetite_core::Space {
+            id: local.clone(),
+            pinned: vec![],
+            today: vec![],
+            ..s.sidebar.spaces[0].clone()
+        });
+        s.set_space_synced(&local, false);
+        let private = s.open_private_space();
+        let gone: Id = "gone".into();
+
+        // Named or in front, a space kept here or the private one is passed over.
+        for front in [&first, &local, &private] {
+            s.active_space.clone_from(front);
+            for names in [&first, &local, &private, &gone] {
+                assert_eq!(s.device_tab_space(Some(names)), first, "{names} in {front}");
+            }
+        }
+        // The private space first in the list: still the one beside it.
+        s.move_space(&private, 0);
+        assert_eq!(s.device_tab_space(None), first);
+        // No space syncs: the one in front, so the tab is not lost.
+        s.set_space_synced(&first, false);
+        s.active_space.clone_from(&local);
+        assert_eq!(s.device_tab_space(Some(&first)), local);
     }
 
     #[test]

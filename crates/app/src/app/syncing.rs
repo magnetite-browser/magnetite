@@ -209,21 +209,7 @@ impl MagnetiteApp {
             if !url_policy::allowed(&tab.url, url_policy::Source::Stored) {
                 return None;
             }
-            let space = tab
-                .space
-                .as_ref()
-                // Never into the private space: its tabs are not kept. Nor
-                // into a space kept on this device: other devices do not
-                // change those.
-                .filter(|id| {
-                    s.space(id).is_some()
-                        && !s.is_private_space(id)
-                        && !s.unsynced_spaces.contains(*id)
-                })
-                .cloned()
-                // Else the space in front, also one kept on this device:
-                // the tab was sent to this device, and has to open somewhere.
-                .unwrap_or_else(|| s.lasting_space(&s.active_space));
+            let space = s.device_tab_space(tab.space.as_ref());
             let title = if tab.title.is_empty() {
                 &tab.url
             } else {
