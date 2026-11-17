@@ -207,6 +207,13 @@ impl MagnetiteApp {
                 .as_ref()
                 .filter(|id| s.space(id).is_some())
                 .cloned()
+                // Never into the private space: its tabs are not kept.
+                .or_else(|| {
+                    let private = s.private_space.as_deref() == Some(s.active_space.as_str());
+                    private
+                        .then(|| s.sidebar.spaces.first().map(|sp| sp.id.clone()))
+                        .flatten()
+                })
                 .unwrap_or_else(|| s.active_space.clone());
             let title = if tab.title.is_empty() {
                 &tab.url
