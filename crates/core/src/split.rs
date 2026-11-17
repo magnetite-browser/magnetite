@@ -450,15 +450,21 @@ impl<T: Clone + PartialEq> SplitNode<T> {
     }
 
     /// The tree with `new` right of page `id`, in that page's place: `new`
-    /// gets `px` pixels of its width, and both keep at least `min`. The
-    /// tree as it is if `id` is not in it.
+    /// gets `px` pixels of its width, and both keep at least `min` (half
+    /// the place each where it is too narrow for that). The tree as it is
+    /// if `id` is not in it.
     #[must_use]
     pub fn with_beside(&self, id: &T, new: T, px: i32, area: Bounds, gap: i32, min: i32) -> Self {
         let Some((_, place)) = self.layout(area, gap).into_iter().find(|(p, _)| p == id) else {
             return self.clone();
         };
         let both = (place.width - gap).max(1);
-        let px = px.clamp(min, (both - min).max(min)).min(both);
+        // Too narrow for both to keep `min`: they share the place evenly.
+        let px = if both < 2 * min {
+            both / 2
+        } else {
+            px.clamp(min, both - min)
+        };
         let share = f64::from(px) / f64::from(both);
         let pair = Self::Split {
             axis: Axis::Row,
@@ -577,6 +583,11 @@ mod tests {
         assert_eq!(split.pane_at(&[1, 1]), Some(&"c"));
         assert_eq!(split.pane_at(&[1]), None, "a split, not a page");
         assert_eq!(SplitNode::pane("a").pane_at(&[]), Some(&"a"));
+        // A place too narrow for both: shared evenly, neither is gone.
+        let narrow = Bounds { width: 308, ..AREA };
+        let t = SplitNode::pane("a").with_beside(&"a", "phone", 390, narrow, 8, 200);
+        let rects = t.layout(narrow, 8);
+        assert_eq!((rects[0].1.width, rects[1].1.width), (150, 150));
         // A page that is not there: nothing changes.
         assert_eq!(split.with_beside(&"x", "phone", 300, AREA, 8, 200), split);
     }

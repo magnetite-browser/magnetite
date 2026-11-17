@@ -8,7 +8,7 @@ import { Favicon } from "./Favicon";
 import { BracesIcon, CaptureIcon, CodeIcon, Minus, Plus, ShareIcon, Speaker, SpeakerOff } from "./Icons";
 import { Switch } from "./settings/fields";
 import { keysHint, keysLabel } from "./settings/shortcutKeys";
-import { findTabInSpace, hostOf, onSiteDataCleared, send, servedHere, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { findTabInSpace, hostOf, onSiteDataCleared, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
 const PERMISSION_LABEL: Record<PermissionKind, string> = {
   camera: "Camera",
@@ -156,13 +156,12 @@ function connection(item: TabItem, rt: TabRuntime | undefined): { text: string; 
  * "Developer mode": the developer bar, the caution border and the console error count for
  * this site, as for a page this computer serves (`developer.md`). Adds the
  * site's host to Settings → Developer → "Also local", or takes it out. A
- * page this computer serves has them anyway.
+ * page this computer serves (`own`) has them anyway.
  */
-function DevSwitch({ state, url }: { state: UiState; url: string }) {
+function DevSwitch({ state, url, own }: { state: UiState; url: string; own: boolean }) {
   const dev = state.settings.developer;
   const host = /^https?:/.test(url) && URL.canParse(url) ? new URL(url).hostname.toLowerCase() : "";
   if (!dev.enabled || !host) return null;
-  const own = servedHere(url);
   const named = dev.hosts.includes(host);
   // On without being named: this computer's page, or a name under a pattern (`*.test`).
   const always = own ? "Always, on this computer" : !named && dev.hosts.some((h) => h.startsWith("*.") && host.endsWith(h.slice(1))) ? "On for its domain" : null;
@@ -257,7 +256,7 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
               <span className="flex-1 text-left">{rt?.muted ? "Unmute tab" : "Mute tab"}</span>
               {rt?.muted ? <SpeakerOff width={15} height={15} /> : <Speaker width={15} height={15} />}
             </button>
-            <DevSwitch state={state} url={item.url} />
+            <DevSwitch state={state} url={item.url} own={rt?.dev.clears ?? false} />
             {/* Per tab: a confirmation or a report is not the next tab's. */}
             <ClearData key={item.id} profileName={profile && !profile.is_default ? profile.name : null} noSite={rt?.site?.secure === null} />
           </div>

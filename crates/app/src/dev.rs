@@ -24,6 +24,12 @@ pub struct DevState {
     pub waiting: Option<String>,
     /// The folder of the program that serves the page, by its name.
     pub project: Option<String>,
+    /// This computer serves the page: "reset" clears its site data too.
+    pub clears: bool,
+    /// Which wait for a server `waiting` is: a watcher that outlived its
+    /// own wait leaves a later one alone.
+    #[serde(skip)]
+    pub wait: u64,
     /// The page's window reports failed requests (`Engine::watch_errors`).
     #[serde(skip)]
     pub watched: bool,
@@ -293,11 +299,15 @@ impl DeveloperSettings {
         for host in std::mem::take(&mut self.hosts) {
             let host = host.trim().to_ascii_lowercase();
             let name = host.strip_prefix("*.").unwrap_or(&host);
-            let valid = !name.is_empty()
-                && name.len() <= 253
-                && (name.bytes()).all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'.')
-                && !name.starts_with('.')
-                && !name.ends_with('.');
+            // An IPv6 address as an address has it, in brackets.
+            let v6 = (host.strip_prefix('[').and_then(|h| h.strip_suffix(']')))
+                .is_some_and(|ip| ip.parse::<std::net::Ipv6Addr>().is_ok());
+            let valid = v6
+                || !name.is_empty()
+                    && name.len() <= 253
+                    && (name.bytes()).all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'.')
+                    && !name.starts_with('.')
+                    && !name.ends_with('.');
             if valid && !hosts.contains(&host) && hosts.len() < MAX_HOSTS {
                 hosts.push(host);
             }
@@ -329,8 +339,10 @@ pub fn is_local(url: &str, hosts: &[String]) -> bool {
                     None => *h == name,
                 })
         }
-        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
-        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+        // An address named by the user counts too (a server in the local
+        // network), written as it is in an address: `[::1]` with brackets.
+        Some(url::Host::Ipv4(ip)) => ip.is_loopback() || hosts.contains(&ip.to_string()),
+        Some(url::Host::Ipv6(ip)) => ip.is_loopback() || hosts.contains(&format!("[{ip}]")),
         None => false,
     }
 }
@@ -357,13 +369,32 @@ fn port_of(address: &str) -> Option<u16> {
 /// Whether something listens at `address` (`host:port`) right now. Blocks
 /// for at most a moment: for a worker thread.
 pub fn listens(address: &str) -> bool {
-    let Ok(addresses) = address.to_socket_addrs() else {
+    use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
+    let Some((host, port)) = address.rsplit_once(':') else {
         return false;
     };
+    let name = host.trim_end_matches('.').to_ascii_lowercase();
+    // `localhost` and the names under it are this computer by definition;
+    // not every system's resolver knows that.
+    let addresses: Vec<SocketAddr> = if name == "localhost" || name.ends_with(".localhost") {
+        let Ok(port) = port.parse() else {
+            return false;
+        };
+        vec![
+            (Ipv4Addr::LOCALHOST, port).into(),
+            (Ipv6Addr::LOCALHOST, port).into(),
+        ]
+    } else {
+        address
+            .to_socket_addrs()
+            .map(Iterator::collect)
+            .unwrap_or_default()
+    };
     addresses
+        .iter()
         // Loopback only: a name that resolves elsewhere is never connected to.
         .filter(|a| a.ip().is_loopback())
-        .any(|a| TcpStream::connect_timeout(&a, Duration::from_millis(300)).is_ok())
+        .any(|a| TcpStream::connect_timeout(a, Duration::from_millis(300)).is_ok())
 }
 
 /// A program of the user's that listens on a local port.
@@ -525,6 +556,32 @@ mod tests {
             "https://staging.example.org.evil.example/",
             &hosts
         ));
+    }
+
+    #[test]
+    fn an_address_the_user_named_is_local_but_no_loopback() {
+        let named = DeveloperSettings {
+            hosts: vec!["192.168.1.4".into(), "[FD00::1]".into(), "[nope]".into()],
+            ..DeveloperSettings::default()
+        };
+        let hosts = named.sanitised().hosts;
+        assert_eq!(hosts, ["192.168.1.4", "[fd00::1]"]);
+        assert!(is_local("http://192.168.1.4:3000/", &hosts));
+        assert!(is_local("http://[fd00::1]:3000/", &hosts));
+        assert!(!is_local("http://192.168.1.5:3000/", &hosts));
+        assert!(!is_local("http://192.168.1.4:3000/", &[]));
+        assert_eq!(loopback_address("http://192.168.1.4:3000/"), None);
+    }
+
+    #[test]
+    fn a_name_under_localhost_is_tried_on_this_computer() {
+        let server = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = server.local_addr().unwrap().port();
+        assert!(listens(&format!("shop.localhost:{port}")));
+        assert!(listens(&format!("localhost:{port}")));
+        drop(server);
+        assert!(!listens(&format!("shop.localhost:{port}")));
+        assert!(!listens("no port"));
     }
 
     #[test]

@@ -169,6 +169,8 @@ export interface DevState {
   waiting: string | null;
   /** The folder of the program serving the page. */
   project: string | null;
+  /** This computer serves the page: "reset" clears its site data too. */
+  clears: boolean;
   emulation: Emulation;
   /** The page has a phone beside it (a responsive split): both show one address. */
   responsive: boolean;
@@ -183,13 +185,6 @@ export interface AgentStatus {
   error: string | null;
   /** The program and argument an agent is given to reach the bridge. */
   command: string[];
-}
-
-/** Whether the page at `url` is served by this computer (`dev::loopback_address`): the only pages "Reset" clears the data of. */
-export function servedHere(url: string): boolean {
-  if (!/^https?:/.test(url) || !URL.canParse(url)) return false;
-  const host = new URL(url).hostname.toLowerCase();
-  return host === "localhost" || host.endsWith(".localhost") || host === "127.0.0.1" || host === "[::1]";
 }
 
 /** A program listening on one of this computer's ports. */
@@ -589,11 +584,11 @@ export type Command =
   | { cmd: "dev_capture_set" }
   /** Start recording the page in front, or end the recording that runs. */
   | { cmd: "dev_record" }
-  /** `recorder.ts` only: this page makes the video. */
+  /** `recorder.ts` only: this page makes the video, and names the recording by the id it got. */
   | { cmd: "dev_record_start" }
-  | { cmd: "dev_record_frame" }
-  | { cmd: "dev_record_data"; data: string; mp4: boolean }
-  | { cmd: "dev_record_end" }
+  | { cmd: "dev_record_frame"; id: number }
+  | { cmd: "dev_record_data"; id: number; data: string; mp4: boolean }
+  | { cmd: "dev_record_end"; id: number; failed?: boolean }
   | { cmd: "dev_record_file"; reveal: boolean }
   | { cmd: "open_palette"; mode: PaletteMode; side?: Side; tab?: Id }
   /** The welcome page is done: the app reads the chosen browsers (`import_sources` keys) and closes the page. */
@@ -722,6 +717,7 @@ interface Replies {
   dev_emulate: Emulation;
   dev_servers: { servers: DevServer[] };
   dev_agent_status: AgentStatus;
+  dev_record_start: { id: number };
   /** The recorded page's next picture (a JPEG, base64), or the end. */
   dev_record_frame: { frame?: string; done?: boolean };
   new_profile: { id: Id };

@@ -11,7 +11,7 @@ import { useDismiss } from "./dismiss";
 import { AgentIcon, CaptureSetIcon, Check, ClearDataIcon, ConsoleIcon, EmulateIcon, PickerIcon, RecordIcon, RequestsIcon, Reset, ResponsiveIcon, StopIcon, TimezoneIcon } from "./Icons";
 import { Switch } from "./settings/fields";
 import { keysHint } from "./settings/shortcutKeys";
-import { IS_MAC, accentCss, applyAppearance, findTab, hostOf, lookOf, onRecord, send, servedHere, subscribe, type DevState, type Emulation, type TabItem, type TopBarPopupKind, type UiState } from "./bridge";
+import { IS_MAC, accentCss, applyAppearance, findTab, hostOf, lookOf, onRecord, send, subscribe, type DevState, type Emulation, type TabItem, type TopBarPopupKind, type UiState } from "./bridge";
 
 /** The time zones offered, west to east; any other is set from the command bar. */
 export const TIMEZONES: [zone: string, place: string][] = [
@@ -304,7 +304,7 @@ export function DevBar() {
         <div className="dev-row" data-waiting={dev.waiting ? true : undefined}>
           <DevName state={state} item={item} dev={dev} />
           <span className="flex-1" />
-          <DevTools state={state} dev={dev} clears={servedHere(item.url)} onPanel={onPanel} />
+          <DevTools state={state} dev={dev} clears={dev.clears} onPanel={onPanel} />
         </div>
       )}
     </div>

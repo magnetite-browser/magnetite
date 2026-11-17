@@ -60,6 +60,7 @@ impl MagnetiteApp {
             };
             // The first local page in this window: its failed requests count
             // from now on.
+            rt.dev.clears = dev::loopback_address(url).is_some();
             let watch = local && !rt.dev.watched;
             rt.dev.watched |= local;
             rt.dev.local = local;
@@ -93,7 +94,9 @@ impl MagnetiteApp {
                 .phones
                 .iter()
                 .map(|p| (p.page.content, p.page.url.clone()));
-            tabs.chain(phones).collect()
+            // A peek and the mini windows count errors like any page.
+            let outside = (s.peek.iter().chain(s.minis.iter())).map(|p| (p.content, p.url.clone()));
+            tabs.chain(phones).chain(outside).collect()
         });
         for (c, url) in pages {
             self.dev_url_changed(engine, c, &url);
@@ -159,12 +162,15 @@ impl MagnetiteApp {
             rt.dev.local = true;
             rt.dev.errors = 0;
             // One watcher per page and address.
-            (rt.dev.waiting.as_deref() != Some(&address))
-                .then(|| rt.dev.waiting = Some(address.clone()))
+            (rt.dev.waiting.as_deref() != Some(&address)).then(|| {
+                rt.dev.waiting = Some(address.clone());
+                rt.dev.wait += 1;
+                rt.dev.wait
+            })
         });
-        if started.is_none() {
+        let Some(wait) = started else {
             return;
-        }
+        };
         self.show_state_paced(engine);
         std::thread::spawn(move || {
             let since = Instant::now();
@@ -180,7 +186,8 @@ impl MagnetiteApp {
                 // Still the page that waits for this address.
                 let ours = app.with_state(|s| {
                     let rt = s.page_runtime(id)?;
-                    (rt.dev.waiting.as_deref() == Some(&address)).then(|| rt.dev.waiting = None)
+                    (rt.dev.wait == wait && rt.dev.waiting.as_deref() == Some(&address))
+                        .then(|| rt.dev.waiting = None)
                 });
                 if ours.is_none() {
                     return;
@@ -280,9 +287,11 @@ impl MagnetiteApp {
     /// space, nor into a private profile.
     pub(super) fn dev_split_as(&self, engine: &Engine, profile: &str) {
         let url = self.with_state(|s| {
-            let known = (s.sidebar.profiles.iter()).any(|p| p.id == profile && !p.is_default);
+            let known = (s.sidebar.profiles.iter()).any(|p| p.id == profile);
             let tab = s.active_tab_id()?.to_owned();
-            if !known || s.private_profiles.contains(profile) || s.in_private_space(&tab) {
+            // Another profile than the page's own, the default one included.
+            let own = s.profile_for_tab(&tab).as_deref() == Some(profile);
+            if !known || own || s.private_profiles.contains(profile) || s.in_private_space(&tab) {
                 return None;
             }
             s.find_tab(&tab).map(|(_, t)| t.url.clone())

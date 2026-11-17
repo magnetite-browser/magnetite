@@ -7,7 +7,7 @@
 use std::fs::File;
 use std::io::Write as _;
 use std::path::PathBuf;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::Engine as _;
 use magnetite_engine::{ContentId, Engine, ReplyTicket};
@@ -33,13 +33,17 @@ fn downloads_folder() -> Option<PathBuf> {
 pub(super) struct Recorder {
     now: Option<Recording>,
     last: Option<PathBuf>,
+    /// How many recordings were started: each one's id.
+    started: u64,
 }
 
 struct Recording {
+    /// Told to the page that makes the video, which names it with every
+    /// command: what a recording that is over still sends reaches no other.
+    id: u64,
     content: ContentId,
     /// The tab recorded, for the UI; a page outside the tabs has none.
     tab: Option<String>,
-    started: Instant,
     /// Milliseconds since 1970, for the UI's clock.
     since: u64,
     /// The newest picture nobody asked for yet.
@@ -73,31 +77,32 @@ impl MagnetiteApp {
     }
 
     /// Start recording the page in front. The UI page that asks makes the
-    /// video (`recorder.ts`).
+    /// video (`recorder.ts`) and gets the recording's `id`.
     pub(super) fn record_start(&self, engine: &Engine) -> Result<Value, String> {
         let c = self.focused_content(None).ok_or("no page to record")?;
         let tab = self.with_state(|s| s.content_to_tab.get(&c).cloned());
-        let started = Instant::now();
-        {
+        let id = {
             let mut recorder = lock(&self.record);
             if recorder.now.is_some() {
                 return Err("a recording is running".into());
             }
+            recorder.started += 1;
             let since = SystemTime::now().duration_since(UNIX_EPOCH);
             recorder.now = Some(Recording {
+                id: recorder.started,
                 content: c,
                 tab,
-                started,
                 since: since.map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(0)),
                 frame: None,
                 waiting: None,
                 stopping: false,
                 file: None,
             });
-        }
+            recorder.started
+        };
         let stop = move || {
             if let Some(app) = global() {
-                app.record_stop(Engine::global(), Some(started));
+                app.record_stop(Engine::global(), Some(id));
             }
         };
         engine.screencast(
@@ -114,21 +119,22 @@ impl MagnetiteApp {
             Engine::post(Box::new(stop));
         });
         self.push_state(engine);
-        Ok(json!({}))
+        Ok(json!({ "id": id }))
     }
 
-    /// The recording page asks for the next picture: `{ frame }` (a JPEG,
-    /// base64) at once or as soon as the page changes, `{ done: true }`
-    /// when the recording ended.
-    pub(super) fn record_frame(&self, engine: &Engine) -> Value {
+    /// The page making recording `id` asks for the next picture:
+    /// `{ frame }` (a JPEG, base64) at once or as soon as the page changes,
+    /// `{ done: true }` when that recording ended.
+    pub(super) fn record_frame(&self, engine: &Engine, id: u64) -> Value {
         let mut recorder = lock(&self.record);
-        let Some(r) = recorder.now.as_mut().filter(|r| !r.stopping) else {
+        let now = recorder.now.as_mut().filter(|r| r.id == id && !r.stopping);
+        let Some(r) = now else {
             return json!({ "done": true });
         };
         if let Some(frame) = r.frame.take() {
             return json!({ "frame": frame });
         }
-        // One page records: an older question is over.
+        // One question at a time: an older one is over.
         if let Some(old) = std::mem::replace(&mut r.waiting, engine.defer_reply()) {
             engine.finish_reply(old, Ok(json!({ "done": true }).to_string()));
         }
@@ -150,14 +156,16 @@ impl MagnetiteApp {
         }
     }
 
-    /// A piece of the video (`data`, base64), in order; `mp4` says which
-    /// kind of file it is, else `WebM`. The first piece makes the file.
-    pub(super) fn record_data(&self, data: &str, mp4: bool) -> Result<(), String> {
+    /// A piece of the video of recording `id` (`data`, base64), in order;
+    /// `mp4` says which kind of file it is, else `WebM`. The first piece
+    /// makes the file.
+    pub(super) fn record_data(&self, id: u64, data: &str, mp4: bool) -> Result<(), String> {
         let bytes = base64::engine::general_purpose::STANDARD
             .decode(data)
             .map_err(|e| e.to_string())?;
         let mut recorder = lock(&self.record);
-        let r = recorder.now.as_mut().ok_or("no recording is running")?;
+        let now = recorder.now.as_mut().filter(|r| r.id == id);
+        let r = now.ok_or("that recording is over")?;
         if r.file.is_none() {
             let folder = downloads_folder().ok_or("there is no Downloads folder")?;
             let name = capture::dated_name("recording", if mp4 { "mp4" } else { "webm" });
@@ -170,15 +178,15 @@ impl MagnetiteApp {
     }
 
     /// End the recording: no more pictures; the recording page hands in the
-    /// video's end and calls `record_end`. With `only`, the recording that
-    /// began then (a timer's, which may have outlived its own).
-    pub(super) fn record_stop(&self, engine: &Engine, only: Option<Instant>) {
-        let (content, started) = {
+    /// video's end and calls `record_end`. With `only`, the recording of
+    /// that id (a timer's, which may have outlived its own).
+    pub(super) fn record_stop(&self, engine: &Engine, only: Option<u64>) {
+        let (content, id) = {
             let mut recorder = lock(&self.record);
             let Some(r) = recorder.now.as_mut().filter(|r| !r.stopping) else {
                 return;
             };
-            if only.is_some_and(|at| at != r.started) {
+            if only.is_some_and(|id| id != r.id) {
                 return;
             }
             r.stopping = true;
@@ -186,7 +194,7 @@ impl MagnetiteApp {
             if let Some(ticket) = r.waiting.take() {
                 engine.finish_reply(ticket, Ok(json!({ "done": true }).to_string()));
             }
-            (r.content, r.started)
+            (r.content, r.id)
         };
         engine.screencast(content, false, Box::new(|_| {}));
         self.push_state(engine);
@@ -195,34 +203,50 @@ impl MagnetiteApp {
             std::thread::sleep(END_WITHIN);
             Engine::post(Box::new(move || {
                 if let Some(app) = global() {
-                    app.record_end(Engine::global(), Some(started));
+                    app.record_end(Engine::global(), id, false);
                 }
             }));
         });
     }
 
-    /// The video is complete (or its page gave up): tell the sidebar where
-    /// it is. With `only`, as `record_stop`.
-    pub(super) fn record_end(&self, engine: &Engine, only: Option<Instant>) {
-        let file = {
+    /// Recording `id` is over: its video is complete, or (`failed`) the
+    /// page making it could not go on. Tell the sidebar where the file is,
+    /// or that it is not whole. A recording that was not stopped before
+    /// (its page gave up) stops sending pictures here.
+    pub(super) fn record_end(&self, engine: &Engine, id: u64, failed: bool) {
+        let ended = {
             let mut recorder = lock(&self.record);
-            if (recorder.now.as_ref()).is_none_or(|r| only.is_some_and(|at| at != r.started)) {
+            if recorder.now.as_ref().is_none_or(|r| r.id != id) {
                 return;
             }
-            let file = recorder
-                .now
-                .take()
-                .and_then(|r| r.file)
-                .map(|(path, _)| path);
-            recorder.last.clone_from(&file);
-            file
+            let ended = recorder.now.take();
+            recorder.last = (ended.as_ref())
+                .and_then(|r| r.file.as_ref())
+                .map(|(path, _)| path.clone());
+            ended
         };
-        if let Some(name) = file.as_ref().and_then(|f| f.file_name()) {
-            let name = name.to_string_lossy();
-            Self::ui_call(engine, "recordingReady", &json!({ "name": name }));
-        } else {
-            let error = "the page showed nothing to record";
-            Self::ui_call(engine, "captureFailed", &json!({ "error": error }));
+        let Some(ended) = ended else { return };
+        if let Some(ticket) = ended.waiting {
+            engine.finish_reply(ticket, Ok(json!({ "done": true }).to_string()));
+        }
+        if !ended.stopping {
+            engine.screencast(ended.content, false, Box::new(|_| {}));
+        }
+        let name = (ended.file.as_ref())
+            .and_then(|(path, _)| path.file_name())
+            .map(|n| n.to_string_lossy().into_owned());
+        match name {
+            Some(name) if !failed => {
+                Self::ui_call(engine, "recordingReady", &json!({ "name": name }));
+            }
+            Some(name) => {
+                let error = format!("the video could not be written to the end ({name})");
+                Self::ui_call(engine, "captureFailed", &json!({ "error": error }));
+            }
+            None => {
+                let error = "the page showed nothing to record";
+                Self::ui_call(engine, "captureFailed", &json!({ "error": error }));
+            }
         }
         self.push_state(engine);
     }

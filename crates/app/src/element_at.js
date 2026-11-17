@@ -6,18 +6,22 @@
 (x, y, find) => {
   const el = find ? document.querySelector(find) : document.elementFromPoint(x, y);
   if (!el) return null;
-  const selector = (e) => {
+  // From the element up through its ancestors, until the selector matches
+  // this element alone (an id ends it at once, if it is the only one).
+  const selector = (target) => {
     const parts = [];
-    while (e && e.nodeType === 1 && parts.length < 6) {
+    const alone = () => document.querySelectorAll(parts.join(" > ")).length === 1;
+    for (let e = target; e && e.nodeType === 1; e = e.parentElement) {
       if (e.id) {
         parts.unshift("#" + CSS.escape(e.id));
-        break;
+        if (alone()) break;
+        parts.shift();
       }
       let part = e.localName + [...e.classList].slice(0, 3).map((c) => "." + CSS.escape(c)).join("");
       const same = e.parentElement ? [...e.parentElement.children].filter((s) => s.localName === e.localName) : [];
       if (same.length > 1) part += `:nth-of-type(${same.indexOf(e) + 1})`;
       parts.unshift(part);
-      e = e.parentElement;
+      if (alone()) break;
     }
     return parts.join(" > ");
   };

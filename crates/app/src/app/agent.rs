@@ -91,12 +91,17 @@ impl MagnetiteApp {
     pub(super) fn agent_status(&self) -> Value {
         let bridge = lock(&self.agent);
         let program = std::env::current_exe().unwrap_or_default();
+        let mut command = vec![program.display().to_string(), "mcp".into()];
+        // Another data folder than the usual one: the agent must name it.
+        if self.data_dir != crate::default_data_dir() {
+            command.extend(["--data-dir".into(), self.data_dir.display().to_string()]);
+        }
         json!({
             "running": bridge.server.is_some(),
             "clients": bridge.server.as_ref().map_or(0, agent::Server::clients),
             "error": bridge.error,
             "socket": bridge.server.as_ref().map(|s| s.path().display().to_string()),
-            "command": [program.display().to_string(), "mcp"],
+            "command": command,
         })
     }
 
@@ -185,6 +190,21 @@ impl MagnetiteApp {
             Ok(page) => page,
             Err(why) => return done(Err(why)),
         };
+        // A picture is handed out only if the page is still at the address
+        // it was chosen by when the picture is there.
+        let done: Done = {
+            let (id, url) = (page.id.clone(), page.url.clone());
+            Box::new(move |result| {
+                let same = global().is_some_and(|app| {
+                    app.agent_pages().iter().any(|p| p.id == id && p.url == url)
+                });
+                done(if same {
+                    result
+                } else {
+                    Err("the page went to another site".into())
+                });
+            })
+        };
         match name {
             "console_errors" => {
                 let log: Vec<String> = self.with_state(|s| {
@@ -254,7 +274,9 @@ impl MagnetiteApp {
     }
 
     /// Evaluate `expression` in page `c` and answer with what `read` makes
-    /// of its value; no value: nothing matched.
+    /// of its value; no value: nothing matched. The document that runs it
+    /// checks itself that this computer serves it (`LOCAL_ONLY`): a page
+    /// that went elsewhere since it was chosen answers nothing.
     fn agent_evaluate(
         engine: &Engine,
         c: ContentId,
@@ -262,7 +284,8 @@ impl MagnetiteApp {
         done: Done,
         read: impl FnOnce(&Value) -> Option<String> + 'static,
     ) {
-        let params = json!({ "expression": expression, "returnByValue": true });
+        let guarded = format!("({LOCAL_ONLY})(() => ({expression}))");
+        let params = json!({ "expression": guarded, "returnByValue": true });
         engine.devtools(
             c,
             "Runtime.evaluate",
@@ -272,7 +295,10 @@ impl MagnetiteApp {
                     Ok(reply) if reply.get("exceptionDetails").is_some() => {
                         Err("not a valid CSS selector".into())
                     }
-                    Ok(reply) => read(&reply["result"]["value"])
+                    Ok(reply) if reply["result"]["value"]["local"] != true => {
+                        Err("the page went to another site".into())
+                    }
+                    Ok(reply) => read(&reply["result"]["value"]["value"])
                         .map(|text| vec![Content::Text(text)])
                         .ok_or_else(|| "nothing on the page matches".to_string()),
                     Err(e) => Err(e),
@@ -281,6 +307,17 @@ impl MagnetiteApp {
         );
     }
 }
+
+/// Runs `read` in the page only if this computer serves the document it
+/// runs in, as `dev::loopback_address` says for an address: the check and
+/// the read are one script in one document. `location` cannot be replaced
+/// by a page.
+const LOCAL_ONLY: &str = r#"(read) => {
+  const host = location.hostname.replace(/\.$/, "");
+  const local = /^https?:$/.test(location.protocol)
+    && (host === "localhost" || host.endsWith(".localhost") || /^127(\.\d{1,3}){3}$/.test(host) || host === "[::1]");
+  return local ? { local, value: read() } : { local };
+}"#;
 
 /// The markup or the visible text of the document, or of the first element
 /// matching `selector`, cut to `most` characters. Null: nothing matches.

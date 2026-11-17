@@ -537,15 +537,24 @@ pub(super) enum UiCommand {
     DevRecord,
     /// A page that stays (the sidebar, the top bar) makes the video.
     DevRecordStart,
-    /// The recording page: the next picture of the recorded page.
-    DevRecordFrame,
-    /// The recording page: a piece of the video (base64), MP4 or `WebM`.
+    /// The page making recording `id`: the next picture of the recorded
+    /// page.
+    DevRecordFrame {
+        id: u64,
+    },
+    /// The same: a piece of the video (base64), MP4 or `WebM`.
     DevRecordData {
+        id: u64,
         data: String,
         mp4: bool,
     },
-    /// The recording page: the video is complete.
-    DevRecordEnd,
+    /// The same: the video is complete, or (`failed`) could not be written
+    /// to its end.
+    DevRecordEnd {
+        id: u64,
+        #[serde(default)]
+        failed: bool,
+    },
     /// Copy the last recording's file, or show it in the file manager.
     DevRecordFile {
         reveal: bool,
@@ -2101,9 +2110,9 @@ impl MagnetiteApp {
             UiCommand::DevCaptureSet => self.capture_set(engine),
             UiCommand::DevRecordStart => return self.record_start(engine),
             UiCommand::DevRecord => self.record_toggle(engine),
-            UiCommand::DevRecordFrame => return Ok(self.record_frame(engine)),
-            UiCommand::DevRecordData { data, mp4 } => self.record_data(&data, mp4)?,
-            UiCommand::DevRecordEnd => self.record_end(engine, None),
+            UiCommand::DevRecordFrame { id } => return Ok(self.record_frame(engine, id)),
+            UiCommand::DevRecordData { id, data, mp4 } => self.record_data(id, &data, mp4)?,
+            UiCommand::DevRecordEnd { id, failed } => self.record_end(engine, id, failed),
             UiCommand::DevRecordFile { reveal } => {
                 let text = self.record_file(engine, reveal);
                 if !text.is_empty() {

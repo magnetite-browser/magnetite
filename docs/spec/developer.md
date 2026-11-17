@@ -15,7 +15,8 @@ A page is local when it is served over `http` or `https` from this computer:
 its site controls (the icon left of the address, under "This site"): the
 switch adds the site's host to Settings → Developer → "Also local", or takes
 it out, and the page changes at once. That list also takes hosts typed in:
-`staging.example.org`, or `*.test` for every name under one. For a page this
+`staging.example.org`, `*.test` for every name under one, or an address
+such as `192.168.1.4` for a server in the local network. For a page this
 computer serves the row says "Always, on this computer".
 
 A local page gets, as long as "Developer bar for local pages" is on (the
@@ -155,8 +156,8 @@ sidebar then offers "Copy file" (macOS) and "Show in Finder".
   within it.
 - One recording runs at a time.
 
-**Open beside as <profile>** (command bar, one entry per profile that is not
-the default) opens the page in front a second time, in a split to its right,
+**Open beside as <profile>** (command bar, one entry per profile other than
+the page's own) opens the page in front a second time, in a split to its right,
 with that profile's logins: two users of one site side by side. Not offered
 in the private space.
 
@@ -164,7 +165,8 @@ in the private space.
 programs listening on this computer's ports that run from a folder below
 the home folder (outside `~/Library` and app bundles), as
 "shop · localhost:5173". Typing a project's name, a port, or "localhost"
-finds them. The list is read with `lsof` each time the bar opens.
+finds them. The list is read with `lsof` each time the bar opens. They
+are the last group of results.
 
 ## Copy an element as context
 
@@ -194,7 +196,8 @@ this computer look at local pages, over the Model Context Protocol
 
 For Claude Code: `claude mcp add magnetite -- <that command>`. The command
 starts no browser; it connects to the running Magnetite and ends when the
-agent does. `--data-dir DIR` names another data folder.
+agent does. `--data-dir DIR` names another data folder; Settings shows the
+command with it when Magnetite itself was started with one.
 
 | Tool | Answers with |
 |---|---|

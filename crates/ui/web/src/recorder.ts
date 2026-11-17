@@ -31,8 +31,9 @@ function picture(jpeg: string): Promise<ImageBitmap> {
  */
 export async function record() {
   if (document.visibilityState !== "visible") await new Promise((r) => setTimeout(r, 150));
+  let id: number;
   try {
-    await send({ cmd: "dev_record_start" });
+    ({ id } = await send({ cmd: "dev_record_start" }));
   } catch {
     return;
   }
@@ -40,12 +41,19 @@ export async function record() {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   let recorder: MediaRecorder | null = null;
-  // The video's pieces reach the app in order.
+  // The video's pieces reach the app in order. One that cannot be written
+  // (a full disk) ends the recording: the app says that the file is not whole.
   let sent: Promise<unknown> = Promise.resolve();
+  let failed = false;
+  const fail = () => {
+    if (failed) return;
+    failed = true;
+    void send({ cmd: "dev_record_end", id, failed: true });
+  };
   try {
     for (;;) {
-      const next = await send({ cmd: "dev_record_frame" });
-      if (!next.frame || !type || !ctx) break;
+      const next = await send({ cmd: "dev_record_frame", id });
+      if (!next.frame || !type || !ctx || failed) break;
       const frame = await picture(next.frame);
       if (!recorder) {
         // The first picture sets the video's size: even numbers, as encoders want.
@@ -54,7 +62,9 @@ export async function record() {
         recorder = new MediaRecorder(canvas.captureStream(30), { mimeType: type, videoBitsPerSecond: 8_000_000 });
         recorder.ondataavailable = (e) => {
           if (e.data.size === 0) return;
-          sent = sent.then(async () => send({ cmd: "dev_record_data", data: await base64(e.data), mp4: type.startsWith("video/mp4") })).catch(() => {});
+          sent = sent.then(async () => {
+            if (!failed) await send({ cmd: "dev_record_data", id, data: await base64(e.data), mp4: type.startsWith("video/mp4") });
+          }).catch(fail);
         };
         recorder.start(1000);
       }
@@ -70,7 +80,10 @@ export async function record() {
       await stopped;
       await sent;
     }
+  } catch {
+    fail();
   } finally {
-    await send({ cmd: "dev_record_end" });
+    // After a failure the app has heard already; this one is then for a recording that is over.
+    await send({ cmd: "dev_record_end", id, failed });
   }
 }

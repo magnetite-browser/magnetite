@@ -84,13 +84,17 @@ function tabActions(state: UiState): Action[] {
   const id = state.active_tab;
   const tab = id ? findTab(state, id) : null;
   if (!id || !tab) return actions;
-  // The same page beside this one with another profile's logins: two users at once.
+  const owner = spaces.find((sp) => findTabInSpace(sp, id));
+  // The same page beside this one with another profile's logins: two users
+  // at once. Every profile but the page's own (`profile_for_tab` in the app).
   if (state.active_space !== state.private_space) {
-    for (const p of state.sidebar.profiles) {
-      if (!p.is_default && !p.ephemeral) actions.push({ id: `split_as_${p.id}`, title: `Open beside as ${p.name}`, keywords: ["split", "beside", "user", "profile", "second", "login", "account"], cmd: { cmd: "dev_split_as", profile: p.id } });
+    const { profiles, favorites } = state.sidebar;
+    const home = owner ?? favorites.find((f) => f.items.some((t) => t.id === id));
+    const own = (profiles.find((p) => p.id === tab.profile_id) ?? profiles.find((p) => p.id === home?.profile_id))?.id;
+    for (const p of profiles) {
+      if (p.id !== own && !p.ephemeral) actions.push({ id: `split_as_${p.id}`, title: `Open beside as ${p.name}`, keywords: ["split", "beside", "user", "profile", "second", "login", "account"], cmd: { cmd: "dev_split_as", profile: p.id } });
     }
   }
-  const owner = spaces.find((sp) => findTabInSpace(sp, id));
   // A tab of the private space stays what and where it is.
   if (owner && owner.id === state.private_space) {
     actions.push({ id: "duplicate", title: "Duplicate tab", keywords: ["duplicate", "copy", "clone"], cmd: { cmd: "new_tab", url: tab.url } });
@@ -267,11 +271,13 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
       });
     if (top.length) groups.push({ label: "", items: top });
     if (tabs.length) groups.push({ label: "Tabs", items: tabs });
-    if (local.length) groups.push({ label: "Local servers", items: local });
     if (actions.length) groups.push({ label: "Commands", items: actions });
     if (saved.length) groups.push({ label: "Bookmarks", items: saved });
     if (visited.length) groups.push({ label: "History", items: visited });
     if (archived.length) groups.push({ label: "Archive", items: archived });
+    // Last: the list arrives a moment after the bar opens, and rows added
+    // here move none of the rows above, so the selected one stays selected.
+    if (local.length) groups.push({ label: "Local servers", items: local });
     for (const g of groups) items.push(...g.items);
   }
   const sel = Math.min(selected, Math.max(0, items.length - 1));
