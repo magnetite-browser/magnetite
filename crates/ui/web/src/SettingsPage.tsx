@@ -74,6 +74,10 @@ function decoded(text: string): string | undefined {
   }
 }
 
+/** The event the app sends an open Settings page when a setting changed
+ * outside it (`events.rs`, `AutofillChanged`). */
+const SETTINGS_CHANGED = "magnetite-settings-changed";
+
 export function SettingsPage() {
   const [info, setInfo] = useState<Info | null>(null);
   // The address names the section, and after "=" what in it to show: `#code=example.org`.
@@ -122,15 +126,18 @@ export function SettingsPage() {
   // The app does not tell this page what changes elsewhere (the sidebar's
   // edge its width, a closed tab the archive, the Web Store the extensions),
   // and a change here is saved on top of this page's copy: ask again
-  // whenever the page comes back.
+  // whenever the page comes back. The one change the app does tell about is
+  // a setting changed on one of Chromium's own pages (`SETTINGS_CHANGED`).
   useEffect(() => {
     const back = () => {
       if (document.visibilityState === "visible") void reload();
     };
     window.addEventListener("focus", back);
+    window.addEventListener(SETTINGS_CHANGED, back);
     document.addEventListener("visibilitychange", back);
     return () => {
       window.removeEventListener("focus", back);
+      window.removeEventListener(SETTINGS_CHANGED, back);
       document.removeEventListener("visibilitychange", back);
     };
   }, [reload]);
