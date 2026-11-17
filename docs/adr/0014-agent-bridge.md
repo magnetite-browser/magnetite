@@ -67,13 +67,16 @@ Option 3.
   page content data, and nothing an agent does through the bridge can change
   a page, but what the agent does elsewhere with what it read is outside
   our reach.
-- A page is judged by its tab's address when a tool runs. A local page that
-  is leaving for another site can be read once more in the moment before
-  its new address is known.
-- The tools evaluate script in the page to read it (`Runtime.evaluate`,
-  without enabling the `Runtime` domain, as the capture tool does): a page
-  cannot see that it is read, but one that replaced `document.querySelector`
-  decides what is found.
+- A page is chosen by its tab's address, and judged again where it is
+  read: the script that reads runs in a script world of its own
+  (`Page.createIsolatedWorld`), bound to one document, and first checks that
+  this computer serves that document. A page that left for another site in
+  between answers nothing. A screenshot is handed out only if the tab is
+  still at the address it was chosen by once the picture is there.
+- That world shares the document with the page but none of its script
+  (`Runtime.evaluate` with its context, without enabling the `Runtime`
+  domain): a page cannot see that it is read, nor change the functions the
+  check and the read use.
 - A socket's path has about 100 characters of room. The default data folders
   fit; a long `--data-dir` does not, and Settings then says why the bridge
   did not start.

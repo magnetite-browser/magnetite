@@ -198,12 +198,13 @@ impl MagnetiteApp {
         };
         engine.screencast(content, false, Box::new(|_| {}));
         self.push_state(engine);
-        // A recording page that is gone never answers.
+        // A recording page that is gone, or too slow, never hands in the
+        // video's end: what is in the file by then is not the whole video.
         std::thread::spawn(move || {
             std::thread::sleep(END_WITHIN);
             Engine::post(Box::new(move || {
                 if let Some(app) = global() {
-                    app.record_end(Engine::global(), id, false);
+                    app.record_end(Engine::global(), id, true);
                 }
             }));
         });

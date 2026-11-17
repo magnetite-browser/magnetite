@@ -274,9 +274,14 @@ impl MagnetiteApp {
     }
 
     /// Evaluate `expression` in page `c` and answer with what `read` makes
-    /// of its value; no value: nothing matched. The document that runs it
-    /// checks itself that this computer serves it (`LOCAL_ONLY`): a page
-    /// that went elsewhere since it was chosen answers nothing.
+    /// of its value; no value: nothing matched.
+    ///
+    /// It runs in a script world of its own (`Page.createIsolatedWorld`),
+    /// which shares the document with the page but none of its script: the
+    /// page cannot change the functions the check or the read use. The
+    /// world belongs to one document, and that document checks itself that
+    /// this computer serves it (`LOCAL_ONLY`): a page that went elsewhere
+    /// since it was chosen answers nothing, whenever it went.
     fn agent_evaluate(
         engine: &Engine,
         c: ContentId,
@@ -285,33 +290,65 @@ impl MagnetiteApp {
         read: impl FnOnce(&Value) -> Option<String> + 'static,
     ) {
         let guarded = format!("({LOCAL_ONLY})(() => ({expression}))");
-        let params = json!({ "expression": guarded, "returnByValue": true });
+        let gone = || "the page did not answer".to_string();
         engine.devtools(
             c,
-            "Runtime.evaluate",
-            &params,
-            Box::new(move |reply| {
-                done(match reply {
-                    Ok(reply) if reply.get("exceptionDetails").is_some() => {
-                        Err("not a valid CSS selector".into())
-                    }
-                    Ok(reply) if reply["result"]["value"]["local"] != true => {
-                        Err("the page went to another site".into())
-                    }
-                    Ok(reply) => read(&reply["result"]["value"]["value"])
-                        .map(|text| vec![Content::Text(text)])
-                        .ok_or_else(|| "nothing on the page matches".to_string()),
-                    Err(e) => Err(e),
-                });
+            "Page.getFrameTree",
+            &json!({}),
+            Box::new(move |tree| {
+                let frame = tree
+                    .ok()
+                    .and_then(|t| t["frameTree"]["frame"]["id"].as_str().map(str::to_owned));
+                let Some(frame) = frame else {
+                    return done(Err(gone()));
+                };
+                let world = json!({ "frameId": frame, "worldName": "magnetite-agent" });
+                Engine::global().devtools(
+                    c,
+                    "Page.createIsolatedWorld",
+                    &world,
+                    Box::new(move |world| {
+                        let context = world.ok().and_then(|w| w["executionContextId"].as_i64());
+                        let Some(context) = context else {
+                            return done(Err(gone()));
+                        };
+                        let params = json!({
+                            "expression": guarded, "returnByValue": true, "contextId": context,
+                        });
+                        Engine::global().devtools(
+                            c,
+                            "Runtime.evaluate",
+                            &params,
+                            Box::new(move |reply| done(Self::agent_read(reply, read))),
+                        );
+                    }),
+                );
             }),
         );
     }
+
+    /// What `agent_evaluate`'s script answered, as a tool's result.
+    fn agent_read(
+        reply: Result<Value, String>,
+        read: impl FnOnce(&Value) -> Option<String>,
+    ) -> ToolResult {
+        let reply = reply?;
+        if reply.get("exceptionDetails").is_some() {
+            return Err("not a valid CSS selector".into());
+        }
+        if reply["result"]["value"]["local"] != true {
+            return Err("the page went to another site".into());
+        }
+        read(&reply["result"]["value"]["value"])
+            .map(|text| vec![Content::Text(text)])
+            .ok_or_else(|| "nothing on the page matches".to_string())
+    }
 }
 
-/// Runs `read` in the page only if this computer serves the document it
-/// runs in, as `dev::loopback_address` says for an address: the check and
-/// the read are one script in one document. `location` cannot be replaced
-/// by a page.
+/// Runs `read` only if this computer serves the document the script runs
+/// in, as `dev::loopback_address` says for an address: the check and the
+/// read are one script in one document. For a script world of its own
+/// (`agent_evaluate`), where the page has replaced none of what this uses.
 const LOCAL_ONLY: &str = r#"(read) => {
   const host = location.hostname.replace(/\.$/, "");
   const local = /^https?:$/.test(location.protocol)

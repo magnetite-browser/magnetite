@@ -130,7 +130,10 @@ from a context Magnetite did not make is not opened.
   data folder (0600), not a port. Its tools only read, only pages this
   computer serves, never the private space; named "also local" hosts are
   excluded. What an agent sends goes into fixed functions as JSON values,
-  never into script.
+  never into script. Those functions run in a script world of their own, so
+  a page cannot change what they use, and the document that runs them
+  checks itself that this computer serves it: a page that went elsewhere
+  after it was chosen answers nothing.
 - The picture of an element copied as context is a 0600 file in the data
   folder, removed at quit.
 - A recording is made only when the user starts one, of one page, and

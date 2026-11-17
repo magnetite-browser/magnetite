@@ -160,11 +160,13 @@ function connection(item: TabItem, rt: TabRuntime | undefined): { text: string; 
  */
 function DevSwitch({ state, url, own }: { state: UiState; url: string; own: boolean }) {
   const dev = state.settings.developer;
-  const host = /^https?:/.test(url) && URL.canParse(url) ? new URL(url).hostname.toLowerCase() : "";
+  // As the app compares it: lower case, without a dot at the end.
+  const host = /^https?:/.test(url) && URL.canParse(url) ? new URL(url).hostname.toLowerCase().replace(/\.$/, "") : "";
   if (!dev.enabled || !host) return null;
   const named = dev.hosts.includes(host);
-  // On without being named: this computer's page, or a name under a pattern (`*.test`).
-  const always = own ? "Always, on this computer" : !named && dev.hosts.some((h) => h.startsWith("*.") && host.endsWith(h.slice(1))) ? "On for its domain" : null;
+  // On whatever the switch says: this computer's page, or a name under a
+  // pattern (`*.test`), which taking the host out would not turn off.
+  const always = own ? "Always, on this computer" : dev.hosts.some((h) => h.startsWith("*.") && host.endsWith(h.slice(1))) ? "On for its domain" : null;
   const set = (checked: boolean) => send({ cmd: "set_settings", settings: { developer: { ...dev, hosts: checked ? [...dev.hosts, host] : dev.hosts.filter((h) => h !== host) } } });
   return (
     <label className="panel-row" title="The developer bar, a caution border on the tab and the console error count for this site">

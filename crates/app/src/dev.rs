@@ -297,12 +297,16 @@ impl DeveloperSettings {
     pub fn sanitised(mut self) -> Self {
         let mut hosts: Vec<String> = Vec::new();
         for host in std::mem::take(&mut self.hosts) {
-            let host = host.trim().to_ascii_lowercase();
-            let name = host.strip_prefix("*.").unwrap_or(&host);
-            // An IPv6 address as an address has it, in brackets.
+            let mut host = host.trim().to_ascii_lowercase();
+            // An IPv6 address as an address has it, in brackets, and in the
+            // one spelling `is_local` compares with.
             let v6 = (host.strip_prefix('[').and_then(|h| h.strip_suffix(']')))
-                .is_some_and(|ip| ip.parse::<std::net::Ipv6Addr>().is_ok());
-            let valid = v6
+                .and_then(|ip| ip.parse::<std::net::Ipv6Addr>().ok());
+            if let Some(ip) = v6 {
+                host = format!("[{ip}]");
+            }
+            let name = host.strip_prefix("*.").unwrap_or(&host);
+            let valid = v6.is_some()
                 || !name.is_empty()
                     && name.len() <= 253
                     && (name.bytes()).all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'.')
@@ -561,7 +565,12 @@ mod tests {
     #[test]
     fn an_address_the_user_named_is_local_but_no_loopback() {
         let named = DeveloperSettings {
-            hosts: vec!["192.168.1.4".into(), "[FD00::1]".into(), "[nope]".into()],
+            hosts: vec![
+                "192.168.1.4".into(),
+                "[FD00:0:0:0:0:0:0:1]".into(),
+                "[fd00::1]".into(),
+                "[nope]".into(),
+            ],
             ..DeveloperSettings::default()
         };
         let hosts = named.sanitised().hosts;
