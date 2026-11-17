@@ -40,12 +40,12 @@ base64.workspace = true
 ed25519-dalek.workspace = true
 sha2.workspace = true
 libc = "0.2"
+# Shared links are compressed (already in the build through ureq).
+flate2 = "1"
 
 [dev-dependencies]
 magnetite-sync = { git = "https://github.com/magnetite-browser/magnetite-sync", tag = "v0.1.0" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
-# Compressed answers in the sync tests (already in the build through ureq).
-flate2 = "1"
 
 [lints]
 workspace = true

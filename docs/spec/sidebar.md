@@ -138,6 +138,8 @@ the row turns the icon into a back arrow that takes the page back.
   tabs stay where it was. A smart folder is deleted with the items it
   listed.
 - A folder can fill itself from a service (`smart-folders.md`).
+- "Copy link to share" in the context menu makes a link that carries the
+  folder (`sharing.md`).
 
 ## Hiding and resizing
 

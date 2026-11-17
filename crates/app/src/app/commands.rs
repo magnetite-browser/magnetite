@@ -242,6 +242,18 @@ pub(super) enum UiCommand {
     DeleteFolder {
         id: String,
     },
+    /// Copy the link that shares folder `id` and its tabs.
+    ShareFolder {
+        id: String,
+    },
+    /// The folder shared link `url` carries, for its page; `null` if unreadable.
+    ReadShared {
+        url: String,
+    },
+    /// Add the folder of shared link `url` to the active space's pinned tabs.
+    AddShared {
+        url: String,
+    },
     /// Give folder `id` a glyph as its icon, or the default one back (`None`).
     SetFolderIcon {
         id: String,
@@ -1054,6 +1066,25 @@ impl MagnetiteApp {
                     engine.close_content(c);
                 }
                 self.present(engine);
+            }
+            UiCommand::ShareFolder { id } => {
+                let text = match self.with_state(|s| s.share_folder(&id)) {
+                    Ok(link) if engine.copy_text(&link) => "Link to folder copied".to_string(),
+                    Ok(_) => "Could not copy".to_string(),
+                    Err(e) => e.to_string(),
+                };
+                Self::ui_call(engine, "notice", &json!({ "text": text }));
+            }
+            UiCommand::ReadShared { url } => {
+                return Ok(json!({ "folder": crate::state::read_shared(&url).ok() }));
+            }
+            UiCommand::AddShared { url } => {
+                let text = match self.with_state(|s| s.add_shared(&url)) {
+                    Ok(title) => format!("Added \u{201c}{title}\u{201d}"),
+                    Err(e) => e.to_string(),
+                };
+                self.push_state(engine);
+                Self::ui_call(engine, "notice", &json!({ "text": text }));
             }
             UiCommand::SetFolderIcon { id, icon } => {
                 self.with_state(|s| {

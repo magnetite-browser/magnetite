@@ -558,6 +558,7 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
   const glyph = glyphFor(folder.icon);
   const changeIcon = (x: number, y: number) =>
     ctx.pickIcon({ x, y }, glyph ?? undefined, (g) => send({ cmd: "set_folder_icon", id: folder.id, icon: g }), true);
+  const share: MenuItem = { label: "Copy link to share", onClick: () => send({ cmd: "share_folder", id: folder.id }) };
   const menu: MenuItem[] = smart
     ? [
         ...(status?.needs_approval
@@ -569,6 +570,7 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
         { label: "Rename folder", onClick: () => ctx.setRenaming(folder.id) },
         { label: "Change icon…", onClick: () => changeIcon(menuAt.current.x, menuAt.current.y) },
         { label: open ? "Collapse" : "Expand", onClick: toggle },
+        share,
         SEPARATOR,
         { label: "Stop updating (keep tabs)", onClick: () => send({ cmd: "smart_unlink", id: folder.id }) },
         { label: "Delete folder and its items", danger: true, onClick: () => send({ cmd: "delete_folder", id: folder.id }) },
@@ -577,6 +579,7 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
         { label: "Rename folder", onClick: () => ctx.setRenaming(folder.id) },
         { label: "Change icon…", onClick: () => changeIcon(menuAt.current.x, menuAt.current.y) },
         { label: open ? "Collapse" : "Expand", onClick: toggle },
+        share,
         {
           label: "New folder inside",
           onClick: () => {

@@ -12,16 +12,18 @@ import { Licenses } from "./Licenses";
 import { Notifications } from "./Notifications";
 import { SplitDrop } from "./SplitDrop";
 import { SettingsPage } from "./SettingsPage";
+import { Shared } from "./Shared";
 import { SmartFolderDialog } from "./SmartFolderDialog";
 import { Switcher } from "./Switcher";
 import { TopBar } from "./TopBar";
 import { TopBarPopup } from "./TopBarPopup";
 import { Welcome } from "./Welcome";
 
-/** Each magnetite://ui page: the sidebar, the top bar, settings, all downloads, the welcome page, the page behind the tabs, and the small windows over the page area. */
+/** Each magnetite://ui page: the sidebar, the top bar, settings, a shared folder, all downloads, the welcome page, the page behind the tabs, and the small windows over the page area. */
 function Route() {
   const path = location.pathname;
   if (path.startsWith("/settings")) return <SettingsPage />;
+  if (path.startsWith("/shared")) return <Shared />;
   if (path.startsWith("/welcome")) return <Welcome />;
   if (path.startsWith("/downloads")) return <DownloadsPage />;
   if (path.startsWith("/licenses")) return <Licenses />;

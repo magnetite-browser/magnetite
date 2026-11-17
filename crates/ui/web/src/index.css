@@ -604,3 +604,10 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
 @media (prefers-reduced-motion: reduce) { .dev-pulse { animation: none; } }
 .dev-agent { flex: none; width: 22px; height: 24px; display: grid; place-items: center; color: var(--accent); }
 .row .dev-errors { flex: none; min-width: 16px; height: 16px; padding: 0 4px 1px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; border-radius: 8px; background: rgba(240,93,93,0.18); color: #f08c8c; font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* a shared folder's page (Shared.tsx) */
+.shared-list { list-style: none; margin: 0; padding: 0; }
+.shared-list .shared-list { margin-left: 15px; padding-left: 8px; border-left: 1px solid var(--line); }
+.shared-tab { display: flex; align-items: baseline; gap: 12px; padding: 7px 10px; border-radius: 8px; font-size: 13.5px; }
+.shared-tab > :first-child { min-width: 0; flex: 1; }
+.shared-folder { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 13.5px; font-weight: 600; color: var(--secondary); }

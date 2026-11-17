@@ -21,6 +21,7 @@ mod private;
 mod profiles;
 mod search;
 mod settings;
+mod share;
 mod splits;
 mod tabs;
 #[cfg(test)]
@@ -32,6 +33,7 @@ pub use history::{History, Visit};
 pub use settings::{
     AdblockSettings, Appearance, Settings, SidebarEffect, SiteSearch, SyncSettings, TabOrder,
 };
+pub use share::read_link as read_shared;
 pub use tabs::TabSwitch;
 
 /// What the sidebar UI receives on every change.

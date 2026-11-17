@@ -10,7 +10,7 @@ use super::bookmarks::find;
 use super::{AppState, new_id};
 
 /// How many folders may stand inside one another, as in an import.
-const MAX_DEPTH: usize = 32;
+pub(super) const MAX_DEPTH: usize = 32;
 
 /// Folder `id` in `nodes` and how many folders deep it stands: 1 at the top
 /// level.

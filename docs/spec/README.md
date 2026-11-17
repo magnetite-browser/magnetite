@@ -28,6 +28,7 @@ changes them ([shortcuts.md](shortcuts.md)).
 | [media.md](media.md) | media controls in the sidebar, picture-in-picture |
 | [extensions.md](extensions.md) | Chrome extensions: pinned icons, the Extensions menu, popups |
 | [smart-folders.md](smart-folders.md) | folders that fill themselves from GitHub, GitLab, Jira or YouTrack |
+| [sharing.md](sharing.md) | a folder of pinned tabs as a link: what it carries, opening it, adding it to the sidebar |
 | [import.md](import.md) | bringing tabs over from another browser |
 | [arc-sidebar-format.md](arc-sidebar-format.md) | the sidebar file of Arc, as far as the importer reads it |
 | [sync.md](sync.md) | optional, end-to-end encrypted sync between devices |
