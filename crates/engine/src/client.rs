@@ -417,10 +417,17 @@ wrap_load_handler! {
             failed_url: Option<&CefString>,
         ) {
             if self.kind != Kind::Content || frame.is_some_and(|f| f.is_main() == 0) { return; }
+            let code = *error_code.as_ref() as i32;
+            // Given up before anything changed (a download, a load that was
+            // stopped): the tab still shows the page it showed.
+            if code == sys::cef_errorcode_t::ERR_ABORTED as i32 { return; }
             let engine = Engine::global();
             if let Some(id) = engine.content_id_for(browser.as_deref()) {
-                let refused = *error_code.as_ref() as i32 == sys::cef_errorcode_t::ERR_CONNECTION_REFUSED as i32;
+                let refused = code == sys::cef_errorcode_t::ERR_CONNECTION_REFUSED as i32;
                 let url = failed_url.map(CefString::to_string).unwrap_or_default();
+                // The error page stands at the failed address, and CEF
+                // reports no address change for it.
+                engine.update_mini_address(id, &url);
                 engine.emit(EngineEvent::LoadFailed { id, url, refused });
             }
         }

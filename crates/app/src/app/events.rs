@@ -322,6 +322,8 @@ impl EngineDelegate for MagnetiteApp {
             EngineEvent::ConsoleError { id } => self.dev_console_error(engine, id),
             EngineEvent::ScreencastFrame { id, jpeg } => self.record_picture(engine, id, jpeg),
             EngineEvent::LoadFailed { id, url, refused } => {
+                self.with_state(|s| s.load_failed(id, &url));
+                self.push_state(engine);
                 self.dev_load_failed(engine, id, &url, refused);
             }
             EngineEvent::Shortcut { shortcut, .. } => self.handle_shortcut(engine, shortcut),

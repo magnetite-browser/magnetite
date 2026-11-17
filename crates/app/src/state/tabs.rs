@@ -120,7 +120,23 @@ impl AppState {
         }
     }
 
-    /// Whether window `id` holds the phone of a responsive split.
+    /// The page in window `id` could not load `url` and shows an error page
+    /// there: that is its address now, without the last page's icon. No
+    /// visit, as nothing was seen.
+    pub fn load_failed(&mut self, id: ContentId, url: &str) {
+        if let Some(p) = self.page_outside_mut(id) {
+            url.clone_into(&mut p.url);
+        }
+        if let Some(tab) = self.content_to_tab.get(&id).cloned()
+            && let Some(t) = self.find_tab_mut(&tab)
+        {
+            url.clone_into(&mut t.url);
+        }
+        if let Some(rt) = self.page_runtime(id) {
+            rt.favicon = None;
+        }
+    }
+
     pub fn is_phone(&self, id: ContentId) -> bool {
         self.phones.iter().any(|p| p.page.content == id)
     }
@@ -579,6 +595,20 @@ mod tests {
         s.active_tab.insert(space, "fav".into());
         assert_eq!(s.cycle_tab(true).as_deref(), Some("p"));
         assert_eq!(s.cycle_tab(false).as_deref(), Some("c"));
+    }
+
+    #[test]
+    fn a_failed_load_shows_its_address_and_drops_the_last_icon() {
+        let mut s = state();
+        s.content_to_tab.insert(7, "a".into());
+        s.runtime.entry("a".into()).or_default().favicon =
+            Some("https://example.org/favicon.ico".into());
+        s.load_failed(7, "https://down.example/");
+        assert_eq!(
+            s.find_tab("a").map(|(_, t)| t.url.as_str()),
+            Some("https://down.example/")
+        );
+        assert_eq!(s.runtime["a"].favicon, None);
     }
 
     #[test]

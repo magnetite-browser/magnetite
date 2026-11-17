@@ -233,8 +233,9 @@ pub enum EngineEvent {
         id: ContentId,
         jpeg: String,
     },
-    /// Page `id` could not load `url`. `refused`: nothing listens at that
-    /// address (a development server that is not running).
+    /// Page `id` could not load `url` and shows an error page at that
+    /// address; no `UrlChanged` comes for it. `refused`: nothing listens at
+    /// that address (a development server that is not running).
     LoadFailed {
         id: ContentId,
         url: String,
