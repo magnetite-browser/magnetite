@@ -79,9 +79,6 @@ is for.
 
 ## Limits
 
-- Chromium's pages have switches of their own for the same things. One
-  changed there lasts until Magnetite sets its own again: at the next start
-  or the next change in Settings.
 - The lists of addresses and cards are part of Chromium's settings page,
   with its own navigation to settings Magnetite does not use.
 
