@@ -230,6 +230,11 @@ impl EngineDelegate for MagnetiteApp {
                 if source == url_policy::Source::OtherApp {
                     self.leave_private_space(engine);
                 }
+                // A link from another app to a site with a rule belongs to
+                // the rule's space.
+                let ruled = (source == url_policy::Source::OtherApp)
+                    .then(|| self.link_rule_space(&url))
+                    .flatten();
                 let (target, from_mini) = self.with_state(|s| {
                     // A web panel counts as the peek does: narrow, and over
                     // the page, it is no place for a second page.
@@ -243,31 +248,21 @@ impl EngineDelegate for MagnetiteApp {
                         own_window,
                         background,
                         from_peek,
+                        ruled: ruled.is_some(),
                     };
                     let from_mini = from.is_some_and(|c| s.minis.iter().any(|m| m.content == c));
                     (ask.target(&s.settings.external_links), from_mini)
                 });
-                // A link from another app to a site with a rule opens in the
-                // rule's space: as a tab there, or as a peek or mini window
-                // with that space's logins.
-                let ruled = (source == url_policy::Source::OtherApp)
-                    .then(|| self.link_rule_space(&url))
-                    .flatten();
-                let context = match &ruled {
-                    Some((_, profile)) => Some(profile.as_str()),
-                    None => context.as_deref(),
-                };
+                let context = context.as_deref();
                 match target {
                     Target::Peek => self.open_peek(engine, &url, source, context),
                     Target::Mini => self.open_mini(engine, &url, source, context),
                     Target::Tab => {
-                        if let Some((space, _)) = &ruled
+                        if let Some(space) = &ruled
                             && self.with_state(|s| s.active_space != *space)
                         {
                             self.activate_space(engine, space);
                         }
-                        // In the rule's space the tab takes that space's profile.
-                        let context = context.filter(|_| ruled.is_none());
                         self.open_url_from(engine, &url, background, source, context);
                     }
                 }
@@ -486,19 +481,20 @@ impl EngineDelegate for MagnetiteApp {
 
 impl MagnetiteApp {
     /// The space a rule names for a link from another app to `url`
-    /// (Settings → General), with that space's profile: `(space, profile)`.
-    fn link_rule_space(&self, url: &str) -> Option<(String, String)> {
+    /// (Settings → General).
+    fn link_rule_space(&self, url: &str) -> Option<String> {
         self.with_state(|s| {
-            let id = (s.settings).link_space(url, |id| s.space(id).is_some())?;
-            let space = s.space(id)?;
-            Some((space.id.clone(), space.profile_id.clone()))
+            (s.settings)
+                .link_space(url, |id| s.space(id).is_some())
+                .cloned()
         })
     }
 
     /// Open `urls` as links from another app: as macOS hands them over,
-    /// following the setting for links from outside. There is one peek, and
-    /// opening it closes the one before: of several addresses the last gets
-    /// it, the others become background tabs.
+    /// following the setting for links from outside, except those to a site
+    /// with a rule, which become tabs in the rule's space. There is one
+    /// peek, and opening it closes the one before: of several addresses the
+    /// last gets it, the others become background tabs.
     pub(super) fn open_from_other_app(&self, engine: &Engine, urls: Vec<String>) {
         let peek = self.with_state(|s| s.settings.external_links == "peek");
         self.leave_private_space(engine);
@@ -511,7 +507,7 @@ impl MagnetiteApp {
                 // A background tab: in the space a rule names for its site,
                 // else in the one in front.
                 match self.link_rule_space(&url) {
-                    Some((space, _)) => self.open_background_in_space(engine, &url, &space),
+                    Some(space) => self.open_background_in_space(engine, &url, &space),
                     None => {
                         self.open_url_from(engine, &url, true, url_policy::Source::OtherApp, None);
                     }
@@ -570,19 +566,22 @@ struct Ask {
     background: bool,
     /// The peek or a web panel asked: what it opens becomes a tab.
     from_peek: bool,
+    /// A link from another app to a site with a rule (Settings → General).
+    ruled: bool,
 }
 
 impl Ask {
     /// "Open Link in New Window" gets a mini window. A link from another app
-    /// goes where Settings say (`external_links`:
-    /// "tab", "peek" or "mini"). A page locked to its site, or one that asks
+    /// goes where Settings say (`external_links`: "tab", "peek" or "mini"),
+    /// unless a rule names a space for its site: then it is a tab there. A
+    /// page locked to its site, or one that asks
     /// for a new window, gets a peek, unless it is the peek itself or the
     /// link opens in the background. Everything else becomes a tab.
     fn target(&self, external_links: &str) -> Target {
         if self.own_window {
             return Target::Mini;
         }
-        if self.source == url_policy::Source::OtherApp {
+        if self.source == url_policy::Source::OtherApp && !self.ruled {
             match external_links {
                 "peek" => return Target::Peek,
                 "mini" => return Target::Mini,
@@ -610,6 +609,7 @@ mod tests {
             own_window: false,
             background: false,
             from_peek: false,
+            ruled: false,
         }
     }
 
@@ -632,6 +632,17 @@ mod tests {
         // Only links from other apps: a page's or the UI's never.
         assert_eq!(ask(Source::Page).target("mini"), Target::Tab);
         assert_eq!(ask(Source::User).target("mini"), Target::Tab);
+    }
+
+    #[test]
+    fn a_link_with_a_rule_becomes_a_tab_whatever_the_setting_says() {
+        let ruled = Ask {
+            ruled: true,
+            ..ask(Source::OtherApp)
+        };
+        for setting in ["tab", "peek", "mini"] {
+            assert_eq!(ruled.target(setting), Target::Tab);
+        }
     }
 
     #[test]

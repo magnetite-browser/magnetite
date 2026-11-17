@@ -205,14 +205,13 @@ in front, the space beside it comes to the front for the link.
   `github.com/acme` fits `github.com/acme/app`, not `github.com/acmecorp`.
   Of several rules that fit, the one with the longest host counts, then
   the longest path.
-- Where the link opens stays what Settings → General → "Open links from
-  other apps in" says (`peek.md`, `mini-window.md`): as a new tab it opens
-  in the rule's space, which comes to the front; as a peek or a mini
-  window it opens with the logins of that space's profile. Of several
-  links handed over at once as peeks, only the last is one; the others
-  become background tabs, each in the space its rule names. Links
-  without a rule open in the space that was in front when they arrived,
-  also after one with a rule brought its space forward.
+- A link with a rule opens as a new tab in the rule's space, which comes
+  to the front, whatever Settings → General → "Open links from other apps
+  in" says (`peek.md`, `mini-window.md`): that setting is for links
+  without a rule. Of several links handed over at once as peeks, only the
+  last is one; the others become background tabs, each in the space its
+  rule names. Links without a rule open in the space that was in front
+  when they arrived, also after one with a rule brought its space forward.
 - A rule whose space is gone does nothing, and a less exact rule that fits
   counts in its place; Settings marks it until another space is chosen or
   the rule removed.

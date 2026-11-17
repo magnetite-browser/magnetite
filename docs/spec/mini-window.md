@@ -9,7 +9,7 @@ a tab.
 
 | Trigger | Result |
 |---|---|
-| A link from another app | A mini window, while Settings → General → "Open links from other apps in" says "a mini window" (the default) |
+| A link from another app | A mini window, while Settings → General → "Open links from other apps in" says "a mini window" (the default) and no rule names a space for its site (`spaces.md`, "Links from other apps") |
 | `Cmd+Option+N`, in any app | The quick search (below); Enter opens the pick in a mini window |
 | File → New Mini Window (`Cmd+Option+N`) | The same, from Magnetite's menu bar |
 | "Open Link in New Window" in a page's menu | A mini window with that link, in the page's profile |
