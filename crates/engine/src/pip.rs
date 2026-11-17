@@ -46,6 +46,8 @@ const PILL_RADIUS: f64 = 8.0;
 const PLAY: f64 = 52.0;
 const SEEK: f64 = 40.0;
 const CENTER_GAP: f64 = 18.0;
+/// The least room between play/pause and a seek button.
+const MIN_GAP: f64 = 4.0;
 /// Band along each edge, and square at each corner, that resizes the window.
 const EDGE: f64 = 6.0;
 const CORNER: f64 = 16.0;
@@ -139,7 +141,8 @@ impl From<Area> for NSRect {
 /// Where the buttons go on a `w` × `h` video. `labelled` are the widths of
 /// the top buttons with their labels; when the three do not fit side by
 /// side they show only their icons (`compact`). Live video has nothing to
-/// seek in, so it gets no seek buttons.
+/// seek in, so it gets no seek buttons; nor does a video too narrow to hold
+/// them.
 fn layout(w: f64, h: f64, labelled: [f64; 3], live: bool) -> (bool, Vec<(Button, Area)>) {
     let compact = labelled.iter().sum::<f64>() + 2.0 * MARGIN + 3.0 * PILL_GAP > w;
     let width = |i: usize| if compact { PILL_HEIGHT } else { labelled[i] };
@@ -163,11 +166,11 @@ fn layout(w: f64, h: f64, labelled: [f64; 3], live: bool) -> (bool, Vec<(Button,
         (Button::Close, pill(close_x, width(2))),
         (Button::PlayPause, round(w / 2.0, PLAY)),
     ];
-    if !live {
+    if !live && w >= PLAY + 2.0 * (SEEK + MIN_GAP) {
         // A narrow (upright) video moves them closer, so they stay on it.
         let gap = CENTER_GAP
             .min((w - PLAY - 2.0 * SEEK - 2.0 * MARGIN) / 2.0)
-            .max(4.0);
+            .max(MIN_GAP);
         let offset = PLAY / 2.0 + gap + SEEK / 2.0;
         places.push((Button::Back, round(w / 2.0 - offset, SEEK)));
         places.push((Button::Forward, round(w / 2.0 + offset, SEEK)));
@@ -1059,6 +1062,10 @@ mod tests {
         let forward = place(&places, Button::Forward).unwrap();
         assert!(back.x >= MARGIN && forward.x + forward.w <= 160.0 - MARGIN);
         assert!(back.x + back.w < play.x && play.x + play.w < forward.x);
+        // Too narrow for them: play/pause alone.
+        let (_, places) = layout(120.0, 213.0, LABELLED, false);
+        assert!(place(&places, Button::Back).is_none());
+        assert!(place(&places, Button::PlayPause).is_some());
     }
 
     #[test]

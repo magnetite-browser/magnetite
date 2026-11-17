@@ -107,10 +107,10 @@
   window.addEventListener("enterpictureinpicture", onPicture, true);
   window.addEventListener("leavepictureinpicture", onPicture, true);
 
-  // The element that matters: an audible one that really plays, else the
-  // last one that played and is paused now, else a muted video that plays
-  // or is in the floating window (Instagram starts its videos muted; such a
-  // video can still pop out).
+  // The element that matters: an audible one that really plays, else a
+  // muted video that plays or is in the floating window (Instagram starts
+  // its videos muted; such a video can still pop out), else the last
+  // audible one that played and is paused now.
   const current = () => {
     let paused = null;
     let silent = null;
@@ -128,7 +128,7 @@
       if (!el.paused) return el;
       if (el === lastPlayed) paused = el;
     }
-    return paused || silent;
+    return silent || paused;
   };
 
   let last = "";
