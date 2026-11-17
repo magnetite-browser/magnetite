@@ -88,6 +88,9 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
     items.push({ label: "Remove from split view", onClick: () => send({ cmd: "remove_split", id: tab.id }) });
     items.push({ label: "Separate all tabs", onClick: () => send({ cmd: "separate_all", id: tab.id }) });
   }
+  // The same address as a new Today tab (a private one in the private space),
+  // as "Duplicate tab" in the command bar. A favorite has its own entry below.
+  if (section !== "favorites") items.push({ label: "Duplicate tab", onClick: () => send({ cmd: "new_tab", url: tab.url }) });
   items.push({ label: "Rename", onClick: () => ctx.setRenaming(tab.id) });
   if (tab.custom_title) items.push({ label: "Use page title", onClick: () => send({ cmd: "rename_tab", id: tab.id, title: "" }) });
   if (section === "favorites") {

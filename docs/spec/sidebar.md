@@ -74,8 +74,9 @@ the row turns the icon into a back arrow that takes the page back.
   it. Middle-click closes a tab.
 - The context menu has the actions that fit the tab, among them Reload,
   Share…, Copy link, Pin tab, Unpin tab, Add to favorites, Remove from
-  favorites, Open in split view, Rename, Move to another space, and Archive
-  (Today) or Close.
+  favorites, Open in split view, Duplicate tab, Rename, Move to another
+  space, and Archive (Today) or Close. "Duplicate tab" opens the tab's
+  address as a new Today tab; a favorite has "Duplicate favorite" instead.
 
 ## Moving tabs
 
