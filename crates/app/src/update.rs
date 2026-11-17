@@ -386,22 +386,21 @@ fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), St
 
 /// Unpack the downloaded `zip` into `into`, free of the quarantine mark.
 /// macOS puts that mark on every file Magnetite writes
-/// (`LSFileQuarantineEnabled`), the zip included, and ditto hands it on to
-/// what it unpacks. macOS would then run the new app from a read-only copy
-/// elsewhere (app translocation), where the next update finds nothing it
-/// may replace. The caller has checked the zip against the signed manifest
-/// and lets Gatekeeper assess the app itself, which is what the mark is for.
+/// (`LSFileQuarantineEnabled`), and on what the programs it starts write:
+/// ditto marks each file it unpacks, whatever the zip carries. So the mark
+/// comes off afterwards, from everything unpacked. Left on, macOS would run
+/// the new app from a read-only copy elsewhere (app translocation), where
+/// the next update finds nothing it may replace. The caller has checked the
+/// zip against the signed manifest and lets Gatekeeper assess the app
+/// itself, which is what the mark is for.
 fn unpack(zip: &Path, into: &Path) -> Result<(), String> {
-    // Fails when there is no mark (a build that macOS does not quarantine),
-    // so ask whether one is left: `xattr -p` succeeds only if it is.
-    let _ = run("/usr/bin/xattr", &["-d", QUARANTINE], &[zip]);
-    if run("/usr/bin/xattr", &["-p", QUARANTINE], &[zip]).is_ok() {
-        return Err(
-            "Cannot prepare the update (it stays marked as a download). Download it from the release page."
-                .into(),
-        );
-    }
-    run("/usr/bin/ditto", &["-x", "-k"], &[zip, into])
+    run("/usr/bin/ditto", &["-x", "-k"], &[zip, into])?;
+    // `-s`: links themselves are marked too. A file without the mark is
+    // fine for `-r`; a mark that stays makes it fail.
+    run("/usr/bin/xattr", &["-d", "-r", "-s", QUARANTINE], &[into]).map_err(|_| {
+        "Cannot prepare the update (it stays marked as a download). Download it from the release page."
+            .to_string()
+    })
 }
 
 /// After Magnetite quits: start `bundle` again and delete `cleanup`, which
@@ -614,8 +613,8 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// What `unpack` gets in an installed Magnetite: a zip that macOS has
-    /// marked as downloaded.
+    /// What `unpack` meets in an installed Magnetite: every unpacked file
+    /// marked as downloaded, links included.
     #[cfg(target_os = "macos")]
     #[test]
     fn an_unpacked_update_carries_no_quarantine_mark() {
@@ -623,6 +622,7 @@ mod tests {
         let app = dir.join("src/Magnetite.app");
         std::fs::create_dir_all(&app).unwrap();
         std::fs::write(app.join("magnetite"), b"binary").unwrap();
+        std::os::unix::fs::symlink("magnetite", app.join("link")).unwrap();
         let zip = dir.join("update.zip");
         run(
             "/usr/bin/ditto",
@@ -630,18 +630,21 @@ mod tests {
             &[&app, &zip],
         )
         .unwrap();
+        // ditto hands the zip's mark on to every file it unpacks, which
+        // leaves them as a ditto started by the app does.
         let mark = "0081;00000000;Magnetite;";
         run("/usr/bin/xattr", &["-w", QUARANTINE, mark], &[&zip]).unwrap();
 
         let unpacked = dir.join("new");
         unpack(&zip, &unpacked).unwrap();
 
-        let binary = unpacked.join("Magnetite.app/magnetite");
+        let unpacked_app = unpacked.join("Magnetite.app");
+        let binary = unpacked_app.join("magnetite");
         assert_eq!(std::fs::read(&binary).unwrap(), b"binary");
-        for path in [unpacked.join("Magnetite.app"), binary] {
+        for path in [unpacked_app.join("link"), binary, unpacked_app] {
             // `xattr -p` fails for an attribute that is not there.
             assert!(
-                run("/usr/bin/xattr", &["-p", QUARANTINE], &[&path]).is_err(),
+                run("/usr/bin/xattr", &["-s", "-p", QUARANTINE], &[&path]).is_err(),
                 "{} is quarantined",
                 path.display()
             );
