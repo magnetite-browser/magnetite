@@ -25,8 +25,9 @@ Settings.
   run there. Such an extension works on its own data as everywhere else: a
   password manager stays unlocked. It sees the pages of every private tab it
   runs in.
-- The sidebar shows as many pinned icons as fit: one at the default width,
-  four at the widest. The menu bar has them all.
+- The sidebar shows as many pinned icons as fit: on macOS, where the row
+  keeps room for the window's buttons, one at the default width and four
+  at the widest; elsewhere four and seven. The menu bar has them all.
 - Installing happens on the Chrome Web Store page; removing, turning off
   and site access on Chromium's own page, `chrome://extensions`. Both open
   as tabs. `--load-extension <dir>` (repeatable) loads an unpacked one.

@@ -518,20 +518,29 @@ impl Engine {
     /// until `hide_content`/`close_content`.
     pub fn show_web_panel(&self, id: ContentId, width: Option<u32>) {
         self.bring_home(id);
-        // Its own statement: `hide_here` locks again.
-        let before = self.lock().win.web_panel;
-        if let Some(before) = before.filter(|b| *b != id) {
-            self.hide_here(before);
-        }
-        {
+        let before = {
             let mut inner = self.lock();
-            inner.win.web_panel = Some(id);
+            let before = inner.win.web_panel.replace(id);
             inner.win.web_panel_width = width;
-        }
+            before.filter(|b| *b != id)
+        };
+        // The panel shown until now goes once this one is over it (at the
+        // end): the page area never shows through between the two.
+        let hide_before = || {
+            if let Some(before) = before {
+                self.hide_here(before);
+            }
+        };
         let Some((window, view)) = self.content_handles(id) else {
+            hide_before();
             return;
         };
-        self.place(id, &web_panel_rect(&self.content_rect(), width));
+        if WEB_PANEL_DOCKED {
+            // The pages make room beside it.
+            self.dock_web_panel();
+        } else {
+            self.place(id, &web_panel_rect(&self.page_area(), width));
+        }
         // A shadow sets it off from the page it lies on.
         #[cfg(target_os = "macos")]
         crate::mac::round_window_corners(window.window_handle(), 10.0, true);
@@ -541,6 +550,7 @@ impl Engine {
         // Its docked DevTools, and with them the dividers
         // (`show_dividers`): the grip at its edge among them.
         self.show_docked(id, true);
+        hide_before();
         view.request_focus();
         self.raise_peek();
     }
@@ -585,7 +595,7 @@ impl Engine {
             inner.win.web_panel?;
             inner.win.web_panel_width
         };
-        let panel = web_panel_rect(&self.content_rect(), width);
+        let panel = web_panel_rect(&self.page_area(), width);
         Some(Rect {
             x: panel.x + panel.width,
             width: WEB_PANEL_GRIP,
@@ -596,26 +606,42 @@ impl Engine {
     #[cfg(target_os = "macos")]
     /// The grip at the web panel's edge was dragged to screen position
     /// `Move` (the panel follows), let go or double-clicked (the usual
-    /// width again): the last two are reported, for the width to be kept.
+    /// width again).
     pub(crate) fn web_panel_divider(&self, action: DividerAction) {
-        let Some(id) = self.lock().win.web_panel else {
-            return;
-        };
-        let area = self.content_rect();
+        let area = self.page_area();
         match action {
             // The pointer stays in the middle of the grip.
             DividerAction::Move(pos) => {
                 let wanted = pos - area.x - WEB_PANEL_GRIP / 2;
-                let width = web_panel_rect(&area, u32::try_from(wanted.max(0)).ok()).width;
-                self.lock().win.web_panel_width = u32::try_from(width).ok();
+                self.resize_web_panel(u32::try_from(wanted.max(0)).ok(), false);
             }
-            DividerAction::Equalize => self.lock().win.web_panel_width = None,
-            DividerAction::Release => {}
+            DividerAction::Equalize => self.resize_web_panel(None, true),
+            DividerAction::Release => {
+                let width = self.lock().win.web_panel_width;
+                self.resize_web_panel(width, true);
+            }
         }
-        let width = self.lock().win.web_panel_width;
-        self.place(id, &web_panel_rect(&area, width));
-        self.show_dividers();
-        if !matches!(action, DividerAction::Move(_)) {
+    }
+
+    /// Make the open web panel `width` points wide, as far as its bounds
+    /// allow (none: the usual width). `done` ends a drag: the width is
+    /// reported, to be kept.
+    pub fn resize_web_panel(&self, width: Option<u32>, done: bool) {
+        let Some(id) = self.lock().win.web_panel else {
+            return;
+        };
+        let area = self.page_area();
+        // What it comes to within the bounds, so a drag past them does not
+        // leave a width to drag back from.
+        let width = width.and_then(|w| u32::try_from(web_panel_rect(&area, Some(w)).width).ok());
+        self.lock().win.web_panel_width = width;
+        if WEB_PANEL_DOCKED {
+            self.dock_web_panel();
+        } else {
+            self.place(id, &web_panel_rect(&area, width));
+            self.show_dividers();
+        }
+        if done {
             self.emit(EngineEvent::WebPanelResized { id, width });
         }
     }
@@ -638,6 +664,10 @@ impl Engine {
         if ended.is_some() {
             // Its grip goes with it.
             self.show_dividers();
+            if WEB_PANEL_DOCKED {
+                // The pages take its room again.
+                self.dock_web_panel();
+            }
         }
     }
 
@@ -699,6 +729,8 @@ impl Engine {
     fn forget_content(&self, id: ContentId) -> bool {
         // A page can close itself (`window.close()`) while it is the peek.
         self.at_home(id, || self.end_peek_if(|p| p == id));
+        // Or while it is the web panel: the pages take its room again.
+        self.at_home(id, || self.end_web_panel_if(|p| p == id));
         let state = {
             let mut inner = self.lock();
             inner.permission_requests.remove(&id);
@@ -707,9 +739,6 @@ impl Engine {
             inner.mobile.remove(&id);
             let home = inner.home_of(id);
             if let Some(w) = inner.window_mut(home) {
-                if w.web_panel == Some(id) {
-                    w.web_panel = None;
-                }
                 if w.focused_pane == Some(id) {
                     w.focused_pane = None;
                 }
@@ -1114,10 +1143,12 @@ wrap_window_delegate! {
             self.mini.clone().unwrap_or_else(|| Engine::global().content_rect())
         }
         // On Linux CEF gives a window that cannot resize its first size as
-        // its minimum and maximum, which Chromium's Wayland backend enforces
-        // on every later set_bounds: a page would keep its first size. A
-        // subsurface has no resize handles anyway.
-        fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { (self.mini.is_some() || crate::cef_app::wayland()).into() }
+        // its minimum and maximum. Chromium's Wayland backend enforces them
+        // on every later set_bounds, and under X11 the window manager does
+        // (they are the window's size hints): a page would keep its first
+        // size, in a split and as a web panel too. A frameless child window
+        // has no resize handles anyway.
+        fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { (self.mini.is_some() || cfg!(target_os = "linux")).into() }
         fn can_minimize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { self.mini.is_some().into() }
         fn is_frameless(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
         fn with_standard_window_buttons(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 0 }
@@ -1148,6 +1179,12 @@ const WEB_PANEL_REST: i32 = 80;
 /// Width of the grip beside a web panel's edge.
 #[cfg(target_os = "macos")]
 const WEB_PANEL_GRIP: i32 = 8;
+/// Whether a web panel sits beside the pages, which make room for it,
+/// instead of lying over them. Outside macOS page windows are windows of
+/// their own to the window manager, which orders them by its own rules (a
+/// page that is shown or clicked comes to the top): a panel over a page
+/// would end up behind it.
+pub(crate) const WEB_PANEL_DOCKED: bool = !cfg!(target_os = "macos");
 
 /// A web panel's place: the full height of the content area, at the edge
 /// the sidebar is on, `width` points wide (none: the usual width) as far
@@ -1162,10 +1199,25 @@ pub(crate) fn web_panel_rect(area: &Rect, width: Option<u32>) -> Rect {
     }
 }
 
+/// What a docked web panel, `width` points wide (none: the usual width),
+/// leaves of `area` for the pages: the rest beyond a gap, where the grip to
+/// resize it is (`Empty.tsx`).
+pub(crate) fn beside_web_panel(area: &Rect, width: Option<u32>) -> Rect {
+    let taken = web_panel_rect(area, width).width + SPLIT_GAP;
+    Rect {
+        x: area.x + taken,
+        width: (area.width - taken).max(1),
+        ..area.clone()
+    }
+}
+
 /// 86% of the content area, centred.
 pub(crate) fn peek_rect(area: &Rect) -> Rect {
     // Room on both sides for the peek's button column (mac::show_peek_backdrop).
-    let w = (area.width * 86 / 100).min(area.width - 2 * 52);
+    // In a narrow area (beside a wide docked web panel) it keeps half of it.
+    let w = (area.width * 86 / 100)
+        .min(area.width - 2 * 52)
+        .max(area.width / 2);
     let h = area.height * 90 / 100;
     Rect {
         x: area.x + (area.width - w) / 2,
@@ -1281,6 +1333,22 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_peek_fits_a_narrow_area() {
+        let width = |width| {
+            let area = Rect {
+                x: 0,
+                y: 0,
+                width,
+                height: 800,
+            };
+            peek_rect(&area).width
+        };
+        assert_eq!(width(1000), 860);
+        assert_eq!(width(400), 296);
+        assert_eq!(width(72), 36);
+    }
+
+    #[test]
     fn a_web_panel_keeps_to_its_bounds() {
         let area = |width| Rect {
             x: 200,
@@ -1297,5 +1365,21 @@ mod tests {
         assert_eq!(width(1000, Some(5000)), 1000 - WEB_PANEL_REST);
         assert_eq!(width(300, None), 300 - WEB_PANEL_REST);
         assert_eq!(web_panel_rect(&area(1000), None).x, 200);
+    }
+
+    #[test]
+    fn pages_get_the_rest_beside_a_docked_web_panel() {
+        let area = Rect {
+            x: 200,
+            y: 10,
+            width: 1000,
+            height: 800,
+        };
+        let rest = beside_web_panel(&area, Some(500));
+        assert_eq!(
+            (rest.x, rest.width),
+            (200 + 500 + SPLIT_GAP, 500 - SPLIT_GAP)
+        );
+        assert_eq!((rest.y, rest.height), (10, 800));
     }
 }

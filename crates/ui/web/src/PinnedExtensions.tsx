@@ -4,7 +4,7 @@
 // are in the menu bar too.
 import { useEffect, useState } from "react";
 import type { MenuItem } from "./ContextMenu";
-import { extensionIcon, send, type ExtensionInfo, type UiState } from "./bridge";
+import { IS_MAC, extensionIcon, send, type ExtensionInfo, type UiState } from "./bridge";
 
 /** Longest wait for a popup before the button takes clicks again (CEF holds
  * each popup for 2 s, see docs/development/upstream.md). */
@@ -12,8 +12,8 @@ const OPENING_MS = 5000;
 
 /** Room per icon in the top row (button plus gap), in points. */
 export const SLOT = 30;
-/** What the rest of the row takes: traffic lights, sidebar toggle, back, forward, reload, padding. */
-const RESERVED = 86 + 28 + 3 * 30 + 12;
+/** What the rest of the row takes: the traffic lights (macOS; elsewhere the left padding), sidebar toggle, back, forward, reload, padding. */
+const RESERVED = (IS_MAC ? 86 : 8) + 28 + 3 * 30 + 12;
 
 type OpenMenu = (x: number, y: number, items: MenuItem[]) => void;
 

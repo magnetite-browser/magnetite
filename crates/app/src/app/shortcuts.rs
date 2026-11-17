@@ -217,6 +217,7 @@ impl MagnetiteApp {
                 }
                 self.push_state(engine);
             }
+            Shortcut::WebPanel => self.web_panel_key(engine),
             Shortcut::NextTab | Shortcut::PrevTab => {
                 self.cycle_tab(engine, shortcut == Shortcut::NextTab);
             }

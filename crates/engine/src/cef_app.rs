@@ -110,8 +110,7 @@ fn cef_patches() -> Option<String> {
 }
 
 /// Pick Chromium's platform (`default_platform`) unless an
-/// `--ozone-platform` on the command line did, and note for `wayland()`
-/// what it runs on.
+/// `--ozone-platform` on the command line did.
 #[cfg(target_os = "linux")]
 fn choose_platform(cmd: &mut CommandLine) {
     let set = |var: &str| std::env::var_os(var).is_some_and(|v| !v.is_empty());
@@ -125,13 +124,7 @@ fn choose_platform(cmd: &mut CommandLine) {
             cmd.append_switch_with_value(Some(&name), Some(&CefString::from(platform)));
         }
     }
-    let platform = CefString::from(&cmd.switch_value(Some(&name))).to_string();
-    let wayland = platform == "wayland" || (platform.is_empty() && set("WAYLAND_DISPLAY"));
-    WAYLAND.store(wayland, std::sync::atomic::Ordering::Relaxed);
 }
-
-#[cfg(target_os = "linux")]
-static WAYLAND: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 /// Whether a page window can get another window's frame as its parent
 /// (`Engine::can_move_pages`). macOS does it natively (`mac::attach_child`);
@@ -148,15 +141,6 @@ pub(crate) fn can_reparent() -> bool {
     // reparents on every platform; once Windows builds, check that a page
     // moves between windows there and return true.
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    false
-}
-
-/// Whether Chromium runs as a Wayland client, so that the frame's child
-/// windows are subsurfaces of it (ADR-0012). Always false off Linux.
-pub(crate) fn wayland() -> bool {
-    #[cfg(target_os = "linux")]
-    return WAYLAND.load(std::sync::atomic::Ordering::Relaxed);
-    #[cfg(not(target_os = "linux"))]
     false
 }
 

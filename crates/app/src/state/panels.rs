@@ -1,7 +1,7 @@
 //! Web panels in the state: favorites and pinned tabs that open over the
 //! page in front instead of taking its place (`TabItem::panel`).
 
-use magnetite_core::{Id, SidebarNode};
+use magnetite_core::{Id, SidebarNode, TabItem};
 
 use super::AppState;
 
@@ -21,6 +21,17 @@ impl AppState {
     /// panel.
     pub fn is_web_panel(&self, id: &str) -> bool {
         self.find_tab(id).is_some_and(|(_, t)| t.panel) && self.keeps_its_place(id)
+    }
+
+    /// The web panel its key opens: of the favorites and the active space's
+    /// pinned tabs that are panels, the one used last; if none was opened
+    /// yet, the first in the sidebar.
+    pub fn latest_web_panel(&self) -> Option<Id> {
+        let favorites = self.sidebar.favorites.iter().flat_map(|f| f.items.iter());
+        let pinned = (self.active_space().pinned.iter()).flat_map(SidebarNode::tabs);
+        let mut panels: Vec<&TabItem> = favorites.chain(pinned).filter(|t| t.panel).collect();
+        panels.sort_by_key(|t| std::cmp::Reverse(t.last_active_at));
+        panels.first().map(|t| t.id.clone())
     }
 
     /// Favorite or pinned tab `id` opens as a web panel from now on
@@ -98,6 +109,21 @@ mod tests {
             (f.panel, f.panel_width, f.panel_mobile),
             (false, None, false)
         );
+    }
+
+    #[test]
+    fn the_key_opens_the_panel_used_last() {
+        let mut s = state();
+        assert_eq!(s.latest_web_panel(), None);
+        s.sidebar.favorites[0].items = vec![tab("f"), tab("g")];
+        for id in ["f", "g", "p"] {
+            assert!(s.set_web_panel(id, true));
+        }
+        // None opened yet: the first in the sidebar.
+        assert_eq!(s.latest_web_panel().as_deref(), Some("f"));
+        s.find_tab_mut("f").unwrap().last_active_at = Some(10);
+        s.find_tab_mut("p").unwrap().last_active_at = Some(20);
+        assert_eq!(s.latest_web_panel().as_deref(), Some("p"));
     }
 
     #[test]

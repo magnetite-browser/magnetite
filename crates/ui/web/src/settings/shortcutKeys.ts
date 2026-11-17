@@ -30,6 +30,7 @@ export const SHORTCUT_GROUPS = [
       prev_space: "Previous space",
       space_picker: "Show all spaces, to go to one",
       toggle_sidebar: "Show or hide the sidebar",
+      web_panel: "Open or close the web panel",
     },
   },
   {

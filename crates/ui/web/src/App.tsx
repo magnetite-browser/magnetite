@@ -185,8 +185,8 @@ export function App() {
       {!FLOAT && <SidebarResizer />}
       {/* With the top bar on, it holds the band and the address (TopBar.tsx); the floating sidebar keeps its own. */}
       {!topBar && (<>
-      {/* Traffic-light band: sidebar toggle left, navigation right. Empty space drags the window. */}
-      <div className={`titlebar-drag hdr flex h-[42px] shrink-0 items-center gap-0.5 ${FLOAT ? "pl-2" : "pl-[86px]"} pr-2`}>
+      {/* Traffic-light band (macOS keeps room for the window's buttons): sidebar toggle left, navigation right. Empty space drags the window. */}
+      <div className={`titlebar-drag hdr flex h-[42px] shrink-0 items-center gap-0.5 ${FLOAT || !IS_MAC ? "pl-2" : "pl-[86px]"} pr-2`}>
         {windowButtons}
         <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={`${FLOAT ? "Keep the sidebar open" : "Hide sidebar"}${keysHint(state.keys, "toggle_sidebar")}`}><SidebarIcon /></button>
         <PinnedExtensions state={state} openMenu={openMenu} />

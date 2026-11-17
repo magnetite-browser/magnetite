@@ -572,6 +572,9 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
 
 /* The docked sidebar's right edge: drag to resize. */
 .sidebar-resizer { position: fixed; top: 0; right: 0; bottom: 0; width: 6px; z-index: 60; cursor: col-resize; }
+/* The gap beside a docked web panel (outside macOS): drag to resize it. */
+.panel-resizer { position: fixed; z-index: 60; cursor: col-resize; border-radius: 3px; }
+.panel-resizer:hover, .panel-resizer:active { background: var(--space-soft, rgba(255,255,255,0.08)); }
 .sidebar-resizer:hover, .sidebar-resizer:active { background: linear-gradient(to left, var(--space-soft, rgba(255,255,255,0.08)) 2px, transparent 2px); }
 
 /* The device bar above a page in device mode (DeviceBar.tsx): one row,

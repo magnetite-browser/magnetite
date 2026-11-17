@@ -24,13 +24,22 @@ behind it stays as it is, and a second click puts the panel away again.
 - A click on the favorite opens its panel; a click on the favorite of the
   open panel closes it. Choosing the favorite another way, in the command
   bar for one, opens the panel too.
-- The panel is 420 points wide, less in a narrow window, as high as the
-  page area, and lies over the pages with a shadow. Pages keep their size
-  under it.
-- Dragging the panel's far edge changes its width, between 280 points
-  and all but 80 points of the page area. Each panel keeps its own
-  width; a double click on the edge gives it the usual one again.
-  (macOS only so far: Linux has no grip yet.)
+- "Open or close the web panel" (`Cmd+Option+P`, `Ctrl+Alt+P` outside
+  macOS; Settings → Shortcuts, the View menu and the command bar) closes
+  the open panel, or opens the one used last: of the favorites and the
+  pinned tabs of the space in front. The page may claim the key
+  (`shortcuts.md`).
+- The panel is 420 points wide, less in a narrow window, and as high as
+  the page area. On macOS it lies over the pages with a shadow, and they
+  keep their size under it. On Linux it sits beside them: the pages (a
+  split too) take the room that is left, with a gap between. There every
+  page is a window of its own to the window manager, which puts a page
+  that is shown or clicked on top, so a panel over a page would end up
+  behind it.
+- Dragging the panel's far edge (on Linux the gap beside it) changes its
+  width, between 280 points and all but 80 points of the page area. Each
+  panel keeps its own width; a double click there gives it the usual one
+  again.
 - There is one panel per window at a time. Opening another favorite's
   panel hides the open one.
 - The panel stays open while you switch tabs and spaces, open a split or
@@ -73,15 +82,15 @@ open is kept in memory only: after a restart none is.
 
 ## Not built yet
 
-- The grip to change the panel's width on Linux.
-- A key that opens a panel.
+- A key for one certain panel.
 - A panel for a page that is not a favorite.
 - The sidebar's back, forward and reload buttons and the address row
   stay with the tab in front while a panel is open.
 
 Code: `crates/app/src/app/panels.rs` (`open_web_panel`, `settle_web_panel`),
-`crates/app/src/state/panels.rs` (`settle_panels`), `tabs.rs`
-(`activate_tab`), `crates/engine/src/content.rs` (`show_web_panel`,
-`web_panel_rect`, `web_panel_divider`), `device.rs` (`set_mobile_view`),
-`crates/ui/web/src/Rows.tsx` (the favorite's click and
-menu entry).
+`crates/app/src/state/panels.rs` (`settle_panels`, `latest_web_panel`),
+`tabs.rs` (`activate_tab`), `crates/engine/src/content.rs`
+(`show_web_panel`, `web_panel_rect`, `WEB_PANEL_DOCKED`,
+`resize_web_panel`), `device.rs` (`set_mobile_view`),
+`crates/ui/web/src/Rows.tsx` (the favorite's click and menu entry),
+`Empty.tsx` (`PanelResizer`, the grip on Linux).

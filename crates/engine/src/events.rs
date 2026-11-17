@@ -50,6 +50,9 @@ pub enum Shortcut {
     CopyLink,
     /// `Cmd+Shift+O`: open the site panel (the page may claim the key).
     SitePanel,
+    /// `Cmd+Option+P`: close the open web panel, or open the one used
+    /// last (the page may claim the key).
+    WebPanel,
     /// `Cmd+Shift+2`: start the capture tool (the page may claim the key).
     Capture,
     /// `Cmd+Shift+=`: open a page beside the current one (split view).

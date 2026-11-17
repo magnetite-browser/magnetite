@@ -60,7 +60,8 @@ search from anywhere (`mini-window.md`), `F12`, and the keys inside a peek
 
 The shortcuts for tabs, windows and spaces are taken before the page sees
 the key, whatever keys they have. The others ("Show or hide the sidebar",
-"Pin or unpin the tab", the group "The page" and the group "Magnetite") go
+"Open or close the web panel", "Pin or unpin the tab", the group "The page"
+and the group "Magnetite") go
 to the page first, which may use the key itself (`site-controls.md`). This
 belongs to the shortcut, not to its keys.
 

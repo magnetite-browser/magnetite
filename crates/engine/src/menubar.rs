@@ -360,6 +360,7 @@ pub fn install(mtm: MainThreadMarker) {
 
     b.menu("View");
     b.command("Toggle Sidebar", "s", CMD, S::ToggleSidebar);
+    b.command("Toggle Web Panel", "p", OPT_CMD, S::WebPanel);
     b.command("Reload Page", "r", CMD, S::Reload);
     b.separator();
     b.command("Zoom In", "+", CMD, S::ZoomIn);

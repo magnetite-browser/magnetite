@@ -184,11 +184,31 @@ impl Engine {
     }
 
     /// Screen rectangle (DIP) the content windows must cover: the content
-    /// panel minus an inset so the page floats inside the frame. With the
+    /// panel minus an inset so the page floats inside the frame, and
+    /// without what a docked web panel takes (`WEB_PANEL_DOCKED`). With the
     /// sidebar hidden and no top bar the pages cover the window's own
     /// buttons: the floating sidebar has them then.
     pub fn content_rect(&self) -> Rect {
-        let r = self.content_panel_in_screen();
+        let area = self.page_area();
+        // Its own statement: `page_area` locks too.
+        let docked = {
+            let inner = self.lock();
+            (inner.win.web_panel).map(|_| inner.win.web_panel_width)
+        };
+        match docked.filter(|_| crate::content::WEB_PANEL_DOCKED) {
+            Some(width) => crate::content::beside_web_panel(&area, width),
+            None => area,
+        }
+    }
+
+    /// `content_rect` with the room a docked web panel takes: the whole
+    /// page area, which the panel is placed in.
+    pub(crate) fn page_area(&self) -> Rect {
+        Self::inset(&self.content_panel_in_screen())
+    }
+
+    /// The content panel `r` without the frame's inset around the pages.
+    fn inset(r: &Rect) -> Rect {
         let i = Self::CONTENT_INSET;
         Rect {
             x: r.x + i,
@@ -198,10 +218,38 @@ impl Engine {
         }
     }
 
+    /// The gap beside a docked web panel, in the window: the grip to
+    /// resize the panel (`Empty.tsx`).
+    fn docked_grip_in_window(&self) -> Option<Rect> {
+        let width = {
+            let inner = self.lock();
+            inner
+                .win
+                .web_panel
+                .filter(|_| crate::content::WEB_PANEL_DOCKED)?;
+            inner.win.web_panel_width
+        };
+        let area = Self::inset(&self.content_panel_in_window());
+        let panel = crate::content::web_panel_rect(&area, width);
+        Some(Rect {
+            x: panel.x + panel.width,
+            width: crate::content::SPLIT_GAP,
+            ..panel
+        })
+    }
+
+    /// A docked web panel opened, closed or changed its width: the pages
+    /// take the room beside it, and the gap between them is the grip.
+    pub(crate) fn dock_web_panel(&self) {
+        self.reposition_contents();
+        self.apply_drag_regions();
+    }
+
     /// Draggable areas of the frame: the top bar's and the sidebar page's
     /// `app-region: drag` zones plus the whole content panel. Pages sit in
     /// child windows above the panel, so only the gaps around them (top
-    /// edge, sides, split gutters) end up moving the window.
+    /// edge, sides, split gutters) end up moving the window. Not the gap
+    /// beside a docked web panel: a drag there resizes the panel.
     pub(crate) fn apply_drag_regions(&self) {
         let (window, sidebar, top_bar) = {
             let inner = self.lock();
@@ -231,6 +279,10 @@ impl Engine {
         }];
         regions.extend(sidebar.into_iter().map(below));
         regions.extend(top_bar);
+        regions.extend(self.docked_grip_in_window().map(|bounds| DraggableRegion {
+            bounds,
+            draggable: 0,
+        }));
         window.set_draggable_regions(Some(&regions));
     }
 
@@ -575,7 +627,7 @@ impl Engine {
             )
         };
         if let Some(p) = panel {
-            let rect = crate::content::web_panel_rect(&self.content_rect(), panel_width);
+            let rect = crate::content::web_panel_rect(&self.page_area(), panel_width);
             self.place(p, &rect);
         }
         if let Some(p) = peek {

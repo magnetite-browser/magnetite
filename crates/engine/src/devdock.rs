@@ -609,8 +609,8 @@ wrap_window_delegate! {
         }
         fn is_frameless(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { (!self.separate).into() }
         fn with_standard_window_buttons(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { self.separate.into() }
-        // Resizable under Wayland, as a page is (content.rs `can_resize`).
-        fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { (self.separate || crate::cef_app::wayland()).into() }
+        // Resizable on Linux, as a page is (content.rs `can_resize`).
+        fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { (self.separate || cfg!(target_os = "linux")).into() }
         fn can_maximize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { self.separate.into() }
         fn can_minimize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { self.separate.into() }
         fn can_close(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }

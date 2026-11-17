@@ -2,10 +2,10 @@
 // window's frame, with the effect of the current space's look; while no tab is
 // on screen it also shows the logo and how to open a tab, or the space's own
 // picture from Settings → Appearance.
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import icon from "./assets/icon.png";
 import { userImageUrl, windowBackground } from "./backgrounds";
-import { IS_MAC, applyAppearance, lookOf, send, subscribe, type UiState } from "./bridge";
+import { IS_MAC, applyAppearance, findTab, lookOf, pageZoom, send, subscribe, type UiState } from "./bridge";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
 export function Empty() {
@@ -25,16 +25,86 @@ export function Empty() {
   const look = lookOf(appearance, state.active_space);
   const space = state.sidebar.spaces.find((s) => s.id === state.active_space);
   const frame = windowBackground("frame", state.chrome, state.active_space, look, space?.accent);
+  // Outside macOS a web panel sits beside the pages: the gap between them is this page's.
+  const panel = !IS_MAC && state.web_panel ? findTab(state, state.web_panel) : null;
+  const grip = panel && <PanelResizer key={panel.id} width={panel.panel_width} />;
   // Pages lie over this one: only the gaps around them show.
-  if (state.panes.length > 0 || state.peek) return <div className="h-full" style={frame} />;
+  if (state.panes.length > 0 || state.peek) return <div className="h-full" style={frame}>{grip}</div>;
   const stamp = look.empty_image;
   if (stamp != null) {
-    return <div className="h-full bg-cover bg-center" style={{ backgroundColor: state.chrome, backgroundImage: `url("${userImageUrl("empty", state.active_space, stamp)}")` }} />;
+    return <div className="h-full bg-cover bg-center" style={{ backgroundColor: state.chrome, backgroundImage: `url("${userImageUrl("empty", state.active_space, stamp)}")` }}>{grip}</div>;
   }
   return (
     <div className="flex h-full select-none flex-col items-center justify-center gap-3.5" style={frame}>
       <img src={icon} width={72} height={72} alt="" draggable={false} />
       <div className="text-[15px] text-[var(--muted)]">Press {IS_MAC ? "⌘T" : "Ctrl+T"} to open a tab</div>
+      {grip}
     </div>
+  );
+}
+
+// The page area's inset, the gap beside a docked web panel and the panel's
+// widths, as the app lays them out (`CONTENT_INSET` in frame.rs, `SPLIT_GAP`
+// and `web_panel_rect` in content.rs).
+const INSET = 8;
+const GAP = 8;
+const PANEL = { usual: 420, min: 280, rest: 80 };
+
+/**
+ * The gap between a docked web panel, `width` points wide (the usual width
+ * without one), and the pages: drag to change the panel's width (the pages
+ * follow live), release to keep it, double-click for the usual width.
+ */
+function PanelResizer({ width }: { width?: number }) {
+  const [area, setArea] = useState(window.innerWidth);
+  useEffect(() => {
+    const measure = () => setArea(window.innerWidth);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+  // While dragging, the width the pointer asks for; the app answers a release with the kept one.
+  const [dragged, setDragged] = useState<number | null>(null);
+  useEffect(() => setDragged(null), [width]);
+  const frame = useRef(0);
+  // A resize still waiting when the panel goes would change the next one.
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  const latest = useRef(0);
+  const apply = (done: boolean) => send({ cmd: "web_panel_width", width: latest.current, done });
+  // The pointer stays in the middle of the gap.
+  const wanted = (x: number) => Math.max(0, Math.round(x - INSET - GAP / 2));
+  const shown = Math.max(1, Math.min(Math.max(dragged ?? width ?? PANEL.usual, PANEL.min), area - 2 * INSET - PANEL.rest));
+  // The gap is laid out in window points; lengths on this page grow with the text size.
+  const zoom = pageZoom();
+  return (
+    <div
+      className="panel-resizer"
+      style={{ left: (INSET + shown) / zoom, width: GAP / zoom, top: INSET / zoom, bottom: INSET / zoom }}
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Web panel width"
+      title="Drag to resize the panel · double-click to reset"
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e) => {
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        latest.current = wanted(e.clientX);
+        setDragged(latest.current);
+        // One resize per frame: each one re-lays out the pages.
+        if (!frame.current) frame.current = requestAnimationFrame(() => { frame.current = 0; apply(false); });
+      }}
+      onPointerUp={(e) => {
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        e.currentTarget.releasePointerCapture(e.pointerId);
+        cancelAnimationFrame(frame.current);
+        frame.current = 0;
+        // A click without a drag changes nothing.
+        if (dragged === null) return;
+        latest.current = wanted(e.clientX);
+        apply(true);
+      }}
+      onDoubleClick={() => send({ cmd: "web_panel_width", width: null, done: true })}
+    />
   );
 }

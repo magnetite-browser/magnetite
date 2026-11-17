@@ -55,6 +55,16 @@ impl MagnetiteApp {
         }
     }
 
+    /// The key for the web panel: close the open one, or open the one
+    /// used last.
+    pub(super) fn web_panel_key(&self, engine: &Engine) {
+        if self.with_state(|s| s.web_panel.is_some()) {
+            self.close_web_panel(engine);
+        } else if let Some(id) = self.with_state(|s| s.latest_web_panel()) {
+            self.open_web_panel(engine, &id);
+        }
+    }
+
     /// Favorite `tab_id` opens as a web panel from now on (`panel`), and
     /// does so at once, or as a tab again.
     pub(super) fn set_web_panel(&self, engine: &Engine, tab_id: &str, panel: bool) {
