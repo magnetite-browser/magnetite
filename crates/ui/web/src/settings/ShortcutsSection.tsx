@@ -114,7 +114,8 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
     );
   };
 
-  const changed = info.shortcuts.some((s) => s.keys !== s.default) || info.spaces.some((s) => s.keys);
+  // Saved keys count, also those that do nothing here: "Reset all" clears them too.
+  const changed = info.shortcuts.some((s) => s.keys !== s.default) || info.spaces.some((s) => s.shortcut);
   return (
     <>
       {SHORTCUT_GROUPS.map((group) => (

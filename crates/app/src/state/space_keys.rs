@@ -35,8 +35,11 @@ impl AppState {
 
     /// Give space `id` the keys `combo` (`None`: no keys). A shortcut or
     /// space that had these keys loses them. Refused for keys with a fixed
-    /// meaning.
+    /// meaning. Without such a space nothing changes.
     pub fn set_space_shortcut(&mut self, id: &str, combo: Option<Combo>) -> Result<(), KeysError> {
+        if self.space(id).is_none() {
+            return Ok(());
+        }
         if let Some(combo) = combo {
             if let Some(why) = combo.refused() {
                 return Err(why);
@@ -114,6 +117,12 @@ mod tests {
         s.set_space_shortcut("a", Some(new_tab)).unwrap();
         assert_eq!(s.settings.shortcuts.combo_of(Action::NewTab), None);
         assert_eq!(s.space_for_keys(new_tab).unwrap().id, "a");
+
+        // A space that is not there takes nothing from the one that is.
+        let keys = combo("alt+shift+W");
+        s.set_space_shortcut("b", Some(keys)).unwrap();
+        s.set_space_shortcut("gone", Some(keys)).unwrap();
+        assert_eq!(s.space_for_keys(keys).unwrap().id, "b");
 
         // The action takes them back: the space has none.
         s.settings.shortcuts.reset(Action::NewTab);

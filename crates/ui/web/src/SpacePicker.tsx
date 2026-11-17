@@ -17,8 +17,14 @@ function matching(spaces: Space[], query: string): Space[] {
   if (!q) return spaces;
   const rank = (s: Space) => {
     const title = s.title.toLowerCase();
-    const at = title.indexOf(q);
-    return at < 0 ? null : at === 0 ? 0 : /\s/.test(title.charAt(at - 1)) ? 1 : 2;
+    if (title.startsWith(q)) return 0;
+    let found = false;
+    // Every place the text is at: one of them may start a word.
+    for (let at = title.indexOf(q); at >= 0; at = title.indexOf(q, at + 1)) {
+      if (/\s/.test(title.charAt(at - 1))) return 1;
+      found = true;
+    }
+    return found ? 2 : null;
   };
   return spaces
     .map((space) => ({ space, rank: rank(space) }))
@@ -68,10 +74,15 @@ export function SpacePicker({ state, onClose }: { state: UiState; onClose: () =>
   };
 
   return (
-    <div className="cmdbar" role="combobox" aria-expanded={found.length > 0}>
+    <div className="cmdbar">
       <div className="flex items-center">
         <input
           ref={input}
+          role="combobox"
+          aria-expanded={found.length > 0}
+          aria-controls="space-list"
+          aria-activedescendant={found[sel] ? `space-${found[sel].id}` : undefined}
+          aria-autocomplete="list"
           aria-label="Go to space"
           value={query}
           placeholder="Go to space…"
@@ -81,13 +92,14 @@ export function SpacePicker({ state, onClose }: { state: UiState; onClose: () =>
         />
       </div>
       {found.length > 0 && (
-        <div ref={list} className="results scroll" role="listbox">
+        <div ref={list} id="space-list" className="results scroll" role="listbox">
           {found.map((space, i) => {
             const keys = keysOf(space);
             const current = space.id === state.active_space;
             return (
               <div
                 key={space.id}
+                id={`space-${space.id}`}
                 className="result"
                 role="option"
                 aria-selected={i === sel}
