@@ -50,20 +50,17 @@ impl Glyph {
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     fn pixels(self, size: u16, argb: u32, disc: Option<u32>) -> Vec<u8> {
         let scale = f32::from(size) / 24.0;
-        // On a disc the strokes shrink towards the middle.
-        let (shrink, half) = if disc.is_some() {
-            (0.56, 0.7)
-        } else {
-            (1.0, 1.0)
-        };
-        let lines: Vec<Vec<Point>> = (self.lines().into_iter())
-            .map(|line| {
-                let towards = |n: f32| 12.0 + (n - 12.0) * shrink;
-                line.into_iter()
-                    .map(|(x, y)| (towards(x), towards(y)))
-                    .collect()
-            })
-            .collect();
+        let mut lines = self.lines();
+        // On a disc the strokes are thinner and shrink towards the middle.
+        let half = if disc.is_some() { 0.7 } else { 1.0 };
+        if disc.is_some() {
+            for point in lines.iter_mut().flatten() {
+                *point = (
+                    12.0 + (point.0 - 12.0) * 0.56,
+                    12.0 + (point.1 - 12.0) * 0.56,
+                );
+            }
+        }
         let mut out = Vec::with_capacity(usize::from(size).pow(2) * 4);
         for row in 0..size {
             for column in 0..size {
@@ -79,8 +76,6 @@ impl Glyph {
                 // To the stroke's edge, softened over a pixel; the disc
                 // reaches the picture's edge.
                 let stroke = ((half - near) * scale + 0.5).clamp(0.0, 1.0);
-                let middle = distance(point, (12.0, 12.0), (12.0, 12.0));
-                let round = ((12.0 - middle) * scale + 0.5).clamp(0.0, 1.0);
                 // B, G, R, A of a colour covering that much of the pixel.
                 let ink = |argb: u32, cover: f32| {
                     let [alpha, red, green, blue] = argb.to_be_bytes();
@@ -88,7 +83,10 @@ impl Glyph {
                     [blue, green, red, 255].map(|c| f32::from(c) * opacity)
                 };
                 let over = ink(argb, stroke);
-                let under = disc.map_or([0.0; 4], |d| ink(d, round));
+                let under = disc.map_or([0.0; 4], |d| {
+                    let middle = distance(point, (12.0, 12.0), (12.0, 12.0));
+                    ink(d, ((12.0 - middle) * scale + 0.5).clamp(0.0, 1.0))
+                });
                 let rest = 1.0 - over[3] / 255.0;
                 out.extend((0..4).map(|c| (over[c] + under[c] * rest).round() as u8));
             }

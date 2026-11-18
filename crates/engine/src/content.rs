@@ -488,6 +488,8 @@ impl Engine {
         #[cfg(target_os = "macos")]
         if ended {
             crate::mac::hide_peek_backdrop();
+            // A web panel's close button, gone under the peek, is back.
+            self.show_dividers();
         }
         #[cfg(not(target_os = "macos"))]
         let _ = ended;
@@ -592,11 +594,13 @@ impl Engine {
     }
 
     #[cfg(target_os = "macos")]
-    /// Where the open web panel lies over the pages.
+    /// Where the open web panel lies over the pages, once it has a window
+    /// (a page waiting for its profile has none yet).
     pub(crate) fn web_panel_bounds(&self) -> Option<Rect> {
         let width = {
             let inner = self.lock();
-            inner.win.web_panel?;
+            let panel = inner.win.web_panel?;
+            inner.contents.get(&panel)?.window.as_ref()?;
             inner.win.web_panel_width
         };
         Some(web_panel_rect(&self.page_area(), width))
