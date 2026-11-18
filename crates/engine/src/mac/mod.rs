@@ -6,7 +6,8 @@
 //! `cefsimple` example (Apache-2.0 OR MIT). Next to them: tweaks to CEF's
 //! own windows (pinned, rounded corners, the focus ring of a split page,
 //! hidden or shown, shown without taking focus), the watch on two-finger
-//! swipes, stale tooltips, pages wrongly marked covered, and helpers for the
+//! swipes, stale tooltips, pages wrongly marked covered, the cursor of a
+//! window without the keyboard, and helpers for the
 //! child modules:
 //!
 //! - `chrome`: our child windows over the page area (drag strip, peek
@@ -768,6 +769,55 @@ pub fn hover_without_focus(handle: cef::sys::cef_window_handle_t) {
         }
     }
     HOVER_WINDOWS.with(|w| w.borrow_mut().insert(Retained::as_ptr(&window).addr()));
+}
+
+/// Show `cursor` (the `NSCursor` a page of ours asked for) although the
+/// window holding the view `handle` does not have the keyboard. Chromium
+/// sets a page's cursor only in the key window
+/// (`-[RenderWidgetHostViewCocoa shouldChangeCurrentCursor]`), and with the
+/// keyboard in a page that is the page's window: the sidebar still showed
+/// its hover, but never the resize arrows on its edge or the hand on a row.
+///
+/// Only while the keyboard is in a window of the same family (the frame, its
+/// pages and panels) and this window is the one under the pointer; Chromium
+/// keeps doing the rest, also the arrow when the pointer leaves the view.
+pub fn show_cursor_without_focus(handle: cef::sys::cef_window_handle_t, cursor: *mut u8) {
+    use objc2_app_kit::{NSCursor, NSView, NSWindow};
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    if handle.is_null() || cursor.is_null() {
+        return;
+    }
+    // SAFETY: CEF hands us a live NSView; we are on the main thread.
+    let view: &NSView = unsafe { &*handle.cast::<NSView>() };
+    let (Some(window), Some(key)) = (
+        view.window(),
+        NSApplication::sharedApplication(mtm).keyWindow(),
+    ) else {
+        return;
+    };
+    if window.isKeyWindow() || root_window(&window) != root_window(&key) {
+        return;
+    }
+    let under_pointer =
+        NSWindow::windowNumberAtPoint_belowWindowWithWindowNumber(NSEvent::mouseLocation(), 0, mtm);
+    if under_pointer != window.windowNumber() {
+        return;
+    }
+    // SAFETY: CEF passes the live `NSCursor` of the change it reports.
+    let cursor: &NSCursor = unsafe { &*cursor.cast::<NSCursor>() };
+    cursor.set();
+}
+
+/// The window `window` is attached to, through all its parents.
+fn root_window(window: &objc2_app_kit::NSWindow) -> Retained<objc2_app_kit::NSWindow> {
+    use objc2::Message as _;
+    let mut root = window.retain();
+    while let Some(parent) = root.parentWindow() {
+        root = parent;
+    }
+    root
 }
 
 /// The corner radius a page window shows: macOS rounds titled windows itself

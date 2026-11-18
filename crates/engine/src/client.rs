@@ -187,6 +187,23 @@ wrap_display_handler! {
                 engine.show_status(id, &value.map(CefString::to_string).unwrap_or_default());
             }
         }
+        /// Chromium shows a cursor only in the window that has the keyboard;
+        /// ours also show it while a page has it (`show_cursor_without_focus`).
+        fn on_cursor_change(
+            &self,
+            browser: Option<&mut Browser>,
+            cursor: OsCursor,
+            _type: CursorType,
+            _custom_cursor_info: Option<&CursorInfo>,
+        ) -> ::std::os::raw::c_int {
+            #[cfg(target_os = "macos")]
+            if let Some(host) = browser.and_then(|b| b.host()) {
+                crate::mac::show_cursor_without_focus(host.window_handle(), cursor);
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (browser, cursor);
+            0
+        }
         fn on_favicon_urlchange(&self, browser: Option<&mut Browser>, icon_urls: Option<&mut CefStringList>) {
             if self.kind != Kind::Content { return; }
             let engine = Engine::global();
@@ -637,6 +654,12 @@ wrap_command_handler! {
         }
     }
 }
+
+/// The cursor CEF hands along; its type differs per OS.
+#[cfg(target_os = "macos")]
+type OsCursor = *mut u8;
+#[cfg(not(target_os = "macos"))]
+type OsCursor = CursorHandle;
 
 /// The native key event CEF hands along (unused); its type differs per OS.
 #[cfg(target_os = "macos")]
