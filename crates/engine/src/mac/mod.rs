@@ -29,7 +29,8 @@ mod pressure;
 mod share;
 
 pub use chrome::{
-    DividerKey, hide_peek_backdrop, set_dividers, set_edge_zone, set_grab_strip, show_peek_backdrop,
+    DividerKey, hide_peek_backdrop, set_dividers, set_edge_zone, set_grab_strip, set_panel_close,
+    show_peek_backdrop,
 };
 pub use default_browser::{handles, set_handler};
 pub use hotkey::set_quick_search_hotkey;

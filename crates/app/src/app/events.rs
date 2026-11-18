@@ -359,6 +359,7 @@ impl EngineDelegate for MagnetiteApp {
                 DividerAction::Equalize => self.split_equalize(engine, &path),
             },
             EngineEvent::WebPanelResized { id, width } => self.web_panel_resized(engine, id, width),
+            EngineEvent::WebPanelClose => self.close_web_panel(engine),
             EngineEvent::ContentFocused { id } => {
                 self.page_focused(engine, id);
                 // Clicking into a split page makes it the active tab, so the

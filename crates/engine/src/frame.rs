@@ -218,9 +218,10 @@ impl Engine {
         }
     }
 
-    /// The gap beside a docked web panel, in the window: the grip to
-    /// resize the panel (`Empty.tsx`).
-    fn docked_grip_in_window(&self) -> Option<Rect> {
+    /// What the page behind the tabs shows around a docked web panel, in
+    /// the window (`Empty.tsx`): the bar before it, with the button that
+    /// collapses it, and the gap beyond it, the grip to resize it.
+    fn docked_controls_in_window(&self) -> Option<[Rect; 2]> {
         let width = {
             let inner = self.lock();
             inner
@@ -231,11 +232,18 @@ impl Engine {
         };
         let area = Self::inset(&self.content_panel_in_window());
         let panel = crate::content::web_panel_rect(&area, width);
-        Some(Rect {
+        let content = self.content_panel_in_window();
+        let bar = Rect {
+            x: content.x,
+            width: panel.x - content.x,
+            ..panel.clone()
+        };
+        let grip = Rect {
             x: panel.x + panel.width,
             width: crate::content::SPLIT_GAP,
             ..panel
-        })
+        };
+        Some([bar, grip])
     }
 
     /// A docked web panel opened, closed or changed its width: the pages
@@ -248,8 +256,9 @@ impl Engine {
     /// Draggable areas of the frame: the top bar's and the sidebar page's
     /// `app-region: drag` zones plus the whole content panel. Pages sit in
     /// child windows above the panel, so only the gaps around them (top
-    /// edge, sides, split gutters) end up moving the window. Not the gap
-    /// beside a docked web panel: a drag there resizes the panel.
+    /// edge, sides, split gutters) end up moving the window. Not the bar
+    /// and the gap beside a docked web panel: a click in the bar collapses
+    /// the panel, a drag in the gap resizes it.
     pub(crate) fn apply_drag_regions(&self) {
         let (window, sidebar, top_bar) = {
             let inner = self.lock();
@@ -279,7 +288,8 @@ impl Engine {
         }];
         regions.extend(sidebar.into_iter().map(below));
         regions.extend(top_bar);
-        regions.extend(self.docked_grip_in_window().map(|bounds| DraggableRegion {
+        let controls = self.docked_controls_in_window().into_iter().flatten();
+        regions.extend(controls.map(|bounds| DraggableRegion {
             bounds,
             draggable: 0,
         }));

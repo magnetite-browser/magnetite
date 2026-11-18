@@ -62,14 +62,19 @@ impl Engine {
                 let wanted: Vec<_> = split.chain(devtools).chain(handles).collect();
                 (wanted, inner.win.frame.as_ref().map(|f| f.window.clone()))
             };
-            // The grip beside an open web panel, to resize it.
+            // The grip beside an open web panel, to resize it, and the
+            // button to close it.
             let mut wanted = wanted;
-            wanted.extend(
-                self.web_panel_grip()
-                    .map(|r| (r, crate::mac::DividerKey::WebPanel)),
-            );
+            let panel = self.web_panel_bounds();
+            wanted.extend((panel.as_ref()).map(|p| {
+                (
+                    crate::content::web_panel_grip(p),
+                    crate::mac::DividerKey::WebPanel,
+                )
+            }));
             if let Some(frame) = frame {
                 crate::mac::set_dividers(frame.window_handle(), &wanted);
+                crate::mac::set_panel_close(frame.window_handle(), panel.as_ref());
             }
         }
         self.web_panel_above_dividers();

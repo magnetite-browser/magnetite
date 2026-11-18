@@ -215,10 +215,8 @@ pub fn hide_peek_backdrop() {
 }
 
 fn create_peek_backdrop(mtm: MainThreadMarker) -> PeekBackdrop {
-    use objc2_app_kit::{
-        NSButton, NSColor, NSFontWeightSemibold, NSImage, NSImageSymbolConfiguration,
-    };
-    use objc2_foundation::{NSRect, NSString};
+    use objc2_app_kit::NSColor;
+    use objc2_foundation::NSRect;
     let window = borderless_window(mtm, NSRect::ZERO, false);
     // SAFETY: initWithFrame: is NSView's designated initialiser.
     let root: Retained<MagnetitePeekBackdrop> =
@@ -226,9 +224,7 @@ fn create_peek_backdrop(mtm: MainThreadMarker) -> PeekBackdrop {
     // Same corners as the page cards it covers.
     let dim = plain_box(mtm, 10.0, &NSColor::colorWithWhite_alpha(0.0, 0.45));
     root.addSubview(&dim);
-    // SAFETY: a static AppKit constant.
-    let weight = unsafe { NSFontWeightSemibold };
-    let config = NSImageSymbolConfiguration::configurationWithPointSize_weight(13.0, weight);
+    let target: &AnyObject = &root;
     let buttons = [
         ("xmark", "Close (Esc)", sel!(closePeek:)),
         (
@@ -244,30 +240,7 @@ fn create_peek_backdrop(mtm: MainThreadMarker) -> PeekBackdrop {
     ]
     .into_iter()
     .map(|(symbol, tip, action)| {
-        let circle = plain_box(
-            mtm,
-            PEEK_BUTTON / 2.0,
-            &NSColor::colorWithWhite_alpha(0.12, 0.94),
-        );
-        circle.setBorderColor(&NSColor::colorWithWhite_alpha(1.0, 0.14));
-        circle.setBorderWidth(1.0);
-        let tip = NSString::from_str(tip);
-        let image = NSImage::imageWithSystemSymbolName_accessibilityDescription(
-            &NSString::from_str(symbol),
-            Some(&tip),
-        )
-        .and_then(|i| i.imageWithSymbolConfiguration(&config));
-        if let Some(image) = image {
-            let target: &AnyObject = &root;
-            // SAFETY: the target (the backdrop view) outlives its buttons.
-            let button = unsafe {
-                NSButton::buttonWithImage_target_action(&image, Some(target), Some(action), mtm)
-            };
-            button.setBordered(false);
-            button.setContentTintColor(Some(&NSColor::colorWithWhite_alpha(1.0, 0.88)));
-            button.setToolTip(Some(&tip));
-            circle.setContentView(Some(&button));
-        }
+        let circle = round_button(mtm, symbol, tip, target, action);
         root.addSubview(&circle);
         circle
     })
@@ -278,6 +251,122 @@ fn create_peek_backdrop(mtm: MainThreadMarker) -> PeekBackdrop {
         dim,
         buttons,
     }
+}
+
+/// A round button as beside a peek, `PEEK_BUTTON` wide: the system symbol
+/// `symbol` on a dark disc, sending `action` to `target`, which must
+/// outlive it.
+fn round_button(
+    mtm: MainThreadMarker,
+    symbol: &str,
+    tip: &str,
+    target: &AnyObject,
+    action: objc2::runtime::Sel,
+) -> Retained<objc2_app_kit::NSBox> {
+    use objc2_app_kit::{
+        NSButton, NSColor, NSFontWeightSemibold, NSImage, NSImageSymbolConfiguration,
+    };
+    use objc2_foundation::NSString;
+    // SAFETY: a static AppKit constant.
+    let weight = unsafe { NSFontWeightSemibold };
+    let config = NSImageSymbolConfiguration::configurationWithPointSize_weight(13.0, weight);
+    let circle = plain_box(
+        mtm,
+        PEEK_BUTTON / 2.0,
+        &NSColor::colorWithWhite_alpha(0.12, 0.94),
+    );
+    circle.setBorderColor(&NSColor::colorWithWhite_alpha(1.0, 0.14));
+    circle.setBorderWidth(1.0);
+    let tip = NSString::from_str(tip);
+    let image = NSImage::imageWithSystemSymbolName_accessibilityDescription(
+        &NSString::from_str(symbol),
+        Some(&tip),
+    )
+    .and_then(|i| i.imageWithSymbolConfiguration(&config));
+    if let Some(image) = image {
+        // SAFETY: the caller keeps the target alive as long as the button.
+        let button = unsafe {
+            NSButton::buttonWithImage_target_action(&image, Some(target), Some(action), mtm)
+        };
+        button.setBordered(false);
+        button.setContentTintColor(Some(&NSColor::colorWithWhite_alpha(1.0, 0.88)));
+        button.setToolTip(Some(&tip));
+        circle.setContentView(Some(&button));
+    }
+    circle
+}
+
+define_class!(
+    /// Holds the close button beside a web panel and receives its action.
+    #[unsafe(super(objc2_app_kit::NSView))]
+    #[thread_kind = MainThreadOnly]
+    struct MagnetitePanelClose;
+
+    impl MagnetitePanelClose {
+        #[unsafe(method(closePanel:))]
+        fn close_panel(&self, _sender: Option<&AnyObject>) {
+            Engine::global().emit(EngineEvent::WebPanelClose);
+        }
+    }
+);
+
+thread_local! {
+    static PANEL_CLOSE: std::cell::RefCell<Option<Retained<objc2_app_kit::NSWindow>>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+/// Show the web panel's close button, a round one as beside a peek, just
+/// right of `panel`'s top corner (CEF screen coordinates: top-left origin,
+/// DIP) and above the pages of the window whose content view is
+/// `frame_handle`. Without a panel it goes.
+pub fn set_panel_close(frame_handle: cef::sys::cef_window_handle_t, panel: Option<&cef::Rect>) {
+    use objc2_app_kit::NSView;
+    use objc2_foundation::{NSPoint, NSRect, NSSize};
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    // Beyond the grip at the panel's edge, as far from it as a peek's buttons.
+    #[allow(clippy::cast_possible_truncation)] // a button's size
+    let at = panel.map(|p| cef::Rect {
+        x: p.x + p.width + PEEK_BUTTON_GAP as i32 + 2,
+        y: p.y + PEEK_BUTTON_GAP as i32,
+        width: PEEK_BUTTON as i32,
+        height: PEEK_BUTTON as i32,
+    });
+    let frame_window = (!frame_handle.is_null())
+        // SAFETY: CEF hands us the frame's live content NSView; main thread.
+        .then(|| unsafe { &*frame_handle.cast::<NSView>() })
+        .and_then(NSView::window);
+    let place = at.and_then(|at| Some((frame_window?, screen_rect(mtm, &at)?)));
+    PANEL_CLOSE.with(|cell| {
+        let mut cell = cell.borrow_mut();
+        let Some((frame_window, rect)) = place else {
+            if let Some(window) = cell.as_ref() {
+                if let Some(parent) = window.parentWindow() {
+                    parent.removeChildWindow(window);
+                }
+                window.orderOut(None);
+            }
+            return;
+        };
+        let window = cell.get_or_insert_with(|| {
+            let window = borderless_window(mtm, rect, false);
+            // SAFETY: initWithFrame: is NSView's designated initialiser.
+            let root: Retained<MagnetitePanelClose> =
+                unsafe { msg_send![MagnetitePanelClose::alloc(mtm), initWithFrame: NSRect::ZERO] };
+            let target: &AnyObject = &root;
+            let button = round_button(mtm, "xmark", "Close the panel", target, sel!(closePanel:));
+            button.setFrame(NSRect::new(
+                NSPoint::new(0.0, 0.0),
+                NSSize::new(PEEK_BUTTON, PEEK_BUTTON),
+            ));
+            root.addSubview(&button);
+            window.setContentView(Some(&root));
+            window
+        });
+        window.setFrame_display(rect, true);
+        attach_above(&frame_window, window);
+    });
 }
 
 define_class!(

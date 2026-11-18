@@ -24,6 +24,11 @@ behind it stays as it is, and a second click puts the panel away again.
 - A click on the favorite opens its panel; a click on the favorite of the
   open panel closes it. Choosing the favorite another way, in the command
   bar for one, opens the panel too.
+- A button beside the panel's top corner closes it, whether or not
+  panels close by themselves, and always in the same place. On macOS it
+  is a round button with a cross on the side of the pages; on Linux a
+  narrow bar between the sidebar and the panel, as high as the panel,
+  with a double arrow in its middle.
 - "Open or close the web panel" (`Cmd+Option+P`, `Ctrl+Alt+P` outside
   macOS; Settings → Shortcuts, the View menu and the command bar) closes
   the open panel, or opens the one used last: of the favorites and the
@@ -31,13 +36,15 @@ behind it stays as it is, and a second click puts the panel away again.
   (`shortcuts.md`).
 - The panel is 420 points wide, less in a narrow window, and as high as
   the page area. On macOS it lies over the pages with a shadow, and they
-  keep their size under it. On Linux it sits beside them: the pages (a
-  split too) take the room that is left, with a gap between. There every
+  keep their size under it, as does the close button. On Linux it sits
+  beside them, after its bar: the pages (a split too) take the room that
+  is left, with a gap between. There every
   page is a window of its own to the window manager, which puts a page
   that is shown or clicked on top, so a panel over a page would end up
   behind it.
 - Dragging the panel's far edge (on Linux the gap beside it) changes its
-  width, between 280 points and all but 80 points of the page area. Each
+  width, between 280 points and all but 80 points of the page area (on
+  Linux less its bar). Each
   panel keeps its own width; a double click there gives it the usual one
   again.
 - There is one panel per window at a time. Opening another favorite's
@@ -91,6 +98,8 @@ Code: `crates/app/src/app/panels.rs` (`open_web_panel`, `settle_web_panel`),
 `crates/app/src/state/panels.rs` (`settle_panels`, `latest_web_panel`),
 `tabs.rs` (`activate_tab`), `crates/engine/src/content.rs`
 (`show_web_panel`, `web_panel_rect`, `WEB_PANEL_DOCKED`,
-`resize_web_panel`), `device.rs` (`set_mobile_view`),
+`resize_web_panel`), `mac/chrome.rs` (`set_panel_close`, the close button
+on macOS), `device.rs` (`set_mobile_view`),
 `crates/ui/web/src/Rows.tsx` (the favorite's click and menu entry),
-`Empty.tsx` (`PanelResizer`, the grip on Linux).
+`Empty.tsx` (`PanelBar` and `PanelResizer`, the collapse button and the
+grip on Linux).

@@ -218,6 +218,8 @@ pub enum EngineEvent {
         id: ContentId,
         width: Option<u32>,
     },
+    /// The close button of the open web panel was pressed.
+    WebPanelClose,
     /// A divider between split pages was dragged, let go or double-clicked.
     /// `path` and `index` name it as in `magnetite_core::split::Divider`.
     SplitDivider {
@@ -380,6 +382,7 @@ impl EngineEvent {
             Self::SplitDivider { .. } => "SplitDivider",
             Self::DevToolsResized(_) => "DevToolsResized",
             Self::WebPanelResized { .. } => "WebPanelResized",
+            Self::WebPanelClose => "WebPanelClose",
             Self::ConsoleError { .. } => "ConsoleError",
             Self::LoadFailed { .. } => "LoadFailed",
             Self::ScreencastFrame { .. } => "ScreencastFrame",
