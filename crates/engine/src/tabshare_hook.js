@@ -4,6 +4,10 @@
 // every frame it watches the tracks `getDisplayMedia` hands out and reports
 // the handles of the tabs they show. `report` is a native function that
 // only this closure can reach; nothing is added to the page's globals.
+// The page's scripts run in the same world and can replace any built-in
+// later, so everything the hook calls afterwards is taken here, at the
+// start, as a function of its own: no method is looked up on a prototype
+// again, and lists are walked by index.
 (function (report, handle) {
   "use strict";
   // Not on pages without a secure context (plain http).
@@ -14,23 +18,32 @@
   const proto = Object.getPrototypeOf(devices);
   const getDisplayMedia = proto.getDisplayMedia;
   if (!getDisplayMedia) return;
-  const OURS = /^magnetite-tab-[0-9a-f]{32}$/;
-  const isOurs = RegExp.prototype.test.bind(OURS);
   const every = setInterval.bind(window);
   const stop = clearInterval.bind(window);
   const prototypeOf = Object.getPrototypeOf;
-  // What is read from a track or a stream goes through the browser's own
-  // functions, taken now: a page that redefines `readyState` on its track
-  // must not make a live capture look ended.
+  const apply = Reflect.apply;
   const native = (fn) => Function.prototype.call.bind(fn);
+  // A page that redefines `readyState` on its track must not make a live
+  // capture look ended.
   const Track = MediaStreamTrack.prototype;
   const readyState = native(Object.getOwnPropertyDescriptor(Track, "readyState").get);
   const captureHandle = Track.getCaptureHandle && native(Track.getCaptureHandle);
   const videoTracks = native(MediaStream.prototype.getVideoTracks);
   const listen = native(EventTarget.prototype.addEventListener);
   const then = native(Promise.prototype.then);
-  const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
-  const contains = Function.prototype.call.bind(String.prototype.includes);
+  const hasOwn = native(Object.prototype.hasOwnProperty);
+  const contains = native(String.prototype.includes);
+  const startsWith = native(String.prototype.startsWith);
+  const setAdd = native(Set.prototype.add);
+  const setHas = native(Set.prototype.has);
+  const setDelete = native(Set.prototype.delete);
+  const setClear = native(Set.prototype.clear);
+  const setEach = native(Set.prototype.forEach);
+  const setSize = native(Object.getOwnPropertyDescriptor(Set.prototype, "size").get);
+  const weakAdd = native(WeakSet.prototype.add);
+  const weakHas = native(WeakSet.prototype.has);
+  // Our handles; the browser checks the whole form again.
+  const isOurs = (text) => typeof text === "string" && text.length === 46 && startsWith(text, "magnetite-tab-");
   // Most tabs one report names; the browser takes no more (`MAX_CAPTURES`).
   const MAX_CAPTURES = 16;
 
@@ -46,24 +59,23 @@
   const tracks = new Set();
   let timer = 0;
   let last = "";
-  // The report is put together as text, without array methods the page
-  // could have replaced.
+  // The report is put together as text.
   function push() {
     let text = "";
     let count = 0;
-    for (const track of tracks) {
+    setEach(tracks, (track) => {
       if (readyState(track) === "ended") {
-        tracks.delete(track);
-        continue;
+        setDelete(tracks, track);
+        return;
       }
       const captured = captureHandle && captureHandle(track);
       const handle = captured && captured.handle;
-      if (typeof handle === "string" && isOurs(handle) && count < MAX_CAPTURES && !contains(text, handle)) {
+      if (isOurs(handle) && count < MAX_CAPTURES && !contains(text, handle)) {
         text += (count ? "," : "") + handle;
         count += 1;
       }
-    }
-    if (!tracks.size && timer) {
+    });
+    if (!setSize(tracks) && timer) {
       stop(timer);
       timer = 0;
     }
@@ -73,8 +85,8 @@
     }
   }
   function watch(track) {
-    if (tracks.has(track)) return;
-    tracks.add(track);
+    if (setHas(tracks, track)) return;
+    setAdd(tracks, track);
     // The user's "Stop sharing", and "Share this tab instead" or a new page
     // in the shared tab.
     listen(track, "ended", push);
@@ -88,12 +100,12 @@
   const wrapped = new WeakSet();
   function wrapClone(object, seen) {
     for (let p = prototypeOf(object); p; p = prototypeOf(p)) {
-      if (wrapped.has(p) || !hasOwn(p, "clone")) continue;
-      wrapped.add(p);
+      if (weakHas(wrapped, p) || !hasOwn(p, "clone")) continue;
+      weakAdd(wrapped, p);
       const clone = p.clone;
       p.clone = {
         clone() {
-          const copy = clone.apply(this, arguments);
+          const copy = apply(clone, this, arguments);
           try {
             seen(this, copy);
           } catch (_) {}
@@ -103,24 +115,27 @@
     }
   }
   const trackCloned = (track, copy) => {
-    if (tracks.has(track)) watch(copy);
+    if (setHas(tracks, track)) watch(copy);
   };
   const streamCloned = (stream, copy) => {
-    for (const track of videoTracks(stream)) {
-      if (!tracks.has(track)) continue;
-      for (const copied of videoTracks(copy)) watch(copied);
+    const from = videoTracks(stream);
+    for (let i = 0; i < from.length; i++) {
+      if (!setHas(tracks, from[i])) continue;
+      const copies = videoTracks(copy);
+      for (let k = 0; k < copies.length; k++) watch(copies[k]);
       return;
     }
   };
 
   proto.getDisplayMedia = {
     getDisplayMedia() {
-      const result = getDisplayMedia.apply(this, arguments);
+      const result = apply(getDisplayMedia, this, arguments);
       then(result, (stream) => {
         wrapClone(stream, streamCloned);
-        for (const track of videoTracks(stream)) {
-          wrapClone(track, trackCloned);
-          watch(track);
+        const list = videoTracks(stream);
+        for (let i = 0; i < list.length; i++) {
+          wrapClone(list[i], trackCloned);
+          watch(list[i]);
         }
         push();
       }, () => {});
@@ -130,7 +145,7 @@
 
   // The frame goes (it is taken out of its page): its capture ends with it.
   listen(window, "pagehide", () => {
-    tracks.clear();
+    setClear(tracks);
     push();
   });
 })
