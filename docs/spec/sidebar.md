@@ -84,8 +84,9 @@ the row turns the icon into a back arrow that takes the page back.
 While a page shares a tab's picture (screen sharing in a meeting, "Tab" in
 the share dialog), that tab is marked wherever it shows:
 
-- Its row carries a red screen mark, also on hover. A shared favorite has
-  a red dot on its tile.
+- Its row carries a red screen mark, also on hover; so does its cell in a
+  split row, where the close button takes the mark's place on hover. A
+  shared favorite has a red dot on its tile.
 - The address row's chip has the red dot while the shared tab is the
   current one; the tooltip says "This tab is being shared".
 - The mark follows "Share this tab instead" and goes when the sharing ends:

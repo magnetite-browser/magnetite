@@ -861,6 +861,11 @@ function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
     <div className="split-cell" data-cell={ghost ? undefined : tab.id} data-ghost={ghost || undefined} data-lifted={lifted || undefined} data-active={active || undefined} data-unloaded={!ghost && !rt?.loaded ? true : undefined} title={tab.url} {...events}>
       <Favicon url={tab.url} src={rt?.favicon} loading={rt?.loading} />
       <span className="title">{tab.title || hostOf(tab.url)}</span>
+      {!ghost && rt?.shared && (
+        <span className="shared" title="This tab is being shared" aria-label="Being shared">
+          <ScreenShareIcon width={13} height={13} />
+        </span>
+      )}
       {onRemove && (
         <button className="close" title="Remove from split view" aria-label="Remove from split view" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
           <Close width={12} height={12} />

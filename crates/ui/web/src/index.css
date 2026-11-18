@@ -95,7 +95,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .row:hover .kept, .row:focus-within .kept { visibility: hidden; }
 /* A tab a page is sharing (screen sharing): the colour of the address row's
    capture dot. It stays on hover: one has to find the shared tab at any time. */
-.row .shared { width: 18px; height: 20px; flex: none; display: grid; place-items: center; color: #f05d5d; }
+:is(.row, .split-cell) .shared { width: 18px; height: 20px; flex: none; display: grid; place-items: center; color: #f05d5d; }
 .fav[data-shared]::before { content: ""; position: absolute; right: 4px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: #f05d5d; }
 /* The device a tab of another device is open on; it stays on hover: the row has no other button. */
 .row .from-device { width: 16px; height: 20px; flex: none; display: grid; place-items: center; color: var(--muted); }
@@ -282,6 +282,8 @@ button.panel-row:disabled { opacity: 0.45; }
 .split-cell .title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .split-cell .close { position: absolute; right: 4px; top: calc((var(--row-h) - 22px) / 2); width: 18px; height: 18px; border-radius: 5px; display: none; place-items: center; color: var(--muted); background: #2a2a2d; }
 .split-cell:hover .close { display: grid; }
+/* The close button takes the mark's place. */
+.split-cell:hover .shared { visibility: hidden; }
 .split-cell:hover .title { -webkit-mask-image: linear-gradient(to left, transparent 20px, #000 36px); }
 .split-cell .close:hover { color: var(--fg); background: #3a3a3e; }
 /* where a dragged tab lands: a placeholder page beside its new neighbour */

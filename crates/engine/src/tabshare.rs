@@ -24,6 +24,9 @@ const HOOK_JS: &str = include_str!("tabshare_hook.js");
 const HANDLE_PREFIX: &str = "magnetite-tab-";
 /// Most tabs one frame can report as captured.
 const MAX_CAPTURES: usize = 16;
+/// Longest report taken from a page: `MAX_CAPTURES` handles with room to
+/// spare.
+const MAX_REPORT: usize = 1024;
 
 fn is_handle(text: &str) -> bool {
     text.strip_prefix(HANDLE_PREFIX).is_some_and(|hex| {
@@ -104,6 +107,9 @@ impl Engine {
         kind: &str,
         text: &str,
     ) {
+        if text.len() > MAX_REPORT {
+            return;
+        }
         let Some(id) = self.content_id_for(browser) else {
             return;
         };
@@ -207,6 +213,7 @@ wrap_v8_handler! {
                     .map(|v| CefString::from(&v.string_value()).to_string())
             };
             let (Some(kind), Some(value)) = (text(0), text(1)) else { return 1 };
+            if value.len() > MAX_REPORT { return 1 }
             let Some(frame) = v8_context_get_current_context().and_then(|c| c.frame()) else { return 1 };
             let Some(mut msg) = process_message_create(Some(&CefString::from(MESSAGE))) else { return 1 };
             if let Some(args) = msg.argument_list() {
