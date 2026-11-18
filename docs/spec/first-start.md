@@ -68,7 +68,8 @@ the answer:
   with a switch (`ad-blocking.md`). An answer here is only marked: the
   blocker is turned on or off, and the lists are downloaded, with
   "Continue". A line below the answers says so while something is still to
-  be downloaded. Until the app is done with it, the answers cannot be changed.
+  be downloaded. With no answer given on this page, "Continue" leaves what
+  is set. Until the app is done with it, the answers cannot be changed.
   If the app refuses, the step stays and says why.
 - **Ready.** The summary names the browsers that will be imported with
   their spaces and tabs, the search engine, whether ads are blocked and
