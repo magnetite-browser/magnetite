@@ -781,7 +781,12 @@ pub fn hover_without_focus(handle: cef::sys::cef_window_handle_t) {
 /// Only while the keyboard is in a window of the same family (the frame, its
 /// pages and panels) and this window is the one under the pointer; Chromium
 /// keeps doing the rest, also the arrow when the pointer leaves the view.
-pub fn show_cursor_without_focus(handle: cef::sys::cef_window_handle_t, cursor: *mut u8) {
+///
+/// # Safety
+///
+/// `handle` is null or a live `NSView`, and `cursor` is null or a live
+/// `NSCursor`, both for the length of the call.
+pub unsafe fn show_cursor_without_focus(handle: cef::sys::cef_window_handle_t, cursor: *mut u8) {
     use objc2_app_kit::{NSCursor, NSView, NSWindow};
     let Some(mtm) = MainThreadMarker::new() else {
         return;
@@ -789,7 +794,7 @@ pub fn show_cursor_without_focus(handle: cef::sys::cef_window_handle_t, cursor: 
     if handle.is_null() || cursor.is_null() {
         return;
     }
-    // SAFETY: CEF hands us a live NSView; we are on the main thread.
+    // SAFETY: the caller passes a live NSView; we are on the main thread.
     let view: &NSView = unsafe { &*handle.cast::<NSView>() };
     let (Some(window), Some(key)) = (
         view.window(),
@@ -805,7 +810,7 @@ pub fn show_cursor_without_focus(handle: cef::sys::cef_window_handle_t, cursor: 
     if under_pointer != window.windowNumber() {
         return;
     }
-    // SAFETY: CEF passes the live `NSCursor` of the change it reports.
+    // SAFETY: the caller passes a live `NSCursor`.
     let cursor: &NSCursor = unsafe { &*cursor.cast::<NSCursor>() };
     cursor.set();
 }

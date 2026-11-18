@@ -198,7 +198,10 @@ wrap_display_handler! {
         ) -> ::std::os::raw::c_int {
             #[cfg(target_os = "macos")]
             if let Some(host) = browser.and_then(|b| b.host()) {
-                crate::mac::show_cursor_without_focus(host.window_handle(), cursor);
+                // SAFETY: the view of a browser that is alive in this
+                // callback, and the `NSCursor` CEF reports with it; CEF
+                // holds both until the callback returns.
+                unsafe { crate::mac::show_cursor_without_focus(host.window_handle(), cursor) };
             }
             #[cfg(not(target_os = "macos"))]
             let _ = (browser, cursor);
