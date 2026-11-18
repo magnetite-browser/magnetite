@@ -16,8 +16,8 @@ along.
   The command bar's "Import from another browser…" opens this section.
 - On the welcome page a chosen browser is read to show what it would add,
   space by space; there the spaces can be given other names and icons,
-  and single ones left out. It is read again and imported when the page is
-  left (`first-start.md`).
+  and single ones left out. It is read again and imported with "Start
+  browsing" (`first-start.md`).
 - An import **adds**. The new spaces follow the existing ones and Magnetite
   switches to the first of them; nothing already in the sidebar changes.
   Importing twice gives the spaces twice. A space whose name is taken gets a

@@ -654,7 +654,15 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
 .wel-sk-page { flex: 1; display: flex; flex-direction: column; gap: 12px; margin: 8px 8px 8px 0; padding: 30px 26px; border-radius: 10px; background: var(--bg); }
 .wel-sk-page i:first-child { height: 12px; margin-bottom: 6px; background: rgba(255,255,255,0.2); }
 @media (max-width: 900px) { .wel-body[data-wide] { max-width: 712px; } .wel-hero { grid-template-columns: minmax(0, 1fr); } .wel-sketch { display: none; } }
-/* A narrow window has no room for the list: the steps become a row of dots on top. */
+.wel-step { display: flex; align-items: center; gap: 10px; width: 100%; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13.5px; color: var(--muted); text-align: left; transition: background-color 120ms, color 120ms; }
+.wel-step[data-done] { color: var(--secondary); }
+.wel-step[data-done]:hover { background: var(--row-hover); color: var(--fg); }
+.wel-step[data-now] { background: var(--row-active); color: var(--fg); font-weight: 500; }
+.wel-dot { display: grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 50%; border: 1px solid var(--line); color: var(--muted); }
+.wel-step[data-now] .wel-dot { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.wel-step[data-done] .wel-dot { border-color: transparent; background: var(--accent); color: #1b1b1e; }
+/* A narrow window has no room for the list: the steps become a row of dots on
+   top. After the rules of the steps, which it changes. */
 @media (max-width: 760px) {
   .wel { flex-direction: column; }
   .wel-rail { width: auto; flex-direction: row; align-items: center; gap: 16px; padding: 12px 20px; border-right: 0; border-bottom: 1px solid var(--line); }
@@ -663,13 +671,6 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
   .wel-step { font-size: 0; gap: 0; padding: 0 3px; }
   .wel-body { padding: 32px 20px; }
 }
-.wel-step { display: flex; align-items: center; gap: 10px; width: 100%; height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13.5px; color: var(--muted); text-align: left; transition: background-color 120ms, color 120ms; }
-.wel-step[data-done] { color: var(--secondary); }
-.wel-step[data-done]:hover { background: var(--row-hover); color: var(--fg); }
-.wel-step[data-now] { background: var(--row-active); color: var(--fg); font-weight: 500; }
-.wel-dot { display: grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 50%; border: 1px solid var(--line); color: var(--muted); }
-.wel-step[data-now] .wel-dot { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
-.wel-step[data-done] .wel-dot { border-color: transparent; background: var(--accent); color: #1b1b1e; }
 /* The two ways in, on the first step. */
 .wel-pick { display: flex; align-items: flex-start; gap: 16px; padding: 18px 20px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); text-align: left; transition: border-color 140ms, background-color 140ms; }
 .wel-pick:hover { border-color: color-mix(in srgb, var(--accent) 60%, transparent); background: var(--surface-2); }

@@ -9,8 +9,9 @@ the sidebar holds one space, "Personal", and no tab.
 
 `magnetite://ui/welcome` opens as a tab, once. The steps are listed by name
 on the left, the current one marked; a step that was seen can be gone back
-to from there or with "Back". A narrow window shows the list as a row of
-dots on top.
+to from there or with "Back", except while the app is still joining or
+starting a chain or setting the ad blocking. A narrow window shows the list
+as a row of dots on top.
 
 The first step asks which of two starts this is, and the rest follows from
 the answer:
@@ -36,11 +37,13 @@ the answer:
   own, and with it the tab times, the place for links and the shortcuts
   (`sync.md`). So it is not asked about them: "Your tabs" and "Tabs and
   links" are left out. How Magnetite looks is each device's own, so "Look"
-  stays. "Go on without" continues as a new start, import and all.
+  stays. A browser chosen before the device joined is not imported. "Go on
+  without" continues as a new start, import and all.
 - **Your tabs.** The list of browsers is made when the step shows, by
   looking for their data folders. Choosing a browser reads it, to show what
   it has: each space it would add with its number of tabs and bookmarks,
-  and the number of favorites. Nothing is added yet. The spaces of all
+  and the number of favorites. Nothing is added yet. Choosing a browser
+  again reads it again, and what was chosen for its spaces starts over. The spaces of all
   chosen browsers stand in one list, "Your sidebar, as it will start", with
   a line on what a space is. Each space has a field with its name, to
   change; a browser without spaces of its own (one
@@ -64,7 +67,7 @@ the answer:
   with a switch (`ad-blocking.md`). An answer here is only marked: the
   blocker is turned on or off, and the lists are downloaded, with
   "Continue". A line below the answers says so while something is still to
-  be downloaded.
+  be downloaded. If the app refuses, the step stays and says why.
 - **Ready.** The summary names the browsers that will be imported with
   their spaces and tabs, the search engine, whether ads are blocked and
   with how many lists, the tab times, the layout and text size, and whether
