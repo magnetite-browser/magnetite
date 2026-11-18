@@ -564,7 +564,13 @@ impl Overrides {
     fn take_from_others(&mut self, keeper: Option<Action>, combo: Combo) {
         let combo = Some(combo.here());
         for other in Action::ALL {
-            if Some(other) != keeper && self.combo_of(other) == combo {
+            // Also default keys that do not count now (`combo_of`): they
+            // would once the action that has them lets go.
+            let keys = match self.0.get(&other) {
+                Some(own) => own.map(Combo::here),
+                None => other.default_combo(),
+            };
+            if Some(other) != keeper && keys == combo {
                 self.0.insert(other, None);
             }
         }
@@ -685,6 +691,10 @@ mod tests {
         let saved = Overrides(BTreeMap::from([(Action::SitePanel, Some(keys))]));
         assert_eq!(saved.action_for(keys), Some(Action::SitePanel));
         assert_eq!(saved.combo_of(Action::WebPanel), None);
+        // Freed for a space, they are free of both.
+        let mut freed = saved.clone();
+        freed.release(keys);
+        assert_eq!(freed.action_for(keys), None);
     }
 
     #[test]

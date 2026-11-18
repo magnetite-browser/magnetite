@@ -67,8 +67,9 @@ function PanelResizer({ width, zoom }: { width?: number; zoom: number }) {
   // While dragging, the width the pointer asks for; the app answers a release with the kept one.
   const [dragged, setDragged] = useState<number | null>(null);
   useEffect(() => setDragged(null), [width]);
-  // Whether the pointer moved since it went down: a click changes nothing.
-  const moved = useRef(false);
+  // The drag under way: its pointer (a second finger is none of it), whether
+  // it moved (a click changes nothing) and whether the app heard of it yet.
+  const drag = useRef<{ pointer: number; moved: boolean; sent: boolean } | null>(null);
   const frame = useRef(0);
   // A resize still waiting when the panel goes would change the next one.
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
@@ -93,32 +94,41 @@ function PanelResizer({ width, zoom }: { width?: number; zoom: number }) {
       title="Drag to resize the panel · double-click to reset"
       onPointerDown={(e) => {
         e.preventDefault();
+        if (drag.current) return;
         e.currentTarget.setPointerCapture(e.pointerId);
-        moved.current = false;
+        drag.current = { pointer: e.pointerId, moved: false, sent: false };
       }}
       onPointerMove={(e) => {
-        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-        moved.current = true;
+        const now = drag.current;
+        if (now?.pointer !== e.pointerId) return;
+        now.moved = true;
         latest.current = wanted(e.clientX);
         setDragged(latest.current);
         // One resize per frame: each one re-lays out the pages.
-        if (!frame.current) frame.current = requestAnimationFrame(() => { frame.current = 0; apply(false); });
+        frame.current ||= requestAnimationFrame(() => {
+          frame.current = 0;
+          now.sent = true;
+          apply(false);
+        });
       }}
       onPointerUp={(e) => {
-        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        const ended = drag.current;
+        if (ended?.pointer !== e.pointerId) return;
+        drag.current = null;
         e.currentTarget.releasePointerCapture(e.pointerId);
         stop();
-        if (!moved.current) return;
+        if (!ended.moved) return;
         latest.current = wanted(e.clientX);
         apply(true);
       }}
-      onPointerCancel={() => {
+      onPointerCancel={(e) => {
+        const ended = drag.current;
+        if (ended?.pointer !== e.pointerId) return;
+        drag.current = null;
         stop();
-        if (!moved.current) return;
-        // The drag did not end: the width from before it, and nothing kept.
-        moved.current = false;
         setDragged(null);
-        send({ cmd: "web_panel_width", width: width ?? null, done: false });
+        // The drag did not end: the width from before it, if the app heard of another, and nothing kept.
+        if (ended.sent) send({ cmd: "web_panel_width", width: width ?? null, done: false });
       }}
       onDoubleClick={() => send({ cmd: "web_panel_width", width: null, done: true })}
     />
