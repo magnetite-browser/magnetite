@@ -664,6 +664,11 @@ impl Engine {
                 self.place(id, &rect);
             }
         }
+        if panel.is_some() && !crate::content::WEB_PANEL_DOCKED {
+            // The panel moved or changed its width: its grip and button
+            // follow.
+            self.show_dividers();
+        }
         self.update_grab_strip();
         self.place_notifications();
     }

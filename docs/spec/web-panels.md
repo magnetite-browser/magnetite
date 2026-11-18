@@ -44,7 +44,8 @@ behind it stays as it is, and a second click puts the panel away again.
   behind it.
 - Dragging the panel's far edge (on Linux the gap beside it) changes its
   width, between 280 points and all but 80 points of the page area (on
-  Linux less its bar). Each
+  Linux less its bar). In a window too narrow for both, the room left
+  for the pages counts and the panel is narrower than 280 points. Each
   panel keeps its own width; a double click there gives it the usual one
   again.
 - There is one panel per window at a time. Opening another favorite's

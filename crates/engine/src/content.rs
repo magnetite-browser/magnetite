@@ -751,9 +751,15 @@ impl Engine {
             }
             inner.contents.remove(&id)
         };
-        if let Some(home) = panel_of.filter(|_| WEB_PANEL_DOCKED) {
-            // A docked panel that closed itself: the pages take its room again.
-            self.in_window(home, || self.dock_web_panel());
+        if let Some(home) = panel_of {
+            // A panel that closed itself: its grip and button go with it,
+            // and beside a docked one the pages take its room again.
+            self.in_window(home, || {
+                self.show_dividers();
+                if WEB_PANEL_DOCKED {
+                    self.dock_web_panel();
+                }
+            });
         }
         crate::devtools::page_closed(id);
         state.is_some()

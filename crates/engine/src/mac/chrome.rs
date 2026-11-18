@@ -311,14 +311,16 @@ define_class!(
 );
 
 thread_local! {
-    static PANEL_CLOSE: std::cell::RefCell<Option<Retained<objc2_app_kit::NSWindow>>> =
-        const { std::cell::RefCell::new(None) };
+    /// Each frame's close button, by the address of the frame's window:
+    /// every window can have a panel open.
+    static PANEL_CLOSE: std::cell::RefCell<std::collections::HashMap<usize, Retained<objc2_app_kit::NSWindow>>> =
+        std::cell::RefCell::new(std::collections::HashMap::new());
 }
 
 /// Show the web panel's close button, a round one as beside a peek, just
 /// right of `panel`'s top corner (CEF screen coordinates: top-left origin,
 /// DIP) and above the pages of the window whose content view is
-/// `frame_handle`. Without a panel it goes.
+/// `frame_handle`. Without a panel that window's button goes.
 pub fn set_panel_close(frame_handle: cef::sys::cef_window_handle_t, panel: Option<&cef::Rect>) {
     use objc2_app_kit::NSView;
     use objc2_foundation::{NSPoint, NSRect, NSSize};
@@ -337,19 +339,23 @@ pub fn set_panel_close(frame_handle: cef::sys::cef_window_handle_t, panel: Optio
         // SAFETY: CEF hands us the frame's live content NSView; main thread.
         .then(|| unsafe { &*frame_handle.cast::<NSView>() })
         .and_then(NSView::window);
-    let place = at.and_then(|at| Some((frame_window?, screen_rect(mtm, &at)?)));
+    let Some(frame_window) = frame_window else {
+        return;
+    };
+    let key = Retained::as_ptr(&frame_window) as usize;
+    let rect = at.and_then(|at| screen_rect(mtm, &at));
     PANEL_CLOSE.with(|cell| {
-        let mut cell = cell.borrow_mut();
-        let Some((frame_window, rect)) = place else {
-            if let Some(window) = cell.as_ref() {
-                if let Some(parent) = window.parentWindow() {
-                    parent.removeChildWindow(window);
-                }
+        let mut buttons = cell.borrow_mut();
+        // The buttons of frames that closed went with them.
+        buttons.retain(|_, window| window.parentWindow().is_some());
+        let Some(rect) = rect else {
+            if let Some(window) = buttons.remove(&key) {
+                frame_window.removeChildWindow(&window);
                 window.orderOut(None);
             }
             return;
         };
-        let window = cell.get_or_insert_with(|| {
+        let window = buttons.entry(key).or_insert_with(|| {
             let window = borderless_window(mtm, rect, false);
             // SAFETY: initWithFrame: is NSView's designated initialiser.
             let root: Retained<MagnetitePanelClose> =
