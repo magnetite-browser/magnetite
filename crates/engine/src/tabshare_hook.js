@@ -19,6 +19,16 @@
   const every = setInterval.bind(window);
   const stop = clearInterval.bind(window);
   const prototypeOf = Object.getPrototypeOf;
+  // What is read from a track or a stream goes through the browser's own
+  // functions, taken now: a page that redefines `readyState` on its track
+  // must not make a live capture look ended.
+  const native = (fn) => Function.prototype.call.bind(fn);
+  const Track = MediaStreamTrack.prototype;
+  const readyState = native(Object.getOwnPropertyDescriptor(Track, "readyState").get);
+  const captureHandle = Track.getCaptureHandle && native(Track.getCaptureHandle);
+  const videoTracks = native(MediaStream.prototype.getVideoTracks);
+  const listen = native(EventTarget.prototype.addEventListener);
+  const then = native(Promise.prototype.then);
   const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
   const contains = Function.prototype.call.bind(String.prototype.includes);
   // Most tabs one report names; the browser takes no more (`MAX_CAPTURES`).
@@ -42,11 +52,11 @@
     let text = "";
     let count = 0;
     for (const track of tracks) {
-      if (track.readyState === "ended") {
+      if (readyState(track) === "ended") {
         tracks.delete(track);
         continue;
       }
-      const captured = track.getCaptureHandle && track.getCaptureHandle();
+      const captured = captureHandle && captureHandle(track);
       const handle = captured && captured.handle;
       if (typeof handle === "string" && isOurs(handle) && count < MAX_CAPTURES && !contains(text, handle)) {
         text += (count ? "," : "") + handle;
@@ -67,8 +77,8 @@
     tracks.add(track);
     // The user's "Stop sharing", and "Share this tab instead" or a new page
     // in the shared tab.
-    track.addEventListener("ended", push);
-    track.addEventListener("capturehandlechange", push);
+    listen(track, "ended", push);
+    listen(track, "capturehandlechange", push);
     // `track.stop()` by the page fires no event.
     if (!timer) timer = every(push, 1000);
   }
@@ -96,15 +106,19 @@
     if (tracks.has(track)) watch(copy);
   };
   const streamCloned = (stream, copy) => {
-    if (stream.getVideoTracks().some((t) => tracks.has(t))) copy.getVideoTracks().forEach(watch);
+    for (const track of videoTracks(stream)) {
+      if (!tracks.has(track)) continue;
+      for (const copied of videoTracks(copy)) watch(copied);
+      return;
+    }
   };
 
   proto.getDisplayMedia = {
     getDisplayMedia() {
       const result = getDisplayMedia.apply(this, arguments);
-      result.then((stream) => {
+      then(result, (stream) => {
         wrapClone(stream, streamCloned);
-        for (const track of stream.getVideoTracks()) {
+        for (const track of videoTracks(stream)) {
           wrapClone(track, trackCloned);
           watch(track);
         }
@@ -115,7 +129,7 @@
   }.getDisplayMedia;
 
   // The frame goes (it is taken out of its page): its capture ends with it.
-  window.addEventListener("pagehide", () => {
+  listen(window, "pagehide", () => {
     tracks.clear();
     push();
   });

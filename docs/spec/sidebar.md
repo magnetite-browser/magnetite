@@ -100,7 +100,10 @@ How it works: CEF does not say which tab a capture shows, so the pages
 tell. Every web page gets a capture handle, a random text set with
 `setCaptureHandleConfig`. A page that calls `getDisplayMedia` has its
 tracks watched (copies made with `clone` too), reads the handle of the tab
-they show and reports it. A tab is shared while such a report names its
+they show and reports it; this covers frames inside the page, also ones
+without an address of their own (`srcdoc`). The hook reads a track through
+the browser's own functions, so a page cannot make a live capture look
+ended by redefining them. A tab is shared while such a report names its
 handle. The handle is new with every page load, and only a page that
 captures the tab can read it; it names nothing about the user or the tab.
 

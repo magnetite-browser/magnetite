@@ -160,9 +160,12 @@ fn new_handle() -> String {
 /// Install the page script in a frame of a web page. Called from
 /// `on_context_created`, before any page script runs.
 pub(crate) fn install(frame: &Frame, context: &V8Context) {
-    if !crate::media::is_web_url(&CefString::from(&frame.url()).to_string())
-        || !crate::media::is_own_world(frame, context)
-    {
+    let url = CefString::from(&frame.url()).to_string();
+    // A frame inside a page can capture from a document without an address
+    // of its own (`srcdoc`, `about:blank`, a blob), and hands the page clean
+    // copies of the functions the hook wraps if it is left out.
+    let in_page = frame.is_main() == 0 && (url.starts_with("about:") || url.starts_with("blob:"));
+    if !(crate::media::is_web_url(&url) || in_page) || !crate::media::is_own_world(frame, context) {
         return;
     }
     let mut handler = ShareReport::new();
