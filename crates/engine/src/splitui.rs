@@ -82,6 +82,8 @@ impl Engine {
         }
         self.web_panel_above_dividers();
         self.sync_panel_close();
+        // Every change of what is on screen, and where, comes by here.
+        self.update_page_shadows();
     }
 
     /// JPEG screenshot of page `id` as a data URL (drop-zone overlay).

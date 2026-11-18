@@ -50,6 +50,54 @@ impl Engine {
     pub(crate) fn empty_browser(&self) -> Option<Browser> {
         (self.lock().win.frame.as_ref()).and_then(|f| f.empty.as_ref()?.browser())
     }
+
+    /// Tell the empty page where the pages on screen are (and their docked
+    /// DevTools), so it draws a shadow under each: the pages are windows
+    /// over it and have none of their own. Rectangles are in the content
+    /// panel, whose size goes along: the page can then hold on to the
+    /// panel's edges while the window is resized. A peek and a web panel
+    /// over the pages are left out; they lie on pages, not on the frame.
+    pub(crate) fn update_page_shadows(&self) {
+        let Some(frame) = self.empty_browser().and_then(|b| b.main_frame()) else {
+            return;
+        };
+        // Its own statement: it locks too.
+        let panel = self.content_panel_in_screen();
+        let windows: Vec<Window> = {
+            let inner = self.lock();
+            let win = &inner.win;
+            let mut ids = match win.split.as_ref() {
+                Some(t) if t.pane_count() > 1 => t.ids(),
+                _ => win.shown.into_iter().collect(),
+            };
+            if crate::content::WEB_PANEL_DOCKED {
+                ids.extend(win.web_panel);
+            }
+            ids.iter()
+                .flat_map(|id| {
+                    let page = inner.contents.get(id).and_then(|c| c.window.clone());
+                    let tools = (inner.docked.get(id))
+                        .filter(|d| d.shown && !d.separate)
+                        .and_then(|d| d.window.clone());
+                    [page, tools]
+                })
+                .flatten()
+                .collect()
+        };
+        let cards: Vec<[i32; 4]> = windows
+            .iter()
+            .map(|w| {
+                let b = w.bounds();
+                [b.x - panel.x, b.y - panel.y, b.width, b.height]
+            })
+            .collect();
+        let at =
+            serde_json::json!({ "width": panel.width, "height": panel.height, "cards": cards });
+        self.eval_in_ui(
+            &frame,
+            &format!("window.__magnetite && window.__magnetite.pageCards({at})"),
+        );
+    }
 }
 
 wrap_browser_view_delegate! {

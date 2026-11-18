@@ -55,6 +55,9 @@ is chosen at first), and the settings below it change that space.
   effect is drawn once across the whole window: the sidebar, the frame
   around the pages, the gaps of a split and the top bar each show their
   part of it, with no edge between them. A picture stays in the sidebar.
+  Each page casts a soft shadow on the frame around it; the brighter the
+  frame, the more of it shows, so on a space without tint or effect it is
+  hardly there.
 - **Empty window**: a picture of your own behind the window while no tab of
   the space is on screen, in place of the logo.
 

@@ -794,15 +794,14 @@ fn visible_corner(view: &objc2_app_kit::NSView, own: f64) -> f64 {
 
 /// Outline the page window whose content view is `handle` in `argb` (the
 /// focused page of a split), or remove the outline (`None`). The outline is
-/// its own layer on top of the page, inset by a point and concentric with the
-/// corner the page really shows (`visible_corner`), so nothing clips it and
-/// the curve matches the page's.
+/// its own layer on top of the page, along its very edge and with the corner
+/// the page really shows (`visible_corner`): no rim of the page shows outside
+/// it, and the curve matches the page's.
 pub fn set_focus_ring(handle: cef::sys::cef_window_handle_t, argb: Option<u32>) {
     use objc2_app_kit::NSView;
     use objc2_foundation::{NSArray, NSString};
     const NAME: &str = "magnetite-focus-ring";
     const WIDTH: f64 = 2.0;
-    const INSET: f64 = 1.0;
     if handle.is_null() {
         return;
     }
@@ -844,16 +843,8 @@ pub fn set_focus_ring(handle: cef::sys::cef_window_handle_t, argb: Option<u32>) 
         });
         let bounds: objc2_foundation::NSRect = msg_send![&*host, bounds];
         let radius: f64 = msg_send![&*host, cornerRadius];
-        let frame = objc2_foundation::NSRect::new(
-            objc2_foundation::NSPoint::new(bounds.origin.x + INSET, bounds.origin.y + INSET),
-            objc2_foundation::NSSize::new(
-                bounds.size.width - 2.0 * INSET,
-                bounds.size.height - 2.0 * INSET,
-            ),
-        );
-        let _: () = msg_send![&*ring, setFrame: frame];
-        let _: () =
-            msg_send![&*ring, setCornerRadius: (visible_corner(view, radius) - INSET).max(0.0)];
+        let _: () = msg_send![&*ring, setFrame: bounds];
+        let _: () = msg_send![&*ring, setCornerRadius: visible_corner(view, radius)];
         // Crisp on every screen: the layer draws at the window's pixel density.
         let scale = view.window().map_or(1.0, |w| w.backingScaleFactor());
         let _: () = msg_send![&*ring, setContentsScale: scale];

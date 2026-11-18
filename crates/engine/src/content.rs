@@ -768,6 +768,8 @@ impl Engine {
                 }
             });
         }
+        // Its shadow goes with it.
+        self.update_page_shadows();
         // The tabs this page shared are no longer shared.
         self.emit_shares(shares);
         crate::devtools::page_closed(id);

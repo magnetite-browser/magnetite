@@ -814,6 +814,8 @@ declare global {
       swipeBegan: () => void;
       /** The window this page is in has this size now, in window points. */
       windowSize: (width: number, height: number) => void;
+      /** The empty page: where the pages over it are now. */
+      pageCards: (at: PageCards) => void;
     };
   }
 }
@@ -964,6 +966,7 @@ const notices = signal<string>();
 const captures = signal<CaptureEvent>();
 const swipes = signal();
 const records = signal();
+const pageCards = cached<PageCards>();
 
 /**
  * Keep the window's size where the styles read it (`--win-w`, `--win-h`):
@@ -996,10 +999,23 @@ window.__magnetite = {
   recordingReady: ({ name }) => captures.emit({ kind: "recorded", name }),
   swipeBegan: swipes.emit,
   windowSize,
+  pageCards: pageCards.emit,
 };
 // Until the app's first word: a page's outer size is its window's.
 windowSize(window.outerWidth, window.outerHeight);
 
+/**
+ * Where the pages lie over the empty page, in window points: the size of the
+ * page area they were laid out in, and each page's (and docked DevTools')
+ * `[x, y, width, height]` in it.
+ */
+export interface PageCards {
+  width: number;
+  height: number;
+  cards: [x: number, y: number, width: number, height: number][];
+}
+/** The empty page: the pages over it, now and whenever they move. */
+export const onPageCards = pageCards.on;
 /** The UI state, now (once the app sent it) and on every push. */
 export const subscribe = states.on;
 /** A recording is asked for (the sidebar, the top bar and the developer bar listen). */

@@ -342,7 +342,7 @@ impl Engine {
     }
 
     /// `content_panel_in_window` in screen coordinates.
-    fn content_panel_in_screen(&self) -> Rect {
+    pub(crate) fn content_panel_in_screen(&self) -> Rect {
         let client = (self.frame_window())
             .map(|w| w.bounds())
             .unwrap_or_default();

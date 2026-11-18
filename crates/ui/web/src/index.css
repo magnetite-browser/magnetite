@@ -578,6 +578,11 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
 
 /* The docked sidebar's right edge: drag to resize. */
 .sidebar-resizer { position: fixed; top: 0; right: 0; bottom: 0; width: 6px; z-index: 60; cursor: col-resize; }
+/* The shadows under the pages (Empty.tsx): one box per page. One wide
+   blur and no outline: the plain dark frame hardly shows them,
+   a space with a brighter look (tint, an effect) does. */
+.page-shadows { position: fixed; inset: 0; pointer-events: none; }
+.page-shadows > div { position: absolute; box-shadow: 0 2px 10px 1px rgb(0 0 0 / 0.3); }
 /* The gap beside a docked web panel (outside macOS): drag to resize it. */
 .panel-resizer { position: fixed; z-index: 60; cursor: col-resize; border-radius: 3px; }
 .panel-resizer:hover, .panel-resizer:active { background: var(--space-soft, rgba(255,255,255,0.08)); }
