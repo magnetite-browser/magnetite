@@ -392,7 +392,9 @@ fn teach_windows_parts() {
         if whole_of(this).is_some() {
             return part_role();
         }
-        let (original, _) = WINDOW_ACCESSIBILITY.get().expect("set before the methods");
+        let (original, _) = WINDOW_ACCESSIBILITY
+            .get()
+            .expect("kept before the replacements are installed");
         // SAFETY: AppKit's method, called as AppKit would.
         unsafe { original(this, cmd) }
     }
@@ -400,37 +402,44 @@ fn teach_windows_parts() {
         if let Some(whole) = whole_of(this) {
             return Retained::autorelease_ptr(whole).cast();
         }
-        let (_, original) = WINDOW_ACCESSIBILITY.get().expect("set before the methods");
+        let (_, original) = WINDOW_ACCESSIBILITY
+            .get()
+            .expect("kept before the replacements are installed");
         // SAFETY: AppKit's method, called as AppKit would.
         unsafe { original(this, cmd) }
     }
 
+    static INSTALLED: std::sync::Once = std::sync::Once::new();
+    let class = NSWindow::class();
+    let (role_sel, parent_sel) = (sel!(accessibilityRole), sel!(accessibilityParent));
+    // AppKit's answers are kept before either replacement is in place: a
+    // replacement may be called the moment it is.
     WINDOW_ACCESSIBILITY.get_or_init(|| {
-        let class = NSWindow::class();
         let implementation = |sel: Sel| {
             class
                 .instance_method(sel)
                 .expect("NSWindow answers the accessibility protocol")
                 .implementation()
         };
-        let (role_sel, parent_sel) = (sel!(accessibilityRole), sel!(accessibilityParent));
-        // SAFETY: the originals have the types of the two getters; the
-        // replacements have the same, and are installed on `NSWindow` itself
-        // even where it only inherits the method.
+        // SAFETY: these are the implementations of the two getters.
         unsafe {
-            let originals = (
+            (
                 std::mem::transmute::<Imp, RoleImp>(implementation(role_sel)),
                 std::mem::transmute::<Imp, ParentImp>(implementation(parent_sel)),
-            );
-            let class = std::ptr::from_ref(class).cast_mut();
-            for (sel, imp) in [
-                (role_sel, std::mem::transmute::<RoleImp, Imp>(role)),
-                (parent_sel, std::mem::transmute::<ParentImp, Imp>(parent)),
-            ] {
-                let types = method_getTypeEncoding(class_getInstanceMethod(class, sel));
-                class_replaceMethod(class, sel, imp, types);
-            }
-            originals
+            )
+        }
+    });
+    // SAFETY: the replacements have the types of the getters they replace,
+    // and are installed on `NSWindow` itself even where it only inherits
+    // the method.
+    INSTALLED.call_once(|| unsafe {
+        let class = std::ptr::from_ref(class).cast_mut();
+        for (sel, imp) in [
+            (role_sel, std::mem::transmute::<RoleImp, Imp>(role)),
+            (parent_sel, std::mem::transmute::<ParentImp, Imp>(parent)),
+        ] {
+            let types = method_getTypeEncoding(class_getInstanceMethod(class, sel));
+            class_replaceMethod(class, sel, imp, types);
         }
     });
 }
