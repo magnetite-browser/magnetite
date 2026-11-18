@@ -5,7 +5,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import icon from "./assets/icon.png";
 import { userImageUrl, windowBackground } from "./backgrounds";
-import { IS_MAC, applyAppearance, findTab, lookOf, pageZoom, send, subscribe, type UiState } from "./bridge";
+import { IS_MAC, applyAppearance, findTab, lookOf, send, subscribe, type UiState } from "./bridge";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
 export function Empty() {
@@ -27,7 +27,7 @@ export function Empty() {
   const frame = windowBackground("frame", state.chrome, state.active_space, look, space?.accent);
   // Outside macOS a web panel sits beside the pages: the gap between them is this page's.
   const panel = !IS_MAC && state.web_panel ? findTab(state, state.web_panel) : null;
-  const grip = panel && <PanelResizer key={panel.id} width={panel.panel_width} />;
+  const grip = panel && <PanelResizer key={panel.id} width={panel.panel_width} zoom={appearance.text_scale / 100} />;
   // Pages lie over this one: only the gaps around them show.
   if (state.panes.length > 0 || state.peek) return <div className="h-full" style={frame}>{grip}</div>;
   const stamp = look.empty_image;
@@ -53,9 +53,11 @@ const PANEL = { usual: 420, min: 280, rest: 80 };
 /**
  * The gap between a docked web panel, `width` points wide (the usual width
  * without one), and the pages: drag to change the panel's width (the pages
- * follow live), release to keep it, double-click for the usual width.
+ * follow live), release to keep it, double-click for the usual width. The gap
+ * is laid out in window points; lengths on this page grow by `zoom`, its text
+ * size.
  */
-function PanelResizer({ width }: { width?: number }) {
+function PanelResizer({ width, zoom }: { width?: number; zoom: number }) {
   const [area, setArea] = useState(window.innerWidth);
   useEffect(() => {
     const measure = () => setArea(window.innerWidth);
@@ -65,16 +67,22 @@ function PanelResizer({ width }: { width?: number }) {
   // While dragging, the width the pointer asks for; the app answers a release with the kept one.
   const [dragged, setDragged] = useState<number | null>(null);
   useEffect(() => setDragged(null), [width]);
+  // Whether the pointer moved since it went down: a click changes nothing.
+  const moved = useRef(false);
   const frame = useRef(0);
   // A resize still waiting when the panel goes would change the next one.
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
   const latest = useRef(0);
   const apply = (done: boolean) => send({ cmd: "web_panel_width", width: latest.current, done });
+  // A width within the panel's bounds, as the app keeps it.
+  const within = (w: number) => Math.max(1, Math.min(Math.max(w, PANEL.min), area - 2 * INSET - PANEL.rest));
   // The pointer stays in the middle of the gap.
-  const wanted = (x: number) => Math.max(0, Math.round(x - INSET - GAP / 2));
-  const shown = Math.max(1, Math.min(Math.max(dragged ?? width ?? PANEL.usual, PANEL.min), area - 2 * INSET - PANEL.rest));
-  // The gap is laid out in window points; lengths on this page grow with the text size.
-  const zoom = pageZoom();
+  const wanted = (x: number) => within(Math.round(x - INSET - GAP / 2));
+  const shown = within(dragged ?? width ?? PANEL.usual);
+  const stop = () => {
+    cancelAnimationFrame(frame.current);
+    frame.current = 0;
+  };
   return (
     <div
       className="panel-resizer"
@@ -86,9 +94,11 @@ function PanelResizer({ width }: { width?: number }) {
       onPointerDown={(e) => {
         e.preventDefault();
         e.currentTarget.setPointerCapture(e.pointerId);
+        moved.current = false;
       }}
       onPointerMove={(e) => {
         if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+        moved.current = true;
         latest.current = wanted(e.clientX);
         setDragged(latest.current);
         // One resize per frame: each one re-lays out the pages.
@@ -97,12 +107,18 @@ function PanelResizer({ width }: { width?: number }) {
       onPointerUp={(e) => {
         if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
         e.currentTarget.releasePointerCapture(e.pointerId);
-        cancelAnimationFrame(frame.current);
-        frame.current = 0;
-        // A click without a drag changes nothing.
-        if (dragged === null) return;
+        stop();
+        if (!moved.current) return;
         latest.current = wanted(e.clientX);
         apply(true);
+      }}
+      onPointerCancel={() => {
+        stop();
+        if (!moved.current) return;
+        // The drag did not end: the width from before it, and nothing kept.
+        moved.current = false;
+        setDragged(null);
+        send({ cmd: "web_panel_width", width: width ?? null, done: false });
       }}
       onDoubleClick={() => send({ cmd: "web_panel_width", width: null, done: true })}
     />

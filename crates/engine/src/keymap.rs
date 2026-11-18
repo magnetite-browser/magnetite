@@ -503,11 +503,16 @@ impl<'de> Deserialize<'de> for Overrides {
 }
 
 impl Overrides {
-    /// The keys of `action` now: the user's, else the default.
+    /// The keys of `action` now: the user's, else the default. Not default
+    /// keys the user gave to another action: a default that came with a
+    /// later version does not take them back.
     pub fn combo_of(&self, action: Action) -> Option<Combo> {
         match self.0.get(&action) {
             Some(own) => own.map(Combo::here),
-            None => action.default_combo(),
+            None => action.default_combo().filter(|keys| {
+                let taken = |own: &Option<Combo>| own.map(Combo::here) == Some(*keys);
+                !self.0.values().any(taken)
+            }),
         }
     }
 
@@ -671,6 +676,15 @@ mod tests {
         keys.reset(Action::NewTab);
         assert_eq!(keys.action_for(combo("primary+T")), Some(Action::NewTab));
         assert_eq!(keys.combo_of(Action::Find), None);
+    }
+
+    #[test]
+    fn keys_given_to_an_action_are_not_the_default_of_another() {
+        // Saved before the web panel had default keys: `set` would not leave this.
+        let keys = Action::WebPanel.default_combo().unwrap();
+        let saved = Overrides(BTreeMap::from([(Action::SitePanel, Some(keys))]));
+        assert_eq!(saved.action_for(keys), Some(Action::SitePanel));
+        assert_eq!(saved.combo_of(Action::WebPanel), None);
     }
 
     #[test]

@@ -525,11 +525,16 @@ impl Engine {
             before.filter(|b| *b != id)
         };
         // The panel shown until now goes once this one is over it (at the
-        // end): the page area never shows through between the two.
+        // end): the page area does not show through between the two, unless
+        // this one has no window yet.
         let hide_before = || {
-            if let Some(before) = before {
-                self.hide_here(before);
+            let Some(before) = before else { return };
+            // As a page again it has no shadow.
+            #[cfg(target_os = "macos")]
+            if let Some((window, _)) = self.content_handles(before) {
+                crate::mac::round_window_corners(window.window_handle(), 10.0, false);
             }
+            self.hide_here(before);
         };
         let Some((window, view)) = self.content_handles(id) else {
             hide_before();
