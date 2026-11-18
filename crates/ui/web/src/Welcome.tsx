@@ -65,6 +65,12 @@ export function Welcome() {
   const [syncedBefore, setSyncedBefore] = useState(false);
   // A start or join of sync the app has not answered yet (see `SyncSection`).
   const [syncJob, setSyncJob] = useState<SyncJob | null>(null);
+  // The last one asked for: a device that syncs after "join" took a chain's sidebar.
+  const [lastSyncJob, setLastSyncJob] = useState<SyncJob | null>(null);
+  const setJob = useCallback((job: SyncJob | null) => {
+    if (job) setLastSyncJob(job);
+    setSyncJob(job);
+  }, []);
   const reload = useCallback(
     () =>
       send({ cmd: "get_settings" }).then((fresh) => {
@@ -114,8 +120,9 @@ export function Welcome() {
 
   const syncing = info.settings.sync.enabled && info.sync_signed_in;
   // A device that joined takes the chain's sidebar, tab times and place for
-  // links: nothing to import, and nothing to ask about them.
-  const joined = joining && syncing && !syncedBefore;
+  // links: nothing to import, and nothing to ask about them. It stays so
+  // if "I am new here" is chosen after the join.
+  const joined = syncing && !syncedBefore && lastSyncJob === "join";
   const askDefault = info.default_browser === "no";
   const steps: Step[] = [
     "welcome",
@@ -125,7 +132,7 @@ export function Welcome() {
     "look",
     ...(joined ? [] : (["habits"] as const)),
     // A new start can begin a chain of its own, once the rest is answered.
-    ...(joining || syncedBefore ? [] : (["sync"] as const)),
+    ...(joining || joined || syncedBefore ? [] : (["sync"] as const)),
     "done",
   ];
   const at = Math.max(steps.indexOf(step), 0);
@@ -219,20 +226,25 @@ export function Welcome() {
     setApplying(true);
     setProblem(null);
     try {
+      // Against what is set now, not what the page last read: a try before
+      // this one may have set part of it.
+      const set = (await reload()).settings.adblock;
       if (wanted) {
         for (const { id } of offered) {
           const subscribed = wanted.includes(id);
-          if (adblock.lists.includes(id) !== subscribed) await send({ cmd: "set_adblock_list", id, subscribed });
+          if (set.lists.includes(id) !== subscribed) await send({ cmd: "set_adblock_list", id, subscribed });
         }
       }
-      if (adblock.enabled !== (wanted !== null)) await send({ cmd: "set_adblock_enabled", enabled: wanted !== null });
+      if (set.enabled !== (wanted !== null)) await send({ cmd: "set_adblock_enabled", enabled: wanted !== null });
+      // "Ready" names what is set: no going on without having read it.
+      await reload();
       return true;
     } catch (e: unknown) {
       setProblem(`Ad blocking could not be set: ${e instanceof Error ? e.message : String(e)}`);
+      // Part of it may be set: the step shows what is, if that can be read.
+      await reload().catch(() => undefined);
       return false;
     } finally {
-      // Also after a refusal: part of it may be set, and the next try starts from what is.
-      await reload().catch(() => undefined);
       setApplying(false);
     }
   };
@@ -346,7 +358,7 @@ export function Welcome() {
                   ? "Your spaces, pinned tabs and favorites arrive from the chain, and with them when tabs are tidied up, where links open and your shortcuts. There is nothing to import."
                   : "Enter the 24 words that Settings → Sync shows on a device that syncs already. This device then takes the sidebar of the others, encrypted all the way; the server never sees what is in it."}
               </Heading>
-              <SyncSection info={info} reload={reload} job={syncJob} setJob={setSyncJob} spaces={false} only="join" />
+              <SyncSection info={info} reload={reload} job={syncJob} setJob={setJob} spaces={false} only="join" />
             </>
           )}
 
@@ -357,7 +369,7 @@ export function Welcome() {
                   ? "Enter the 24 words below on your other devices, under Settings → Sync or on their welcome page. They take the sidebar of this one."
                   : "Optional. With sync, your spaces, pinned tabs and favorites are the same on all your computers, encrypted before they leave this one. No account. It can wait: Settings → Sync has the same."}
               </Heading>
-              <SyncSection info={info} reload={reload} job={syncJob} setJob={setSyncJob} spaces={false} only="create" />
+              <SyncSection info={info} reload={reload} job={syncJob} setJob={setJob} spaces={false} only="create" />
             </>
           )}
 
@@ -515,7 +527,8 @@ export function Welcome() {
                   })}
                 </div>
               </section>
-              <section className="set-card">
+              {/* While "Continue" sets an answer, it is the answer: no other one until the app is done. */}
+              <section className="set-card" inert={applying} aria-busy={applying}>
                 <div className="flex items-center gap-2 set-label"><AdblockIcon size={15} /> Ads and trackers</div>
                 <p className="set-hint">
                   Websites load ads and trackers from known addresses. A filter list names those addresses, and Magnetite
