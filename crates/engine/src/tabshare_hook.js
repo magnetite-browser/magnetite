@@ -42,8 +42,18 @@
   const setSize = native(Object.getOwnPropertyDescriptor(Set.prototype, "size").get);
   const weakAdd = native(WeakSet.prototype.add);
   const weakHas = native(WeakSet.prototype.has);
-  // Our handles; the browser checks the whole form again.
-  const isOurs = (text) => typeof text === "string" && text.length === 46 && startsWith(text, "magnetite-tab-");
+  const charCode = native(String.prototype.charCodeAt);
+  // Our handles: the prefix and 32 hex digits, as the browser checks them
+  // again (`is_handle`). Other pages' handles must not take up a report.
+  const isOurs = (text) => {
+    if (typeof text !== "string" || text.length !== 46 || !startsWith(text, "magnetite-tab-")) return false;
+    for (let i = 14; i < 46; i++) {
+      const c = charCode(text, i);
+      // 0-9 or a-f
+      if (!((c >= 48 && c <= 57) || (c >= 97 && c <= 102))) return false;
+    }
+    return true;
+  };
   // Most tabs one report names; the browser takes no more (`MAX_CAPTURES`).
   const MAX_CAPTURES = 16;
 
