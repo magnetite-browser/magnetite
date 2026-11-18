@@ -20,6 +20,9 @@
   const stop = clearInterval.bind(window);
   const prototypeOf = Object.getPrototypeOf;
   const hasOwn = Function.prototype.call.bind(Object.prototype.hasOwnProperty);
+  const contains = Function.prototype.call.bind(String.prototype.includes);
+  // Most tabs one report names; the browser takes no more (`MAX_CAPTURES`).
+  const MAX_CAPTURES = 16;
 
   if (handle) {
     try {
@@ -33,22 +36,27 @@
   const tracks = new Set();
   let timer = 0;
   let last = "";
+  // The report is put together as text, without array methods the page
+  // could have replaced.
   function push() {
-    const found = [];
+    let text = "";
+    let count = 0;
     for (const track of tracks) {
       if (track.readyState === "ended") {
         tracks.delete(track);
         continue;
       }
       const captured = track.getCaptureHandle && track.getCaptureHandle();
-      const text = captured && captured.handle;
-      if (typeof text === "string" && isOurs(text) && !found.includes(text)) found.push(text);
+      const handle = captured && captured.handle;
+      if (typeof handle === "string" && isOurs(handle) && count < MAX_CAPTURES && !contains(text, handle)) {
+        text += (count ? "," : "") + handle;
+        count += 1;
+      }
     }
     if (!tracks.size && timer) {
       stop(timer);
       timer = 0;
     }
-    const text = found.join(",");
     if (text !== last) {
       last = text;
       report("captures", text);

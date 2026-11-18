@@ -398,7 +398,7 @@ const TabRowInner = memo(
             </button>
           )}
           {rt?.shared && (
-            <span className="shared" title="This tab is being shared" aria-label="Being shared">
+            <span className="shared" title="This tab is being shared" role="img" aria-label="Being shared">
               <ScreenShareIcon width={13} height={13} />
             </span>
           )}
@@ -862,7 +862,7 @@ function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
       <Favicon url={tab.url} src={rt?.favicon} loading={rt?.loading} />
       <span className="title">{tab.title || hostOf(tab.url)}</span>
       {!ghost && rt?.shared && (
-        <span className="shared" title="This tab is being shared" aria-label="Being shared">
+        <span className="shared" title="This tab is being shared" role="img" aria-label="Being shared">
           <ScreenShareIcon width={13} height={13} />
         </span>
       )}
