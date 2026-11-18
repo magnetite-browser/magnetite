@@ -78,6 +78,7 @@ impl Engine {
             }
         }
         self.web_panel_above_dividers();
+        self.sync_panel_close();
     }
 
     /// JPEG screenshot of page `id` as a data URL (drop-zone overlay).

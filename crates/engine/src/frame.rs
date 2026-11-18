@@ -218,9 +218,9 @@ impl Engine {
         }
     }
 
-    /// What the page behind the tabs shows around a docked web panel, in
-    /// the window (`Empty.tsx`): the bar before it, with the button that
-    /// collapses it, and the gap beyond it, the grip to resize it.
+    /// What the page behind the tabs shows beside a docked web panel, in
+    /// the window (`Empty.tsx`): the gap beyond it, the grip to resize it,
+    /// and the button to close it, in reach while no page lies over it.
     fn docked_controls_in_window(&self) -> Option<[Rect; 2]> {
         let width = {
             let inner = self.lock();
@@ -232,18 +232,19 @@ impl Engine {
         };
         let area = Self::inset(&self.content_panel_in_window());
         let panel = crate::content::web_panel_rect(&area, width);
-        let content = self.content_panel_in_window();
-        let bar = Rect {
-            x: content.x,
-            width: panel.x - content.x,
-            ..panel.clone()
-        };
         let grip = Rect {
             x: panel.x + panel.width,
             width: crate::content::SPLIT_GAP,
-            ..panel
+            ..panel.clone()
         };
-        Some([bar, grip])
+        let side = i32::from(crate::panel_close::SIZE);
+        let button = Rect {
+            x: grip.x + grip.width + crate::panel_close::MARGIN,
+            y: panel.y + crate::panel_close::MARGIN,
+            width: side,
+            height: side,
+        };
+        Some([grip, button])
     }
 
     /// A docked web panel opened, closed or changed its width: the pages
@@ -256,9 +257,9 @@ impl Engine {
     /// Draggable areas of the frame: the top bar's and the sidebar page's
     /// `app-region: drag` zones plus the whole content panel. Pages sit in
     /// child windows above the panel, so only the gaps around them (top
-    /// edge, sides, split gutters) end up moving the window. Not the bar
-    /// and the gap beside a docked web panel: a click in the bar collapses
-    /// the panel, a drag in the gap resizes it.
+    /// edge, sides, split gutters) end up moving the window. Not the gap
+    /// and the button beside a docked web panel: a drag in the gap resizes
+    /// the panel, a click on the button closes it.
     pub(crate) fn apply_drag_regions(&self) {
         let (window, sidebar, top_bar) = {
             let inner = self.lock();
@@ -669,6 +670,7 @@ impl Engine {
             // follow.
             self.show_dividers();
         }
+        self.sync_panel_close();
         self.update_grab_strip();
         self.place_notifications();
     }

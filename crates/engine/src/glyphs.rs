@@ -44,13 +44,26 @@ impl Glyph {
     }
 
     /// The icon `size` pixels wide and high in `argb`, as BGRA pixels with
-    /// premultiplied alpha.
+    /// premultiplied alpha. With a `disc` colour the icon lies, smaller and
+    /// thinner, on a filled circle as wide as the picture.
     // The casts are of values kept between 0 and 255.
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    fn pixels(self, size: u16, argb: u32) -> Vec<u8> {
+    fn pixels(self, size: u16, argb: u32, disc: Option<u32>) -> Vec<u8> {
         let scale = f32::from(size) / 24.0;
-        let lines = self.lines();
-        let [alpha, red, green, blue] = argb.to_be_bytes();
+        // On a disc the strokes shrink towards the middle.
+        let (shrink, half) = if disc.is_some() {
+            (0.56, 0.7)
+        } else {
+            (1.0, 1.0)
+        };
+        let lines: Vec<Vec<Point>> = (self.lines().into_iter())
+            .map(|line| {
+                let towards = |n: f32| 12.0 + (n - 12.0) * shrink;
+                line.into_iter()
+                    .map(|(x, y)| (towards(x), towards(y)))
+                    .collect()
+            })
+            .collect();
         let mut out = Vec::with_capacity(usize::from(size).pow(2) * 4);
         for row in 0..size {
             for column in 0..size {
@@ -63,16 +76,21 @@ impl Glyph {
                     .flat_map(|line| line.windows(2))
                     .map(|ends| distance(point, ends[0], ends[1]))
                     .fold(f32::MAX, f32::min);
-                // One unit to the stroke's edge, softened over a pixel.
-                let cover = ((1.0 - near) * scale + 0.5).clamp(0.0, 1.0);
-                let opacity = cover * f32::from(alpha) / 255.0;
-                let channel = |c: u8| (f32::from(c) * opacity).round() as u8;
-                out.extend([
-                    channel(blue),
-                    channel(green),
-                    channel(red),
-                    (opacity * 255.0).round() as u8,
-                ]);
+                // To the stroke's edge, softened over a pixel; the disc
+                // reaches the picture's edge.
+                let stroke = ((half - near) * scale + 0.5).clamp(0.0, 1.0);
+                let middle = distance(point, (12.0, 12.0), (12.0, 12.0));
+                let round = ((12.0 - middle) * scale + 0.5).clamp(0.0, 1.0);
+                // B, G, R, A of a colour covering that much of the pixel.
+                let ink = |argb: u32, cover: f32| {
+                    let [alpha, red, green, blue] = argb.to_be_bytes();
+                    let opacity = cover * f32::from(alpha) / 255.0;
+                    [blue, green, red, 255].map(|c| f32::from(c) * opacity)
+                };
+                let over = ink(argb, stroke);
+                let under = disc.map_or([0.0; 4], |d| ink(d, round));
+                let rest = 1.0 - over[3] / 255.0;
+                out.extend((0..4).map(|c| (over[c] + under[c] * rest).round() as u8));
             }
         }
         out
@@ -81,6 +99,15 @@ impl Glyph {
     /// The icon as a CEF image `dip` points wide, for plain and sharp
     /// (2x) screens.
     pub(crate) fn image(self, dip: u16, argb: u32) -> Option<Image> {
+        self.drawn(dip, argb, None)
+    }
+
+    /// The icon in `argb` on a filled circle in `disc`, `dip` points wide.
+    pub(crate) fn image_on_disc(self, dip: u16, argb: u32, disc: u32) -> Option<Image> {
+        self.drawn(dip, argb, Some(disc))
+    }
+
+    fn drawn(self, dip: u16, argb: u32, disc: Option<u32>) -> Option<Image> {
         let image = image_create()?;
         for factor in [1_u16, 2] {
             let pixels = dip * factor;
@@ -90,7 +117,7 @@ impl Glyph {
                 i32::from(pixels),
                 ColorType::BGRA_8888,
                 AlphaType::PREMULTIPLIED,
-                Some(&self.pixels(pixels, argb)),
+                Some(&self.pixels(pixels, argb, disc)),
             );
         }
         Some(image)
@@ -121,7 +148,7 @@ mod tests {
 
     #[test]
     fn an_icon_is_a_thin_line_in_the_asked_colour_on_nothing() {
-        let cross = Glyph::Close.pixels(32, 0xFF80_4020);
+        let cross = Glyph::Close.pixels(32, 0xFF80_4020, None);
         assert_eq!(cross.len(), SIZE * SIZE * 4);
         // The cross goes through the middle, in B, G, R, A.
         assert_eq!(pixel(&cross, 16, 16), [0x20, 0x40, 0x80, 0xFF]);
@@ -132,8 +159,8 @@ mod tests {
         let inked = cross.chunks(4).filter(|p| p[3] > 0).count();
         assert!(inked * 5 < SIZE * SIZE, "{inked} pixels inked");
         // Back and Forward mirror each other.
-        let back = Glyph::Back.pixels(32, !0);
-        let forward = Glyph::Forward.pixels(32, !0);
+        let back = Glyph::Back.pixels(32, !0, None);
+        let forward = Glyph::Forward.pixels(32, !0, None);
         for y in 0..SIZE {
             for x in 0..SIZE {
                 assert_eq!(pixel(&back, x, y), pixel(&forward, SIZE - 1 - x, y));

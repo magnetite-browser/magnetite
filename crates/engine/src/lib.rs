@@ -50,6 +50,7 @@ mod menubar;
 mod mini;
 mod notifications;
 mod overlay;
+mod panel_close;
 #[cfg(target_os = "macos")]
 mod pip;
 mod prompts;

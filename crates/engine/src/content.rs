@@ -742,6 +742,8 @@ impl Engine {
                     w.web_panel = None;
                     panel_of = Some(home);
                 }
+                // Its window took the close button over it along.
+                w.panel_close.take_if(|(host, _)| *host == id);
                 if w.focused_pane == Some(id) {
                     w.focused_pane = None;
                 }
@@ -900,6 +902,11 @@ impl Engine {
             window.activate();
             view.request_focus();
         }
+    }
+
+    /// The window page `id` is in, once it has one.
+    pub(crate) fn page_window(&self, id: ContentId) -> Option<Window> {
+        self.lock().contents.get(&id)?.window.clone()
     }
 
     fn content_handles(&self, id: ContentId) -> Option<(Window, BrowserView)> {
@@ -1210,31 +1217,24 @@ pub(crate) fn web_panel_grip(panel: &Rect) -> Rect {
 /// would end up behind it.
 pub(crate) const WEB_PANEL_DOCKED: bool = !cfg!(target_os = "macos");
 
-/// Width of the bar between the sidebar and a docked web panel, with the
-/// button that collapses the panel (`Empty.tsx`, `PanelBar`). A floating
-/// panel has its close button beside it (`mac::set_panel_close`) and no
-/// bar.
-pub(crate) const WEB_PANEL_BAR: i32 = if WEB_PANEL_DOCKED { 20 } else { 0 };
-
 /// A web panel's place: the full height of the content area, at the edge
-/// the sidebar is on beyond its bar, `width` points wide (none: the usual
-/// width) as far as the area has the room.
+/// the sidebar is on, `width` points wide (none: the usual width) as far
+/// as the area has the room.
 pub(crate) fn web_panel_rect(area: &Rect, width: Option<u32>) -> Rect {
     let width = width.map_or(WEB_PANEL_WIDTH, |w| i32::try_from(w).unwrap_or(i32::MAX));
     Rect {
-        x: area.x + WEB_PANEL_BAR,
         width: (width.max(WEB_PANEL_MIN))
-            .min(area.width - WEB_PANEL_BAR - WEB_PANEL_REST)
+            .min(area.width - WEB_PANEL_REST)
             .max(1),
         ..area.clone()
     }
 }
 
 /// What a docked web panel, `width` points wide (none: the usual width),
-/// leaves of `area` for the pages: the rest beyond its bar, the panel and
-/// a gap, where the grip to resize it is (`Empty.tsx`).
+/// leaves of `area` for the pages: the rest beyond the panel and a gap,
+/// where the grip to resize it is (`Empty.tsx`).
 pub(crate) fn beside_web_panel(area: &Rect, width: Option<u32>) -> Rect {
-    let taken = WEB_PANEL_BAR + web_panel_rect(area, width).width + SPLIT_GAP;
+    let taken = web_panel_rect(area, width).width + SPLIT_GAP;
     Rect {
         x: area.x + taken,
         width: (area.width - taken).max(1),
@@ -1393,12 +1393,9 @@ mod tests {
         // Not narrower than a page can be used at, …
         assert_eq!(width(1000, Some(10)), WEB_PANEL_MIN);
         // … and some of the page behind stays in sight.
-        assert_eq!(
-            width(1000, Some(5000)),
-            1000 - WEB_PANEL_BAR - WEB_PANEL_REST
-        );
-        assert_eq!(width(300, None), 300 - WEB_PANEL_BAR - WEB_PANEL_REST);
-        assert_eq!(web_panel_rect(&area(1000), None).x, 200 + WEB_PANEL_BAR);
+        assert_eq!(width(1000, Some(5000)), 1000 - WEB_PANEL_REST);
+        assert_eq!(width(300, None), 300 - WEB_PANEL_REST);
+        assert_eq!(web_panel_rect(&area(1000), None).x, 200);
     }
 
     #[test]
@@ -1412,10 +1409,7 @@ mod tests {
         let rest = beside_web_panel(&area, Some(500));
         assert_eq!(
             (rest.x, rest.width),
-            (
-                200 + WEB_PANEL_BAR + 500 + SPLIT_GAP,
-                500 - WEB_PANEL_BAR - SPLIT_GAP
-            )
+            (200 + 500 + SPLIT_GAP, 500 - SPLIT_GAP)
         );
         assert_eq!((rest.y, rest.height), (10, 800));
     }

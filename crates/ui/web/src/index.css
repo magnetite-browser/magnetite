@@ -575,10 +575,10 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
 /* The gap beside a docked web panel (outside macOS): drag to resize it. */
 .panel-resizer { position: fixed; z-index: 60; cursor: col-resize; border-radius: 3px; }
 .panel-resizer:hover, .panel-resizer:active { background: var(--space-soft, rgba(255,255,255,0.08)); }
-/* The bar before a docked web panel, lighter than the frame around it,
-   with a double arrow in its middle: a click collapses the panel. */
-.panel-collapse { position: fixed; z-index: 60; display: grid; place-items: center; padding: 0; border: 0; border-radius: 8px; background: rgba(255,255,255,0.07); color: var(--muted); cursor: default; }
-.panel-collapse:hover { background: rgba(255,255,255,0.13); color: var(--fg); }
+/* The round button beside a docked web panel's top corner that closes it,
+   as the pages beside the panel have it (`panel_close.rs`). */
+.panel-close { position: fixed; z-index: 60; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgba(31,31,31,0.94); color: rgba(255,255,255,0.88); cursor: default; }
+.panel-close:hover { background: rgb(60,60,62); }
 .sidebar-resizer:hover, .sidebar-resizer:active { background: linear-gradient(to left, var(--space-soft, rgba(255,255,255,0.08)) 2px, transparent 2px); }
 
 /* The device bar above a page in device mode (DeviceBar.tsx): one row,

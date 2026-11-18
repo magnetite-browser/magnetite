@@ -51,6 +51,9 @@ pub(crate) struct WindowState {
     pub web_panel: Option<ContentId>,
     /// The width asked for the web panel, in points; none: the usual.
     pub web_panel_width: Option<u32>,
+    /// The close button of a docked web panel, and the page whose window
+    /// it is an overlay of (`panel_close.rs`).
+    pub panel_close: Option<(ContentId, OverlayController)>,
     /// The page last shown alone (`show_content`) and not hidden since.
     pub shown: Option<ContentId>,
     /// Last draggable regions reported by the sidebar page (its own
@@ -85,6 +88,7 @@ impl WindowState {
             peek: None,
             web_panel: None,
             web_panel_width: None,
+            panel_close: None,
             shown: None,
             sidebar_drag: Vec::new(),
             top_bar_drag: Vec::new(),
