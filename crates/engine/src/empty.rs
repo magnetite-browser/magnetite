@@ -56,7 +56,9 @@ impl Engine {
     /// over it and have none of their own. Rectangles are in the content
     /// panel, whose size goes along: the page can then hold on to the
     /// panel's edges while the window is resized. A peek and a web panel
-    /// over the pages are left out; they lie on pages, not on the frame.
+    /// over the pages are left out: they lie on pages, not on the frame. A
+    /// docked web panel lies on the frame beside the pages and has a shadow
+    /// like them.
     pub(crate) fn update_page_shadows(&self) {
         let Some(frame) = self.empty_browser().and_then(|b| b.main_frame()) else {
             return;

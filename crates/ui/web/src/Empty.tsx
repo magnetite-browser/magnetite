@@ -64,10 +64,19 @@ const PAGE_RADIUS = IS_MAC ? 10 : 0;
 const SHADOW_INSET = 2;
 
 /**
- * A shadow under each page, where the app laid the pages out (`at`). Each one
- * holds on to the edges of the page area rather than to its size: while the
- * window is resized it follows before the app's next word. Laid out in window
- * points, so the page's text size (`zoom`) is taken out again.
+ * Where a shadow's edge goes that is `gap` points from its side of a page
+ * area `size` points long. An edge at the frame's inset stays that far from
+ * the side; one inside the area (a split's gap, beside docked DevTools) keeps
+ * its share of the area. So while the window is resized the shadows stay
+ * about where the pages go, before the app's next word puts them right.
+ */
+const shadowEdge = (gap: number, size: number) =>
+  gap <= INSET ? gap + SHADOW_INSET : `calc(${(gap / size) * 100}% + ${SHADOW_INSET}px)`;
+
+/**
+ * A shadow under each page, where the app laid the pages out (`at`), with
+ * its edges held as `shadowEdge` says. Laid out in window points, so the
+ * page's text size (`zoom`) is taken out again.
  */
 function PageShadows({ at, zoom }: { at: PageCards; zoom: number }) {
   return (
@@ -76,10 +85,10 @@ function PageShadows({ at, zoom }: { at: PageCards; zoom: number }) {
         <div
           key={i}
           style={{
-            left: x + SHADOW_INSET,
-            top: y + SHADOW_INSET,
-            right: at.width - x - width + SHADOW_INSET,
-            bottom: at.height - y - height + SHADOW_INSET,
+            left: shadowEdge(x, at.width),
+            top: shadowEdge(y, at.height),
+            right: shadowEdge(at.width - x - width, at.width),
+            bottom: shadowEdge(at.height - y - height, at.height),
             borderRadius: Math.max(PAGE_RADIUS - SHADOW_INSET, 0),
           }}
         />
