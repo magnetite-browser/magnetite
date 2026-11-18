@@ -14,7 +14,6 @@
 //! (authentic) ciphertext.
 
 use std::collections::HashMap;
-use std::io::Read as _;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex};
@@ -552,19 +551,19 @@ impl Worker {
         };
         let mut res = result.map_err(|e| format!("cannot reach the sync server: {e}"))?;
         let status = res.status().as_u16();
-        // ureq's own limit counts the bytes on the wire; a compressed answer
-        // can unpack to far more. Count what comes out of the decoder.
-        let mut body = Vec::new();
-        res.body_mut()
+        // ureq applies the limit to the decoded body (since 3.5.2), so a
+        // compressed answer counts unpacked.
+        let body = res
+            .body_mut()
             .with_config()
             .limit(MAX_REPLY)
-            .reader()
-            .take(MAX_REPLY + 1)
-            .read_to_end(&mut body)
-            .map_err(|e| e.to_string())?;
-        if body.len() as u64 > MAX_REPLY {
-            return Err("the sync server sent more data than a collection can hold".into());
-        }
+            .read_to_vec()
+            .map_err(|e| match e {
+                ureq::Error::BodyExceedsLimit(_) => {
+                    "the sync server sent more data than a collection can hold".to_string()
+                }
+                e => e.to_string(),
+            })?;
         Ok(Reply { status, body })
     }
 
