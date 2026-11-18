@@ -729,8 +729,8 @@ impl Engine {
     fn forget_content(&self, id: ContentId) -> bool {
         // A page can close itself (`window.close()`) while it is the peek.
         self.at_home(id, || self.end_peek_if(|p| p == id));
-        // Or while it is the web panel: the pages take its room again.
-        self.at_home(id, || self.end_web_panel_if(|p| p == id));
+        // The window it was the web panel of.
+        let mut panel_of = None;
         let state = {
             let mut inner = self.lock();
             inner.permission_requests.remove(&id);
@@ -739,6 +739,10 @@ impl Engine {
             inner.mobile.remove(&id);
             let home = inner.home_of(id);
             if let Some(w) = inner.window_mut(home) {
+                if w.web_panel == Some(id) {
+                    w.web_panel = None;
+                    panel_of = Some(home);
+                }
                 if w.focused_pane == Some(id) {
                     w.focused_pane = None;
                 }
@@ -748,6 +752,10 @@ impl Engine {
             }
             inner.contents.remove(&id)
         };
+        if let Some(home) = panel_of.filter(|_| WEB_PANEL_DOCKED) {
+            // A docked panel that closed itself: the pages take its room again.
+            self.in_window(home, || self.dock_web_panel());
+        }
         crate::devtools::page_closed(id);
         state.is_some()
     }

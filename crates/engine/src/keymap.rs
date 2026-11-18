@@ -56,7 +56,7 @@ pub enum Action {
 impl Action {
     /// Every action, in the order Settings lists them. Of two actions on
     /// the same keys the earlier one gets them.
-    pub const ALL: [Self; 33] = [
+    pub const ALL: [Self; 34] = [
         Self::NewTab,
         Self::FocusAddress,
         Self::CloseTab,
