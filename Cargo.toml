@@ -24,7 +24,7 @@ anyhow = "1"
 clap = { version = "4", features = ["derive", "env"] }
 ed25519-dalek = "3"
 sha2 = "0.11"
-base64 = "0.22"
+base64 = "0.23"
 # Safe (no unsafe) LZ4 block decoding for Firefox's mozlz4 files; no frame format.
 lz4_flex = { version = "0.14", default-features = false, features = ["std", "safe-decode", "safe-encode"] }
 
