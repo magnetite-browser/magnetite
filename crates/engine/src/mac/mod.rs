@@ -47,7 +47,7 @@ use objc2::{
     ClassType, DefinedClass, MainThreadMarker, MainThreadOnly, define_class, extern_methods,
     msg_send,
     rc::Retained,
-    runtime::{AnyObject, Bool, NSObject, NSObjectProtocol, ProtocolObject},
+    runtime::{AnyObject, Bool, NSObject, NSObjectProtocol, ProtocolObject, Sel},
     sel,
 };
 use objc2_app_kit::{
@@ -201,6 +201,19 @@ define_class!(
             if engine.is_quitting() { return; }
             engine.emit(EngineEvent::QuitRequested);
         }
+
+        /// The window with the keyboard, as accessibility sees it. That is
+        /// mostly a page, which is a part of the frame (`mark_as_part`):
+        /// tools that move or resize "the focused window" get the frame.
+        #[unsafe(method_id(accessibilityFocusedWindow))]
+        unsafe fn accessibility_focused_window(&self) -> Option<Retained<AnyObject>> {
+            let focused: Option<Retained<AnyObject>> =
+                msg_send![super(self), accessibilityFocusedWindow];
+            focused.map(|focused| match focused.downcast::<NSWindow>() {
+                Ok(window) => whole_window(window).into(),
+                Err(other) => other,
+            })
+        }
     }
 
     unsafe impl CrAppControlProtocol for MagnetiteApplication {
@@ -296,24 +309,139 @@ pub fn pin_window(handle: cef::sys::cef_window_handle_t) {
 }
 
 /// Tell accessibility that the window holding the view `handle` is a part of
-/// another window, not one to switch to. AppKit calls a frameless window that
-/// can take the keyboard a dialog, which window switchers (`AltTab`) list next
-/// to the frame: one more "Magnetite" for every loaded page.
+/// the window it is a child of, not a window of its own:
+///
+/// - AppKit calls a frameless window that can take the keyboard a dialog,
+///   which window switchers (`AltTab`) list next to the frame: one more
+///   "Magnetite" for every loaded page. Hence the subrole.
+/// - Tools that move or resize "the window under the pointer" walk up from
+///   the element there to the first `AXWindow` and set its position. As a
+///   group whose parent is the frame, a page leads them to the frame; as a
+///   window it was moved out of the frame alone.
 pub fn mark_as_part(handle: cef::sys::cef_window_handle_t) {
     if handle.is_null() {
         return;
     }
-    // SAFETY: CEF hands us a live NSView*; `setAccessibilitySubrole:` takes
-    // an NSString.
-    unsafe {
-        let view: &AnyObject = &*handle.cast::<AnyObject>();
-        let window: *mut AnyObject = msg_send![view, window];
-        if window.is_null() {
-            return;
-        }
-        let subrole = objc2_foundation::ns_string!("AXUnknown");
-        let _: () = msg_send![&*window, setAccessibilitySubrole: subrole];
+    // SAFETY: CEF hands us a live NSView*.
+    let view: &objc2_app_kit::NSView = unsafe { &*handle.cast() };
+    if let Some(window) = view.window() {
+        mark_window_as_part(&window);
     }
+}
+
+/// `mark_as_part` for the window itself.
+fn mark_window_as_part(window: &NSWindow) {
+    let subrole = objc2_foundation::ns_string!("AXUnknown");
+    teach_windows_parts();
+    // SAFETY: `setAccessibilitySubrole:` takes an NSString; the mark is a
+    // static string kept under a key of our own.
+    unsafe {
+        let _: () = msg_send![window, setAccessibilitySubrole: subrole];
+        objc2::ffi::objc_setAssociatedObject(
+            std::ptr::from_ref::<NSWindow>(window).cast_mut().cast(),
+            part_key(),
+            std::ptr::from_ref(part_role()).cast_mut().cast(),
+            objc2::ffi::OBJC_ASSOCIATION_RETAIN_NONATOMIC,
+        );
+    }
+}
+
+/// The accessibility role of a window marked by `mark_as_part`.
+fn part_role() -> &'static objc2_foundation::NSString {
+    objc2_foundation::ns_string!("AXGroup")
+}
+
+/// The key a window's mark is kept under (its address is the key).
+fn part_key() -> *const std::ffi::c_void {
+    static KEY: u8 = 0;
+    std::ptr::from_ref(&KEY).cast()
+}
+
+/// The window that `window` is a part of: its parent, if `mark_as_part` was
+/// called for it. `None` too while a marked window has no parent (hidden, or
+/// shown on its own as a detached overlay is): it is a window then.
+fn whole_of(window: &NSWindow) -> Option<Retained<NSWindow>> {
+    // SAFETY: reads what `mark_window_as_part` stored, or null.
+    let mark = unsafe {
+        objc2::ffi::objc_getAssociatedObject(std::ptr::from_ref(window).cast(), part_key())
+    };
+    if mark.is_null() {
+        return None;
+    }
+    window.parentWindow()
+}
+
+type RoleImp = unsafe extern "C-unwind" fn(&NSWindow, Sel) -> *const objc2_foundation::NSString;
+type ParentImp = unsafe extern "C-unwind" fn(&NSWindow, Sel) -> *mut AnyObject;
+
+/// AppKit's own answers, which unmarked windows keep.
+static WINDOW_ACCESSIBILITY: std::sync::OnceLock<(RoleImp, ParentImp)> = std::sync::OnceLock::new();
+
+/// Make every `NSWindow` answer accessibility's role and parent as a part of
+/// its parent window while it is one (`whole_of`); once per process.
+///
+/// On `NSWindow` and by a mark, not by AppKit's setters or a subclass of the
+/// window's class: the parent has to be asked for each time (a page window
+/// has none when it is created and gets another when it changes windows),
+/// and Chromium's windows are observed, which rules out giving them a class.
+fn teach_windows_parts() {
+    use objc2::ffi::{class_getInstanceMethod, class_replaceMethod, method_getTypeEncoding};
+    use objc2::runtime::Imp;
+
+    extern "C-unwind" fn role(this: &NSWindow, cmd: Sel) -> *const objc2_foundation::NSString {
+        if whole_of(this).is_some() {
+            return part_role();
+        }
+        let (original, _) = WINDOW_ACCESSIBILITY.get().expect("set before the methods");
+        // SAFETY: AppKit's method, called as AppKit would.
+        unsafe { original(this, cmd) }
+    }
+    extern "C-unwind" fn parent(this: &NSWindow, cmd: Sel) -> *mut AnyObject {
+        if let Some(whole) = whole_of(this) {
+            return Retained::autorelease_ptr(whole).cast();
+        }
+        let (_, original) = WINDOW_ACCESSIBILITY.get().expect("set before the methods");
+        // SAFETY: AppKit's method, called as AppKit would.
+        unsafe { original(this, cmd) }
+    }
+
+    WINDOW_ACCESSIBILITY.get_or_init(|| {
+        let class = NSWindow::class();
+        let implementation = |sel: Sel| {
+            class
+                .instance_method(sel)
+                .expect("NSWindow answers the accessibility protocol")
+                .implementation()
+        };
+        let (role_sel, parent_sel) = (sel!(accessibilityRole), sel!(accessibilityParent));
+        // SAFETY: the originals have the types of the two getters; the
+        // replacements have the same, and are installed on `NSWindow` itself
+        // even where it only inherits the method.
+        unsafe {
+            let originals = (
+                std::mem::transmute::<Imp, RoleImp>(implementation(role_sel)),
+                std::mem::transmute::<Imp, ParentImp>(implementation(parent_sel)),
+            );
+            let class = std::ptr::from_ref(class).cast_mut();
+            for (sel, imp) in [
+                (role_sel, std::mem::transmute::<RoleImp, Imp>(role)),
+                (parent_sel, std::mem::transmute::<ParentImp, Imp>(parent)),
+            ] {
+                let types = method_getTypeEncoding(class_getInstanceMethod(class, sel));
+                class_replaceMethod(class, sel, imp, types);
+            }
+            originals
+        }
+    });
+}
+
+/// `window`, or the window it is a part of (`mark_as_part`), however deep.
+fn whole_window(window: Retained<NSWindow>) -> Retained<NSWindow> {
+    let mut whole = window;
+    while let Some(parent) = whole_of(&whole) {
+        whole = parent;
+    }
+    whole
 }
 
 /// Give a frameless child window rounded corners, a clear background and a
@@ -936,6 +1064,7 @@ fn borderless_window(mtm: MainThreadMarker, rect: NSRect, shadow: bool) -> Retai
     window.setHasShadow(shadow);
     window.setExcludedFromWindowsMenu(true);
     window.setBackgroundColor(Some(&NSColor::clearColor()));
+    mark_window_as_part(&window);
     window
 }
 
