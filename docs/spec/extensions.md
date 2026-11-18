@@ -11,6 +11,7 @@ Settings.
 | Place | What it offers |
 |---|---|
 | Sidebar, top row | Pinned extensions, after the sidebar button. Click: open the extension. Right-click: "Options" (if it has some), "Remove from Sidebar" ("Remove from Top Bar" while the top bar holds the icons) |
+| Top bar | The same icons, after the address. A button after them lists the extensions without an icon |
 | Menu bar → Extensions (macOS) | Every extension (click opens it), "Show in Sidebar" to pin or unpin each, "Manage Extensions…", "Chrome Web Store…" |
 | Settings → Extensions | An "In the sidebar" switch per extension, "Chrome Web Store", "Manage extensions", "Show the Chrome toolbar inside pages" |
 
@@ -26,8 +27,13 @@ Settings.
   password manager stays unlocked. It sees the pages of every private tab it
   runs in.
 - The sidebar shows as many pinned icons as fit: on macOS, where the row
-  keeps room for the window's buttons, one at the default width and four
-  at the widest; elsewhere four and seven. The menu bar has them all.
+  keeps room for the window's buttons, two at the default width and five
+  at the widest; elsewhere four and eight. The menu bar has them all.
+- The top bar shows as many pinned icons as fit beside the address. A
+  button after them (a puzzle piece) shows while an extension has no icon
+  there, and takes one of the places. Its menu lists the pinned extensions
+  that did not fit, then the unpinned ones; a click opens the extension as
+  its icon would. "Manage extensions" opens Settings → Extensions.
 - Installing happens on the Chrome Web Store page; removing, turning off
   and site access on Chromium's own page, `chrome://extensions`. Both open
   as tabs. `--load-extension <dir>` (repeatable) loads an unpacked one.

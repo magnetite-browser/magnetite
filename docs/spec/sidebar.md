@@ -219,13 +219,14 @@ switches at once, without a restart.
 - From left to right: the sidebar button, back, forward and reload, the
   address, the pinned extensions, and outside macOS minimize, maximize and
   close. On macOS the window's own buttons sit at its left end. The address
-  keeps at least 240 points: pinned extensions that do not fit beside it are
-  left out, as in the sidebar (`extensions.md`).
+  keeps at least 240 points: pinned extensions that do not fit beside it
+  wait behind the button after the icons (`extensions.md`).
 - The address shows the whole address without `https://` and `www.`; a
   click opens the command bar with it, as in the sidebar. An open peek shows
   its controls in its place.
-- The site controls, the copy menu (right-click on the copy button) and an
-  extension's menu open in small windows just below the bar.
+- The site controls, the copy menu (right-click on the copy button), an
+  extension's menu and the list of extensions without an icon open in small
+  windows just below the bar.
 - The sidebar keeps the rest: favorites, tabs, the footer. Hidden (`Cmd+S`),
   it still slides out over the pages, below the bar.
 - Empty space in the bar drags the window; a double-click maximizes it.

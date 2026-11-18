@@ -349,7 +349,7 @@ export interface Settings {
   panel_autoclose: boolean;
   devtools_dock: "right" | "bottom" | "window";
   sync: SyncSettings;
-  /** Extensions shown in the sidebar; all are in the menu bar's Extensions menu. */
+  /** Extensions with an icon in the sidebar or the top bar; all are in the menu bar's Extensions menu. */
   pinned_extensions: string[];
   /** Look for a new release at start and once a day. */
   check_updates: boolean;
@@ -847,7 +847,7 @@ declare global {
 }
 
 /** The top bar's pop-ups, each a window below the bar (`TopBarPopup.tsx`). */
-export type TopBarPopupKind = "site" | "copy" | "extension" | "emulate" | "timezone";
+export type TopBarPopupKind = "site" | "copy" | "extension" | "extensions" | "emulate" | "timezone";
 
 /** Run `command` in the app; resolves with its reply (see `Replies`). */
 export function send<K extends Command["cmd"]>(command: Extract<Command, { cmd: K }>): Promise<Reply<K>> {

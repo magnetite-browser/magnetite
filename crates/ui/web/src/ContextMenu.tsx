@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { pageZoom, send } from "./bridge";
 
 /** A line between groups, or an action. */
@@ -7,6 +7,8 @@ export type MenuItem =
   | {
       separator?: false;
       label: string;
+      /** A small picture before the label, 16 px. */
+      icon?: ReactNode;
       /** Shown on hover in place of the label (which may end in "…"). */
       title?: string;
       /** A short note at the right edge, such as a time. */
@@ -69,6 +71,7 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
               onClose();
             }}
           >
+            {it.icon}
             <span>{armed === i ? it.confirm : it.label}</span>
             {it.hint && <span className="hint">{it.hint}</span>}
           </button>

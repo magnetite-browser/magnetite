@@ -143,6 +143,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .ib:hover:not(:disabled) { background: rgba(255,255,255,0.08); color: var(--fg); }
 .ib:disabled { opacity: 0.35; }
 .ib.sm { width: 24px; height: 24px; }
+/* Back and forward in the sidebar's title band: narrow, so the band has room for one more extension. */
+.hdr .ib.nav { width: 20px; }
 .ib.lg { width: 32px; height: 32px; border-radius: 8px; }
 
 /* favorites */

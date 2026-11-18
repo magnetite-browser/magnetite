@@ -95,6 +95,8 @@ pub(super) enum TopBarPopup {
     Copy,
     /// A pinned extension's menu.
     Extension,
+    /// The extensions without an icon in the top bar.
+    Extensions,
     /// What the page in front is shown as (the developer tools).
     Emulate,
     /// The time zone the page in front sees.
@@ -107,6 +109,7 @@ impl TopBarPopup {
             Self::Site => "site",
             Self::Copy => "copy",
             Self::Extension => "extension",
+            Self::Extensions => "extensions",
             Self::Emulate => "emulate",
             Self::Timezone => "timezone",
         }
@@ -714,7 +717,8 @@ pub(super) enum UiCommand {
     /// (`x`, `y`) in the top bar page's coordinates.
     TopBarPopup {
         popup: TopBarPopup,
-        /// The extension a menu is for.
+        /// The extension a menu is for, or those the list of extensions
+        /// names, separated by commas.
         #[serde(default)]
         id: Option<String>,
         x: i32,

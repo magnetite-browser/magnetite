@@ -1,11 +1,11 @@
 // The top bar's pop-ups (magnetite://ui/popup?kind=…): the site panel, the
-// copy menu, an extension's menu and the developer tools' panels, each in a window just below the top bar,
+// copy menu, an extension's menu, the list of extensions without an icon and the developer tools' panels, each in a window just below the top bar,
 // which is too short to hold them. Closes on Esc, on a pick or when it loses
 // the keyboard.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
 import { EmulationPanel, TimezonePanel } from "./DevBar";
-import { extensionMenu } from "./PinnedExtensions";
+import { extensionMenu, moreExtensionsMenu } from "./PinnedExtensions";
 import { SitePanel } from "./SitePanel";
 import { accentCss, applyAppearance, findTab, send, subscribe, type LinkVariant, type UiState } from "./bridge";
 
@@ -69,7 +69,9 @@ export function TopBarPopup() {
     );
   }
   const extension = KIND === "extension" ? state.extensions.find((e) => e.id === ID) : undefined;
-  const items = KIND === "copy" ? COPY_ITEMS : extension ? extensionMenu(extension, "Top Bar") : [];
+  // The top bar names the extensions its button lists, in its order.
+  const rest = KIND === "extensions" ? (ID?.split(",") ?? []).flatMap((id) => state.extensions.find((e) => e.id === id) ?? []) : [];
+  const items = KIND === "copy" ? COPY_ITEMS : KIND === "extensions" ? moreExtensionsMenu(rest) : extension ? extensionMenu(extension, "Top Bar") : [];
   return (
     <div ref={root}>
       <ContextMenu x={0} y={0} items={items} onClose={close} />

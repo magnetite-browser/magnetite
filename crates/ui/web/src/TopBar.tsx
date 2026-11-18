@@ -49,8 +49,8 @@ export function TopBar() {
   const activeItem = state.active_tab ? findTab(state, state.active_tab) : null;
   // Focus rings take the active space's colour, as in the sidebar.
   const space = state.sidebar.spaces.find((s) => s.id === state.active_space);
-  // Extensions that would squeeze the address stay in the menu bar's
-  // Extensions menu. Lengths on the page grow with the text size: the one
+  // Extensions that would squeeze the address wait behind the button at the
+  // end of the icons. Lengths on the page grow with the text size: the one
   // this render's state asks for, which `applyAppearance` sets after it.
   const zoom = state.settings.appearance.text_scale / 100;
   const room = Math.max(0, Math.floor((width / zoom - RESERVED - ADDRESS_MIN) / SLOT));
@@ -82,7 +82,7 @@ export function TopBar() {
       </div>
 
       <div className="flex shrink-0 items-center gap-0.5 pr-2">
-        <PinnedExtensions state={state} openMenu={openMenu} popups room={room} />
+        <PinnedExtensions state={state} openMenu={openMenu} room={room} />
         {!IS_MAC && (
           <div className="ml-2 flex items-center gap-0.5">
             <button className="ib no-drag" onClick={() => send({ cmd: "window_minimize" })} title="Minimize" aria-label="Minimize"><Minus /></button>
