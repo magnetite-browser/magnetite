@@ -141,6 +141,9 @@ pub struct TabRuntime {
     /// The page uses the camera / microphone right now.
     pub camera: bool,
     pub microphone: bool,
+    /// A page shares this tab's picture right now (screen sharing).
+    #[serde(default)]
+    pub shared: bool,
     /// For developers: whether the page is a local one, its console errors,
     /// what it is shown as (`dev.rs`).
     #[serde(default)]
@@ -150,7 +153,8 @@ pub struct TabRuntime {
 impl TabRuntime {
     /// Forget the tab's page window (made again when the tab is shown): the
     /// tab is no longer loaded, loading or playing, nor muted, and nothing
-    /// is known about its connection or its use of camera and microphone.
+    /// is known about its connection or its use of camera and microphone,
+    /// and it is no longer shared.
     /// Returns the window for the caller to close.
     pub fn unload(&mut self) -> Option<ContentId> {
         self.loaded = false;
@@ -160,6 +164,7 @@ impl TabRuntime {
         self.site = None;
         self.camera = false;
         self.microphone = false;
+        self.shared = false;
         self.dev = crate::dev::DevState::default();
         self.content.take()
     }

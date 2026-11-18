@@ -134,6 +134,14 @@ impl EngineDelegate for MagnetiteApp {
                 });
                 self.show_state_paced(engine);
             }
+            EngineEvent::ShareChanged { id, shared } => {
+                self.with_state(|s| {
+                    if let Some(rt) = s.page_runtime(id) {
+                        rt.shared = shared;
+                    }
+                });
+                self.push_state(engine);
+            }
             EngineEvent::Download(report) => {
                 let changed = self.with_state(|s| {
                     let private = s.is_private_context(report.context.as_deref());

@@ -146,6 +146,8 @@ export interface TabRuntime {
   site: SiteState | null;
   camera: boolean;
   microphone: boolean;
+  /** A page shares this tab's picture right now (screen sharing). */
+  shared: boolean;
   dev: DevState;
 }
 

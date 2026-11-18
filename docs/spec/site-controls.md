@@ -17,8 +17,8 @@ active tab, or the split pane that has the keyboard.
 With no tab open the row only says "Search or enter address". While a peek is
 open, the peek's own row takes its place.
 
-The chip shows the first state that applies: camera or microphone in use (red
-dot), certificate problem or unencrypted connection (warning shield), zoom
+The chip shows the first state that applies: camera or microphone in use, or
+the tab being shared (red dot), certificate problem or unencrypted connection (warning shield), zoom
 other than 100 % (dot), tab muted (crossed speaker). The first two also
 outline the row. The chip's tooltip lists every state.
 

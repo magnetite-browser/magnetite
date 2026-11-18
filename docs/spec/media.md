@@ -119,5 +119,5 @@ the mute state. The pop-out setting is `settings.auto_pip` in
 
 Code: `crates/engine/src/media.rs`, `media_hook.js`, `pip.rs`, `cef_app.rs`
 (the feature switch) and `mac/mod.rs` (swipe); `crates/app/src/app/tabs.rs`
-(`follow_pictures`, `has_media`); `crates/ui/web/src/MediaBar.tsx` and
+(`follow_pictures`, `in_use`); `crates/ui/web/src/MediaBar.tsx` and
 `Rows.tsx`.

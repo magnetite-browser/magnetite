@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Favicon } from "./Favicon";
-import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, PhoneIcon, SmartFolderIcon, SnoozeIcon, Speaker, SpeakerOff, WakeIcon, WarningIcon } from "./Icons";
+import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, PhoneIcon, ScreenShareIcon, SmartFolderIcon, SnoozeIcon, Speaker, SpeakerOff, WakeIcon, WarningIcon } from "./Icons";
 import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./smart";
 import { Glyph, glyphFor } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
@@ -216,12 +216,13 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
                 data-active={state.active_tab === t.id || state.web_panel === t.id || undefined}
                 data-panel={t.panel || undefined}
                 data-unloaded={!rt?.loaded || undefined}
+                data-shared={rt?.shared || undefined}
                 draggable
                 onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id })}
                 onDragEnd={() => { setPlace(null); endDrag(); }}
                 onClick={() => send(t.panel ? { cmd: "toggle_web_panel", id: t.id } : { cmd: "activate_tab", id: t.id })}
                 onContextMenu={(e) => { e.preventDefault(); ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, t, "favorites", { x: e.clientX, y: e.clientY })); }}
-                title={[t.title, title, t.panel && "panel"].filter(Boolean).join(" · ")}
+                title={[t.title, title, t.panel && "panel", rt?.shared && "being shared"].filter(Boolean).join(" · ")}
               >
                 <Favicon url={t.url} src={rt?.favicon} loading={rt?.loading} />
               </button>
@@ -395,6 +396,11 @@ const TabRowInner = memo(
             <button className="slot" title={rt.muted ? "Unmute tab" : "Mute tab"} onClick={(e) => { e.stopPropagation(); send({ cmd: "set_muted", id: tab.id, muted: !rt.muted }); }}>
               {rt.muted ? <SpeakerOff width={14} height={14} /> : <Speaker width={14} height={14} />}
             </button>
+          )}
+          {rt?.shared && (
+            <span className="shared" title="This tab is being shared" aria-label="Being shared">
+              <ScreenShareIcon width={13} height={13} />
+            </span>
           )}
           {!!rt?.dev?.errors && !active && (
             <span className="dev-errors" title={`${rt.dev.errors} error${rt.dev.errors === 1 ? "" : "s"} in the console`} aria-label={`${rt.dev.errors} console errors`}>{errorCount(rt.dev.errors)}</span>

@@ -121,6 +121,8 @@ pub(crate) struct Inner {
     /// Pages the app muted. Kept here because a page gets its browser a
     /// moment after it is asked for: the mute is applied once it has one.
     pub muted: HashSet<ContentId>,
+    /// Which tabs pages capture (`tabshare.rs`).
+    pub shares: crate::tabshare::Shares,
     /// Pages shown as on a phone (`set_mobile_view`). Kept here for the
     /// same reason, and to give it back after device mode.
     pub mobile: HashSet<ContentId>,
@@ -258,6 +260,7 @@ impl Engine {
                 locks: HashMap::new(),
                 autofill: crate::AutofillPrefs::default(),
                 muted: HashSet::new(),
+                shares: crate::tabshare::Shares::default(),
                 mobile: HashSet::new(),
                 ui_reloads: HashMap::new(),
                 contexts: HashMap::new(),

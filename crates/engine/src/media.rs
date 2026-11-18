@@ -195,8 +195,18 @@ thread_local! {
     static CONTROLS: RefCell<HashMap<i32, (V8Context, V8Value)>> = RefCell::new(HashMap::new());
 }
 
-fn is_web_url(url: &str) -> bool {
+pub(crate) fn is_web_url(url: &str) -> bool {
     url.starts_with("https://") || url.starts_with("http://") || url.starts_with("file://")
+}
+
+/// Whether `context` is the world the page's own scripts run in. CEF calls
+/// `on_context_created` for every script world of a frame, also the
+/// separate ones extensions run their content scripts in; our page scripts
+/// belong in the page's own.
+pub(crate) fn is_own_world(frame: &Frame, context: &V8Context) -> bool {
+    frame
+        .v8_context()
+        .is_some_and(|main| main.is_same(Some(&mut context.clone())) != 0)
 }
 
 /// Install the page script in a web page's main frame. Called from
@@ -205,14 +215,9 @@ pub(crate) fn install(browser: &Browser, frame: &Frame, context: &V8Context) {
     if frame.is_main() == 0 || !is_web_url(&CefString::from(&frame.url()).to_string()) {
         return;
     }
-    // CEF calls this for every script world of the frame, also the separate
-    // ones extensions run their content scripts in. The hook belongs in the
-    // page's own: installed again elsewhere it would take over `CONTROLS`
-    // with a copy that knows none of the page's handlers.
-    let own_world = frame
-        .v8_context()
-        .is_some_and(|main| main.is_same(Some(&mut context.clone())) != 0);
-    if !own_world {
+    // Installed again in another world it would take over `CONTROLS` with
+    // a copy that knows none of the page's handlers.
+    if !is_own_world(frame, context) {
         return;
     }
     let mut handler = MediaReport::new();

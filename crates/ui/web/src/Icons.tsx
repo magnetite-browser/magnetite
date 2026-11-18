@@ -49,6 +49,7 @@ export const Pause = icon(L.Pause, filled);
 export const SkipBack = icon(L.SkipBack, filled);
 export const SkipForward = icon(L.SkipForward, filled);
 export const Speaker = icon(L.Volume2);
+export const ScreenShareIcon = icon(L.ScreenShare);
 export const SpeakerOff = icon(L.VolumeX);
 export const PictureInPicture = icon(L.PictureInPicture2);
 // Isolation levels: shared, separate, private.

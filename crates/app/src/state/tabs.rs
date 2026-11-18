@@ -370,21 +370,23 @@ impl AppState {
         id
     }
 
-    /// Whether tab `id` has media, playing or paused: such a tab is never
-    /// unloaded or archived in the background, which would stop the music.
-    fn has_media(&self, id: &str) -> bool {
-        self.runtime.get(id).is_some_and(|r| r.media.is_some())
+    /// Whether tab `id` is in use out of sight: it has media, playing or
+    /// paused, or is being shared.
+    /// Such a tab is never unloaded or archived in the background, which
+    /// would stop the music or the sharing.
+    fn in_use(&self, id: &str) -> bool {
+        (self.runtime.get(id)).is_some_and(|r| r.media.is_some() || r.shared)
     }
 
     /// The Today tabs to archive now: out of sight for longer than the
     /// auto-archive period (counted from creation if never shown). Not the
     /// tabs in `active` (on screen, or the one a space returns to), not
-    /// those with media, and not those kept active.
+    /// those with media or being shared, and not those kept active.
     pub fn stale_today_tabs(&self, now: UnixSeconds, active: &HashSet<Id>) -> Vec<Id> {
         let period = i64::from(self.settings.auto_archive_hours) * 3600;
         (self.sidebar.spaces.iter())
             .flat_map(|space| space.today.iter())
-            .filter(|t| !t.keep_active && !active.contains(&t.id) && !self.has_media(&t.id))
+            .filter(|t| !t.keep_active && !active.contains(&t.id) && !self.in_use(&t.id))
             .filter(|t| {
                 now.saturating_sub(t.last_active_at.or(t.created_at).unwrap_or(now)) > period
             })
@@ -431,7 +433,7 @@ impl AppState {
     /// last on screen (`now` if never).
     fn idle_pages(&self, now: UnixSeconds, active: &HashSet<Id>) -> Vec<(Id, UnixSeconds)> {
         (self.runtime.iter())
-            .filter(|(id, r)| r.content.is_some() && !active.contains(*id) && !self.has_media(id))
+            .filter(|(id, r)| r.content.is_some() && !active.contains(*id) && !self.in_use(id))
             .filter_map(|(id, _)| {
                 let tab = (self.sidebar.spaces.iter())
                     .flat_map(|space| space.today.iter())
@@ -763,6 +765,11 @@ mod tests {
         let mut unload = s.tabs_to_unload(now(), &active);
         unload.sort();
         assert_eq!(unload, ["a", "c"]);
+        // A tab that is being shared stays, like one that plays.
+        s.runtime.get_mut("a").unwrap().shared = true;
+        assert_eq!(s.tabs_to_unload(now(), &active), ["c"]);
+        assert_eq!(s.stale_today_tabs(now(), &active), ["c"]);
+        s.runtime.get_mut("a").unwrap().shared = false;
         // Favorites and pinned tabs stay loaded without being asked to.
         s.sidebar.favorites[0].items.push(TabItem {
             last_active_at: Some(long_ago),

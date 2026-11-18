@@ -321,6 +321,12 @@ pub enum EngineEvent {
         camera: bool,
         microphone: bool,
     },
+    /// Another page (or the page itself) started or stopped sharing this
+    /// tab's picture (`tabshare.rs`).
+    ShareChanged {
+        id: ContentId,
+        shared: bool,
+    },
     LoadingChanged {
         id: ContentId,
         loading: bool,
@@ -395,6 +401,7 @@ impl EngineEvent {
             Self::FaviconChanged { .. } => "FaviconChanged",
             Self::ContentFocused { .. } => "ContentFocused",
             Self::MediaChanged { .. } => "MediaChanged",
+            Self::ShareChanged { .. } => "ShareChanged",
             Self::ExtensionMenu(..) => "ExtensionMenu",
             Self::ExtensionPinsChanged => "ExtensionPinsChanged",
             Self::AutofillChanged(_) => "AutofillChanged",

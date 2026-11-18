@@ -736,8 +736,9 @@ impl Engine {
         self.at_home(id, || self.end_peek_if(|p| p == id));
         // The window it was the web panel of.
         let mut panel_of = None;
-        let state = {
+        let (state, shares) = {
             let mut inner = self.lock();
+            let shares = inner.shares.forget(id);
             inner.permission_requests.remove(&id);
             inner.locks.remove(&id);
             inner.muted.remove(&id);
@@ -755,12 +756,14 @@ impl Engine {
                     w.shown = None;
                 }
             }
-            inner.contents.remove(&id)
+            (inner.contents.remove(&id), shares)
         };
         if let Some(home) = panel_of.filter(|_| WEB_PANEL_DOCKED) {
             // A docked panel that closed itself: the pages take its room again.
             self.in_window(home, || self.dock_web_panel());
         }
+        // The tabs this page shared are no longer shared.
+        self.emit_shares(shares);
         crate::devtools::page_closed(id);
         state.is_some()
     }

@@ -49,12 +49,13 @@ the row turns the icon into a back arrow that takes the page back.
 ## Tab rows
 
 - A row shows the icon, the title, a speaker button while the tab plays or
-  is muted, and a close button on hover. A bold title marks a tab that
+  is muted, a red screen mark while the tab is being shared (below), and a
+  close button on hover. A bold title marks a tab that
   opened in the background and was not viewed yet.
 - A click shows the tab and loads its page if needed. Tabs without a loaded
   page are dimmed. A page is unloaded once it has been off screen for more
   than 4 hours (Settings → Tabs & archive: 10 minutes, 30 minutes,
-  2, 4 or 12 hours, or never), unless it has media, is the tab its space
+  2, 4 or 12 hours, or never), unless it has media, is being shared, is the tab its space
   returns to, is a favorite or pinned, or is kept active. When the system runs short
   of memory, such pages are unloaded without waiting, also with "never":
   at the system's warning the half that was off screen the longest, at its
@@ -77,6 +78,40 @@ the row turns the icon into a back arrow that takes the page back.
   favorites, Open in split view, Duplicate tab, Rename, Move to another
   space, and Archive (Today) or Close. "Duplicate tab" opens the tab's
   address as a new Today tab; a favorite has "Duplicate favorite" instead.
+
+## Shared tabs
+
+While a page shares a tab's picture (screen sharing in a meeting, "Tab" in
+the share dialog), that tab is marked wherever it shows:
+
+- Its row carries a red screen mark, also on hover. A shared favorite has
+  a red dot on its tile.
+- The address row's chip has the red dot while the shared tab is the
+  current one; the tooltip says "This tab is being shared".
+- The mark follows "Share this tab instead" and goes when the sharing ends:
+  "Stop sharing", the meeting page ending it, or the meeting tab closing or
+  loading another page.
+- A shared tab is not unloaded or archived in the background.
+
+Sharing a window or the whole screen marks no tab.
+
+How it works: CEF does not say which tab a capture shows, so the pages
+tell. Every web page gets a capture handle, a random text set with
+`setCaptureHandleConfig`. A page that calls `getDisplayMedia` has its
+tracks watched (copies made with `clone` too), reads the handle of the tab
+they show and reports it. A tab is shared while such a report names its
+handle. The handle is new with every page load, and only a page that
+captures the tab can read it; it names nothing about the user or the tab.
+
+Not marked, for that reason:
+
+- pages without a secure context (plain `http`, except this computer's
+  own addresses) and Magnetite's own pages;
+- a page that sets a capture handle of its own, which replaces ours;
+- captures started by an extension.
+
+Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
+`crates/app/src/state/tabs.rs` (`in_use`); `crates/ui/web/src/Rows.tsx`.
 
 ## Moving tabs
 

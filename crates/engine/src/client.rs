@@ -88,6 +88,15 @@ wrap_client! {
                 Engine::global().on_media_report(browser.as_deref(), &json);
                 return 1;
             }
+            // Every frame of a page may report what it captures.
+            if self.kind == Kind::Content
+                && let (Some(frame), Some(msg)) = (frame.as_deref(), message.as_ref())
+                && CefString::from(&msg.name()).to_string() == crate::tabshare::MESSAGE
+            {
+                let text = |index| msg.argument_list().map(|a| CefString::from(&a.string(index)).to_string()).unwrap_or_default();
+                Engine::global().on_share_report(browser.as_deref(), frame, &text(0), &text(1));
+                return 1;
+            }
             let router = Engine::global().lock().router.clone();
             match router {
                 Some(r) => r.on_process_message_received(browser.cloned(), frame.cloned(), source_process, message.cloned()).into(),
@@ -399,10 +408,11 @@ wrap_load_handler! {
             if let (Some(id), Some(f)) = (engine.content_id_for(browser.as_deref()), frame) {
                 engine.note_origin(id, &CefString::from(&f.url()).to_string());
                 // A new page in the tab: the old one's connection state no
-                // longer holds, and nothing of it plays any more.
+                // longer holds, and nothing of it plays or captures any more.
                 if f.is_main() != 0 {
                     engine.emit_site_state(id);
                     engine.on_media_report(browser.as_deref(), "null");
+                    engine.end_captures(id);
                     // Before the page shows anything: the user's own CSS.
                     engine.put_site_style(f);
                 }
@@ -559,9 +569,12 @@ wrap_request_handler! {
             _error_string: Option<&CefString>,
         ) {
             let engine = Engine::global();
-            // What the page played died with its renderer.
+            // What the page played or captured died with its renderer.
             if self.kind == Kind::Content {
                 engine.on_media_report(browser.as_deref(), "null");
+                if let Some(id) = engine.content_id_for(browser.as_deref()) {
+                    engine.end_captures(id);
+                }
             }
             if let Some(r) = engine.lock().router.clone() {
                 r.on_render_process_terminated(browser.as_deref().cloned());
