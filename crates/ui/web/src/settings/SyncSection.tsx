@@ -81,8 +81,14 @@ export function SyncSection({ info, reload, job, setJob, spaces = true, only }: 
     let timer = 0;
     let stopped = false;
     const check = async () => {
-      const { settings, sync_signed_in } = await reload();
+      // A read that failed is asked again: the job ends with an answer only.
+      const fresh = await reload().catch(() => null);
       if (stopped) return;
+      if (!fresh) {
+        timer = window.setTimeout(check, POLL_MS);
+        return;
+      }
+      const { settings, sync_signed_in } = fresh;
       const joined = settings.sync.enabled && sync_signed_in;
       if (!joined && !settings.sync.last_error) {
         timer = window.setTimeout(check, POLL_MS);

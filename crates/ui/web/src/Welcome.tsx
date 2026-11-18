@@ -229,6 +229,9 @@ export function Welcome() {
       // Against what is set now, not what the page last read: a try before
       // this one may have set part of it.
       const set = (await reload()).settings.adblock;
+      // Nothing was answered here: what is set stays, also if Settings
+      // changed it while this page was open.
+      if (adsAnswer === null && ownLists === null) return true;
       if (wanted) {
         for (const { id } of offered) {
           const subscribed = wanted.includes(id);
@@ -326,7 +329,7 @@ export function Welcome() {
                   </p>
                 ) : (
                   <div className="grid gap-3">
-                    <button className="wel-pick" onClick={() => { setJoining(false); go("import"); }}>
+                    <button className="wel-pick" onClick={() => { setJoining(false); go(joined ? "privacy" : "import"); }}>
                       <span className="set-icon"><DownloadIcon size={20} /></span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[15px] font-semibold">I am new here</span>
@@ -648,7 +651,8 @@ export function Welcome() {
               <Heading title="Ready when you are">
                 {importing.length > 0 ? "Your tabs come in when you start browsing. " : ""}This is what you chose; all of it can be changed in Settings.
               </Heading>
-              <div className="set-card flex flex-col">
+              {/* While the app imports, the page stays here: a browser it cannot read is said here. */}
+              <div className="set-card flex flex-col" inert={busy}>
                 {!joined && (
                   <Chosen label="Tabs" change={() => go("import")}>
                     {importSummary.length > 0 ? `From ${listed(importSummary)}` : "A fresh start, nothing imported"}
