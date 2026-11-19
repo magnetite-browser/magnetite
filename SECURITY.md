@@ -1,6 +1,9 @@
 # Security policy
 
-Magnetite has no releases yet. Security fixes land on the main branch.
+Security fixes land on the main branch and ship with the next release.
+Older releases get no fixes of their own: the newest release is the one to
+run. Magnetite updates itself to it (Settings → About), and a Magnetite
+installed from the rpm or deb updates with the system's packages.
 
 ## Reporting a vulnerability
 
@@ -10,10 +13,10 @@ Report it privately, not in a public issue:
   or the repository's "Report a vulnerability" page (Security tab, Advisories).
 
 Please include the affected part (browser, sync server, sync protocol,
-importer), the commit you tested, steps to reproduce, and the impact. We will
-acknowledge the report, keep you updated, and credit you in the fix unless
-you prefer not to be named. Please give us a reasonable time to fix the issue
-before you disclose it.
+importer), the version or commit you tested, steps to reproduce, and the
+impact. We will acknowledge the report, keep you updated, and credit you in
+the fix unless you prefer not to be named. Please give us a reasonable time
+to fix the issue before you disclose it.
 
 ## Scope
 
