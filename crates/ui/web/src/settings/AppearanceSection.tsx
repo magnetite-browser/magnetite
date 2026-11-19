@@ -53,7 +53,7 @@ export function OwnImage({ slot, space, stamp, maxSide, reload }: { slot: ImageS
   return (
     <div className="flex items-center gap-3">
       {stamp != null && <img className={slot === "icon" ? "h-8 w-8 object-contain" : "h-8 w-12 rounded-md object-cover"} src={userImageUrl(slot, space, stamp)} alt="" />}
-      <button className="btn sm" onClick={() => picker.current?.click()}>{stamp == null ? "Choose picture…" : "Change…"}</button>
+      <button type="button" className="btn sm" onClick={() => picker.current?.click()}>{stamp == null ? "Choose picture…" : "Change…"}</button>
       <input
         ref={picker}
         className="hidden"
@@ -66,7 +66,7 @@ export function OwnImage({ slot, space, stamp, maxSide, reload }: { slot: ImageS
           if (file) void store(file);
         }}
       />
-      {stamp != null && <button className="btn sm" onClick={() => void store(null)}>Remove</button>}
+      {stamp != null && <button type="button" className="btn sm" onClick={() => void store(null)}>Remove</button>}
       {error && <span className="text-[12.5px] text-[#f3a0a0]">{error}</span>}
     </div>
   );
