@@ -12,10 +12,13 @@ screen. Magnetite runs on without one:
   playing and downloads go on. Mini windows are windows of their own and
   stay open.
 - The state is saved at that moment, as it is before quitting.
-- The window comes back as it was with a click on the Dock icon, with a link
-  from another app, and with a command from the menu bar or its keys
-  (`Cmd+T`, `Cmd+N`, Settings and the others). "New Window", "Close Window"
-  and "Close Tab" then only bring the window back.
+- The window comes back as it was with a click on the Dock icon and with a
+  command from the menu bar or its keys (`Cmd+T`, `Cmd+N`, Settings and the
+  others). "New Window", "Close Window" and "Close Tab" then only bring the
+  window back.
+- A link from another app brings the window back when it opens as a tab or
+  a peek. One that opens in a mini window (the default, `mini-window.md`)
+  leaves the main window closed.
 
 With several windows open, closing one of them works as before: its pages go
 to the window that is current next. Only the last one stays in the
