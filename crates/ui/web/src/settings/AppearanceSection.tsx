@@ -1,6 +1,7 @@
-// Settings → Appearance: space colours and their strength, backgrounds, layout, text size, density, sidebar width.
+// Settings → Appearance: a space's name, icon, colour and its strength, backgrounds; layout, text size, density, sidebar width.
 import { useRef, useState } from "react";
-import { storeImage, userImageUrl, type ImageSlot } from "../backgrounds";
+import { ICON_SIDE, storeImage, userImageUrl, type ImageSlot } from "../backgrounds";
+import { GlyphGrid, glyphFor } from "../Glyphs";
 import { DEFAULT_ACCENT, accentCss, applyAppearance, keyLabel, lookOf, send, type Appearance, type Color, type SpaceLook } from "../bridge";
 import { Field, Group, Slider, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
@@ -73,7 +74,7 @@ export function OwnImage({ slot, space, stamp, maxSide, reload }: { slot: ImageS
 }
 
 /**
- * Space colours and their strength, backgrounds, text size, density and
+ * A space's name, icon, colour and its strength, backgrounds, text size, density and
  * sidebar width. Sliders apply shortly
  * after they stop moving: each change re-lays out the pages.
  */
@@ -109,11 +110,42 @@ export function AppearanceSection({ info, update, reload }: { info: Info; update
   const stored = lookOf(saved, sp.id);
   return (
     <>
-      <Group title="Spaces" hint="Colour, strength and backgrounds belong to a space: each one can look different.">
+      <Group title="Spaces" hint="Name, icon, colour and backgrounds belong to a space: each one can look different.">
       <Field side label="Space" hint="The space the settings below are for.">
         <select className="field" value={sp.id} onChange={(e) => setChosen(e.target.value)} aria-label="Space">
           {info.spaces.map((s) => <option key={s.id} value={s.id}>{s.title}{s.id === info.active_space ? " (current)" : ""}</option>)}
         </select>
+      </Field>
+      <Field side label="Name" hint="Shown above the space's tabs. It syncs with the space.">
+        <input
+          key={`${sp.id} ${sp.title}`}
+          className="field"
+          style={{ width: 240 }}
+          defaultValue={sp.title}
+          aria-label="Name"
+          onBlur={(e) => {
+            const title = e.target.value.trim();
+            if (title && title !== sp.title) void send({ cmd: "rename_space", id: sp.id, title }).then(reload);
+            else e.target.value = sp.title;
+          }}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+        />
+      </Field>
+      <Field label="Icon" hint="Or a picture of your own, such as a PNG or an SVG. It stays on this device; your other devices show the icon chosen here.">
+        <div className="max-w-[420px]">
+          <GlyphGrid
+            current={stored.icon_image == null ? glyphFor(sp.icon) : null}
+            onPick={(g) =>
+              // A glyph is chosen in place of the own picture.
+              void send({ cmd: "rename_space", id: sp.id, title: sp.title, icon: g })
+                .then(() => (stored.icon_image == null ? undefined : storeImage("icon", sp.id, null, ICON_SIDE)))
+                .then(reload)
+            }
+          />
+        </div>
+        <div className="mt-2">
+          <OwnImage slot="icon" space={sp.id} stamp={stored.icon_image} maxSide={ICON_SIDE} reload={reload} />
+        </div>
       </Field>
       <Field side label="Colour" hint="Tints the sidebar and outlines the focused page in split view. It syncs with the space.">
         <ColourSwatches value={sp.accent} onPick={(c) => colour(sp.id, c)} />

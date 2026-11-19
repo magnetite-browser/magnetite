@@ -83,6 +83,19 @@ export function SpaceIcon({ space, looks, size = 14 }: { space: { id: Id; icon?:
   return <img src={userImageUrl("icon", space.id, stamp)} alt="" width={size} height={size} draggable={false} style={{ width: size, height: size, objectFit: "contain" }} />;
 }
 
+/** Every glyph to choose a space's icon from, `current` marked (the space dialog, Settings → Appearance). */
+export function GlyphGrid({ current, onPick }: { current: string | null; onPick: (glyph: string) => void }) {
+  return (
+    <div className="space-glyphs">
+      {GLYPH_NAMES.map((g) => (
+        <button key={g} type="button" title={g} aria-label={g} data-on={g === current || undefined} onClick={() => onPick(g)}>
+          <Glyph name={g} size={15} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Grid of glyphs for a space or folder icon; `allowDefault` adds a button
  * that brings the default icon back. Closes on Esc, a click outside or a

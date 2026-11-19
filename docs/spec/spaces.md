@@ -37,8 +37,9 @@ by all spaces. The profile decides which logins the pages of a space use.
   never as the SVG itself, and it is not synced: other devices show the
   glyph. Choosing a glyph removes it.
 - **Rename**: the dialog, or double-click the title. **Icon**: the dialog,
-  or click the icon. **Colour**: the dialog, or Settings → Appearance →
-  Colour, with eleven presets and a colour picker.
+  or click the icon. **Colour**: the dialog, with eleven presets and a
+  colour picker. Settings → Appearance has all of the dialog for the space
+  chosen there.
 - **Reorder**: drag a space icon in the footer onto another one. A line
   shows where it goes: before the icon under the pointer on its left half,
   after it on its right half; where it already is, no line shows. The

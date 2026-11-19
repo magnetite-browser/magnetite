@@ -3,14 +3,11 @@
 // user's own), colour, background and own pictures in one place. Every change applies at once, so the sidebar
 // beside it shows it. Esc, Done or a click elsewhere closes it.
 import { useEffect, useRef, useState } from "react";
-import { GLYPH_NAMES, Glyph, SpaceIcon, glyphFor } from "./Glyphs";
-import { storeImage } from "./backgrounds";
+import { GlyphGrid, SpaceIcon, glyphFor } from "./Glyphs";
+import { ICON_SIDE, storeImage } from "./backgrounds";
 import { accentCss, applyAppearance, lookOf, send, type Appearance, type Space, type SpaceLook, type UiState } from "./bridge";
 import { ColourSwatches, EFFECTS, OwnImage } from "./settings/AppearanceSection";
 import { Slider } from "./settings/fields";
-
-/** The side of a space's own icon as stored, in px: sharp at every size it is shown at. */
-const ICON_SIDE = 128;
 
 export function SpaceDialog() {
   const [state, setState] = useState<UiState | null>(null);
@@ -127,25 +124,15 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
       </Row>
 
       <Row label="Icon">
-        <div className="space-glyphs">
-          {GLYPH_NAMES.map((g) => (
-            <button
-              key={g}
-              type="button"
-              title={g}
-              aria-label={g}
-              data-on={(g === glyph && look.icon_image == null) || undefined}
-              onClick={() => {
-                setIcon(g);
-                rename(g);
-                // A glyph is chosen in place of the own picture.
-                if (look.icon_image != null) void storeImage("icon", space.id, null, ICON_SIDE).then(reload);
-              }}
-            >
-              <Glyph name={g} size={15} />
-            </button>
-          ))}
-        </div>
+        <GlyphGrid
+          current={look.icon_image == null ? glyph : null}
+          onPick={(g) => {
+            setIcon(g);
+            rename(g);
+            // A glyph is chosen in place of the own picture.
+            if (look.icon_image != null) void storeImage("icon", space.id, null, ICON_SIDE).then(reload);
+          }}
+        />
         <div className="mt-2">
           <OwnImage slot="icon" space={space.id} stamp={look.icon_image} maxSide={ICON_SIDE} reload={reload} />
         </div>

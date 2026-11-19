@@ -7,6 +7,9 @@ import { DEFAULT_ACCENT, accentCss, send, type Color, type Id, type SpaceLook } 
 
 export type ImageSlot = "empty" | "sidebar" | "icon";
 
+/** The side of a space's own icon as stored, in px: sharp at every size it is shown at. */
+export const ICON_SIDE = 128;
+
 /** Address of space `space`'s stored image for `slot`; `stamp` changes with every new image. */
 export const userImageUrl = (slot: ImageSlot, space: Id, stamp: number) => `/user-images/${slot}-${space}?v=${stamp}`;
 
