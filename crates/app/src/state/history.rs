@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use super::{AppState, new_id};
 
 /// The most visits kept; the oldest go first.
-pub const MAX_VISITS: usize = 10_000;
+pub const MAX_VISITS: usize = 25_000;
 
 /// A second visit of the same page within this time updates the first one
 /// instead of adding another (reloads, a page that changes its address).

@@ -113,7 +113,7 @@ from a context Magnetite did not make is not opened.
   `sync.key` and `smart-accounts.json` are 0600 from the moment they exist
   and are written whole (`files.rs`).
 - The history (`history.json`) holds address, title and time of visits to
-  `http(s)` pages only, is never synced, is capped (10,000 visits) and
+  `http(s)` pages only, is never synced, is capped (25,000 visits) and
   pruned to the period set in Settings ("Don't keep history" records
   nothing and deletes the file). Removing or clearing visits writes the
   file at once.

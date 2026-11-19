@@ -16,7 +16,7 @@ import { Switch, Toggle } from "./settings/fields";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { EXTERNAL_LINKS } from "./settings/externalLinks";
 import { keysLabel, SHORTCUT_LABEL, type ShortcutAction } from "./settings/shortcutKeys";
-import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
+import { ARCHIVE_AFTER, NEVER_ARCHIVE, UNLOAD_AFTER } from "./settings/tabTimes";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
 import type { Info, SettingsPatch } from "./settings/types";
 
@@ -662,8 +662,10 @@ export function Welcome() {
                 </Chosen>
                 {steps.includes("habits") && !joined && (
                   <Chosen label="Tabs left alone" change={() => go("habits")}>
-                    Unloaded after {UNLOAD_AFTER.find((t) => t.minutes === info.settings.unload_minutes)?.label ?? "a while"}, archived after{" "}
-                    {ARCHIVE_AFTER.find((t) => t.hours === info.settings.auto_archive_hours)?.label ?? "a while"}
+                    Unloaded after {UNLOAD_AFTER.find((t) => t.minutes === info.settings.unload_minutes)?.label ?? "a while"},{" "}
+                    {info.settings.auto_archive_hours === NEVER_ARCHIVE
+                      ? "never archived"
+                      : `archived after ${ARCHIVE_AFTER.find((t) => t.hours === info.settings.auto_archive_hours)?.label ?? "a while"}`}
                   </Chosen>
                 )}
                 <Chosen label="Look" change={() => go("look")}>

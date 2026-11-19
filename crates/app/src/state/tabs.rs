@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use magnetite_core::{Id, SidebarNode, Space, TabItem, UnixSeconds};
 use magnetite_engine::{ContentId, MemoryPressure};
 
-use super::settings::MAX_ARCHIVE_DAYS;
+use super::settings::{MAX_ARCHIVE_DAYS, NEVER_ARCHIVE};
 use super::{AppState, ArchivedTab, Peek, TabRuntime, new_id, now};
 
 pub(super) fn find_in_tree_mut<'a>(
@@ -395,8 +395,12 @@ impl AppState {
     /// The Today tabs to archive now: out of sight for longer than the
     /// auto-archive period (counted from creation if never shown). Not the
     /// tabs in `active` (on screen, or the one a space returns to), not
-    /// those with media or being shared, and not those kept active.
+    /// those with media or being shared, and not those kept active. None
+    /// with auto-archive turned off (`NEVER_ARCHIVE`).
     pub fn stale_today_tabs(&self, now: UnixSeconds, active: &HashSet<Id>) -> Vec<Id> {
+        if self.settings.auto_archive_hours == NEVER_ARCHIVE {
+            return Vec::new();
+        }
         let period = i64::from(self.settings.auto_archive_hours) * 3600;
         (self.sidebar.spaces.iter())
             .flat_map(|space| space.today.iter())
@@ -524,9 +528,12 @@ impl AppState {
     }
 
     /// Delete archived tabs older than the retention period
-    /// (`Settings::archive_days`). True if any went.
+    /// (`Settings::archive_days`; 0: none, they are kept). True if any went.
     pub fn prune_archive(&mut self, now: UnixSeconds) -> bool {
-        let keep = i64::from(self.settings.archive_days.clamp(1, MAX_ARCHIVE_DAYS)) * 86_400;
+        if self.settings.archive_days == 0 {
+            return false;
+        }
+        let keep = i64::from(self.settings.archive_days.min(MAX_ARCHIVE_DAYS)) * 86_400;
         let before = self.archive.len();
         self.archive
             .retain(|a| now.saturating_sub(a.archived_at) <= keep);
@@ -773,6 +780,10 @@ mod tests {
         let active: HashSet<Id> = HashSet::from(["b".to_string()]);
         s.find_tab_mut("c").unwrap().keep_active = true;
         assert_eq!(s.stale_today_tabs(now(), &active), ["a"]);
+        // Turned off, no tab is archived however long it was left alone.
+        s.settings.auto_archive_hours = NEVER_ARCHIVE;
+        assert_eq!(s.stale_today_tabs(i64::MAX, &active), [] as [Id; 0]);
+        s.settings.auto_archive_hours = 12;
         assert_eq!(s.tabs_to_unload(now(), &active), ["a"]);
         // Let go again, it goes the way of the others.
         s.find_tab_mut("c").unwrap().keep_active = false;
@@ -870,6 +881,10 @@ mod tests {
         let kept: Vec<&str> = s.archive.iter().map(|a| a.tab.id.as_str()).collect();
         assert_eq!(kept, ["edge", "new"]);
         assert!(!s.prune_archive(100 * day), "nothing more to delete");
+        // Kept forever: nothing goes, however old.
+        s.settings.archive_days = 0;
+        assert!(!s.prune_archive(100_000 * day));
+        assert_eq!(s.archive.len(), 2);
     }
 
     #[test]

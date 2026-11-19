@@ -8,10 +8,17 @@ export const UNLOAD_AFTER = [
   { label: "Never", minutes: 0 },
 ];
 
+/**
+ * `auto_archive_hours` for "Never": `NEVER_ARCHIVE` of
+ * crates/app/src/state/settings.rs, which says why it is not 0.
+ */
+export const NEVER_ARCHIVE = 4294967295;
+
 /** After how long unused a Today tab is archived (`auto_archive_hours`). */
 export const ARCHIVE_AFTER = [
   { label: "12 hours", hours: 12 },
   { label: "24 hours", hours: 24 },
   { label: "7 days", hours: 168 },
   { label: "30 days", hours: 720 },
+  { label: "Never", hours: NEVER_ARCHIVE },
 ];

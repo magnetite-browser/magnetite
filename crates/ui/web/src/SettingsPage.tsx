@@ -261,7 +261,15 @@ export function SettingsPage() {
               {ARCHIVE_AFTER.map((t) => <option key={t.hours} value={t.hours}>{t.label}</option>)}
             </select>
           </Field>
-          <ArchiveRetention key={settings.archive_days} days={settings.archive_days} save={(days) => update({ archive_days: days })} />
+          <Retention
+            key={settings.archive_days}
+            label="Keep archived tabs for"
+            hint="Older ones are deleted from the archive for good. A tab can also be removed by hand in the archive view."
+            presets={[30, 60, 90]}
+            special="Forever"
+            days={settings.archive_days}
+            save={(days) => update({ archive_days: days })}
+          />
           <Field side label="Suspend inactive tabs after" hint="Suspended tabs keep their place and reload when opened. This is what keeps hundreds of tabs cheap.">
             <select className="field" value={settings.unload_minutes} onChange={(e) => update({ unload_minutes: Number(e.target.value) })}>
               {UNLOAD_AFTER.map((t) => <option key={t.minutes} value={t.minutes}>{t.label}</option>)}
@@ -340,12 +348,15 @@ export function SettingsPage() {
       {sectionId === "data" && (
         <>
           <Group title="Browsing data">
-          <Field side label="Keep history for" hint="The pages you visit, with title and time, to find them again. Kept on this computer only, never synced; private profiles leave none.">
-            <select className="field" value={settings.history_days} onChange={(e) => update({ history_days: Number(e.target.value) })}>
-              {[7, 30, 90].includes(settings.history_days) || settings.history_days === 0 ? null : <option value={settings.history_days}>{settings.history_days} days</option>}
-              <option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option><option value={0}>Don't keep history</option>
-            </select>
-          </Field>
+          <Retention
+            key={settings.history_days}
+            label="Keep history for"
+            hint="The pages you visit, with title and time, to find them again: the newest 25,000 at most. Kept on this computer only, never synced; private profiles leave none."
+            presets={[7, 30, 90, 365]}
+            special="Don't keep history"
+            days={settings.history_days}
+            save={(days) => update({ history_days: days })}
+          />
           <Field side label="Visited pages" hint={`${info.history_count} so far. Single pages can be removed in the history view.`}>
             <ClearHistory key={info.history_count} disabled={info.history_count === 0} onClear={() => send({ cmd: "clear_history" }).then(() => void reload())} />
           </Field>
@@ -477,24 +488,35 @@ function SearchAddress({ saved, save }: { saved: string; save: (template: string
   );
 }
 
-const RETENTION_DAYS = [30, 60, 90];
 const MAX_RETENTION_DAYS = 3650;
 
+/** What the Settings page calls a retention period of `days`. */
+const daysLabel = (days: number) => (days === 365 ? "1 year" : `${days} days`);
+
 /**
- * How long the archive keeps a tab: 30, 60 or 90 days, or a number of days
- * typed in. A typed number is saved on Enter or when the field is left, not
- * while typing: a shorter period deletes archived tabs within a minute.
+ * How long the archive or the history keeps its records: one of `presets`
+ * (days), a number of days typed in, or `special`, the choice saved as 0
+ * days. A typed number is saved on Enter or when the field is left, not
+ * while typing: a shorter period deletes records within a minute.
  */
-function ArchiveRetention({ days, save }: { days: number; save: (days: number) => void }) {
-  const [custom, setCustom] = useState(!RETENTION_DAYS.includes(days));
-  const [text, setText] = useState(String(days));
+function Retention({ label, hint, presets, special, days, save }: {
+  label: string;
+  hint: string;
+  presets: number[];
+  special: string;
+  days: number;
+  save: (days: number) => void;
+}) {
+  const listed = days === 0 || presets.includes(days);
+  const [custom, setCustom] = useState(!listed);
+  const [text, setText] = useState(String(days || presets[0]));
   const typed = Number(text);
   const valid = Number.isInteger(typed) && typed >= 1 && typed <= MAX_RETENTION_DAYS;
   const commit = () => {
     if (valid && typed !== days) save(typed);
   };
   return (
-    <Field side label="Keep archived tabs for" hint="Older ones are deleted from the archive for good. A tab can also be removed by hand in the archive view.">
+    <Field side label={label} hint={hint}>
       <div className="flex flex-wrap items-center gap-2">
         <select
           className="field"
@@ -506,8 +528,9 @@ function ArchiveRetention({ days, save }: { days: number; save: (days: number) =
             if (Number(e.target.value) !== days) save(Number(e.target.value));
           }}
         >
-          {RETENTION_DAYS.map((d) => <option key={d} value={d}>{d} days</option>)}
+          {presets.map((d) => <option key={d} value={d}>{daysLabel(d)}</option>)}
           <option value="custom">Custom…</option>
+          <option value={0}>{special}</option>
         </select>
         {custom && (
           <>
@@ -518,7 +541,7 @@ function ArchiveRetention({ days, save }: { days: number; save: (days: number) =
               value={text}
               aria-label="Days"
               aria-invalid={!valid || undefined}
-              autoFocus={RETENTION_DAYS.includes(days)}
+              autoFocus={listed}
               onChange={(e) => setText(e.target.value.replace(/\D/g, "").slice(0, 4))}
               onBlur={commit}
               onKeyDown={(e) => e.key === "Enter" && commit()}

@@ -7,8 +7,14 @@ use std::collections::{BTreeMap, HashMap};
 use magnetite_core::{Id, UnixSeconds};
 use serde::{Deserialize, Serialize};
 
-/// The longest the archive may keep a tab: ten years.
+/// The longest retention period in days, for the archive and the history:
+/// ten years.
 pub const MAX_ARCHIVE_DAYS: u32 = 3650;
+
+/// `Settings::auto_archive_hours` for "Never". Not 0: the setting syncs, and
+/// versions from before this value raise 0 to one hour, while they read
+/// this one as a period that never ends.
+pub const NEVER_ARCHIVE: u32 = u32::MAX;
 
 /// The current set of defaults. Raised when a default changes that
 /// installations still on the old one should follow
@@ -22,11 +28,14 @@ const FIRST_UNLOAD_MINUTES: u32 = 30;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
-    /// Today tabs unused this long are archived. Minimum 1 h.
+    /// Today tabs unused this long are archived. Minimum 1 h;
+    /// `NEVER_ARCHIVE` turns it off.
     pub auto_archive_hours: u32,
-    /// Archived tabs are deleted after this many days (1 to `MAX_ARCHIVE_DAYS`).
+    /// Archived tabs are deleted after this many days (up to
+    /// `MAX_ARCHIVE_DAYS`); 0 keeps them until they are removed by hand.
     pub archive_days: u32,
-    /// Visits stay in the history this many days; 0 keeps none (`history.rs`).
+    /// Visits stay in the history this many days (up to `MAX_ARCHIVE_DAYS`);
+    /// 0 keeps none (`history.rs`).
     pub history_days: u32,
     /// Hidden tabs lose their window after this; 0 disables unloading.
     pub unload_minutes: u32,
@@ -514,7 +523,7 @@ impl Settings {
     pub fn sanitised(mut self) -> Self {
         let defaults = Self::default();
         self.auto_archive_hours = self.auto_archive_hours.max(1);
-        self.archive_days = self.archive_days.clamp(1, MAX_ARCHIVE_DAYS);
+        self.archive_days = self.archive_days.min(MAX_ARCHIVE_DAYS);
         self.history_days = self.history_days.min(MAX_ARCHIVE_DAYS);
         self.appearance = self.appearance.clamped();
         self.adblock = self.adblock.sanitised();
@@ -882,9 +891,9 @@ mod tests {
         assert_eq!(next.sync.server_url, "https://sync.example.org");
         // Values are checked as always.
         let next = saved
-            .patched(patch(serde_json::json!({ "archive_days": 0 })))
+            .patched(patch(serde_json::json!({ "archive_days": 4000 })))
             .unwrap();
-        assert_eq!(next.archive_days, 1);
+        assert_eq!(next.archive_days, MAX_ARCHIVE_DAYS);
     }
 
     #[test]
@@ -923,6 +932,11 @@ mod tests {
         }
         .sanitised();
         assert_eq!(bad.auto_archive_hours, 1);
+        let never = Settings {
+            auto_archive_hours: NEVER_ARCHIVE,
+            ..Settings::default()
+        };
+        assert_eq!(never.sanitised().auto_archive_hours, NEVER_ARCHIVE);
         assert_eq!(bad.search_template, Settings::default().search_template);
         assert_eq!(bad.external_links, "mini");
         for known in ["tab", "peek", "mini"] {

@@ -37,9 +37,10 @@ of a split's) and the tab each other space returns to are never archived.
 
 | Setting | Options | Default |
 |---|---|---|
-| Settings → Tabs & archive → "Archive Today tabs after" | 12 hours, 24 hours, 7 days, 30 days | 12 hours |
+| Settings → Tabs & archive → "Archive Today tabs after" | 12 hours, 24 hours, 7 days, 30 days, Never | 12 hours |
 
-Auto-archive cannot be turned off. It skips the active tab of each space,
+With "Never" no tab is archived by itself; Today tabs stay until they are
+closed. Their pages are still unloaded (`sidebar.md`). Auto-archive skips the active tab of each space,
 tabs with media, playing or paused, and tabs kept active (`sidebar.md`).
 The period is one of the settings that sync (`sync.md`).
 
@@ -118,10 +119,11 @@ cache (`sidebar.md`). The file is readable by its owner only.
 
 A record leaves the archive when its tab is restored or removed by hand, or
 once it is older than the retention period: the minute tick deletes those.
+With "Forever" there is no period, and records only leave by hand.
 
 | Setting | Options | Default |
 |---|---|---|
-| Settings → Tabs & archive → "Keep archived tabs for" | 30, 60 or 90 days, or a number of days from 1 to 3650 | 90 days |
+| Settings → Tabs & archive → "Keep archived tabs for" | 30, 60 or 90 days, a number of days from 1 to 3650, or Forever | 90 days |
 
 A typed number is saved on Enter or when the field is left. A shorter period
 deletes older records within a minute, and they cannot be brought back. The
