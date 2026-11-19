@@ -99,6 +99,7 @@ mod tests {
             id: "s".into(),
             title: "S".into(),
             icon: None,
+            icon_image: None,
             accent: None,
             profile_id: "p".into(),
             shortcut: None,

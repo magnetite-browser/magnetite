@@ -177,6 +177,7 @@ fn new_space(ids: &mut Ids, title: &str) -> Result<Space, ImportError> {
         id: ids.next()?,
         title: title.to_string(),
         icon: None,
+        icon_image: None,
         accent: None,
         profile_id: DEFAULT_PROFILE.into(),
         shortcut: None,

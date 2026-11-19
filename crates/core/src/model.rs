@@ -141,6 +141,11 @@ pub struct Space {
     /// Emoji or a named icon from our icon set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
+    /// A picture of the user's own, shown in place of `icon`: a small WebP
+    /// file as base64 (the app keeps it within `MAX_ICON_IMAGE_BYTES`).
+    /// Part of the space, so it syncs with it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_image: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub accent: Option<Color>,
     pub profile_id: Id,

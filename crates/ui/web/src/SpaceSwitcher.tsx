@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { SpaceIcon } from "./Glyphs";
 import { MaskIcon } from "./Icons";
-import { accentCss, send, type Appearance, type Space } from "./bridge";
+import { accentCss, send, type Space } from "./bridge";
 import { indexAfterTaking, sideOf } from "./dnd";
 
 // The space being dragged. Kept apart from the tabs' and folders' drag state
@@ -9,7 +9,7 @@ import { indexAfterTaking, sideOf } from "./dnd";
 let dragged: string | null = null;
 
 /** The footer's space icons: click to switch, right-click for the menu, drag to reorder. */
-export function SpaceSwitcher({ spaces, looks, current, privateSpace, onMenu }: { spaces: Space[]; looks: Appearance["looks"]; current: string; privateSpace: string | null; onMenu: (x: number, y: number, space: Space) => void }) {
+export function SpaceSwitcher({ spaces, current, privateSpace, onMenu }: { spaces: Space[]; current: string; privateSpace: string | null; onMenu: (x: number, y: number, space: Space) => void }) {
   // The icon a dragged space hovers, and the side of it the space would go to.
   const [over, setOver] = useState<{ id: string; side: "left" | "right" } | null>(null);
   // Where the dragged space goes when dropped on that side of icon `i`, or
@@ -58,7 +58,7 @@ export function SpaceSwitcher({ spaces, looks, current, privateSpace, onMenu }: 
           onContextMenu={(e) => { e.preventDefault(); onMenu(e.clientX, e.clientY, s); }}
           title={s.title}
         >
-          {s.id === privateSpace ? <MaskIcon width={17} height={17} /> : <SpaceIcon space={s} looks={looks} size={17} />}
+          {s.id === privateSpace ? <MaskIcon width={17} height={17} /> : <SpaceIcon space={s} size={17} />}
         </button>
       ))}
     </div>

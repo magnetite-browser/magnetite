@@ -184,8 +184,6 @@ pub struct SpaceLook {
     pub sidebar_image: Option<u64>,
     /// The same for the image behind the empty window.
     pub empty_image: Option<u64>,
-    /// The same for the image shown in place of the space's icon.
-    pub icon_image: Option<u64>,
 }
 
 impl Default for SpaceLook {
@@ -195,7 +193,6 @@ impl Default for SpaceLook {
             sidebar_effect: SidebarEffect::None,
             sidebar_image: None,
             empty_image: None,
-            icon_image: None,
         }
     }
 }
@@ -586,8 +583,8 @@ impl Settings {
     /// shortcuts' keys, which have commands of their own (`set_shortcut`).
     /// The download folder too, which only the system's dialog names
     /// (`choose_download_folder`); a patch can only take it away. And the
-    /// stamps of the spaces' own images, which `set_appearance_image` and
-    /// `rename_space` set: a patch carries those its page last saw, of a
+    /// stamps of the spaces' own images, which `set_appearance_image`
+    /// sets: a patch carries those its page last saw, of a
     /// picture that may be stored or removed since.
     pub fn patched(
         &self,
@@ -614,7 +611,6 @@ impl Settings {
             let kept = self.appearance.look(id);
             look.sidebar_image = kept.sidebar_image;
             look.empty_image = kept.empty_image;
-            look.icon_image = kept.icon_image;
             if look.sidebar_image.is_none() && look.sidebar_effect == SidebarEffect::Image {
                 look.sidebar_effect = SidebarEffect::None;
             }
@@ -1014,19 +1010,19 @@ mod tests {
         start.appearance.looks.insert(
             "work".into(),
             SpaceLook {
-                icon_image: Some(7),
+                empty_image: Some(7),
                 ..SpaceLook::default()
             },
         );
-        // A page that last saw a sidebar image and no own icon saves the strength.
+        // A page that last saw a sidebar image and no empty-window image saves the strength.
         let serde_json::Value::Object(stale) = serde_json::json!({ "appearance": { "looks": { "work": {
-            "tint": 20, "sidebar_effect": "image", "sidebar_image": 3, "icon_image": null,
+            "tint": 20, "sidebar_effect": "image", "sidebar_image": 3, "empty_image": null,
         } } } }) else {
             unreachable!()
         };
         let look = start.patched(stale).unwrap().appearance.look("work");
         assert_eq!(look.tint, 20);
-        assert_eq!(look.icon_image, Some(7));
+        assert_eq!(look.empty_image, Some(7));
         assert_eq!(look.sidebar_image, None);
         assert_eq!(look.sidebar_effect, SidebarEffect::None);
     }

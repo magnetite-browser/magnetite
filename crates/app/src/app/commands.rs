@@ -13,7 +13,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 
 use crate::state::import::{SpaceChoice, choose_spaces, preview};
-use crate::state::{AppState, ArcImport, SidebarEffect, new_id};
+use crate::state::{AppState, ArcImport, SidebarEffect, icon_image_ok, new_id};
 use crate::sync::{self, Job};
 use crate::{capture, downloads, lock, url_policy};
 
@@ -67,8 +67,6 @@ pub enum ImageSlot {
     Empty,
     /// Over the sidebar's colour.
     Sidebar,
-    /// In place of the space's icon.
-    Icon,
 }
 
 impl ImageSlot {
@@ -80,7 +78,6 @@ impl ImageSlot {
         let slot = match self {
             Self::Empty => "empty",
             Self::Sidebar => "sidebar",
-            Self::Icon => "icon",
         };
         (!space.is_empty() && space.chars().all(plain)).then(|| {
             magnetite_engine::user_image_dir(data_dir).join(format!("{slot}-{space}.webp"))
@@ -220,13 +217,23 @@ pub(super) enum UiCommand {
         icon: Option<String>,
     },
     /// Give space `id` another name (an empty one keeps its name), another
-    /// glyph, or both. A glyph takes the place of the space's own icon.
+    /// glyph, or both. A glyph takes the place of the space's own picture
+    /// (`SetSpaceIconImage`).
     RenameSpace {
         id: String,
         #[serde(default)]
         title: String,
         #[serde(default)]
         icon: Option<String>,
+    },
+    /// Show a picture of the user's own in place of space `id`'s glyph
+    /// (`data`: a WebP file as base64, within `MAX_ICON_IMAGE_BYTES`), or
+    /// the glyph again (`None`). The picture is part of the space and syncs
+    /// with it, hence the small size.
+    SetSpaceIconImage {
+        id: String,
+        #[serde(default)]
+        data: Option<String>,
     },
     /// Give space `id` a colour, or its default back (`None`).
     SetSpaceColor {
@@ -1087,6 +1094,7 @@ impl MagnetiteApp {
                             title.trim().into()
                         },
                         icon: icon.or_else(|| Some("✦".into())),
+                        icon_image: None,
                         accent: Some(Color {
                             red: 0.55,
                             green: 0.5,
@@ -1103,28 +1111,22 @@ impl MagnetiteApp {
                 self.activate_space(engine, &id);
             }
             UiCommand::RenameSpace { id, title, icon } => {
-                let own_icon_gone = self.with_state(|s| {
+                self.with_state(|s| {
                     // The private space keeps its name and icon.
                     if s.is_private_space(&id) {
-                        return false;
+                        return;
                     }
-                    let Some(sp) = s.space_mut(&id) else {
-                        return false;
-                    };
-                    if !title.trim().is_empty() {
-                        sp.title = title.trim().into();
+                    if let Some(sp) = s.space_mut(&id) {
+                        if !title.trim().is_empty() {
+                            sp.title = title.trim().into();
+                        }
+                        if icon.is_some() {
+                            sp.icon = icon;
+                            // A glyph is chosen in place of the own picture.
+                            sp.icon_image = None;
+                        }
                     }
-                    if icon.is_none() {
-                        return false;
-                    }
-                    sp.icon = icon;
-                    // A glyph is chosen in place of the own icon.
-                    let look = s.settings.appearance.looks.get_mut(&id);
-                    look.is_some_and(|look| look.icon_image.take().is_some())
                 });
-                if own_icon_gone && let Some(file) = ImageSlot::Icon.file(&self.data_dir, &id) {
-                    let _ = std::fs::remove_file(file);
-                }
                 self.push_state(engine);
             }
             UiCommand::DeleteSpace { id } if self.with_state(|s| s.is_private_space(&id)) => {
@@ -1138,7 +1140,7 @@ impl MagnetiteApp {
                 // Its look and its own images go with it.
                 if self.with_state(|s| s.space(&id).is_none()) {
                     self.with_state(|s| s.settings.appearance.looks.remove(&id));
-                    for slot in [ImageSlot::Empty, ImageSlot::Sidebar, ImageSlot::Icon] {
+                    for slot in [ImageSlot::Empty, ImageSlot::Sidebar] {
                         if let Some(file) = slot.file(&self.data_dir, &id) {
                             let _ = std::fs::remove_file(file);
                         }
@@ -1726,7 +1728,7 @@ impl MagnetiteApp {
                             profile["synced"] = json!(!kept_profiles.contains(&p.id));
                             profile
                         }).collect::<Vec<_>>(),
-                        "spaces": s.sidebar.spaces.iter().filter(|sp| !s.is_private_space(&sp.id)).map(|sp| json!({"id": sp.id, "title": sp.title, "icon": sp.icon, "accent": sp.accent, "profile_id": sp.profile_id, "synced": !s.unsynced_spaces.contains(&sp.id), "keys": space_keys.iter().find_map(|(own, keys)| (own.id == sp.id).then(|| keys.to_string())), "shortcut": sp.shortcut})).collect::<Vec<_>>(),
+                        "spaces": s.sidebar.spaces.iter().filter(|sp| !s.is_private_space(&sp.id)).map(|sp| json!({"id": sp.id, "title": sp.title, "icon": sp.icon, "icon_image": sp.icon_image, "accent": sp.accent, "profile_id": sp.profile_id, "synced": !s.unsynced_spaces.contains(&sp.id), "keys": space_keys.iter().find_map(|(own, keys)| (own.id == sp.id).then(|| keys.to_string())), "shortcut": sp.shortcut})).collect::<Vec<_>>(),
                         "active_space": s.active_space,
                         "favorites": s.sidebar.favorites.iter().flat_map(|f| f.items.iter()).map(|t| json!({"id": t.id, "title": t.title, "url": t.url, "profile_id": s.profile_for_tab(&t.id)})).collect::<Vec<_>>(),
                         "archive_count": s.archive.len(),
@@ -1747,6 +1749,22 @@ impl MagnetiteApp {
                         })).collect::<Vec<_>>(),
                     })
                 }));
+            }
+            UiCommand::SetSpaceIconImage { id, data } => {
+                if data.as_deref().is_some_and(|d| !icon_image_ok(d)) {
+                    return Err("an icon is a WebP picture of at most 4 KB".into());
+                }
+                let set = self.with_state(|s| {
+                    // The private space keeps its icon.
+                    if s.is_private_space(&id) {
+                        return false;
+                    }
+                    (s.space_mut(&id).map(|sp| sp.icon_image = data)).is_some()
+                });
+                if !set {
+                    return Err("no such space".into());
+                }
+                self.push_state(engine);
             }
             UiCommand::SetSpaceColor { id, color } => {
                 self.with_state(|s| {
@@ -1792,7 +1810,6 @@ impl MagnetiteApp {
                     let a = s.settings.appearance.looks.entry(space).or_default();
                     match slot {
                         ImageSlot::Empty => a.empty_image = stored,
-                        ImageSlot::Icon => a.icon_image = stored,
                         ImageSlot::Sidebar => {
                             a.sidebar_image = stored;
                             // A new image shows at once; without one its effect is off.

@@ -87,6 +87,7 @@ impl AppState {
             id: id.clone(),
             title: "Private".into(),
             icon: None,
+            icon_image: None,
             accent: Some(Color {
                 red: 0.62,
                 green: 0.62,

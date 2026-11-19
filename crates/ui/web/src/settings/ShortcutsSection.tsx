@@ -143,7 +143,7 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
               { kind: "space", id: space.id },
               space.id,
               <>
-                <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: accentCss(space.accent ?? undefined) }}><SpaceIcon space={space} looks={info.settings.appearance.looks} size={15} /></span>
+                <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: accentCss(space.accent ?? undefined) }}><SpaceIcon space={space} size={15} /></span>
                 <span className="min-w-0 flex-1 truncate" data-search-name>{space.title}</span>
               </>,
             ),

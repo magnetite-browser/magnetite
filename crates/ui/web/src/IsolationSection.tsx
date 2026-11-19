@@ -54,7 +54,7 @@ export function IsolationSection({ info, reload }: { info: Info; reload: () => v
               reload={reload}
               defaultId={defaultId}
               target={{ kind: "space", id: sp.id, title: sp.title, profileId: sp.profile_id }}
-              icon={<span className="icon-slot" style={{ color: "var(--accent)" }}><SpaceIcon space={sp} looks={info.settings.appearance.looks} size={15} /></span>}
+              icon={<span className="icon-slot" style={{ color: "var(--accent)" }}><SpaceIcon space={sp} size={15} /></span>}
             />
           ))}
         </div>

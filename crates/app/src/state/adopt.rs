@@ -65,6 +65,28 @@ fn drop_taken(nodes: &mut Vec<SidebarNode>, taken: &HashSet<String>) {
     }
 }
 
+/// The most a space's own icon may weigh, in bytes of WebP. It is part of
+/// the space and syncs with it, so it stays small: enough for the 64 px
+/// picture the pages make of it, too little to pass pictures around with.
+const MAX_ICON_IMAGE_BYTES: usize = 4 * 1024;
+
+/// Whether `data` is what a space's own icon is kept as: base64 of a WebP
+/// file ("RIFF....WEBP") of at most `MAX_ICON_IMAGE_BYTES`.
+pub fn icon_image_ok(data: &str) -> bool {
+    use base64::Engine as _;
+    // Four characters hold three bytes.
+    if data.len() > MAX_ICON_IMAGE_BYTES.div_ceil(3) * 4 {
+        return false;
+    }
+    base64::engine::general_purpose::STANDARD
+        .decode(data)
+        .is_ok_and(|bytes| {
+            bytes.len() <= MAX_ICON_IMAGE_BYTES
+                && bytes.get(..4) == Some(b"RIFF")
+                && bytes.get(8..12) == Some(b"WEBP")
+        })
+}
+
 /// Make data from elsewhere (sync, imports) safe to keep: colours finite and
 /// in range (a non-finite one would be saved as `null` and make `state.json`
 /// unreadable), timestamps no later than tomorrow, smart folder settings in
@@ -74,7 +96,8 @@ fn drop_taken(nodes: &mut Vec<SidebarNode>, taken: &HashSet<String>) {
 /// favorite or pinned tab has a home page, a Today tab has none. (Without
 /// its home page a private pinned tab would be saved where it went.) A
 /// bookmark is an address with a name and nothing else, and a bookmark
-/// folder is never a smart folder.
+/// folder is never a smart folder. A space's own icon is a small WebP file
+/// (`icon_image_ok`), or it is dropped.
 pub fn sanitise_snapshot(snap: &mut SidebarSnapshot) {
     /// `kept`: favorites, which keep a home page; Today tabs have none.
     fn tabs(list: &mut Vec<TabItem>, seen: &mut HashSet<String>, latest: UnixSeconds, kept: bool) {
@@ -144,6 +167,7 @@ pub fn sanitise_snapshot(snap: &mut SidebarSnapshot) {
     snap.spaces.retain(|sp| spaces.insert(sp.id.clone()));
     for space in &mut snap.spaces {
         space.accent = space.accent.map(magnetite_core::Color::sanitised);
+        space.icon_image.take_if(|image| !icon_image_ok(image));
         nodes(&mut space.pinned, &mut seen, latest);
         tabs(&mut space.today, &mut seen, latest, false);
         bookmarks(&mut space.bookmarks, &mut seen, latest);
@@ -554,6 +578,30 @@ mod tests {
     use crate::state::TabRuntime;
     use crate::state::persist::default_sidebar;
     use crate::state::testing::{state, tab};
+
+    #[test]
+    fn a_space_keeps_only_a_small_webp_as_its_own_icon() {
+        use base64::Engine as _;
+        let encode = |bytes: &[u8]| base64::engine::general_purpose::STANDARD.encode(bytes);
+        let webp = |len: usize| {
+            let mut bytes = b"RIFF\0\0\0\0WEBP".to_vec();
+            bytes.resize(len, 0);
+            encode(&bytes)
+        };
+        assert!(icon_image_ok(&webp(MAX_ICON_IMAGE_BYTES)));
+        assert!(!icon_image_ok(&webp(MAX_ICON_IMAGE_BYTES + 1)));
+        assert!(!icon_image_ok(&encode(b"\x89PNG\r\n\x1a\n0000")));
+        assert!(!icon_image_ok("not base64"));
+
+        // What another device sends is held to the same.
+        let mut snap = default_sidebar();
+        snap.spaces[0].icon_image = Some(webp(MAX_ICON_IMAGE_BYTES + 1));
+        sanitise_snapshot(&mut snap);
+        assert_eq!(snap.spaces[0].icon_image, None);
+        snap.spaces[0].icon_image = Some(webp(64));
+        sanitise_snapshot(&mut snap);
+        assert_eq!(snap.spaces[0].icon_image, Some(webp(64)));
+    }
 
     #[test]
     fn private_pinned_tabs_keep_only_their_home_address() {

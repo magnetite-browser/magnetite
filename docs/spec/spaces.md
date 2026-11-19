@@ -10,6 +10,7 @@ by all spaces. The profile decides which logins the pages of a space use.
 |---|---|
 | `title` | The name shown above the tabs. |
 | `icon` | One of 27 glyphs, drawn in the space colour. An imported icon without a matching glyph shows as its emoji or as the first letter of the title. |
+| `icon_image` | A picture of the user's own shown in place of the glyph: a WebP file of at most 4 KB, as base64 ("Own icon" below). |
 | `accent` | The space colour. It tints the sidebar and outlines the focused page in split view. |
 | `profile_id` | The profile the space's pages run in. |
 | `shortcut` | The keys that go to the space, if it has some of its own (`shortcuts.md`). |
@@ -32,11 +33,16 @@ by all spaces. The profile decides which logins the pages of a space use.
   change applies at once; Esc, Done or a click elsewhere closes the
   dialog. The private space has no such dialog.
 - **Own icon**: the dialog takes a picture of your own, a PNG or an SVG
-  for one, in place of the glyph. It is drawn into a square of 128 px and
-  stored as WebP on this device like the other pictures ("Look" below),
-  never as the SVG itself, and it is not synced: other devices show the
-  glyph. Choosing a glyph removes it, in the dialog, in Settings and from
-  the icon beside the title.
+  for one, in place of the glyph. It is drawn into a square of 64 px (it
+  shows at 15 to 18 points) and kept as WebP in the space itself, never as
+  the SVG itself and without the file's metadata. So it syncs with the
+  space, and it is small for that reason: at most 4 KB, an icon and not a
+  way to pass pictures around. A picture with more detail than that is
+  stored coarser, then at 48 and 32 px; the app refuses anything larger or
+  not WebP, from a page and from another device alike. A version that does
+  not know the field drops the picture when it writes the sidebar.
+  Choosing a glyph removes it, in the dialog, in Settings and from the
+  icon beside the title.
 - **Rename**: the dialog, or double-click the title. **Icon**: the dialog,
   or click the icon. **Colour**: the dialog, with eleven presets and a
   colour picker. Settings → Appearance has all of the dialog for the space
@@ -79,7 +85,8 @@ such as place and camera. Strength, background and pictures are kept on this
 device and are not synced: the settings in `state.json`
 (`settings.appearance.looks`), the pictures in
 `<data-dir>/appearance/`, readable by the owner only. Only the Settings page
-and the space dialog may store or remove a picture. Deleting a space removes
+and the space dialog may store or remove a picture, a space's own icon
+included. Deleting a space removes
 its look and its pictures.
 
 ## Switching

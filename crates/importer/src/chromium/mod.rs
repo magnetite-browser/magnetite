@@ -218,6 +218,7 @@ fn space(
         id: ids.next()?,
         title,
         icon: None,
+        icon_image: None,
         accent: None,
         profile_id,
         pinned,

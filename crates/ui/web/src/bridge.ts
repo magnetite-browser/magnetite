@@ -113,6 +113,8 @@ export interface Space {
   id: Id;
   title: string;
   icon?: string;
+  /** A picture of the user's own shown in place of `icon`: a small WebP file as base64 (`storeIcon`). It syncs with the space. */
+  icon_image?: string;
   accent?: Color;
   profile_id: Id;
   /** The keys saved for the space; those that count are in `UiState.space_keys`. */
@@ -438,11 +440,9 @@ export interface SpaceLook {
   sidebar_image: number | null;
   /** The same for the picture behind the empty window. */
   empty_image: number | null;
-  /** The same for the picture shown in place of the space's icon. */
-  icon_image: number | null;
 }
 
-export const DEFAULT_LOOK: SpaceLook = { tint: 8, sidebar_effect: "none", sidebar_image: null, empty_image: null, icon_image: null };
+export const DEFAULT_LOOK: SpaceLook = { tint: 8, sidebar_effect: "none", sidebar_image: null, empty_image: null };
 
 /** The look of space `id`: its own, or the default one. */
 export const lookOf = (a: Appearance, id: Id): SpaceLook => a.looks[id] ?? DEFAULT_LOOK;
@@ -571,7 +571,7 @@ export type Command =
   /** What is named changes; `downloads` and `languages` may each name one of their two parts. */
   | { cmd: "set_settings"; settings: Partial<Omit<Settings, "downloads" | "languages">> & { downloads?: Partial<DownloadPrefs>; languages?: Partial<Settings["languages"]> } }
   /** Store an own image (WebP as base64) for `slot` of space `space`, or remove it (`null`). Settings page only. */
-  | { cmd: "set_appearance_image"; slot: "empty" | "sidebar" | "icon"; space: Id; data: string | null }
+  | { cmd: "set_appearance_image"; slot: "empty" | "sidebar"; space: Id; data: string | null }
   | { cmd: "get_settings" }
   | { cmd: "sync_create"; server: string; invite?: string }
   | { cmd: "sync_join"; server: string; words: string }
@@ -610,6 +610,7 @@ export type Command =
   | { cmd: "focus_sidebar" }
   | { cmd: "float_sidebar"; show: boolean }
   | { cmd: "set_space_color"; id: Id; color: Color | null }
+  | { cmd: "set_space_icon_image"; id: Id; data: string | null }
   | { cmd: "set_folder_icon"; id: Id; icon: string | null }
   | { cmd: "toggle_devtools" }
   | { cmd: "dev_panel"; panel: "elements" | "console" | "network" | "sources" | "application" | "picker" }

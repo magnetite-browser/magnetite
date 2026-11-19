@@ -486,8 +486,10 @@ impl EngineDelegate for MagnetiteApp {
         // Pictures are stored from Settings and the space dialog alone: the
         // welcome page has no use for them.
         let picture_pages = ["magnetite://ui/settings", "magnetite://ui/space?"];
-        if matches!(cmd, UiCommand::SetAppearanceImage { .. })
-            && !picture_pages.iter().any(|page| origin.starts_with(page))
+        if matches!(
+            cmd,
+            UiCommand::SetAppearanceImage { .. } | UiCommand::SetSpaceIconImage { .. }
+        ) && !picture_pages.iter().any(|page| origin.starts_with(page))
         {
             return Err("only Settings and the space dialog may do that".into());
         }

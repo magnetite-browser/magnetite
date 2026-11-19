@@ -4,9 +4,9 @@
 // beside it shows it. Esc, Done or a click elsewhere closes it.
 import { useEffect, useRef, useState } from "react";
 import { GlyphGrid, SpaceIcon, glyphFor } from "./Glyphs";
-import { ICON_SIDE } from "./backgrounds";
+import { iconUrl, storeIcon } from "./backgrounds";
 import { accentCss, applyAppearance, lookOf, send, type Appearance, type Space, type SpaceLook, type UiState } from "./bridge";
-import { ColourSwatches, EFFECTS, OwnImage } from "./settings/AppearanceSection";
+import { BackgroundImage, ColourSwatches, EFFECTS, OwnImage } from "./settings/AppearanceSection";
 import { Slider } from "./settings/fields";
 
 export function SpaceDialog() {
@@ -33,6 +33,8 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
   const [appearance, setAppearance] = useState(opened);
   const [title, setTitle] = useState(space.title);
   const [icon, setIcon] = useState(space.icon);
+  // The own picture shown in place of the glyph (`Space.icon_image`).
+  const [iconImage, setIconImage] = useState(space.icon_image);
   const [accent, setAccent] = useState(space.accent);
   const [look, setLook] = useState(() => lookOf(appearance, space.id));
   const root = useRef<HTMLFormElement>(null);
@@ -97,8 +99,8 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
   };
 
   /**
-   * After a picture was stored or removed: its stamp, and the effect the app
-   * chose with it. A look not saved yet is saved first, so what comes back
+   * After a picture was stored or removed: its stamp and the effect the app
+   * chose with it, or the space's own icon. A look not saved yet is saved first, so what comes back
    * has it.
    */
   const reload = () => {
@@ -106,6 +108,7 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
     return send({ cmd: "get_state" }).then((s) => {
       setAppearance(s.settings.appearance);
       setLook(lookOf(s.settings.appearance, space.id));
+      setIconImage(s.sidebar.spaces.find((sp) => sp.id === space.id)?.icon_image);
     });
   };
 
@@ -118,7 +121,7 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
       }}
       onSubmit={(e) => (e.preventDefault(), close())}>
       <header className="sf-head">
-        <span className="sf-icon" style={{ background: accentCss(accent, 0.16), color: "var(--space)" }}><SpaceIcon space={{ id: space.id, icon, title: title || space.title }} looks={{ [space.id]: look }} size={18} /></span>
+        <span className="sf-icon" style={{ background: accentCss(accent, 0.16), color: "var(--space)" }}><SpaceIcon space={{ icon, icon_image: iconImage, title: title || space.title }} size={18} /></span>
         <div className="min-w-0 flex-1">
           <h1>Space settings</h1>
           <p>Changes apply as you make them.</p>
@@ -131,7 +134,7 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
 
       <Row label="Icon">
         <GlyphGrid
-          current={look.icon_image == null ? glyph : null}
+          current={iconImage ? null : glyph}
           onPick={(g) => {
             setIcon(g);
             // A glyph takes the place of the own picture (`rename_space`).
@@ -139,9 +142,9 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
           }}
         />
         <div className="mt-2">
-          <OwnImage slot="icon" space={space.id} stamp={look.icon_image} maxSide={ICON_SIDE} reload={reload} />
+          <OwnImage square preview={iconImage ? iconUrl(iconImage) : null} store={(file) => storeIcon(space.id, file)} reload={reload} />
         </div>
-        <div className="hint">Or a picture of your own, such as a PNG or an SVG. It stays on this device; your other devices show the icon chosen above.</div>
+        <div className="hint">Or a picture of your own, such as a PNG or an SVG. It syncs with the space, so it is kept small.</div>
       </Row>
 
       <Row label="Colour">
@@ -169,11 +172,11 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
             <button type="button" data-on={look.sidebar_effect === "image" || undefined} onClick={() => changeLook({ sidebar_effect: "image" }, true)}>Picture</button>
           )}
         </div>
-        <OwnImage slot="sidebar" space={space.id} stamp={look.sidebar_image} maxSide={1600} reload={reload} />
+        <BackgroundImage slot="sidebar" space={space.id} stamp={look.sidebar_image} maxSide={1600} reload={reload} />
       </Row>
 
       <Row label="Empty window" hint="A picture behind the window while no tab is open in this space.">
-        <OwnImage slot="empty" space={space.id} stamp={look.empty_image} maxSide={2880} reload={reload} />
+        <BackgroundImage slot="empty" space={space.id} stamp={look.empty_image} maxSide={2880} reload={reload} />
       </Row>
 
       <footer className="sf-foot">

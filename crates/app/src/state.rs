@@ -29,6 +29,7 @@ mod tabs;
 pub(crate) mod testing;
 mod windows;
 
+pub use adopt::icon_image_ok;
 pub(crate) use folders::folder_in_tree_mut;
 pub use history::{History, Visit};
 pub use settings::{

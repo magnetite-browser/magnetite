@@ -1,14 +1,11 @@
 // Backgrounds from Settings → Appearance, each space its own: the effect
 // across the window or the own image in the sidebar, and the user's own
-// images, a space's own icon among them (stored by the app, served at
-// /user-images/<slot>-<space>).
+// images (stored by the app, served at /user-images/<slot>-<space>). A
+// space's own icon is made here too; it is kept in the space itself.
 import type { CSSProperties } from "react";
 import { DEFAULT_ACCENT, accentCss, send, type Color, type Id, type SpaceLook } from "./bridge";
 
-export type ImageSlot = "empty" | "sidebar" | "icon";
-
-/** The side of a space's own icon as stored, in px: sharp at every size it is shown at. */
-export const ICON_SIDE = 128;
+export type ImageSlot = "empty" | "sidebar";
 
 /** Address of space `space`'s stored image for `slot`; `stamp` changes with every new image. */
 export const userImageUrl = (slot: ImageSlot, space: Id, stamp: number) => `/user-images/${slot}-${space}?v=${stamp}`;
@@ -150,20 +147,61 @@ async function squared(file: File, side: number): Promise<HTMLCanvasElement> {
   return canvas;
 }
 
+/** `canvas` as a WebP file of `quality` (0 to 1). */
+function webp(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((done, fail) => canvas.toBlob((blob) => (blob ? done(blob) : fail(new Error("That picture could not be read"))), "image/webp", quality));
+}
+
+/** The base64 part of `blob`'s `data:` address. */
+const base64 = async (blob: Blob) => (await dataUrl(blob)).split(",")[1] ?? "";
+
 /**
- * Store `file` as space `space`'s own image for `slot` (`null`: remove it).
- * A background is scaled down to `maxSide` px on its longer side, an icon
- * drawn into a square of `maxSide` px; both are stored as WebP, which leaves
- * out the file's metadata.
+ * A space's own icon is stored 64 px square: it shows at 15 to 18 points,
+ * so that is sharp on every screen and at every text size. It is part of
+ * the space and syncs with it, so it may weigh no more than
+ * `ICON_MAX_BYTES` (`MAX_ICON_IMAGE_BYTES` in the app): an icon, not a way
+ * to pass pictures around.
+ */
+const ICON_SIDE = 64;
+const ICON_MAX_BYTES = 4 * 1024;
+
+/** The address of a space's own icon (`Space.icon_image`), for an `<img>`. */
+export const iconUrl = (image: string) => `data:image/webp;base64,${image}`;
+
+/**
+ * Make `file` (an SVG too) space `space`'s own icon, or remove it (`null`):
+ * drawn into a square of `ICON_SIDE` px and stored as WebP, which leaves
+ * out the file's metadata. A picture too rich in detail for
+ * `ICON_MAX_BYTES` is stored coarser, then smaller.
+ */
+export async function storeIcon(space: Id, file: File | null): Promise<void> {
+  if (!file) {
+    await send({ cmd: "set_space_icon_image", id: space, data: null });
+    return;
+  }
+  for (const side of [ICON_SIDE, 48, 32]) {
+    const canvas = await squared(file, side);
+    for (const quality of [0.9, 0.7, 0.5]) {
+      const blob = await webp(canvas, quality);
+      if (blob.size <= ICON_MAX_BYTES) {
+        await send({ cmd: "set_space_icon_image", id: space, data: await base64(blob) });
+        return;
+      }
+    }
+  }
+  throw new Error("That picture has too much detail for an icon");
+}
+
+/**
+ * Store `file` as space `space`'s own image for `slot` (`null`: remove it),
+ * scaled down to `maxSide` px on its longer side and stored as WebP, which
+ * leaves out the file's metadata.
  */
 export async function storeImage(slot: ImageSlot, space: Id, file: File | null, maxSide: number): Promise<void> {
   if (!file) {
     await send({ cmd: "set_appearance_image", slot, space, data: null });
     return;
   }
-  const canvas = await (slot === "icon" ? squared : scaled)(file, maxSide);
-  const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/webp", 0.85));
-  if (!blob) throw new Error("That picture could not be read");
-  const url = await dataUrl(blob);
-  await send({ cmd: "set_appearance_image", slot, space, data: url.slice(url.indexOf(",") + 1) });
+  const canvas = await scaled(file, maxSide);
+  await send({ cmd: "set_appearance_image", slot, space, data: await base64(await webp(canvas, 0.85)) });
 }

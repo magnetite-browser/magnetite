@@ -84,6 +84,7 @@ pub(super) fn default_sidebar() -> SidebarSnapshot {
         id: new_id(),
         title: "Personal".into(),
         icon: Some("🏠".into()),
+        icon_image: None,
         accent: Some(magnetite_core::Color {
             red: 0.45,
             green: 0.55,

@@ -230,7 +230,7 @@ export function App() {
         </div>
         ) : (
         <div className="space-title group" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }} onDoubleClick={() => setRenamingSpace(space.id)}>
-          <button className="grid h-5 w-5 shrink-0 place-items-center rounded-md" style={{ color: "var(--space)" }} title="Change icon" onClick={(e) => pickSpaceIcon(e.clientX, e.clientY)}><SpaceIcon space={space} looks={state.settings.appearance.looks} size={15} /></button>
+          <button className="grid h-5 w-5 shrink-0 place-items-center rounded-md" style={{ color: "var(--space)" }} title="Change icon" onClick={(e) => pickSpaceIcon(e.clientX, e.clientY)}><SpaceIcon space={space} size={15} /></button>
           {renamingSpace === space.id ? (
             <RenameInput value={space.title} onCommit={(title) => { send({ cmd: "rename_space", id: space.id, title }); setRenamingSpace(null); }} onCancel={() => setRenamingSpace(null)} />
           ) : (
@@ -273,7 +273,7 @@ export function App() {
       {/* Footer: archive and downloads left (one button), spaces centred, new right */}
       <div className="flex h-12 shrink-0 items-center gap-1 px-2">
         <LibraryButton opens={state.settings.library_opens} keys={state.keys} onOpen={setPanel} />
-        <SpaceSwitcher spaces={state.sidebar.spaces} looks={state.settings.appearance.looks} current={space.id} privateSpace={state.private_space} onMenu={spaceMenu} />
+        <SpaceSwitcher spaces={state.sidebar.spaces} current={space.id} privateSpace={state.private_space} onMenu={spaceMenu} />
         <button
           className="ib lg plus-btn"
           aria-label={newMenu ? "Close menu" : "New…"}

@@ -10,7 +10,7 @@ export interface Info {
   profiles: { id: string; name: string; is_default: boolean; ephemeral?: boolean; synced: boolean }[];
   /** `synced` false: kept on this device alone ("Only on this device"). */
   /** `keys`: the keys that go to the space (Settings → Shortcuts), null without. `shortcut`: the keys saved for it, which may not count here (fixed on this system, or something else has them). */
-  spaces: { id: string; title: string; icon?: string; accent?: Color | null; profile_id: string; synced: boolean; keys: string | null; shortcut: string | null }[];
+  spaces: { id: string; title: string; icon?: string; icon_image?: string | null; accent?: Color | null; profile_id: string; synced: boolean; keys: string | null; shortcut: string | null }[];
   active_space: string;
   favorites: { id: string; title: string; url: string; profile_id?: string | null }[];
   archive_count: number;

@@ -109,7 +109,7 @@ export function SpacePicker({ state, onClose }: { state: UiState; onClose: () =>
                 onClick={() => go(space)}
               >
                 <span className="icon-slot" style={{ color: accentCss(space.accent) }}>
-                  {space.id === state.private_space ? <MaskIcon width={16} height={16} /> : <SpaceIcon space={space} looks={state.settings.appearance.looks} size={16} />}
+                  {space.id === state.private_space ? <MaskIcon width={16} height={16} /> : <SpaceIcon space={space} size={16} />}
                 </span>
                 <div className="min-w-0 flex-1 truncate">{space.title}</div>
                 {(current || showProfile) && (

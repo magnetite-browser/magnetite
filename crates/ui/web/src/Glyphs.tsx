@@ -5,8 +5,8 @@
 // instead (`SpaceIcon`).
 import * as L from "lucide-react";
 import type { LucideIcon, LucideProps } from "lucide-react";
-import { userImageUrl } from "./backgrounds";
-import { pageZoom, type Appearance, type Id } from "./bridge";
+import { iconUrl } from "./backgrounds";
+import { pageZoom } from "./bridge";
 import { useDismiss } from "./dismiss";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -73,14 +73,10 @@ export function SpaceGlyph({ icon, title, size = 14 }: { icon?: string; title: s
   return <span style={{ fontSize: size - 2, fontWeight: 600, lineHeight: 1 }}>{(icon && [...icon].length <= 2 ? icon : title.charAt(0)).toUpperCase()}</span>;
 }
 
-/**
- * A space's icon as this device shows it: the user's own picture where one
- * is stored (`looks`, the settings' `appearance.looks`), else its glyph.
- */
-export function SpaceIcon({ space, looks, size = 14 }: { space: { id: Id; icon?: string; title: string }; looks: Appearance["looks"]; size?: number }) {
-  const stamp = looks[space.id]?.icon_image;
-  if (stamp == null) return <SpaceGlyph icon={space.icon} title={space.title} size={size} />;
-  return <img src={userImageUrl("icon", space.id, stamp)} alt="" width={size} height={size} draggable={false} style={{ width: size, height: size, objectFit: "contain" }} />;
+/** A space's icon: the user's own picture where the space has one (`icon_image`), else its glyph. */
+export function SpaceIcon({ space, size = 14 }: { space: { icon?: string; icon_image?: string | null; title: string }; size?: number }) {
+  if (!space.icon_image) return <SpaceGlyph icon={space.icon} title={space.title} size={size} />;
+  return <img src={iconUrl(space.icon_image)} alt="" width={size} height={size} draggable={false} style={{ width: size, height: size, objectFit: "contain" }} />;
 }
 
 /** Every glyph to choose a space's icon from, `current` marked (the space dialog, Settings → Appearance). */

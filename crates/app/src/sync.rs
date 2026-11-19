@@ -956,6 +956,7 @@ mod tests {
             id: "s1".into(),
             title: title.into(),
             icon: None,
+            icon_image: None,
             accent: None,
             profile_id: "default".into(),
             shortcut: None,

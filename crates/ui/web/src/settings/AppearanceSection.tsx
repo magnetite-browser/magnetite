@@ -1,6 +1,6 @@
 // Settings → Appearance: a space's name, icon, colour and its strength, backgrounds; layout, text size, density, sidebar width.
 import { useRef, useState } from "react";
-import { ICON_SIDE, storeImage, userImageUrl, type ImageSlot } from "../backgrounds";
+import { iconUrl, storeIcon, storeImage, userImageUrl, type ImageSlot } from "../backgrounds";
 import { GlyphGrid, glyphFor } from "../Glyphs";
 import { DEFAULT_ACCENT, accentCss, applyAppearance, keyLabel, lookOf, send, type Appearance, type Color, type SpaceLook } from "../bridge";
 import { Field, Group, Slider, Toggle } from "./fields";
@@ -41,20 +41,20 @@ const PAGE_ZOOM = [25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250
 export const EFFECTS = [["None", "none"], ["Grain", "grain"], ["Glow", "glow"], ["Aurora", "aurora"], ["Fade", "fade"]] as const;
 
 /**
- * Choose or remove space `space`'s own picture for `slot`, with a small preview of the
- * stored one (`stamp`). The picture is scaled down to `maxSide` before it is
- * stored (an icon: into a square of that size); it stays on this device.
+ * Choose or remove a picture of the user's own, with a small preview of the
+ * one there is (`preview`, its address; `square` for an icon). `store` keeps
+ * the chosen file, or removes the picture (`null`); what it rejects with is
+ * shown beside the buttons.
  */
-export function OwnImage({ slot, space, stamp, maxSide, reload }: { slot: ImageSlot; space: string; stamp: number | null; maxSide: number; reload: () => void }) {
+export function OwnImage({ preview, square, store, reload }: { preview: string | null; square?: boolean; store: (file: File | null) => Promise<void>; reload: () => void }) {
   const [error, setError] = useState<string | null>(null);
   // The file input stays out of sight; the button opens its picker, so the keyboard reaches it too.
   const picker = useRef<HTMLInputElement>(null);
-  const store = (file: File | null) =>
-    storeImage(slot, space, file, maxSide).then(() => setError(null), (e: Error) => setError(e.message)).then(reload);
+  const keep = (file: File | null) => store(file).then(() => setError(null), (e: Error) => setError(e.message)).then(reload);
   return (
     <div className="flex items-center gap-3">
-      {stamp != null && <img className={slot === "icon" ? "h-8 w-8 object-contain" : "h-8 w-12 rounded-md object-cover"} src={userImageUrl(slot, space, stamp)} alt="" />}
-      <button type="button" className="btn sm" onClick={() => picker.current?.click()}>{stamp == null ? "Choose picture…" : "Change…"}</button>
+      {preview != null && <img className={square ? "h-8 w-8 object-contain" : "h-8 w-12 rounded-md object-cover"} src={preview} alt="" />}
+      <button type="button" className="btn sm" onClick={() => picker.current?.click()}>{preview == null ? "Choose picture…" : "Change…"}</button>
       <input
         ref={picker}
         className="hidden"
@@ -64,13 +64,22 @@ export function OwnImage({ slot, space, stamp, maxSide, reload }: { slot: ImageS
           const file = e.target.files?.[0];
           // Emptied, so choosing the same file again counts as a change.
           e.target.value = "";
-          if (file) void store(file);
+          if (file) void keep(file);
         }}
       />
-      {stamp != null && <button type="button" className="btn sm" onClick={() => void store(null)}>Remove</button>}
+      {preview != null && <button type="button" className="btn sm" onClick={() => void keep(null)}>Remove</button>}
       {error && <span className="text-[12.5px] text-[#f3a0a0]">{error}</span>}
     </div>
   );
+}
+
+/**
+ * Choose or remove space `space`'s own background picture for `slot`
+ * (`stamp`: when one was stored). It is scaled down to `maxSide` before it
+ * is stored and stays on this device.
+ */
+export function BackgroundImage({ slot, space, stamp, maxSide, reload }: { slot: ImageSlot; space: string; stamp: number | null; maxSide: number; reload: () => void }) {
+  return <OwnImage preview={stamp == null ? null : userImageUrl(slot, space, stamp)} store={(file) => storeImage(slot, space, file, maxSide)} reload={reload} />;
 }
 
 /**
@@ -131,16 +140,16 @@ export function AppearanceSection({ info, update, reload }: { info: Info; update
           onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
         />
       </Field>
-      <Field label="Icon" hint="Or a picture of your own, such as a PNG or an SVG. It stays on this device; your other devices show the icon chosen here.">
+      <Field label="Icon" hint="Or a picture of your own, such as a PNG or an SVG. It syncs with the space, so it is kept small.">
         <div className="max-w-[420px]">
           <GlyphGrid
-            current={stored.icon_image == null ? glyphFor(sp.icon) : null}
+            current={sp.icon_image ? null : glyphFor(sp.icon)}
             // A glyph takes the place of the own picture (`rename_space`).
             onPick={(g) => void send({ cmd: "rename_space", id: sp.id, icon: g }).then(reload)}
           />
         </div>
         <div className="mt-2">
-          <OwnImage slot="icon" space={sp.id} stamp={stored.icon_image} maxSide={ICON_SIDE} reload={reload} />
+          <OwnImage square preview={sp.icon_image ? iconUrl(sp.icon_image) : null} store={(file) => storeIcon(sp.id, file)} reload={reload} />
         </div>
       </Field>
       <Field side label="Colour" hint="Tints the sidebar and outlines the focused page in split view. It syncs with the space.">
@@ -155,11 +164,11 @@ export function AppearanceSection({ info, update, reload }: { info: Info; update
             {EFFECTS.map(([label, effect]) => <option key={effect} value={effect}>{label}</option>)}
             {stored.sidebar_image != null && <option value="image">Your picture</option>}
           </select>
-          <OwnImage slot="sidebar" space={sp.id} stamp={stored.sidebar_image} maxSide={1600} reload={reload} />
+          <BackgroundImage slot="sidebar" space={sp.id} stamp={stored.sidebar_image} maxSide={1600} reload={reload} />
         </div>
       </Field>
       <Field side label="Empty window" hint="A picture behind the window while no tab is open in this space. Without one, the logo shows there.">
-        <OwnImage slot="empty" space={sp.id} stamp={stored.empty_image} maxSide={2880} reload={reload} />
+        <BackgroundImage slot="empty" space={sp.id} stamp={stored.empty_image} maxSide={2880} reload={reload} />
       </Field>
       </Group>
       <Group title="Window" hint="The same in every space.">
