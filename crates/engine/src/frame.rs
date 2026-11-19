@@ -684,6 +684,17 @@ impl Engine {
         if let Some(caption) = caption {
             caption.set_background(argb);
         }
+        // A page window's own frame shows at its corners.
+        #[cfg(target_os = "windows")]
+        {
+            let pages: Vec<_> = {
+                let inner = self.lock();
+                let pages = inner.contents.values().filter_map(|c| c.window.clone());
+                let tools = inner.docked.values().filter_map(|d| d.window.clone());
+                pages.chain(tools).collect()
+            };
+            crate::win::set_frame_color(argb, pages.iter().map(|w| w.window_handle()));
+        }
     }
 
     pub fn sidebar_visible(&self) -> bool {

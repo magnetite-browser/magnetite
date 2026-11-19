@@ -2,6 +2,7 @@
 //! Manager (DWM) for floating windows, and a window region for pages.
 
 use std::ffi::c_void;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 mod default_browser;
 mod dividers;
@@ -46,6 +47,8 @@ unsafe extern "system" {
 
 const DWMWA_WINDOW_CORNER_PREFERENCE: u32 = 33;
 const DWMWA_BORDER_COLOR: u32 = 34;
+/// Windows 11 only, as `0x00BBGGRR`.
+const DWMWA_CAPTION_COLOR: u32 = 35;
 const DWMWCP_DONOTROUND: u32 = 1;
 /// Windows' own radius (8 px); the only other choice is 4 px.
 const DWMWCP_ROUND: u32 = 2;
@@ -55,6 +58,39 @@ const DWMWA_COLOR_NONE: u32 = 0xFFFF_FFFE;
 /// The line around a floating window, as `0x00BBGGRR`: a grey just lighter
 /// than the window, so it shows on a dark page without looking drawn on.
 const FLOATING_BORDER: u32 = 0x0036_3636;
+
+/// The colour of the frame around the pages, as `0x00BBGGRR`: what a new
+/// page window takes for its own frame (`match_frame`).
+static FRAME_COLOR: AtomicU32 = AtomicU32::new(colorref(0xFF1B_1B1E));
+
+/// `0xAARRGGBB` as the `0x00BBGGRR` Windows wants.
+const fn colorref(argb: u32) -> u32 {
+    ((argb & 0xFF) << 16) | (argb & 0xFF00) | ((argb >> 16) & 0xFF)
+}
+
+/// The frame around the pages changed its colour to `argb`: the page
+/// windows `pages` and those made from now on follow.
+pub fn set_frame_color(argb: u32, pages: impl IntoIterator<Item = cef::sys::cef_window_handle_t>) {
+    FRAME_COLOR.store(colorref(argb), Ordering::Relaxed);
+    for page in pages {
+        match_frame(page);
+    }
+}
+
+/// Give a page window's own frame the colour of the frame around the pages.
+///
+/// On Windows 11 a page showed white in its cut-off corners and as a line
+/// along its top edge (issue 239). Taken to be the frame the window still
+/// has to Windows without a title bar: DWM draws it behind the page, white
+/// unless told a colour, and the page's region does not cut it. In the
+/// colour around the page it does not show.
+fn match_frame(handle: cef::sys::cef_window_handle_t) {
+    set(
+        handle,
+        DWMWA_CAPTION_COLOR,
+        FRAME_COLOR.load(Ordering::Relaxed),
+    );
+}
 
 fn set(handle: cef::sys::cef_window_handle_t, attribute: u32, value: u32) {
     if handle.0.is_null() {
@@ -88,6 +124,7 @@ pub fn round_window_corners(handle: cef::sys::cef_window_handle_t, shadow: bool)
     } else {
         set(handle, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND);
         set(handle, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE);
+        match_frame(handle);
         clip_page(handle);
     }
 }
@@ -141,4 +178,14 @@ pub fn clip_page(handle: cef::sys::cef_window_handle_t) {
     }
     // The outline of a split's focused page is a window of its own.
     layers::follow_ring(hwnd);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::colorref;
+
+    #[test]
+    fn a_colour_turns_into_blue_green_red_without_alpha() {
+        assert_eq!(colorref(0xFF11_2233), 0x0033_2211);
+    }
 }
