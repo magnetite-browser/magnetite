@@ -24,11 +24,13 @@ by all spaces. The profile decides which logins the pages of a space use.
   (`import.md`).
 - **Space menu**: right-click the space title, the empty part of the tab
   list or a space icon in the footer, or use the "…" button on the title.
-  It has Rename space, Change icon, New folder, the profile choice and
-  Delete space….
+  It has Rename space, Change icon, Space settings…, New folder, the
+  profile choice and Delete space….
 - **Rename**: the space menu, or double-click the title. **Icon**: the space
   menu, or click the icon. **Colour**: Settings → Appearance →
-  Colour, with eleven presets and a colour picker ("Look" below).
+  Colour, with eleven presets and a colour picker ("Look" below). Space
+  settings… in the space menu switches to the space and opens that page
+  for it.
 - **Reorder**: drag a space icon in the footer onto another one. A line
   shows where it goes: before the icon under the pointer on its left half,
   after it on its right half; where it already is, no line shows. The

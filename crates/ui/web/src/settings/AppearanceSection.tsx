@@ -62,8 +62,9 @@ function OwnImage({ slot, space, stamp, maxSide, reload }: { slot: ImageSlot; sp
  * Space colours and their strength, backgrounds, text size, density and
  * sidebar width. Sliders apply shortly
  * after they stop moving: each change re-lays out the pages.
+ * `open`: the id of the space to show first (the space menu's "Space settings…").
  */
-export function AppearanceSection({ info, update, reload }: { info: Info; update: (patch: SettingsPatch) => void; reload: () => void }) {
+export function AppearanceSection({ info, open, update, reload }: { info: Info; open?: string; update: (patch: SettingsPatch) => void; reload: () => void }) {
   const saved = info.settings.appearance;
   // What the controls changed and is not saved yet. The rest follows the
   // saved values: the sidebar's edge changes its width too.
@@ -86,8 +87,8 @@ export function AppearanceSection({ info, update, reload }: { info: Info; update
     else timer.current = window.setTimeout(save, 250);
   };
   const colour = (id: string, c: Color | null) => send({ cmd: "set_space_color", id, color: c }).then(reload);
-  // The space whose look the controls below change: the current one at first.
-  const [chosen, setChosen] = useState(info.active_space);
+  // The space whose look the controls below change: the one asked for, else the current one.
+  const [chosen, setChosen] = useState(() => info.spaces.find((s) => s.id === open)?.id ?? info.active_space);
   const sp = info.spaces.find((s) => s.id === chosen) ?? info.spaces[0];
   if (!sp) return null;
   const look = lookOf(draft, sp.id);

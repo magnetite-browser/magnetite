@@ -166,6 +166,8 @@ export function App() {
     openMenu(x, y, [
       { label: "Rename space", onClick: there(() => setRenamingSpace(target.id)) },
       { label: "Change icon", onClick: () => pickSpaceIcon(x, y, target) },
+      // Colour, strength and backgrounds; switches first, so the changes show.
+      { label: "Space settings…", onClick: there(() => send({ cmd: "new_tab", url: `magnetite://ui/settings#appearance=${encodeURIComponent(target.id)}` })) },
       { label: "New folder", onClick: there(() => send({ cmd: "new_folder", title: "" })) },
       SEPARATOR,
       ...state.sidebar.profiles.map((p) => ({
