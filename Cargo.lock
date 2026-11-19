@@ -299,8 +299,8 @@ dependencies = [
 
 [[package]]
 name = "cef"
-version = "156.5.0+156.0.30"
-source = "git+https://github.com/magnetite-browser/cef-rs?rev=d02cf0401baf79e6a24b6d175e024983d59c7f0e#d02cf0401baf79e6a24b6d175e024983d59c7f0e"
+version = "156.7.0+156.0.31"
+source = "git+https://github.com/magnetite-browser/cef-rs?rev=893437b069abfdae3b7b48be0458374d9ce30942#893437b069abfdae3b7b48be0458374d9ce30942"
 dependencies = [
  "cef-dll-sys",
  "libloading",
@@ -310,8 +310,8 @@ dependencies = [
 
 [[package]]
 name = "cef-dll-sys"
-version = "156.5.0+156.0.30"
-source = "git+https://github.com/magnetite-browser/cef-rs?rev=d02cf0401baf79e6a24b6d175e024983d59c7f0e#d02cf0401baf79e6a24b6d175e024983d59c7f0e"
+version = "156.7.0+156.0.31"
+source = "git+https://github.com/magnetite-browser/cef-rs?rev=893437b069abfdae3b7b48be0458374d9ce30942#893437b069abfdae3b7b48be0458374d9ce30942"
 dependencies = [
  "anyhow",
  "cc",
@@ -621,7 +621,7 @@ checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 [[package]]
 name = "download-cef"
 version = "3.0.1"
-source = "git+https://github.com/magnetite-browser/cef-rs?rev=d02cf0401baf79e6a24b6d175e024983d59c7f0e#d02cf0401baf79e6a24b6d175e024983d59c7f0e"
+source = "git+https://github.com/magnetite-browser/cef-rs?rev=893437b069abfdae3b7b48be0458374d9ce30942#893437b069abfdae3b7b48be0458374d9ce30942"
 dependencies = [
  "bzip2",
  "clap",
