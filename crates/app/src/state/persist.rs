@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use super::folders::smart_key;
 use super::import::fresh_import;
-use super::settings::Settings;
+use super::settings::{AdblockSettings, Settings};
 use super::{AppState, ArcImport, ArchivedTab, TabRuntime, new_id, now};
 
 #[derive(Serialize, Deserialize)]
@@ -171,7 +171,16 @@ impl AppState {
                         Vec::new(),
                         HashMap::new(),
                         Vec::new(),
-                        Settings::default(),
+                        // A new installation blocks ads; a state file that
+                        // could not be read turns nothing on by itself.
+                        Settings {
+                            adblock: if first_start {
+                                AdblockSettings::recommended()
+                            } else {
+                                AdblockSettings::default()
+                            },
+                            ..Settings::default()
+                        },
                         Vec::new(),
                     )
                 }
@@ -568,6 +577,8 @@ mod tests {
         // Nothing saved yet: the first start, with a plain sidebar.
         let fresh = AppState::load_or_default(&dir, ArcImport::Ask);
         assert!(fresh.first_start);
+        // It blocks ads from the start, with the recommended lists.
+        assert_eq!(fresh.settings.adblock, AdblockSettings::recommended());
         let titles: Vec<&str> = fresh
             .sidebar
             .spaces

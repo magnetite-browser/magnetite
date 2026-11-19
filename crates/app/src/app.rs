@@ -234,7 +234,12 @@ impl MagnetiteApp {
         launch_urls: Vec<String>,
     ) -> Self {
         let state = AppState::load_or_default(&data_dir, import);
-        let blocker = adblocking::Blocker::start(&data_dir, scriptlets, &state.settings.adblock);
+        let blocker = adblocking::Blocker::start(
+            &data_dir,
+            scriptlets,
+            &state.settings.adblock,
+            state.first_start,
+        );
         Self {
             state: Mutex::new(state),
             data_dir,

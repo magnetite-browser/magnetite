@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::SystemTime;
@@ -34,6 +34,10 @@ pub(super) struct Blocker {
     /// The file with the scriptlets' code, where the package has one
     /// (`adblock.rs`).
     scriptlets: Arc<Option<PathBuf>>,
+    /// A first start that has not opened a website yet: no list is
+    /// fetched, so the welcome page alone contacts nobody
+    /// (`website_opened`).
+    held: Arc<AtomicBool>,
 }
 
 /// How often a tick (one a minute) looks for lists to fetch again
@@ -43,12 +47,15 @@ const LOOK_EVERY_TICKS: u32 = 60;
 impl Blocker {
     /// Compile the lists downloaded before, on a thread, while the engine
     /// starts: pages restored at start are blocked from their first request.
+    /// `first_start`: downloads wait for the first website.
     pub(super) fn start(
         data_dir: &Path,
         scriptlets: Option<PathBuf>,
         settings: &AdblockSettings,
+        first_start: bool,
     ) -> Self {
         let blocker = Self {
+            held: Arc::new(AtomicBool::new(first_start)),
             scriptlets: Arc::new(scriptlets),
             generation: Arc::new(Mutex::new(0)),
             working: Arc::new(AtomicUsize::new(0)),
@@ -97,7 +104,8 @@ impl MagnetiteApp {
     /// once; on a thread, the lists kept here compiled (`changed`: the
     /// settings changed, so those in use may be others), then the lists
     /// missing or old fetched and compiled again. Off: nothing is blocked
-    /// from now on, and nothing is fetched.
+    /// from now on, and nothing is fetched. Nothing is fetched either
+    /// before the first website of a first start (`website_opened`).
     pub(super) fn apply_adblock(&self, changed: bool) {
         let settings = self.with_state(|s| s.settings.adblock.clone());
         magnetite_engine::set_allowed_sites(settings.allowed_sites);
@@ -121,7 +129,8 @@ impl MagnetiteApp {
                 blocker.compile_and_hand_over(generation, &dir, lists);
             }
             let mut fetched = false;
-            for id in lists {
+            let held = blocker.held.load(Ordering::SeqCst);
+            for id in lists.iter().filter(|_| !held) {
                 // A newer change has its own thread: no download for this one.
                 if !blocker.is_current(generation) {
                     break;
@@ -145,6 +154,18 @@ impl MagnetiteApp {
             }
             blocker.working.fetch_sub(1, Ordering::SeqCst);
         });
+    }
+
+    /// A page went to `url`. The first website of a first start lets the
+    /// lists be fetched: until then only Magnetite's own pages showed.
+    pub(super) fn website_opened(&self, url: &str) {
+        let held = &self.blocker.held;
+        if held.load(Ordering::SeqCst)
+            && host_of(url).is_some()
+            && held.swap(false, Ordering::SeqCst)
+        {
+            self.apply_adblock(false);
+        }
     }
 
     /// Turn the ad blocker on or off (Settings, the welcome page).
@@ -189,7 +210,8 @@ impl MagnetiteApp {
     }
 
     /// The lists for Settings: each with when it was downloaded and why the
-    /// last download failed, and whether downloads are under way.
+    /// last download failed, whether downloads are under way or wait for
+    /// the first website, and which lists are the recommended ones.
     pub(super) fn adblock_json(&self) -> Value {
         let dir = adblock::dir(&self.data_dir);
         let errors = lock(&self.blocker.errors).clone();
@@ -208,7 +230,12 @@ impl MagnetiteApp {
                 })
             })
             .collect();
-        json!({ "lists": lists, "working": self.blocker.working.load(Ordering::SeqCst) > 0 })
+        json!({
+            "lists": lists,
+            "working": self.blocker.working.load(Ordering::SeqCst) > 0,
+            "held": self.blocker.held.load(Ordering::SeqCst),
+            "recommended": adblock::system_recommended(),
+        })
     }
 
     /// The site (registrable domain) of the page at `url`, if a web page.

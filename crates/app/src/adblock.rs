@@ -77,6 +77,23 @@ pub const LISTS: &[FilterList] = &[
     },
 ];
 
+/// The lists a new installation blocks with, and the welcome page's
+/// "recommended": what uBlock Origin starts with, as far as Magnetite
+/// offers it, and the German list where the system speaks German
+/// (`language`: its language tag, as "de-AT").
+pub fn recommended(language: Option<&str>) -> Vec<String> {
+    let german = language.is_some_and(|l| l.to_ascii_lowercase().starts_with("de"));
+    (["easylist", "easyprivacy", "ublock"].into_iter())
+        .chain(german.then_some("easylist-germany"))
+        .map(str::to_string)
+        .collect()
+}
+
+/// `recommended` for this system's language.
+pub fn system_recommended() -> Vec<String> {
+    recommended(sys_locale::get_locale().as_deref())
+}
+
 /// A list is fetched again after this long: what `EasyList` asks for.
 pub const REFRESH_AFTER: Duration = Duration::from_secs(4 * 24 * 3600);
 
@@ -237,6 +254,15 @@ mod tests {
         assert!(check("\u{feff}<html><body>".as_bytes(), false).is_err());
         assert!(check(b"\n \n", false).is_err());
         assert!(check(&[0xff, 0xfe, 0x00], false).is_err());
+    }
+
+    #[test]
+    fn the_recommended_lists_are_offered_and_follow_the_language() {
+        let german = recommended(Some("de-AT"));
+        assert!(german.contains(&"easylist-germany".to_string()));
+        assert!(german.iter().all(|id| list(id).is_some()));
+        assert_eq!(recommended(Some("en-US")), recommended(None));
+        assert!(!recommended(None).contains(&"easylist-germany".to_string()));
     }
 
     #[test]

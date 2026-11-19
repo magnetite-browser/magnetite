@@ -260,6 +260,7 @@ carries its own notices there.
 | stable_deref_trait | MIT OR Apache-2.0 | magnetite |
 | strsim | MIT | magnetite |
 | subtle | BSD-3-Clause | magnetite |
+| sys-locale | MIT OR Apache-2.0 | magnetite |
 | thiserror | MIT OR Apache-2.0 | magnetite |
 | tinystr | Unicode-3.0 | magnetite |
 | tinyvec | Zlib OR Apache-2.0 OR MIT | magnetite |
@@ -443,7 +444,7 @@ ICU 1.8.1 to ICU 57.1 © 1995-2016 International Business Machines Corporation a
 
 #### 3. MIT
 
-Used by: addr, crc32fast, fdeflate, miniz_oxide, psl, psl-types, react, react-dom, scheduler, simd-adler32, tailwindcss, ureq.
+Used by: addr, crc32fast, fdeflate, miniz_oxide, psl, psl-types, react, react-dom, scheduler, simd-adler32, sys-locale, tailwindcss, ureq.
 
 ```
 Copyright (c) 2016 Rushmore Mushambi
@@ -451,6 +452,7 @@ Copyright (c) 2017 Frommi
 Copyright (c) 2017-2024 oyvindln
 Copyright (c) 2018 Sam Rijs, Alex Crichton and contributors
 Copyright (c) 2019 Martin Algesten
+Copyright (c) 2021 1Password
 Copyright (c) 2021 Rushmore Mushambi
 Copyright (c) [2021] [Marvin Countryman]
 Copyright (c) Meta Platforms, Inc. and affiliates.

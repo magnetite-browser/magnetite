@@ -2,9 +2,11 @@
 
 Magnetite can stop requests of web pages to ad and tracking servers before
 they load, and run the small scripts (scriptlets) that filter lists use
-against "turn off your ad blocker" walls. It is off until the user turns it
-on and chooses filter lists; the lists are downloaded from their publishers
-and checked on this computer. The filter engine is Brave's adblock-rust
+against "turn off your ad blocker" walls. A new installation blocks with a
+recommended set of filter lists, which the welcome page and Settings
+change or turn off; the lists are downloaded from their publishers, at a
+first start not before the first website is opened, and checked on this
+computer. The filter engine is Brave's adblock-rust
 (MPL-2.0); the scriptlets are uBlock Origin's (GPL-3.0), a file of their
 own next to the app.
 
@@ -15,9 +17,11 @@ whether to block with a recommended set of lists, with lists of one's own
 choice or not at all, and sets the same two things with that step's
 "Continue", not when the step is left another way (`first-start.md`):
 
-- **Block ads and trackers** (off at first). Off, nothing is blocked and
-  nothing is downloaded.
-- While on, the **filter lists**, none chosen at first. Each shows its name,
+- **Block ads and trackers** (on in a new installation). Off, nothing is
+  blocked and nothing is downloaded.
+- While on, the **filter lists**, the recommended ones chosen in a new
+  installation: EasyList, EasyPrivacy and uBlock Origin's lists, and
+  EasyList Germany too where the system's language is German. Each shows its name,
   what it blocks, and the host it comes from; once chosen, when it was last
   downloaded, "Downloading…", or why the download failed. With no list
   chosen, a hint says that nothing is blocked.
@@ -38,7 +42,13 @@ each as its publisher has put it together. A list that includes others
 ## Lists
 
 - Choosing a list downloads it at once over https and keeps it in the data
-  folder (`filter-lists/`). Every hour Magnetite looks for chosen lists
+  folder (`filter-lists/`).
+- A first start downloads no list until a website is opened: the welcome
+  page, Settings and Magnetite's other pages do not count. The lists
+  chosen by then are fetched with that first website, which itself may
+  still load unblocked. A start after the first one fetches at once.
+- An installation from before this default keeps what it had: blocking
+  stays off where it was off. Every hour Magnetite looks for chosen lists
   older than four days and downloads them again. A failed download keeps
   the copy from before; a download that is a web page (a Wi-Fi sign-in
   page, served as `text/html` or starting with `<`) or larger than 16 MB

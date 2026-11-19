@@ -1,6 +1,7 @@
 // Settings → Ad blocking, and the welcome page's step for it: the switch,
 // the filter lists to subscribe to, and the sites where nothing is blocked.
-// Nothing is downloaded until the user turns blocking on and picks a list.
+// A list is downloaded once it is chosen while blocking is on; at a first
+// start not before the first website is opened.
 import { useEffect } from "react";
 import { send } from "../bridge";
 import { Group, Switch, Toggle } from "./fields";

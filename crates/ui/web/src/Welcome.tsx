@@ -40,12 +40,6 @@ const FIRST_KEYS: ShortcutAction[] = ["new_tab", "focus_address", "toggle_sideba
 const TEXT_SIZES = [["Small", 90], ["Normal", 100], ["Large", 115], ["Largest", 130]] as const;
 const DENSITIES = [["Compact", "compact"], ["Comfortable", "comfortable"], ["Spacious", "spacious"]] as const;
 
-/**
- * The filter lists of "Recommended": what uBlock Origin starts with, as far
- * as Magnetite offers it, and the German list where the system speaks German.
- */
-const RECOMMENDED_LISTS = ["easylist", "easyprivacy", "ublock", ...(navigator.language.toLowerCase().startsWith("de") ? ["easylist-germany"] : [])];
-
 /** What the app found in a chosen browser, while it reads, or why it could not. */
 type Preview = { state: "reading" } | { state: "read"; found: ImportPreview } | { state: "failed"; error: string };
 
@@ -105,8 +99,10 @@ export function Welcome() {
   }, [step, sources]);
 
   // Ad blocking: the answer and, for lists of one's own, which ones. Both
-  // start from what is set (null) and are only an intention: the blocker is
-  // set, and its lists downloaded, when the step is left with "Continue".
+  // start from what is set (null; a new installation blocks with the
+  // recommended lists) and are only an intention: the blocker is set when
+  // the step is left with "Continue". Its lists are downloaded then, or at
+  // a first start with the first website.
   const [adsAnswer, setAdsAnswer] = useState<"off" | "recommended" | "own" | null>(null);
   const [ownLists, setOwnLists] = useState<string[] | null>(null);
   const [applying, setApplying] = useState(false);
@@ -213,7 +209,7 @@ export function Welcome() {
   // lists are on; anything else that blocks is the user's own choice.
   const adblock = info.settings.adblock;
   const offered = info.adblock.lists;
-  const recommended = RECOMMENDED_LISTS.filter((id) => offered.some((l) => l.id === id));
+  const recommended = info.adblock.recommended;
   const isRecommended = adblock.lists.length === recommended.length && recommended.every((id) => adblock.lists.includes(id));
   const ads = adsAnswer ?? (!adblock.enabled ? "off" : isRecommended ? "recommended" : "own");
   const own = ownLists ?? adblock.lists;
@@ -565,9 +561,11 @@ export function Welcome() {
                 </div>
                 {wanted && wanted.length > 0 && (
                   <p className="set-hint">
-                    {wanted.every((id) => adblock.enabled && adblock.lists.includes(id)) && wanted.length === adblock.lists.length
-                      ? "These lists are on."
-                      : `Nothing is downloaded yet: ${wanted.length === 1 ? "the list is" : "the lists are"} fetched when you continue.`}
+                    {info.adblock.held
+                      ? `Nothing is downloaded yet: ${wanted.length === 1 ? "the list is" : "the lists are"} fetched when you open your first website.`
+                      : wanted.every((id) => adblock.enabled && adblock.lists.includes(id)) && wanted.length === adblock.lists.length
+                        ? "These lists are on."
+                        : `Nothing is downloaded yet: ${wanted.length === 1 ? "the list is" : "the lists are"} fetched when you continue.`}
                   </p>
                 )}
               </section>

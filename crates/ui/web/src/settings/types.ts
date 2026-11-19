@@ -34,6 +34,10 @@ export interface Info {
   adblock: {
     lists: { id: string; name: string; about: string; host: string; fetched_at: number | null; error: string | null }[];
     working: boolean;
+    /** A first start before its first website: chosen lists are downloaded once one is opened. */
+    held: boolean;
+    /** The ids of the recommended lists, which a new installation starts with. */
+    recommended: string[];
   };
   /** Every shortcut whose keys can be changed, with the keys it has and those it began with (null: none). */
   shortcuts: { action: ShortcutAction; keys: string | null; default: string | null }[];

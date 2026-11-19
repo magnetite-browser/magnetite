@@ -106,6 +106,7 @@ impl EngineDelegate for MagnetiteApp {
                 self.push_state(engine);
             }
             EngineEvent::UrlChanged { id, url } => {
+                self.website_opened(&url);
                 self.with_state(|s| {
                     if let Some(p) = s.page_outside_mut(id) {
                         p.url.clone_from(&url);

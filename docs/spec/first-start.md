@@ -60,15 +60,18 @@ the answer:
   and where they come from instead (`passwords-and-autofill.md`,
   `extensions.md`).
 - **Ads and trackers** has three answers: "Block with the recommended
-  lists", "Choose the lists myself" and "Do not block", the last one marked
-  at first. The recommended lists are EasyList, EasyPrivacy and uBlock
+  lists", "Choose the lists myself" and "Do not block", the first one marked
+  at first: a new installation blocks with those lists, also after "Skip
+  the questions". The recommended lists are EasyList, EasyPrivacy and uBlock
   Origin's lists, and EasyList Germany too where the system's language is
   German; the answer shows each of them with what it blocks and the host
   it comes from. "Choose the lists myself" shows all lists that way, each
   with a switch (`ad-blocking.md`). An answer here is only marked: the
-  blocker is turned on or off, and the lists are downloaded, with
-  "Continue". A line below the answers says so while something is still to
-  be downloaded. With no answer given on this page, "Continue" leaves what
+  blocker is turned on or off, and its lists are changed, with "Continue".
+  At a first start no list is downloaded before the first website is
+  opened, so this page contacts nobody; opened again later, the lists are
+  downloaded with "Continue". A line below the answers says which, while
+  something is still to be downloaded. With no answer given on this page, "Continue" leaves what
   is set. Until the app is done with it, the answers cannot be changed.
   If the app refuses, the step stays and says why.
 - **Ready.** The summary names the browsers that will be imported with

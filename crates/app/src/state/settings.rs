@@ -122,8 +122,9 @@ pub struct Settings {
     pub developer: crate::dev::DeveloperSettings,
 }
 
-/// The ad blocker (Settings → Ad blocking, `adblock.rs`). Off, with no list,
-/// until the user turns it on and picks the lists.
+/// The ad blocker (Settings → Ad blocking, `adblock.rs`). A new installation
+/// starts with `recommended`; settings saved without any stay off, with no
+/// list.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default)]
 pub struct AdblockSettings {
@@ -135,6 +136,15 @@ pub struct AdblockSettings {
 }
 
 impl AdblockSettings {
+    /// What a new installation starts with: on, with the recommended lists.
+    pub fn recommended() -> Self {
+        Self {
+            enabled: true,
+            lists: crate::adblock::system_recommended(),
+            allowed_sites: Vec::new(),
+        }
+    }
+
     /// Known lists only, and sites as lower-case names, each once.
     fn sanitised(mut self) -> Self {
         let mut lists: Vec<String> = Vec::new();
