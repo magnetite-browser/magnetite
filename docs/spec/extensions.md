@@ -35,7 +35,8 @@ Settings.
   that did not fit, then the unpinned ones; a click opens the extension as
   its icon would. "Manage extensions" opens Settings → Extensions.
   The address comes first: in a window too narrow for a single place the
-  bar shows neither icons nor the button, and the menu bar has them all.
+  bar shows neither icons nor the button. On macOS the menu bar still has
+  them all.
 - Installing happens on the Chrome Web Store page; removing, turning off
   and site access on Chromium's own page, `chrome://extensions`. Both open
   as tabs. `--load-extension <dir>` (repeatable) loads an unpacked one.
