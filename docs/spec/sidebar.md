@@ -122,10 +122,12 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
 - Drag a tab to reorder it, or to a favorites list, Pinned, a folder or
   Today. Dropped on the middle of another tab's row or on the page area, it
   opens in split view (`split-view.md`).
-- Over a favorites list the dragged tab or favorite shows as a tile where it
-  would land, and the other tiles make room: over the edge of another tile
-  it takes that tile's place, over its middle the two form a split
-  (`split-view.md`). Dropped on the list's title, it is added at the end.
+- Over a favorites list the tiles stay where they are. On a tile, the
+  dragged tab or favorite joins it in a split (`split-view.md`). Between two
+  tiles, which is their facing edges (10 points each) and the gap, a line
+  marks where it would go. Dropped on the list's title, it is added at the
+  end. A split's tile, and a tab on a tile that takes no further page, go
+  before or after the tile by the half under the pointer.
 - `Cmd+D` pins the active Today tab at the top of Pinned, or moves the active
   pinned tab to the top of Today. It does nothing for a favorite. With a
   split in front, the split is pinned or unpinned (`split-view.md`).

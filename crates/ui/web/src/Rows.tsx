@@ -141,11 +141,11 @@ export function FavoriteLists({ ctx, lists }: { ctx: RowContext; lists: Favorite
 /** What one tile of the favorites shows: a favorite, or the favorites of one split. */
 type Tile = [TabItem, ...TabItem[]];
 
-/** Over the middle half of tile `el`, where a dropped tab joins it in a split. */
+/** On tile `el` and not at its left or right edge: where a dropped tab joins it in a split. */
 function overMiddle(e: React.DragEvent, el: HTMLElement): boolean {
   const r = el.getBoundingClientRect();
-  const x = (e.clientX - r.left) / r.width;
-  return x > 0.25 && x < 0.75;
+  const x = e.clientX - r.left;
+  return x > 10 && x < r.width - 10;
 }
 
 /** `tabs` as the one tile they make; none without a tab. */
@@ -156,9 +156,9 @@ function asTile(tabs: TabItem[]): Tile[] {
 
 /**
  * The favorites of one profile: an icon per favorite. A tab dragged over the
- * list is shown where it would land, and the others make room: over another
- * tile it takes that tile's place. Dropped on the title (also while the list
- * is collapsed) it is added at the end.
+ * list joins the tile it is on in a split, or goes between two tiles, where
+ * a line marks its place. Dropped on the title (also while the list is
+ * collapsed) it is added at the end.
  */
 function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; title?: string }) {
   const { state } = ctx;
@@ -170,9 +170,9 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
       return !o;
     });
   };
-  /** The tab or split being carried over this list (`id` stands for it) and its place among the other tiles. */
+  /** The tab or split being carried over this list (`id` stands for it) and where it would go: before tile `index` of the others. */
   const [place, setPlace] = useState<{ id: string; index: number } | null>(null);
-  /** The tab `id` carried over the middle of a tile: dropped, it joins page `cell` of tile `tile` in a split, on `side`. */
+  /** The tab `id` carried over a tile: dropped, it joins page `cell` of tile `tile` in a split, on `side`. */
   const [join, setJoin] = useState<{ id: string; tile: string; cell: string; side: Side } | null>(null);
   /** A tab this list takes: nothing of the private space is kept. */
   const takes = (d: ReturnType<typeof dragging>): d is NonNullable<typeof d> =>
@@ -186,14 +186,18 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
     return list.items.find((x) => pages.includes(x)) === t ? asTile(pages) : [];
   });
   const without = (moved: string[]) => tiles.filter((tile) => !moved.includes(tile[0].id));
-  // A place left over from a drag that ended elsewhere counts for nothing.
+  // What a drag over this list shows. The tiles stay where they are: a line
+  // between two of them marks where the carried one would go, and a tile it
+  // would join previews the pair. A place left over from a drag that ended
+  // elsewhere counts for nothing.
   const d = dragging();
+  const moved = d ? movedIds(d) : [];
   const joining = join && d?.id === join.id ? join : null;
-  const [carried] = d && (place?.id === d.id || joining) ? asTile(movedIds(d).flatMap((id) => findTab(state, id) ?? [])) : [];
-  const others = carried ? without(carried.map((t) => t.id)) : tiles;
-  // About to join a tile, the carried tab keeps its place too: taking it
-  // out would shift the tile under the pointer away.
-  const shown = carried && place ? [...others.slice(0, place.index), carried, ...others.slice(place.index)] : others;
+  const others = without(moved);
+  const before = place && d?.id === place.id && !joining ? place.index : null;
+  // Before the tile it stands before anyway: nothing to mark.
+  const own = tiles.findIndex((tile) => moved.includes(tile[0].id));
+  const mark = before === null || before === own ? null : others[before] ? { tile: others[before][0].id, side: "left" } : { tile: others.at(-1)?.[0].id, side: "right" };
   return (
     <div
       className="shrink-0 px-2 pt-3"
@@ -201,36 +205,28 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
         const d = dragging();
         if (!takes(d)) return;
         e.preventDefault();
-        const moved = movedIds(d);
-        const rest = without(moved);
+        const rest = without(movedIds(d));
         const target = e.target as HTMLElement;
         const overTile = target.closest<HTMLElement>("[data-fav]");
-        const over = overTile?.dataset.fav;
-        const k = rest.findIndex((tile) => tile[0].id === over);
-        const onTitle = !!target.closest(".favs-title");
-        // One of the list's own tiles starts from where it stands.
-        const own = tiles.findIndex((tile) => moved.includes(tile[0].id));
-        // The middle of another tile: the two form a split, the carried tab
-        // on the half of the tile under the pointer, beside the page there.
-        // The tile's edges make room, as a gap does.
+        const k = rest.findIndex((tile) => tile[0].id === overTile?.dataset.fav);
         const onto = rest[k];
-        if (overTile && onto && splittable(d) && overMiddle(e, overTile) && onto.length < MAX_PANES && !onto.some((t) => t.panel) && !findTab(state, d.id)?.panel) {
+        // On a tile, the carried tab joins it: the two form a split, the tab
+        // on the half of the tile under the pointer, beside the page there.
+        // Between two tiles (their facing edges and the gap) it goes there.
+        const joins = onto && splittable(d) && onto.length < MAX_PANES && !onto.some((t) => t.panel) && !findTab(state, d.id)?.panel;
+        if (overTile && onto && joins && overMiddle(e, overTile)) {
+          // Over the place the carried tab would join, the preview stays.
+          if (target.closest("[data-ghost]")) return;
           const page = target.closest<HTMLElement>("[data-page]") ?? overTile;
           const next = { id: d.id, tile: onto[0].id, cell: page.dataset.page ?? onto[0].id, side: sideOf(e, overTile) };
-          setPlace((p) => (p?.id === d.id || own < 0 ? p : { id: d.id, index: own }));
           return setJoin((j) => (j && j.id === next.id && j.cell === next.cell && j.side === next.side ? j : next));
         }
-        // Over the place the carried tab would join, the preview stays.
-        if (target.closest("[data-ghost]")) return;
         setJoin(null);
-        setPlace((p) => {
-          const index = p?.id === d.id ? p.index : own >= 0 ? own : null;
-          // Over another tile: take its place, so it moves to the side the
-          // carried one came from. Over the title: the end. Over the carried
-          // tile or a gap: stay.
-          const next = k >= 0 ? (index !== null && index <= k ? k + 1 : k) : onTitle ? rest.length : (index ?? rest.length);
-          return p?.id === d.id && p.index === next ? p : { id: d.id, index: next };
-        });
+        // Over the title: the end. Over the carried tile itself: where it
+        // is. Over a gap: where the edge passed on the way there said.
+        const own = tiles.findIndex((tile) => tile[0].id === overTile?.dataset.fav);
+        const next = overTile && onto ? (sideOf(e, overTile) === "left" ? k : k + 1) : target.closest(".favs-title") ? rest.length : overTile && own >= 0 ? own : null;
+        if (next !== null) setPlace((p) => (p?.id === d.id && p.index === next ? p : { id: d.id, index: next }));
       }}
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { setPlace(null); setJoin(null); } }}
       onDrop={(e) => {
@@ -264,7 +260,7 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
       )}
       {(open || !title) && (
         <div className="favs">
-          {shown.map((tile) => {
+          {tiles.map((tile) => {
             const page = (t: TabItem) => {
               const rt = state.runtime[t.id];
               return {
@@ -280,13 +276,17 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
             const [t] = tile;
             const drag = {
               "data-fav": t.id,
-              "data-carried": tile === carried || undefined,
+              "data-carried": moved.includes(t.id) || undefined,
               draggable: true,
               onDragEnd: () => { setPlace(null); setJoin(null); endDrag(); },
             };
             const joined = joining?.tile === t.id ? joining : null;
+            const carried = joined && findTab(state, joined.id);
+            // Where the carried tile would go: a line in the gap beside this one.
+            const line = mark?.tile === t.id && <span className="fav-insert" data-side={mark.side} />;
             if (tile.length === 1 && !joined) {
-              return <button key={t.id} className="fav no-drag" data-panel={t.panel || undefined} {...drag} onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id })} {...page(t)} />;
+              const { children, ...props } = page(t);
+              return <button key={t.id} className="fav no-drag" data-panel={t.panel || undefined} {...drag} onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id })} {...props}>{children}{line}</button>;
             }
             // A split: one tile with a half per page. It drags as one item.
             const ids = tile.map((x) => x.id);
@@ -302,9 +302,10 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
                 {tile.map((x) => {
                   const own = <button key={x.id} className="fav-page" data-page={x.id} {...page(x)} />;
                   if (joined?.cell !== x.id || !carried) return own;
-                  const ghost = <span key="ghost" className="fav-page" data-ghost><Favicon url={carried[0].url} src={state.runtime[carried[0].id]?.favicon} /></span>;
+                  const ghost = <span key="ghost" className="fav-page" data-ghost><Favicon url={carried.url} src={state.runtime[carried.id]?.favicon} /></span>;
                   return joined.side === "left" ? [ghost, own] : [own, ghost];
                 })}
+                {line}
               </div>
             );
           })}
