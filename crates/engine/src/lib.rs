@@ -66,6 +66,7 @@ mod sitedata;
 mod splitui;
 mod stray;
 mod strings;
+mod system;
 mod tabshare;
 #[cfg(target_os = "windows")]
 mod win;

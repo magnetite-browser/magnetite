@@ -99,6 +99,7 @@ NO_LICENCE_FILE = {
     "objc2-core-graphics": OBJC2,
     "objc2-encode": OBJC2,
     "objc2-foundation": OBJC2,
+    "objc2-web-kit": OBJC2,
     "bitcoin_hashes": ("", CC0_TEXT),
     # redox-os/seahash, LICENSE: the MIT text without a copyright line.
     "seahash": ("", MIT_TEXT),

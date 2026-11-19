@@ -205,6 +205,10 @@ pub(crate) struct Inner {
     pub sidebar_width: i32,
     /// Installed extensions per profile (`extensions.rs`).
     pub extensions: crate::extensions::ExtensionCache,
+    /// The sites whose pages the system's engine shows (`system.rs`).
+    pub system_sites: Vec<String>,
+    /// The serial the next page made gets (`ContentState::serial`).
+    pub next_serial: u64,
 }
 
 impl Inner {
@@ -307,6 +311,8 @@ impl Engine {
                 permission_requests: HashMap::new(),
                 sidebar_width: config.sidebar_width,
                 extensions: crate::extensions::ExtensionCache::default(),
+                system_sites: Vec::new(),
+                next_serial: 0,
             }),
             current: std::sync::atomic::AtomicU32::new(1),
             delegate,
@@ -615,6 +621,7 @@ impl Engine {
                 host.close_browser(1);
             }
         }
+        crate::system::backend::release_stores(ids);
         let mut inner = self.lock();
         for id in ids {
             if inner.contexts.remove(id).is_some() {
@@ -659,12 +666,20 @@ impl Engine {
     /// folder of a context it has made until it quits, and writes to it
     /// again.
     pub fn remove_profile_dirs(&self, ids: &[String]) {
+        self.forget_system_stores(ids);
         for id in ids {
             let path = self.config.profile_dir(id);
             if path.is_dir() {
                 remove_profile_dir(&path);
             }
         }
+    }
+
+    /// A number no page made before has: `ContentState::serial`.
+    pub(crate) fn next_serial(&self) -> u64 {
+        let mut inner = self.lock();
+        inner.next_serial += 1;
+        inner.next_serial
     }
 
     /// Lock a content window to `host` (`None` removes the lock).

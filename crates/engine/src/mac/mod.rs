@@ -17,7 +17,8 @@
 //! - `pill`: the link-hover status pill;
 //! - `pressure`: the system's memory pressure signal;
 //! - `quit`: Cmd+Q quits on the second press;
-//! - `share`: the share menu, the pasteboard and the save panel.
+//! - `share`: the share menu, the pasteboard and the save panel;
+//! - `webkit`: pages in `WebKit`, the system's own web engine.
 //!
 //! Everything runs on the main thread (CEF's UI thread on macOS). CEF's
 //! screen rectangles have a top-left origin; `screen_rect` turns them into
@@ -30,6 +31,7 @@ mod pill;
 mod pressure;
 mod quit;
 mod share;
+pub(crate) mod webkit;
 
 pub use chrome::{
     DividerKey, hide_peek_backdrop, set_dividers, set_edge_zone, set_grab_strip, set_panel_close,
@@ -954,7 +956,7 @@ pub unsafe fn show_cursor_without_focus(handle: cef::sys::cef_window_handle_t, c
 }
 
 /// The window `window` is attached to, through all its parents.
-fn root_window(window: &objc2_app_kit::NSWindow) -> Retained<objc2_app_kit::NSWindow> {
+pub(crate) fn root_window(window: &objc2_app_kit::NSWindow) -> Retained<objc2_app_kit::NSWindow> {
     use objc2::Message as _;
     let mut root = window.retain();
     while let Some(parent) = root.parentWindow() {
@@ -1000,7 +1002,12 @@ pub fn set_focus_ring(handle: cef::sys::cef_window_handle_t, argb: Option<u32>) 
     }
     // SAFETY: CEF hands us a live NSView of a page window; main thread.
     let view: &NSView = unsafe { &*handle.cast::<NSView>() };
-    let Some(content) = view.window().and_then(|w| w.contentView()) else {
+    // A system page's own view lies over the content view: the outline is
+    // drawn on what holds it.
+    let Some(content) = view
+        .window()
+        .and_then(|w| webkit::holder_in(&w).or_else(|| w.contentView()))
+    else {
         return;
     };
     content.setWantsLayer(true);

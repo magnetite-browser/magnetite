@@ -1,7 +1,8 @@
 // Full-page settings, opened as its own tab (magnetite://ui/settings).
 import { DeveloperSection } from "./settings/DeveloperSection";
+import { ProtectedVideoSection } from "./settings/ProtectedVideoSection";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { AdblockIcon, Archive, Back, BracesIcon, CameraIcon, Close, CodeIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SharedIcon, SmartFolderIcon, type IconComponent, KeyIcon, KeyboardIcon, LinkIcon } from "./Icons";
+import { AdblockIcon, Archive, Back, BracesIcon, CameraIcon, Close, CodeIcon, DevicesIcon, InfoIcon, PaletteIcon, PrivacyIcon, PuzzleIcon, Search, SettingsIcon, SharedIcon, SmartFolderIcon, type IconComponent, KeyIcon, KeyboardIcon, LinkIcon, VideoIcon } from "./Icons";
 import { SEARCH_ENGINES } from "./settings/searchEngines";
 import { EXTERNAL_LINKS } from "./settings/externalLinks";
 import { ARCHIVE_AFTER, UNLOAD_AFTER } from "./settings/tabTimes";
@@ -42,6 +43,7 @@ const GROUPS: { label: string; sections: Section[] }[] = [
       { id: "links", label: "Links", Icon: LinkIcon, title: "Links", intro: "What happens to a link you click in another app, and to a link you copy." },
       { id: "search", label: "Search", Icon: Search, title: "Search", intro: "Used when what you type in the command bar is not a web address. A keyword and a space search one site instead." },
       { id: "adblock", label: "Ad blocking", Icon: AdblockIcon, title: "Ad blocking", intro: "Magnetite can stop ads and trackers before they load, with filter lists you choose. Off until you turn it on." },
+      { id: "video", label: "Protected video", Icon: VideoIcon, title: "Protected video", intro: "Some streaming services do not play in Magnetite's Chromium engine yet. Their pages open in your system's own web engine instead." },
       { id: "permissions", label: "Permissions", Icon: CameraIcon, title: "Permissions", intro: "The websites that may, or may not, use your camera, microphone or location, send notifications, open pop-ups or read the clipboard. A website asks first; this is what you answered." },
       { id: "autofill", label: "Passwords & autofill", Icon: KeyIcon, title: "Passwords & autofill", intro: "Magnetite can keep your passwords, addresses and cards and fill them in for you. What it saves stays on this computer." },
     ],
@@ -294,6 +296,7 @@ export function SettingsPage() {
       {sectionId === "smart" && <SmartFoldersSection />}
       {sectionId === "autofill" && <AutofillSection info={info} update={update} />}
       {sectionId === "adblock" && <AdblockSection info={info} update={update} reload={reload} />}
+      {sectionId === "video" && <ProtectedVideoSection key={settings.system_engine.sites.join()} info={info} update={update} />}
       {sectionId === "search" && (
         <>
           <Group>

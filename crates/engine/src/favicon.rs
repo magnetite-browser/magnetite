@@ -35,13 +35,23 @@ impl Engine {
     /// Download `icon_url` for content `id` and store it under the page's host.
     pub(crate) fn cache_favicon(&self, id: ContentId, icon_url: &str) {
         // Private pages leave nothing on disk.
-        let browser = self
-            .lock()
-            .contents
-            .get(&id)
-            .filter(|c| !c.ephemeral)
-            .and_then(|c| c.browser.clone());
-        let Some(browser) = browser else { return };
+        if (self.lock().contents.get(&id)).is_none_or(|c| c.ephemeral) {
+            return;
+        }
+        // A system page has no Chromium browser to fetch with.
+        if self.is_system_page(id) {
+            // Fetched with no cookies, so the request tells its site
+            // nothing of any profile.
+            let page = crate::system::backend::address_of(id);
+            if let Some(key) = page.as_deref().and_then(cache_key) {
+                let path = cache_dir(&self.config().data_dir).join(format!("{key}.png"));
+                crate::system::backend::fetch_icon(icon_url, path);
+            }
+            return;
+        }
+        let Some(browser) = self.content_browser(id) else {
+            return;
+        };
         let page = browser
             .main_frame()
             .map(|f| CefString::from(&f.url()).to_string())
@@ -73,18 +83,23 @@ wrap_download_image_callback! {
             if bytes.is_empty() || png.data(Some(&mut bytes), 0) != bytes.len() {
                 return;
             }
-            let Some(dir) = self.path.parent() else { return };
-            // Not the path: its name is the page's host.
-            if let Err(e) = std::fs::create_dir_all(dir) {
-                crate::trace(&format!("favicon cache: cannot create its folder: {e}"));
-            }
-            let tmp = self.path.with_extension("tmp");
-            if std::fs::write(&tmp, &bytes).is_ok()
-                && let Err(e) = std::fs::rename(&tmp, &self.path)
-            {
-                crate::trace(&format!("favicon cache: cannot store an icon: {e}"));
-            }
+            store_icon(&self.path, &bytes);
         }
+    }
+}
+
+/// Keep the PNG `bytes` as the icon at `path` (`cache_dir`).
+pub(crate) fn store_icon(path: &Path, bytes: &[u8]) {
+    let Some(dir) = path.parent() else { return };
+    // Not the path: its name is the page's host.
+    if let Err(e) = std::fs::create_dir_all(dir) {
+        crate::trace(&format!("favicon cache: cannot create its folder: {e}"));
+    }
+    let tmp = path.with_extension("tmp");
+    if std::fs::write(&tmp, bytes).is_ok()
+        && let Err(e) = std::fs::rename(&tmp, path)
+    {
+        crate::trace(&format!("favicon cache: cannot store an icon: {e}"));
     }
 }
 

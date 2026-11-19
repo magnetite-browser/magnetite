@@ -141,7 +141,9 @@ carries its own notices there.
   first use, CEF's Chrome runtime downloads it from Google through Chromium's
   component updater, which is a connection to Google servers. Streaming
   services that require Verified Media Path only work with a VMP-signed app,
-  and that signing needs an agreement with Google (Widevine).
+  and that signing needs an agreement with Google (Widevine). On macOS their
+  pages are shown by WebKit, the system's own web engine, which is not
+  shipped either (`docs/spec/protected-video.md`).
 - **H.264 and AAC.** Stock CEF builds ship without these proprietary codecs.
   Adding them needs our own CEF build and a decision on patent licensing.
 
@@ -230,6 +232,7 @@ carries its own notices there.
 | objc2-core-graphics | Zlib OR Apache-2.0 OR MIT | magnetite |
 | objc2-encode | MIT | magnetite |
 | objc2-foundation | MIT | magnetite |
+| objc2-web-kit | Zlib OR Apache-2.0 OR MIT | magnetite |
 | once_cell | MIT OR Apache-2.0 | magnetite |
 | once_cell_polyfill | MIT OR Apache-2.0 | magnetite |
 | percent-encoding | MIT OR Apache-2.0 | magnetite |
@@ -307,7 +310,7 @@ text share one copy, preceded by all of their copyright lines.
 
 #### 1. MIT
 
-Used by: adler2, aead, anstream, anstyle, anstyle-parse, anstyle-query, anstyle-wincon, anyhow, arrayvec, bitflags, block-buffer, block2, bytes, cef, cef-dll-sys, cfg-if, chacha20, chacha20poly1305, cipher, clap, clap_builder, clap_lex, cmov, colorchoice, const-oid, cpufeatures, crypto-common, csstype, ctutils, digest, ed25519, either, flate2, form_urlencoded, getrandom, hkdf, hmac, http, httparse, hybrid-array, idna, idna_adapter, inout, is_terminal_polyfill, itertools, itoa, libc, log, objc2, objc2-app-kit, objc2-core-foundation, objc2-core-graphics, objc2-encode, objc2-foundation, once_cell, once_cell_polyfill, percent-encoding, png, poly1305, rand, rand_core, regex, regex-automata, regex-syntax, rustc-hash, rustls, rustls-pki-types, seahash, semver, serde, serde_core, serde_json, sha2, signature, smallvec, stable_deref_trait, thiserror, tinyvec, unicode-normalization, universal-hash, ureq-proto, url, utf8-zero, utf8_iter, utf8parse, utf_types, zeroize, zmij.
+Used by: adler2, aead, anstream, anstyle, anstyle-parse, anstyle-query, anstyle-wincon, anyhow, arrayvec, bitflags, block-buffer, block2, bytes, cef, cef-dll-sys, cfg-if, chacha20, chacha20poly1305, cipher, clap, clap_builder, clap_lex, cmov, colorchoice, const-oid, cpufeatures, crypto-common, csstype, ctutils, digest, ed25519, either, flate2, form_urlencoded, getrandom, hkdf, hmac, http, httparse, hybrid-array, idna, idna_adapter, inout, is_terminal_polyfill, itertools, itoa, libc, log, objc2, objc2-app-kit, objc2-core-foundation, objc2-core-graphics, objc2-encode, objc2-foundation, objc2-web-kit, once_cell, once_cell_polyfill, percent-encoding, png, poly1305, rand, rand_core, regex, regex-automata, regex-syntax, rustc-hash, rustls, rustls-pki-types, seahash, semver, serde, serde_core, serde_json, sha2, signature, smallvec, stable_deref_trait, thiserror, tinyvec, unicode-normalization, universal-hash, ureq-proto, url, utf8-zero, utf8_iter, utf8parse, utf_types, zeroize, zmij.
 
 ```
 Copyright (c) 2006-2009 Graydon Hoare

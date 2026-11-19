@@ -241,6 +241,9 @@ impl Engine {
     }
 
     fn page_url(&self, id: ContentId) -> Option<String> {
+        if self.is_system_page(id) {
+            return crate::system::backend::address_of(id);
+        }
         let frame = self
             .lock()
             .contents
@@ -448,6 +451,21 @@ impl Engine {
             });
             return;
         };
+        // A system page's data is in the system engine's own store.
+        if self.is_system_page(id) {
+            let profile = self.content_profile(id);
+            let report = move |cookies| {
+                done(ClearReport {
+                    domain,
+                    cookies,
+                    origins,
+                    failed_origins: vec![],
+                    moved: false,
+                });
+            };
+            self.clear_system_data(profile.as_ref(), Some(confirmed), Box::new(report));
+            return;
+        }
         let job = CLEAR_JOBS.with(|j| {
             let mut j = j.borrow_mut();
             let key = j.keys().max().map_or(1, |k| k + 1);

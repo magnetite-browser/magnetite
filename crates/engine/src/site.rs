@@ -26,6 +26,9 @@ pub struct SiteState {
     /// 100 unless the user chose another (`Engine::set_default_zoom`).
     #[serde(default)]
     pub base_zoom: u32,
+    /// The system's own engine shows the page, not Chromium (`system.rs`).
+    #[serde(default)]
+    pub system_engine: bool,
 }
 
 /// The zoom step after `current` percent, in (`up`) or out; `current` when
@@ -92,6 +95,9 @@ fn has_cert_error(status: CertStatus) -> bool {
 impl Engine {
     /// Current site state of content `id` (the visible navigation entry).
     pub fn content_site_state(&self, id: ContentId) -> Option<SiteState> {
+        if self.is_system_page(id) {
+            return crate::system::site_state(id);
+        }
         let host = self.content_browser_host(id)?;
         let zoom = level_to_percent(host.zoom_level());
         let base_zoom = level_to_percent(host.default_zoom_level());
@@ -116,6 +122,7 @@ impl Engine {
             cert_error,
             zoom,
             base_zoom,
+            system_engine: false,
         })
     }
 
@@ -168,7 +175,9 @@ impl Engine {
     /// Set page zoom to `pct` percent; `None` gives the site the zoom every
     /// site starts with again.
     pub fn set_content_zoom(&self, id: ContentId, pct: Option<u32>) {
-        if let Some(host) = self.content_browser_host(id) {
+        if self.is_system_page(id) {
+            self.system_set_zoom(id, pct.unwrap_or(100));
+        } else if let Some(host) = self.content_browser_host(id) {
             let base = level_to_percent(host.default_zoom_level());
             // A page of Magnetite's own has no part in that default
             // (`keep_own_page_unzoomed`): its zoom "again" is 100 percent.

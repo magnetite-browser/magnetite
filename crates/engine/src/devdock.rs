@@ -451,10 +451,7 @@ impl Engine {
         let (id, separate) = {
             let inner = self.lock();
             let mut target = View::from(source);
-            let page = inner
-                .contents
-                .iter()
-                .find(|(_, c)| View::from(&c.view).is_same(Some(&mut target)) != 0);
+            let page = inner.contents.iter().find(|(_, c)| c.view.is(&mut target));
             // A mini window has no room to dock them: their own window.
             let separate = inner.devtools_dock == DevToolsDock::Window
                 || page.is_some_and(|(_, c)| c.mini.is_some());

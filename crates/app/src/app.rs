@@ -18,6 +18,7 @@ mod adblocking;
 mod addresses;
 mod commands;
 mod dev;
+mod engines;
 mod events;
 mod extensions;
 mod mini;

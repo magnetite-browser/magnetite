@@ -73,6 +73,7 @@ export const DevicesIcon = icon(L.MonitorSmartphone);
 export const PhoneIcon = icon(L.Smartphone);
 export const PrivacyIcon = icon(L.ShieldCheck);
 export const AdblockIcon = icon(L.ShieldBan);
+export const VideoIcon = icon(L.MonitorPlay);
 export const InfoIcon = icon(L.Info);
 export const GlobeIcon = icon(L.Globe);
 export const NotesIcon = icon(L.ScrollText);

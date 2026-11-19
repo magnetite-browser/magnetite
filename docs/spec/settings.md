@@ -17,7 +17,7 @@ The list has five groups:
 | Group | Sections |
 |---|---|
 | Basics | General, Appearance, Shortcuts |
-| Browsing | Tabs & archive, Links, Search, Ad blocking, Permissions, Passwords & autofill |
+| Browsing | Tabs & archive, Links, Search, Ad blocking, Protected video, Permissions, Passwords & autofill |
 | Spaces | Spaces, Smart folders |
 | Services | Sync, Extensions |
 | Advanced | Custom CSS & JS, Developer, Data & privacy, About |

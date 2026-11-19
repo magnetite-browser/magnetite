@@ -30,6 +30,7 @@ labels say so.
 | [ad-blocking.md](ad-blocking.md) | blocking ads and trackers with filter lists the user chooses |
 | [passwords-and-autofill.md](passwords-and-autofill.md) | Chromium's password manager and autofill: switches, saved lists, what stays local |
 | [media.md](media.md) | media controls in the sidebar, picture-in-picture |
+| [protected-video.md](protected-video.md) | streaming services that refuse Chromium: their pages in the system's own web engine |
 | [extensions.md](extensions.md) | Chrome extensions: pinned icons, the Extensions menu, popups |
 | [smart-folders.md](smart-folders.md) | folders that fill themselves from GitHub, GitLab, Jira or YouTrack |
 | [sharing.md](sharing.md) | a folder of pinned tabs as a link: what it carries, opening it, adding it to the sidebar |

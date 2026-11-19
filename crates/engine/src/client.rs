@@ -552,6 +552,20 @@ wrap_request_handler! {
                 engine.emit(EngineEvent::OpenUrlRequested { from: Some(id), url, background: false, new_window: false, own_window: false, locked: true, source: UrlSource::Page, context });
                 return 1;
             }
+            // A page headed for a site of the system's engine changes its
+            // engine (`system.rs`) instead of going there. Only GET, as
+            // above; a page's popup window and a mini window stay Chromium's.
+            if self.kind == Kind::Content && main
+                && let Some(r) = request.as_ref()
+                && CefString::from(&r.method()).to_string() == "GET"
+                && let url = CefString::from(&r.url()).to_string()
+                && engine.wants_system(&url)
+                && let Some(id) = engine.content_id_for(browser.as_deref())
+                && !engine.is_mini(id)
+            {
+                Engine::post(Box::new(move || Engine::global().change_engine(id, &url)));
+                return 1;
+            }
             if let Some(r) = engine.lock().router.clone() {
                 r.on_before_browse(browser.cloned(), frame.cloned());
             }

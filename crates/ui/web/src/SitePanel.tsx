@@ -38,6 +38,30 @@ function BlockAds({ url }: { url: string }) {
   );
 }
 
+/**
+ * Which engine shows this site: Chromium, or the system's own (WebKit on
+ * macOS), which plays the protected video Chromium is refused. Not there
+ * where the system has no engine to use. A service that always opens in the
+ * system's engine (Settings → Protected video) has no switch of its own.
+ */
+function SystemEngine({ url }: { url: string }) {
+  const [engine, setEngine] = useState<{ site: string | null; system: boolean; known: boolean } | null>(null);
+  useEffect(() => {
+    void send({ cmd: "site_engine", url }).then(setEngine);
+  }, [url]);
+  if (!engine?.site) return null;
+  const set = (system: boolean) => {
+    setEngine({ ...engine, system });
+    send({ cmd: "set_site_engine", url, system });
+  };
+  return (
+    <label className="panel-row" title={`For all of ${engine.site}: its pages open in WebKit, the Mac's own web engine, which plays protected video. No extensions or ad blocking there, and the site asks you to sign in again. The page loads again.`}>
+      <span className="flex-1">Open in WebKit</span>
+      {engine.known ? <span className="text-[12px] text-[var(--muted)]">Always, for its video</span> : <Switch label="Open this site in WebKit" checked={engine.system} onChange={set} />}
+    </label>
+  );
+}
+
 /** Pop-ups have no "ask" state in Chromium. */
 const CHOICES = (kind: PermissionKind): PermissionValue[] => (kind === "popups" ? ["allow", "block"] : ["allow", "ask", "block"]);
 
@@ -183,6 +207,9 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
   useDismiss(onClose, { takeFocus: !inWindow });
   useEffect(() => box.current?.focus(), []);
   const internal = item.url.startsWith("magnetite://");
+  // The system's engine shows the page: what hooks into Chromium (capture,
+  // developer tools, own CSS, permissions, ad blocking, mute) is not there.
+  const system = rt?.site?.system_engine ?? false;
   const conn = connection(item, rt);
   const zoom = rt?.site?.zoom ?? 100;
   // The zoom the site has without one of its own (Settings → Appearance).
@@ -209,13 +236,13 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
           <div className="min-w-0">
             <div className="truncate font-semibold">{host}</div>
             <div className="truncate text-[12px]" style={{ color: conn.tone === "bad" ? "var(--danger)" : conn.tone === "warn" ? "var(--warn)" : "var(--muted)" }}>
-              {conn.text}{profile && !profile.is_default ? ` · Profile: ${profile.name}` : ""}
+              {conn.text}{system ? " · WebKit" : ""}{profile && !profile.is_default ? ` · Profile: ${profile.name}` : ""}
             </div>
           </div>
         </div>
 
         <div className="panel-tools">
-          {!internal && (
+          {!internal && !system && (
             <button title={`Capture${keysHint(state.keys, "capture")}`} onClick={() => { send({ cmd: "capture_start" }); onClose(); }}>
               <CaptureIcon width={16} height={16} />
               <span>Capture</span>
@@ -229,13 +256,13 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
               <span>Share</span>
             </button>
           )}
-          {!internal && (
+          {!internal && !system && (
             <button title={`Your own CSS and JavaScript for ${host}`} onClick={() => { send({ cmd: "new_tab", url: `magnetite://ui/settings#code=${encodeURIComponent(host)}` }); onClose(); }}>
               <BracesIcon width={16} height={16} />
               <span>Custom CSS & JS</span>
             </button>
           )}
-          {!internal && (
+          {!internal && !system && (
             <button title={`Developer tools${keysHint(state.keys, "toggle_dev_tools")}`} onClick={() => { send({ cmd: "toggle_devtools" }); onClose(); }}>
               <CodeIcon width={16} height={16} />
               <span>Developer tools</span>
@@ -246,7 +273,12 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
 
         {/* The rows are one tab's on one site: asked again when another tab comes in front
             while the panel is open (Ctrl+Tab, ⌘W) or the tab goes to another site. */}
-        {!internal && <Permissions key={`${item.id} ${host}`} pageHost={host} />}
+        {!internal && !system && <Permissions key={`${item.id} ${host}`} pageHost={host} />}
+        {system && (
+          <div className="panel-group">
+            <div className="panel-note">WebKit, the Mac's own web engine, shows this page. Extensions, ad blocking and developer tools do not work here, and the site signs in apart from your other pages.</div>
+          </div>
+        )}
 
         {!internal && (
           <div className="panel-group">
@@ -258,12 +290,15 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
               <button className="ib sm" aria-label="Zoom in" disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]!} onClick={() => step(1)}><Plus width={14} height={14} /></button>
             </div>
             {/* Asked again when the tab goes to another site; the app takes the host from the address (without port). */}
-            <BlockAds key={`${item.id} ${host}`} url={item.url} />
-            <button className="panel-row w-full" disabled={!rt?.loaded} onClick={() => send({ cmd: "set_muted", id: item.id, muted: !rt?.muted })}>
-              <span className="flex-1 text-left">{rt?.muted ? "Unmute tab" : "Mute tab"}</span>
-              {rt?.muted ? <SpeakerOff width={15} height={15} /> : <Speaker width={15} height={15} />}
-            </button>
-            <DevSwitch state={state} url={item.url} own={rt?.dev.clears ?? false} />
+            {!system && <BlockAds key={`${item.id} ${host}`} url={item.url} />}
+            {!system && (
+              <button className="panel-row w-full" disabled={!rt?.loaded} onClick={() => send({ cmd: "set_muted", id: item.id, muted: !rt?.muted })}>
+                <span className="flex-1 text-left">{rt?.muted ? "Unmute tab" : "Mute tab"}</span>
+                {rt?.muted ? <SpeakerOff width={15} height={15} /> : <Speaker width={15} height={15} />}
+              </button>
+            )}
+            <SystemEngine key={`${item.id} ${host} engine`} url={item.url} />
+            {!system && <DevSwitch state={state} url={item.url} own={rt?.dev.clears ?? false} />}
             {/* Per tab: a confirmation or a report is not the next tab's. */}
             <ClearData key={item.id} profileName={profile && !profile.is_default ? profile.name : null} noSite={rt?.site?.secure === null} />
           </div>

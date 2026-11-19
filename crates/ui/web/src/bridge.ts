@@ -200,6 +200,8 @@ export interface SiteState {
   zoom: number;
   /** The zoom, in percent, the site has without one of its own. */
   base_zoom?: number;
+  /** The system's own web engine shows the page (WebKit on macOS), not Chromium. */
+  system_engine?: boolean;
 }
 
 /** Chromium's zoom steps in percent (same list as the engine). */
@@ -378,6 +380,8 @@ export interface Settings {
   /** The ad blocker (Settings → Ad blocking); this device's own choice, never synced. */
   /** Developer features (Settings → Developer). */
   developer: { enabled: boolean; hosts: string[] };
+  /** Which sites the system's own web engine shows (Settings → Protected video): the known streaming services, and sites of the user's own, by host. This device's own, never synced. */
+  system_engine: { known: boolean; sites: string[] };
   adblock: {
     enabled: boolean;
     /** Ids of the filter lists subscribed to (`Info.adblock.lists`). */
@@ -515,6 +519,11 @@ export type Command =
   | { cmd: "device_set"; page: number; config: DeviceConfig | null }
   | { cmd: "site_ads"; url: string }
   | { cmd: "set_site_ads"; url: string; blocking: boolean }
+  | { cmd: "site_engine"; url: string }
+  /** Show the site of the page at `url` in the system's engine from now on, or in Chromium again; the page in front loads again. */
+  | { cmd: "set_site_engine"; url: string; system: boolean }
+  /** Delete the cookies, site storage and cache the system's engine keeps, in every profile. */
+  | { cmd: "clear_system_engine_data" }
   | { cmd: "set_adblock_enabled"; enabled: boolean }
   | { cmd: "set_adblock_list"; id: string; subscribed: boolean }
   | { cmd: "set_permission"; origin: string; kind: PermissionKind; value: PermissionValue }
@@ -830,6 +839,8 @@ interface Replies {
   device_get: DeviceConfig | null;
   /** `site`: the registrable domain of the page asked about; null for no web page. */
   site_ads: { site: string | null; enabled: boolean; blocking: boolean };
+  /** `site`: as for `site_ads`, and null also where the system has no engine to use. `known`: one of the services that always open there (Settings → Protected video). */
+  site_engine: { site: string | null; system: boolean; known: boolean };
   site_data_scope: { domain: string; origins: string[] } | { domain?: undefined };
 }
 

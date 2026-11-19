@@ -120,6 +120,75 @@ pub struct Settings {
     /// Developer features: the row for local pages, the hosts that count
     /// as local. Not synced.
     pub developer: crate::dev::DeveloperSettings,
+    /// Which sites the system's own web engine shows instead of Chromium.
+    /// Not synced: only some systems have such an engine.
+    pub system_engine: SystemEngine,
+}
+
+/// The services known to play protected video only in a browser build that
+/// Google's Widevine programme has verified, which Magnetite's Chromium is
+/// not: they refuse it and play in the system's engine. By host, each with
+/// its subdomains. Ships with each release; never fetched from anywhere.
+pub const PROTECTED_VIDEO_SITES: &[&str] = &[
+    "netflix.com",
+    "disneyplus.com",
+    "max.com",
+    "hbomax.com",
+    "primevideo.com",
+    "hulu.com",
+];
+
+/// The most sites of their own a user names for the system's engine.
+const MAX_SYSTEM_ENGINE_SITES: usize = 100;
+
+/// Which sites open in the system's own web engine (Settings → Protected
+/// video; `magnetite_engine`'s `system.rs`).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct SystemEngine {
+    /// The services of `PROTECTED_VIDEO_SITES` do.
+    pub known: bool,
+    /// Sites the user named, by host in lower case without `www.`.
+    pub sites: Vec<String>,
+}
+
+impl Default for SystemEngine {
+    fn default() -> Self {
+        Self {
+            known: true,
+            sites: Vec::new(),
+        }
+    }
+}
+
+impl SystemEngine {
+    /// Hosts only, each once, and none that the known services cover.
+    fn sanitised(mut self) -> Self {
+        let mut sites: Vec<String> = Vec::new();
+        for site in std::mem::take(&mut self.sites) {
+            if let Some(host) = site_host(&site)
+                && !sites.contains(&host)
+                && !PROTECTED_VIDEO_SITES.contains(&host.as_str())
+                && sites.len() < MAX_SYSTEM_ENGINE_SITES
+            {
+                sites.push(host);
+            }
+        }
+        self.sites = sites;
+        self
+    }
+
+    /// Every site that opens in the system's engine.
+    pub fn hosts(&self) -> Vec<String> {
+        let known = if self.known {
+            PROTECTED_VIDEO_SITES
+        } else {
+            &[]
+        };
+        (known.iter().map(ToString::to_string))
+            .chain(self.sites.iter().cloned())
+            .collect()
+    }
 }
 
 /// The ad blocker (Settings → Ad blocking, `adblock.rs`). Off, with no list,
@@ -509,6 +578,7 @@ impl Settings {
         self.appearance = self.appearance.clamped();
         self.adblock = self.adblock.sanitised();
         self.developer = self.developer.sanitised();
+        self.system_engine = self.system_engine.sanitised();
         if !usable_search(&self.search_template) {
             self.search_template = defaults.search_template;
         }
@@ -671,6 +741,7 @@ impl Default for Settings {
             smart_allowed: None,
             adblock: AdblockSettings::default(),
             developer: crate::dev::DeveloperSettings::default(),
+            system_engine: SystemEngine::default(),
         }
     }
 }
@@ -955,6 +1026,34 @@ mod tests {
         };
         let saved = serde_json::to_string(&on).unwrap();
         assert_eq!(serde_json::from_str::<Appearance>(&saved).unwrap(), on);
+    }
+
+    #[test]
+    fn the_known_services_open_in_the_system_engine_until_turned_off() {
+        let engine = Settings::default().system_engine;
+        assert_eq!(engine.hosts(), PROTECTED_VIDEO_SITES);
+        let own = SystemEngine {
+            known: false,
+            sites: vec!["tv.example.org".into()],
+        };
+        assert_eq!(own.hosts(), ["tv.example.org"]);
+    }
+
+    #[test]
+    fn own_sites_for_the_system_engine_are_hosts_each_once() {
+        let typed = SystemEngine {
+            known: true,
+            sites: vec![
+                "https://www.TV.example.org/watch?v=1".into(),
+                "tv.example.org".into(),
+                "not a host".into(),
+                // One of the known services: the switch above covers it.
+                "netflix.com".into(),
+                "music.example.com".into(),
+            ],
+        };
+        let kept = typed.sanitised();
+        assert_eq!(kept.sites, ["tv.example.org", "music.example.com"]);
     }
 
     #[test]

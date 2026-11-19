@@ -681,6 +681,19 @@ pub(super) enum UiCommand {
         url: String,
         blocking: bool,
     },
+    /// Site panel: whether the system's engine shows the site of the page
+    /// at `url`.
+    SiteEngine {
+        url: String,
+    },
+    /// Site panel: show the site of the page at `url` in the system's
+    /// engine from now on, or in Chromium again.
+    SetSiteEngine {
+        url: String,
+        system: bool,
+    },
+    /// Settings: delete what the system's engine keeps, in every profile.
+    ClearSystemEngineData,
     /// Settings, welcome page: the ad blocker on or off.
     SetAdblockEnabled {
         enabled: bool,
@@ -1942,6 +1955,12 @@ impl MagnetiteApp {
                         // The chosen folder is not there: the page says so.
                         "download_folder_missing": !s.settings.downloads.folder.is_empty() && !std::path::Path::new(&s.settings.downloads.folder).is_dir(),
                         "adblock": adblock,
+                        // Whether this system has an engine of its own for
+                        // pages, and the services that open there.
+                        "system_engine": {
+                            "available": magnetite_engine::Engine::system_engine_available(),
+                            "known_sites": crate::state::PROTECTED_VIDEO_SITES,
+                        },
                         "shortcuts": magnetite_engine::Action::ALL.iter().map(|action| json!({
                             "action": action,
                             "keys": s.settings.shortcuts.combo_of(*action).map(|c| c.to_string()),
@@ -2051,6 +2070,7 @@ impl MagnetiteApp {
                 // reads the level when it starts, before Magnetite could set it.
                 engine.set_default_zoom(settings.page_zoom);
                 engine.set_languages(&settings.languages);
+                engine.set_system_engine_sites(settings.system_engine.hosts());
                 engine.set_quick_search_key(settings.quick_search);
                 self.dev_settings_changed(engine);
                 // Open pages get changed CSS at once.
@@ -2556,6 +2576,11 @@ impl MagnetiteApp {
                 lock(&self.capture).result = None;
             }
             UiCommand::SiteAds { url } => return Ok(self.site_ads(&url)),
+            UiCommand::SiteEngine { url } => return Ok(self.site_engine(&url)),
+            UiCommand::SetSiteEngine { url, system } => {
+                self.set_site_engine(engine, &url, system);
+            }
+            UiCommand::ClearSystemEngineData => self.clear_system_engine_data(engine),
             UiCommand::SetSiteAds { url, blocking } => {
                 self.set_site_ads(engine, &url, blocking);
                 self.push_state(engine);

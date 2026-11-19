@@ -15,7 +15,8 @@ pub(crate) struct ContentState {
     /// The window the page lives in: its frame is the page window's parent.
     pub home: crate::WindowId,
     pub window: Option<Window>,
-    pub view: BrowserView,
+    pub view: PageView,
+    /// The Chromium browser of the page; a system page has none.
     pub browser: Option<Browser>,
     /// Profile id of the page's context (`""` for the default context).
     pub profile: String,
@@ -32,6 +33,33 @@ pub(crate) struct ContentState {
     pub mini: Option<crate::mini::MiniChrome>,
     /// The page began in a mini window and is a tab's now (`mini_to_tab`).
     pub adopted: bool,
+    /// Which making of the page this is. A page that changes its engine
+    /// (`change_engine`) is made again under its id: the window of the
+    /// earlier making knows by this that the page is no longer its own.
+    pub serial: u64,
+}
+
+/// What fills a page's window.
+#[derive(Clone)]
+pub(crate) enum PageView {
+    Chromium(BrowserView),
+    /// A view of the system's engine (`system.rs`), which knows it by the
+    /// page's id.
+    System(ContentId),
+}
+
+impl PageView {
+    /// Whether this is the Chromium view `view`.
+    pub(crate) fn is(&self, view: &mut View) -> bool {
+        matches!(self, Self::Chromium(own) if View::from(own).is_same(Some(view)) != 0)
+    }
+
+    pub(crate) fn request_focus(&self) {
+        match self {
+            Self::Chromium(view) => view.request_focus(),
+            Self::System(id) => crate::system::backend::focus(*id),
+        }
+    }
 }
 
 /// A page asked for while its profile's context was still being made
@@ -92,6 +120,25 @@ impl Engine {
             id
         };
         crate::trace(&format!("create_content #{id}"));
+        self.make_page(id, url, profile, mini);
+        id
+    }
+
+    /// Make page `id` for `url` in the engine `url` belongs in
+    /// (`system.rs`). A Chromium page whose profile's context is still
+    /// being made waits for it (`context_ready`). A mini window is always
+    /// Chromium's: its row is laid out with a Chromium view.
+    pub(crate) fn make_page(
+        &self,
+        id: ContentId,
+        url: &str,
+        profile: Option<&crate::ContextProfile>,
+        mini: bool,
+    ) {
+        if !mini && self.wants_system(url) {
+            self.build_system_content(id, url, profile);
+            return;
+        }
         let context = self.request_context(profile);
         let waiting = profile.filter(|_| !self.context_is_ready(profile));
         if let Some(profile) = waiting {
@@ -107,7 +154,6 @@ impl Engine {
         } else {
             self.build_content(id, url, profile, context, mini);
         }
-        id
     }
 
     /// Chromium finished making profile `profile`'s context: the pages that
@@ -142,7 +188,7 @@ impl Engine {
 
     /// Put page `id`, whose window was made late, where it was asked to be
     /// while it had none: the peek, in the split on screen, or shown alone.
-    fn show_late(&self, id: ContentId) {
+    pub(crate) fn show_late(&self, id: ContentId) {
         let (peek, panel, split, focus, shown) = {
             let inner = self.lock();
             (
@@ -204,12 +250,13 @@ impl Engine {
         };
         // Before the lock below: the row reads the engine's state itself.
         let mini_chrome = if mini { self.mini_chrome(id) } else { None };
+        let serial = self.next_serial();
         self.lock().contents.insert(
             id,
             ContentState {
                 home: self.current_window(),
                 window: None,
-                view: view.clone(),
+                view: PageView::Chromium(view.clone()),
                 browser: None,
                 profile: profile.map(|p| p.id.clone()).unwrap_or_default(),
                 ephemeral: profile.is_some_and(|p| p.ephemeral),
@@ -218,11 +265,12 @@ impl Engine {
                 tab_target: None,
                 mini: mini_chrome,
                 adopted: false,
+                serial,
             },
         );
 
         let bounds = mini.then(|| self.mini_rect());
-        let mut wd = ContentWindowDelegate::new(id, view, bounds);
+        let mut wd = ContentWindowDelegate::new(id, PageView::Chromium(view), bounds, serial);
         window_create_top_level(Some(&mut wd));
         crate::trace(&format!("create_content #{id} window created"));
     }
@@ -780,6 +828,9 @@ impl Engine {
                 }
             });
         }
+        if matches!(&state, Some(c) if matches!(c.view, PageView::System(_))) {
+            crate::system::backend::close(id);
+        }
         // Its shadow goes with it, in the window it lived in.
         self.in_window(home, || self.update_page_shadows());
         // The tabs this page shared are no longer shared.
@@ -789,7 +840,14 @@ impl Engine {
     }
 
     pub fn content_load_url(&self, id: ContentId, url: &str) {
-        if let Some(frame) = self.content_browser(id).and_then(|b| b.main_frame()) {
+        // An address for the other engine: the page changes engine. A page
+        // without a window yet is made for the address it has by then.
+        let system = self.is_system_page(id);
+        if self.page_window(id).is_some() && !self.is_mini(id) && system != self.wants_system(url) {
+            self.change_engine(id, url);
+        } else if system {
+            crate::system::backend::load(id, url);
+        } else if let Some(frame) = self.content_browser(id).and_then(|b| b.main_frame()) {
             frame.load_url(Some(&CefString::from(url)));
         } else if let Some(page) = self.lock().queued.iter_mut().find(|q| q.id == id) {
             // No window yet: it starts with this address.
@@ -798,17 +856,23 @@ impl Engine {
     }
 
     pub fn content_go_back(&self, id: ContentId) {
-        if let Some(b) = self.content_browser(id) {
+        if self.is_system_page(id) {
+            crate::system::backend::go_back(id);
+        } else if let Some(b) = self.content_browser(id) {
             b.go_back();
         }
     }
     pub fn content_go_forward(&self, id: ContentId) {
-        if let Some(b) = self.content_browser(id) {
+        if self.is_system_page(id) {
+            crate::system::backend::go_forward(id);
+        } else if let Some(b) = self.content_browser(id) {
             b.go_forward();
         }
     }
     pub fn content_reload(&self, id: ContentId) {
-        if let Some(b) = self.content_browser(id) {
+        if self.is_system_page(id) {
+            crate::system::backend::reload(id);
+        } else if let Some(b) = self.content_browser(id) {
             b.reload();
         }
     }
@@ -837,7 +901,9 @@ impl Engine {
         }
     }
     pub fn content_stop(&self, id: ContentId) {
-        if let Some(b) = self.content_browser(id) {
+        if self.is_system_page(id) {
+            crate::system::backend::stop(id);
+        } else if let Some(b) = self.content_browser(id) {
             b.stop_load();
         }
     }
@@ -936,7 +1002,7 @@ impl Engine {
         self.lock().contents.get(&id)?.window.clone()
     }
 
-    fn content_handles(&self, id: ContentId) -> Option<(Window, BrowserView)> {
+    fn content_handles(&self, id: ContentId) -> Option<(Window, PageView)> {
         let inner = self.lock();
         let c = inner.contents.get(&id)?;
         Some((c.window.clone()?, c.view.clone()))
@@ -1017,7 +1083,7 @@ impl Engine {
                     let mut inner = self.lock();
                     let mut target = View::from(&view);
                     for (id, c) in &mut inner.contents {
-                        if View::from(&c.view).is_same(Some(&mut target)) != 0 {
+                        if c.view.is(&mut target) {
                             c.browser = Some(browser.clone());
                             matched = Some(*id);
                             break;
@@ -1113,11 +1179,13 @@ wrap_browser_view_delegate! {
 }
 
 wrap_window_delegate! {
-    struct ContentWindowDelegate {
+    pub(crate) struct ContentWindowDelegate {
         id: ContentId,
-        view: BrowserView,
+        view: PageView,
         // Where a mini window opens; `None` for a tab's page window.
         mini: Option<Rect>,
+        // The making of the page this window belongs to (`ContentState`).
+        serial: u64,
     }
     impl ViewDelegate {}
     impl PanelDelegate {}
@@ -1129,11 +1197,18 @@ wrap_window_delegate! {
             let layout = window
                 .set_to_box_layout(Some(&BoxLayoutSettings { horizontal: 0, cross_axis_alignment: AxisAlignment::STRETCH, ..Default::default() }))
                 .expect("content layout");
-            let mut v = View::from(&self.view);
-            window.add_child_view(Some(&mut v));
-            layout.set_flex_for_view(Some(&mut v), 1);
-            crate::trace(&format!("content window #{} view added", self.id));
             let engine = Engine::global();
+            match &self.view {
+                PageView::Chromium(view) => {
+                    let mut v = View::from(view);
+                    window.add_child_view(Some(&mut v));
+                    layout.set_flex_for_view(Some(&mut v), 1);
+                }
+                // No view of CEF's: the system's own is laid over the
+                // window below, once the window has its corners.
+                PageView::System(_) => {}
+            }
+            crate::trace(&format!("content window #{} view added", self.id));
             let row = {
                 let mut inner = engine.lock();
                 let c = inner.contents.get_mut(&self.id);
@@ -1167,12 +1242,17 @@ wrap_window_delegate! {
             crate::win::round_window_corners(window.window_handle(), false);
             #[cfg(target_os = "macos")]
             crate::mac::pin_window(window.window_handle());
+            if let PageView::System(id) = &self.view {
+                crate::system::backend::attach(*id, window.window_handle());
+            }
             window.show();
             window.hide();
         }
         fn on_window_destroyed(&self, _window: Option<&mut Window>) {
             let engine = Engine::global();
-            if engine.forget_content(self.id) {
+            // The page changed its engine: it lives on in another window.
+            let own = (engine.lock().contents.get(&self.id)).is_none_or(|c| c.serial == self.serial);
+            if own && engine.forget_content(self.id) {
                 engine.emit(EngineEvent::ContentClosed { id: self.id });
             }
         }
@@ -1212,7 +1292,12 @@ wrap_window_delegate! {
         // Not key, yet clickable at once: the first press is a real click
         // (macOS would otherwise spend it on activating the window).
         fn accepts_first_mouse(&self, _window: Option<&mut Window>) -> State { State::ENABLED }
-        fn window_runtime_style(&self) -> RuntimeStyle { RuntimeStyle::CHROME }
+        fn window_runtime_style(&self) -> RuntimeStyle {
+            match self.view {
+                PageView::Chromium(_) => RuntimeStyle::CHROME,
+                PageView::System(_) => RuntimeStyle::ALLOY,
+            }
+        }
         // Mini windows are windows of their own on the desktop.
         fn linux_window_properties(&self, _window: Option<&mut Window>, properties: Option<&mut LinuxWindowProperties>) -> ::std::os::raw::c_int {
             crate::frame::set_linux_window_properties(properties)
