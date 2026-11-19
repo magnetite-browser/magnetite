@@ -148,6 +148,18 @@ function overMiddle(e: React.DragEvent, el: HTMLElement): boolean {
   return x > 10 && x < r.width - 10;
 }
 
+/**
+ * The page of tile `el` nearest to the pointer: one of a split's halves (also
+ * from the gap between two of them), or the tile itself for a single favorite.
+ */
+function pageAt(e: React.DragEvent, el: HTMLElement): HTMLElement {
+  const off = (page: HTMLElement) => {
+    const r = page.getBoundingClientRect();
+    return Math.max(r.left - e.clientX, e.clientX - r.right, 0);
+  };
+  return [...el.querySelectorAll<HTMLElement>("[data-page]")].reduce<HTMLElement | null>((best, page) => (best && off(best) <= off(page) ? best : page), null) ?? el;
+}
+
 /** `tabs` as the one tile they make; none without a tab. */
 function asTile(tabs: TabItem[]): Tile[] {
   const [first, ...rest] = tabs;
@@ -217,7 +229,7 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
         if (overTile && onto && joins && overMiddle(e, overTile)) {
           // Over the place the carried tab would join, the preview stays.
           if (target.closest("[data-ghost]")) return;
-          const page = target.closest<HTMLElement>("[data-page]") ?? overTile;
+          const page = pageAt(e, overTile);
           const next = { id: d.id, tile: onto[0].id, cell: page.dataset.page ?? onto[0].id, side: sideOf(e, page) };
           return setJoin((j) => (j && j.id === next.id && j.cell === next.cell && j.side === next.side ? j : next));
         }
