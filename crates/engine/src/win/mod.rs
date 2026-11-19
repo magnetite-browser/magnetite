@@ -49,6 +49,9 @@ const DWMWA_WINDOW_CORNER_PREFERENCE: u32 = 33;
 const DWMWA_BORDER_COLOR: u32 = 34;
 /// Windows 11 only, as `0x00BBGGRR`.
 const DWMWA_CAPTION_COLOR: u32 = 35;
+const DWMWA_SYSTEMBACKDROP_TYPE: u32 = 38;
+/// No backdrop: DWM paints nothing of its own behind the window's content.
+const DWMSBT_NONE: u32 = 1;
 const DWMWCP_DONOTROUND: u32 = 1;
 /// Windows' own radius (8 px); the only other choice is 4 px.
 const DWMWCP_ROUND: u32 = 2;
@@ -117,6 +120,11 @@ fn set(handle: cef::sys::cef_window_handle_t, attribute: u32, value: u32) {
 /// shadow: it would darken the chrome around the page, more so while the
 /// page is the active window. So a page is cut round with a window region
 /// instead (`clip_page`), which DWM neither rounds nor shades.
+///
+/// The region cuts what Chromium draws, but not the backdrop Windows 11
+/// fills such a window with first (light or dark grey, as the system's
+/// appearance): in the corners that backdrop would show instead of the
+/// frame, so a page has none.
 pub fn round_window_corners(handle: cef::sys::cef_window_handle_t, shadow: bool) {
     if shadow {
         set(handle, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND);
@@ -125,6 +133,7 @@ pub fn round_window_corners(handle: cef::sys::cef_window_handle_t, shadow: bool)
         set(handle, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND);
         set(handle, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE);
         match_frame(handle);
+        set(handle, DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NONE);
         clip_page(handle);
     }
 }

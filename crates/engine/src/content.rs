@@ -1461,6 +1461,22 @@ fn attach_toolbar(view: &BrowserView, shown: bool) {
         ..Default::default()
     }));
     holder.add_child_view(Some(&mut toolbar));
+    // The row would show as a line along the page's top edge (white on
+    // Windows): the window's box starts one point higher, so the row sits
+    // just above the window and the page fills it from its first row.
+    if let Some(layout) = window.set_to_box_layout(Some(&BoxLayoutSettings {
+        horizontal: 0,
+        cross_axis_alignment: AxisAlignment::STRETCH,
+        inside_border_insets: Insets {
+            top: -1,
+            left: 0,
+            bottom: 0,
+            right: 0,
+        },
+        ..Default::default()
+    })) {
+        layout.set_flex_for_view(Some(&mut View::from(view)), 1);
+    }
     window.layout();
 }
 
