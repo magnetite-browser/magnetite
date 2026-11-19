@@ -22,8 +22,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # The release this version of Magnetite builds with, and its archive for
 # each system. A new one is pinned here after it was checked (magnetite-cef's
 # README, "Checking a release").
-RELEASE=156.0.30-3
-NAME="cef_binary_156.0.30+g6028375+chromium-156.0.8078.107"
+RELEASE=156.0.30-5
+NAME="cef_binary_156.0.30+g6028375+chromium-156.0.8078.109"
 
 case ${1:-} in
   "" | -h | --help) sed -n '/^set -euo/q; 2,$p' "$0"; exit 0 ;;
@@ -31,15 +31,15 @@ esac
 case "$(host_os)-$(host_arch)" in
   macos-aarch64)
     ARCHIVE="${NAME}_macosarm64_minimal.tar.bz2"
-    SHA256=a4e7ce81b6c3fd8c447b9e1cf4164a7218ea30a3b63dd26308855801e98b7b78
+    SHA256=573934a5aa62c82e6822fd06af76c16cdcfe4732a3da3b791fbef3068c8a239d
     ;;
   linux-x86_64)
     ARCHIVE="${NAME}_linux64_minimal.tar.bz2"
-    SHA256=b1c59b058e1e780060b5033333052bd25fa2a9f4b5a88d87b8a53621a78cdff4
+    SHA256=84aac1005ea47cde50eb48d63bd937f427afe96b635f252ba96d3ce114b4d5e5
     ;;
   windows-x86_64)
     ARCHIVE="${NAME}_windows64_minimal.tar.bz2"
-    SHA256=a9e74c28047b87a9fdcae208a56258d941845fe6af1d4207f918a756c68b3a9f
+    SHA256=48182ac06933c2d22fc5a35b423d5438b7ca06065166c0c3dcd8923bf1bb4ac7
     ;;
   *) die "Magnetite's own CEF build is for macOS on Apple silicon, Linux on x86_64 and Windows on x86_64 only" ;;
 esac

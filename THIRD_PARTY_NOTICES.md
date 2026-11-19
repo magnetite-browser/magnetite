@@ -89,7 +89,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ## Shipped with the app (macOS, Windows, Linux)
 
 - **CEF and Chromium**: CEF 156.0.30 (commit `6028375`) with Chromium
-  156.0.8078.107 on macOS with Apple silicon and Linux on x86_64, and with
+  156.0.8078.109 on macOS with Apple silicon and on Linux and Windows on
+  x86_64, and with
   Chromium 156.0.8078.96 on the other systems. That is the CEF library (`Chromium Embedded Framework.framework`
   on macOS, `libcef.dll` on Windows, `libcef.so` on Linux) and the files next
   to it (`.pak` resources, `icudtl.dat`, the V8 snapshot, SwiftShader and the
@@ -101,8 +102,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   LGPL-2.0/2.1), the MPL (for example symphonia, Eigen, hunspell, and
   Mozilla's URL parser and certificate code) and, on macOS, the Apple Public
   Source License. Magnetite ships the CEF library unmodified, as a separate
-  dynamic library. Its corresponding source is Chromium 156.0.8078.107
-  (<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.107>)
+  dynamic library. Its corresponding source is Chromium 156.0.8078.109
+  (<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.109>)
   or, on the other systems, 156.0.8078.96
   (<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.96>),
   with CEF commit `6028375a4532fb89d23b58635f5c0d3a82c93959`
