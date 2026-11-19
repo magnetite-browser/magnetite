@@ -9,6 +9,8 @@ The rendered files live where each platform needs them:
   with a soft drop shadow in the margin. Drawn edge to edge it looks bigger
   than every other icon in the Dock.
 - Linux: `packaging/linux/magnetite.png` (512 px, next to the `.desktop` file)
-- Windows: `packaging/windows/magnetite.ico` (shipped next to `magnetite.exe`;
-  embedding it in the executable comes with the Windows bring-up)
+- Windows: `packaging/windows/magnetite.ico` (shipped next to `magnetite.exe`
+  for the shortcuts, and put into the executable by
+  `scripts/windows/brand-exe.ps1`). Its 16 and 32 px images are the simplified
+  drawing; from 48 px, the size of a desktop icon, it is the full one.
 - Sidebar UI: `crates/ui/web/src/assets/icon.png` (Settings → About, 128 px)
