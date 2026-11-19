@@ -96,12 +96,18 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
     else timer.current = window.setTimeout(save, 250);
   };
 
-  /** After a picture was stored or removed: its stamp, and the effect the app chose with it. */
-  const reload = () =>
-    send({ cmd: "get_state" }).then((s) => {
+  /**
+   * After a picture was stored or removed: its stamp, and the effect the app
+   * chose with it. A look not saved yet is saved first, so what comes back
+   * has it.
+   */
+  const reload = () => {
+    unsaved.current?.();
+    return send({ cmd: "get_state" }).then((s) => {
       setAppearance(s.settings.appearance);
       setLook(lookOf(s.settings.appearance, space.id));
     });
+  };
 
   const glyph = glyphFor(icon);
   return (
