@@ -16,6 +16,7 @@
 //! - `hotkey`: the system-wide quick search key;
 //! - `pill`: the link-hover status pill;
 //! - `pressure`: the system's memory pressure signal;
+//! - `quit`: Cmd+Q quits on the second press;
 //! - `share`: the share menu, the pasteboard and the save panel.
 //!
 //! Everything runs on the main thread (CEF's UI thread on macOS). CEF's
@@ -27,6 +28,7 @@ mod default_browser;
 mod hotkey;
 mod pill;
 mod pressure;
+mod quit;
 mod share;
 
 pub use chrome::{
@@ -41,7 +43,6 @@ pub use share::{copy_file, copy_png, copy_text, save_png, share_png, show_share_
 
 use crate::engine::Engine;
 use crate::events::EngineEvent;
-use cef::ImplWindow;
 use cef::application_mac::{CefAppProtocol, CrAppControlProtocol, CrAppProtocol};
 use objc2::{
     ClassType, DefinedClass, MainThreadMarker, MainThreadOnly, define_class, extern_methods,
@@ -100,12 +101,10 @@ define_class! {
         }
 
         /// Called when the user clicks the app dock icon while the application is
-        /// already running.
+        /// already running: the window shows, also after its close hid it.
         #[unsafe(method(applicationShouldHandleReopen:hasVisibleWindows:))]
         unsafe fn application_should_handle_reopen(&self, _sender: &NSApplication, _has_visible_windows: Bool) -> Bool {
-            if let Some(window) = Engine::global().frame_window() {
-                window.show();
-            }
+            Engine::global().show_frame();
             Bool::NO
         }
 
@@ -196,9 +195,11 @@ define_class!(
         /// The standard |-applicationShouldTerminate:| is not supported, and code paths
         /// leading to it must be redirected.
         #[unsafe(method(terminate:))]
-        unsafe fn terminate(&self, _sender: &AnyObject) {
+        unsafe fn terminate(&self, _sender: Option<&AnyObject>) {
             let engine = Engine::global();
             if engine.is_quitting() { return; }
+            // Cmd+Q counts on the second press only.
+            if !quit::confirmed(self.mtm()) { return; }
             engine.emit(EngineEvent::QuitRequested);
         }
 

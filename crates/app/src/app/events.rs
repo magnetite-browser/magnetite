@@ -425,6 +425,11 @@ impl EngineDelegate for MagnetiteApp {
                 let _ = std::fs::remove_file(self.context_picture());
                 engine.quit();
             }
+            // Nothing closed, but a quit may never come: save as for one.
+            EngineEvent::FrameHidden => self.with_state(|s| {
+                s.persist();
+                s.history.save();
+            }),
             EngineEvent::MemoryPressure(level) => self.unload_under_pressure(engine, level),
             EngineEvent::Tick => {
                 // Installed or removed extensions show up in the sidebar.

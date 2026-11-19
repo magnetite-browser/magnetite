@@ -53,6 +53,17 @@ define_class!(
                     engine.emit(EngineEvent::Shortcut { from: Some(mini), shortcut });
                     return;
                 }
+                // The last window is closed: a command brings it back, and
+                // that is all a new window or a close asks for.
+                if engine.frame_hidden() {
+                    engine.activate_frame();
+                    if matches!(
+                        shortcut,
+                        Shortcut::NewWindow | Shortcut::CloseWindow | Shortcut::CloseTab
+                    ) {
+                        return;
+                    }
+                }
                 // "Close Tab" from a window that is not ours closes that
                 // window, not the tab in front of the main one.
                 if shortcut == Shortcut::CloseTab

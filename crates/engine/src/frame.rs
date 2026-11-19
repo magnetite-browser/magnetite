@@ -122,7 +122,7 @@ impl Engine {
 
     /// Close window `win`; its pages stay loaded in another one where they
     /// can move (`leave_window`). The last window does not close this way:
-    /// that is quitting (`quit`).
+    /// it hides on macOS (`hide_frame`) and asks to quit elsewhere.
     pub fn close_window(&self, win: WindowId) {
         let frame = {
             let inner = self.lock();
@@ -534,10 +534,37 @@ impl Engine {
         }
     }
 
-    /// Close the frame window: asks to quit, as the window manager's close does.
+    /// Close the frame window, as the window manager's close does: the last
+    /// one hides on macOS and asks to quit elsewhere (`can_close`).
     pub fn close_frame(&self) {
         if let Some(w) = self.frame_window() {
             w.close();
+        }
+    }
+
+    /// The last window was closed: on macOS it only goes out of sight, with
+    /// its pages as they are, and Magnetite runs on without a window until
+    /// `show_frame`. `EngineEvent::FrameHidden` follows.
+    #[cfg(target_os = "macos")]
+    fn hide_frame(&self) {
+        let Some(window) = self.frame_window() else {
+            return;
+        };
+        self.lock().frame_hidden = true;
+        window.hide();
+        self.emit(EngineEvent::FrameHidden);
+    }
+
+    /// Whether the last window is closed while Magnetite runs on.
+    pub fn frame_hidden(&self) -> bool {
+        self.lock().frame_hidden
+    }
+
+    /// Show the frame window, also after its close hid it (`hide_frame`).
+    pub fn show_frame(&self) {
+        self.lock().frame_hidden = false;
+        if let Some(w) = self.frame_window() {
+            w.show();
         }
     }
 
@@ -1020,6 +1047,8 @@ wrap_window_delegate! {
         fn on_window_activation_changed(&self, _window: Option<&mut Window>, active: ::std::os::raw::c_int) {
             if active != 0 {
                 let engine = Engine::global();
+                // In front again, whichever way: no longer closed.
+                engine.lock().frame_hidden = false;
                 engine.enter(self.win);
                 engine.notifications_follow();
             }
@@ -1055,9 +1084,10 @@ wrap_window_delegate! {
             }
         }
 
-        // Closing the only window is quitting, which the app does after
-        // saving; any other window closes, its pages going to the window
-        // that is current next.
+        // The only window does not close: on macOS it hides and Magnetite
+        // runs on, elsewhere closing it is quitting, which the app does
+        // after saving. Any other window closes, its pages going to the
+        // window that is current next.
         fn can_close(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int {
             let engine = Engine::global();
             if engine.is_quitting() {
@@ -1076,6 +1106,9 @@ wrap_window_delegate! {
                 engine.leave_window(self.win, next);
                 1
             } else {
+                #[cfg(target_os = "macos")]
+                engine.hide_frame();
+                #[cfg(not(target_os = "macos"))]
                 engine.emit(EngineEvent::QuitRequested);
                 0
             }

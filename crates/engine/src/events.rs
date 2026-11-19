@@ -364,9 +364,13 @@ pub enum EngineEvent {
         argv: Vec<String>,
         cwd: Option<std::path::PathBuf>,
     },
-    /// The user asked to quit (Cmd+Q, Dock menu, SIGTERM). The delegate
+    /// The user asked to quit (Quit in a menu, the second Cmd+Q, SIGTERM;
+    /// on Linux and Windows also closing the last window). The delegate
     /// should save state and call [`crate::Engine::quit`].
     QuitRequested,
+    /// The last window was closed and Magnetite runs on without one (macOS).
+    /// The delegate should save state, as before quitting.
+    FrameHidden,
     /// Fires roughly once a minute for housekeeping (auto-archive, unloading).
     Tick,
     /// The system is short of memory: pages nobody looks at should go.
@@ -419,6 +423,7 @@ impl EngineEvent {
             Self::Shortcut { .. } => "Shortcut",
             Self::Relaunched { .. } => "Relaunched",
             Self::QuitRequested => "QuitRequested",
+            Self::FrameHidden => "FrameHidden",
             Self::Tick => "Tick",
             Self::MemoryPressure(_) => "MemoryPressure",
             Self::MiniToTab { .. } => "MiniToTab",

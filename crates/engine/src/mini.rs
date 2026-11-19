@@ -340,8 +340,12 @@ impl Engine {
         let _ = on;
     }
 
-    /// Bring the main window to the front (and the app with it).
+    /// Bring the main window to the front (and the app with it), also when
+    /// its close hid it.
     pub fn activate_frame(&self) {
+        if self.frame_hidden() {
+            self.show_frame();
+        }
         if let Some(w) = self.frame_window() {
             w.activate();
         }

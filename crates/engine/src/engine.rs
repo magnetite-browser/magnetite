@@ -116,6 +116,9 @@ pub(crate) struct Inner {
     pub next_id: ContentId,
     pub router: Option<Arc<BrowserSideRouter>>,
     pub quitting: bool,
+    /// The last window was closed and Magnetite goes on without one
+    /// (macOS, `Engine::hide_frame`).
+    pub frame_hidden: bool,
     /// Content windows locked to a host (pinned tabs, favorites): user
     /// navigations to another host are redirected to the application.
     pub locks: HashMap<ContentId, String>,
@@ -270,6 +273,7 @@ impl Engine {
                 next_id: 1,
                 router: None,
                 quitting: false,
+                frame_hidden: false,
                 locks: HashMap::new(),
                 autofill: crate::AutofillPrefs::default(),
                 downloads: crate::DownloadPrefs::default(),

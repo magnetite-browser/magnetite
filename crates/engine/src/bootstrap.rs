@@ -32,7 +32,7 @@ fn sandbox_info() -> *mut u8 {
     SANDBOX_INFO.load(std::sync::atomic::Ordering::SeqCst)
 }
 
-/// Run the browser process. Blocks until the last window closes.
+/// Run the browser process. Blocks until Magnetite quits.
 /// Returns the process exit code.
 pub fn run(config: EngineConfig, delegate: Arc<dyn EngineDelegate>) -> i32 {
     #[cfg(target_os = "macos")]
