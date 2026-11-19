@@ -805,15 +805,20 @@ fn dragged() {
 }
 
 fn released((x, y): (f64, f64)) {
-    let Some(Gesture::Press(button)) = GESTURE.take() else {
-        return;
-    };
+    let gesture = GESTURE.take();
     let over = PANEL.with(|cell| {
         let cell = cell.try_borrow().ok()?;
-        button_at(cell.as_ref()?, x, y)
+        let p = cell.as_ref()?;
+        let size = p.window.frame().size;
+        let inside = x >= 0.0 && x < size.width && y >= 0.0 && y < size.height;
+        Some(inside.then(|| button_at(p, x, y)))
     });
-    if over == Some(button) {
-        press(button);
+    match (gesture, over) {
+        // Let go outside the video: the pointer left during the drag, when
+        // that did not count (`pointer_left`).
+        (_, Some(None)) => pointer_left(),
+        (Some(Gesture::Press(button)), Some(Some(over))) if over == Some(button) => press(button),
+        _ => {}
     }
 }
 
