@@ -11,6 +11,7 @@ Settings.
 | Place | What it offers |
 |---|---|
 | Sidebar, top row | Pinned extensions, after the sidebar button. Click: open the extension. Right-click: "Options" (if it has some), "Remove from Sidebar" ("Remove from Top Bar" while the top bar holds the icons) |
+| Sidebar, extension bar | With Settings → Appearance → "Extension bar" on: the same icons in a row of their own below the address, not in the top row. A button at its right edge lists the extensions without an icon |
 | Top bar | The same icons, after the address. A button after them lists the extensions without an icon |
 | Menu bar → Extensions (macOS) | Every extension (click opens it), "Show in Sidebar" to pin or unpin each, "Manage Extensions…", "Chrome Web Store…" |
 | Settings → Extensions | An "In the sidebar" switch per extension, "Chrome Web Store", "Manage extensions", "Show the Chrome toolbar inside pages" |
@@ -37,6 +38,12 @@ Settings.
   The address comes first: in a window too narrow for a single place the
   bar shows neither icons nor the button. On macOS the menu bar still has
   them all.
+- The extension bar (Settings → Appearance → "Extension bar", off by
+  default, offered while the layout is "Sidebar") moves the sidebar's
+  icons into one row below the address: as many pinned icons as fit, seven
+  at the default width and ten at the widest. The button at its right edge
+  (a puzzle piece) always shows and opens the same menu as the top bar's.
+  The row is hidden while no extension is installed.
 - Installing happens on the Chrome Web Store page; removing, turning off
   and site access on Chromium's own page, `chrome://extensions`. Both open
   as tabs. `--load-extension <dir>` (repeatable) loads an unpacked one.
@@ -131,6 +138,7 @@ Settings.
 ## Not built yet
 
 - Badges, the count an extension shows on its icon.
+- An extension bar below the top bar.
 
 Code: `crates/engine/src/extensions.rs`, `devpipe.rs`, `stray.rs`,
 `content.rs` (`attach_toolbar`) and `menubar.rs`;

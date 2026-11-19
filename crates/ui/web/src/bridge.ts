@@ -422,6 +422,8 @@ export interface Appearance {
   sidebar_width: number;
   /** Navigation, address and window buttons in a bar across the top. */
   top_bar: boolean;
+  /** A row of extension icons below the sidebar's address, in place of the icons in its title band. */
+  extension_bar: boolean;
   /** How each space looks beyond its colour, by space id; a space without an entry has `DEFAULT_LOOK`. Kept on this device. */
   looks: Record<Id, SpaceLook>;
 }

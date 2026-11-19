@@ -55,11 +55,47 @@ export function PinnedExtensions({ state, openMenu, room }: { state: UiState; op
   );
 }
 
-/** The menu of the top bar's button after the icons: a click on an extension opens it, as its icon would. */
+/**
+ * The extension bar (Settings → Appearance), a row below the sidebar's
+ * address: the pinned extensions that fit in one line, then a button at the
+ * right edge that lists the rest (pinned ones that do not fit, then the
+ * unpinned) and opens Settings → Extensions. Nothing shows while no
+ * extension is installed.
+ */
+export function ExtensionBar({ state, openMenu }: { state: UiState; openMenu: OpenMenu }) {
+  if (state.extensions.length === 0) return null;
+  const pinned = pinnedOf(state);
+  // The row's padding (8 each side) and the button come off the width.
+  const { sidebar_width, text_scale } = state.settings.appearance;
+  const fit = Math.max(0, Math.floor((sidebar_width / (text_scale / 100) - 16 - 28) / SLOT));
+  const rest = [...pinned.slice(fit), ...state.extensions.filter((e) => !pinned.includes(e))];
+  return (
+    <div className="flex shrink-0 items-center gap-0.5 px-2 pt-1">
+      {pinned.slice(0, fit).map((e) => (
+        <ExtensionButton key={e.id} extension={e} openMenu={openMenu} popups={false} />
+      ))}
+      <span className="flex-1" />
+      <button
+        className="ib no-drag"
+        title="Extensions"
+        aria-label="Extensions"
+        aria-haspopup="menu"
+        onClick={(ev) => {
+          const r = ev.currentTarget.getBoundingClientRect();
+          openMenu(Math.round(r.left), Math.round(r.bottom + 4), moreExtensionsMenu(rest));
+        }}
+      >
+        <PuzzleIcon />
+      </button>
+    </div>
+  );
+}
+
+/** The menu of the button after the icons: a click on an extension opens it, as its icon would. */
 export function moreExtensionsMenu(rest: ExtensionInfo[]): MenuItem[] {
   return [
     ...rest.map((e) => ({ label: e.name, icon: <ExtensionIcon extension={e} />, onClick: () => void send({ cmd: "open_extension", id: e.id }) })),
-    SEPARATOR,
+    ...(rest.length > 0 ? [SEPARATOR] : []),
     { label: "Manage extensions", onClick: () => void send({ cmd: "new_tab", url: "magnetite://ui/settings#extensions" }) },
   ];
 }

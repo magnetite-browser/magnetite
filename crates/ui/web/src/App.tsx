@@ -12,7 +12,7 @@ import { CaptureToast } from "./CaptureToast";
 import { record } from "./recorder";
 import { MediaBar, type MediaEntry } from "./MediaBar";
 import { NewMenu } from "./NewMenu";
-import { PinnedExtensions } from "./PinnedExtensions";
+import { ExtensionBar, PinnedExtensions } from "./PinnedExtensions";
 import { DeviceTabRow, FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, type RowContext } from "./Rows";
 import { windowBackground } from "./backgrounds";
 import { IS_MAC, accentCss, applyAppearance, keyLabel, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, onRecord, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
@@ -116,6 +116,7 @@ export function App() {
   const frontRt = state.peek ? state.peek.runtime : activeRt;
   const activeItem = state.active_tab ? findTab(state, state.active_tab) : null;
   const topBar = state.settings.appearance.top_bar && !FLOAT;
+  const extensionBar = state.settings.appearance.extension_bar;
   const spaceVars = { ["--space" as string]: accentCss(space.accent), ["--space-soft" as string]: accentCss(space.accent, 0.14), ["--bg" as string]: state.chrome, ...windowBackground("sidebar", state.chrome, space.id, lookOf(state.settings.appearance, space.id), space.accent) };
   // Media in tabs that are not on screen, playing ones first (at most two rows).
   const onScreen = new Set(state.panes.length > 1 ? state.panes : state.active_tab ? [state.active_tab] : []);
@@ -191,7 +192,7 @@ export function App() {
       <div className={`titlebar-drag hdr flex h-[42px] shrink-0 items-center gap-0.5 ${FLOAT || !IS_MAC ? "pl-2" : "pl-[86px]"} pr-2`}>
         {windowButtons}
         <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={`${FLOAT ? "Keep the sidebar open" : "Hide sidebar"}${keysHint(state.keys, "toggle_sidebar")}`}><SidebarIcon /></button>
-        <PinnedExtensions state={state} openMenu={openMenu} />
+        {!extensionBar && <PinnedExtensions state={state} openMenu={openMenu} />}
         <span className="flex-1" />
         <button className="ib nav no-drag" disabled={!frontRt?.can_go_back} onClick={() => send({ cmd: "go_back" })} title={`Back (${keyLabel("⌘[", "Alt+←")})`}><Back /></button>
         <button className="ib nav no-drag" disabled={!frontRt?.can_go_forward} onClick={() => send({ cmd: "go_forward" })} title={`Forward (${keyLabel("⌘]", "Alt+→")})`}><Forward /></button>
@@ -211,6 +212,7 @@ export function App() {
           <AddressRow state={state} item={activeItem} rt={activeRt} onEdit={() => send({ cmd: "open_palette", mode: activeItem ? "navigate" : "new" })} openMenu={openMenu} />
         )}
       </div>
+      {extensionBar && <ExtensionBar state={state} openMenu={openMenu} />}
       </>)}
 
       {media.length > 0 && <MediaBar entries={media} />}

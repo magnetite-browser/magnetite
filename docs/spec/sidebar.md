@@ -14,6 +14,8 @@ From top to bottom:
 2. **Address row**: site controls, the host of the current page and a
    copy-link button. A click on the host opens the command bar with the
    address (`command-bar.md`). An open peek shows its controls here instead.
+   With Settings → Appearance → "Extension bar" on, a row of pinned
+   extensions follows, and the title band has none (`extensions.md`).
 3. **Media rows**: up to two, for media in tabs not on screen (`media.md`).
 4. **Favorites**: grids of icons, the same in every space: one list per
    profile that has favorites (below). Hidden while there are none.

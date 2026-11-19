@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { storeImage, userImageUrl, type ImageSlot } from "../backgrounds";
 import { DEFAULT_ACCENT, accentCss, applyAppearance, keyLabel, lookOf, send, type Appearance, type Color, type SpaceLook } from "../bridge";
-import { Field, Group, Slider } from "./fields";
+import { Field, Group, Slider, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
 const toColor = (r: number, g: number, b: number): Color => ({ red: r / 255, green: g / 255, blue: b / 255 });
@@ -135,6 +135,9 @@ export function AppearanceSection({ info, update, reload }: { info: Info; update
           ))}
         </div>
       </Field>
+      {!draft.top_bar && (
+        <Toggle label="Extension bar" hint="A row of pinned extensions below the address, with a button that lists the rest. The icons leave the row above it." checked={draft.extension_bar} onChange={(on) => set({ extension_bar: on }, true)} />
+      )}
       <Field side label="Text size" hint={`The sidebar, the command bar and these pages. Web pages zoom on their own with ${keyLabel("⌘+", "Ctrl +")} and ${keyLabel("⌘−", "Ctrl −")}.`}>
         <Slider value={draft.text_scale} min={85} max={130} step={5} unit="%" reset={100} onChange={(v, now) => set({ text_scale: v }, now)} />
       </Field>

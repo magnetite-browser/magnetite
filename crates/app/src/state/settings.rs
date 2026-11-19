@@ -162,6 +162,9 @@ pub struct Appearance {
     /// Navigation, the address and the window buttons in a bar across the
     /// top of the window, not at the top of the sidebar.
     pub top_bar: bool,
+    /// A row of extension icons below the sidebar's address, in place of
+    /// the icons in its title band.
+    pub extension_bar: bool,
     /// How each space looks beyond its colour, by space id. A space without
     /// an entry has the default look. Kept on this device.
     pub looks: BTreeMap<String, SpaceLook>,
@@ -201,6 +204,7 @@ impl Default for Appearance {
             density: Density::Comfortable,
             sidebar_width: 264,
             top_bar: false,
+            extension_bar: false,
             looks: BTreeMap::new(),
         }
     }
