@@ -526,7 +526,7 @@ export type Command =
   | { cmd: "set_panel_mobile"; id: Id; mobile: boolean }
   | { cmd: "toggle_web_panel"; id: Id }
   | { cmd: "new_space"; title: string; icon?: string }
-  | { cmd: "rename_space"; id: Id; title: string; icon?: string }
+  | { cmd: "rename_space"; id: Id; title?: string; icon?: string }
   | { cmd: "delete_space"; id: Id }
   | { cmd: "move_space"; id: Id; index: number }
   | { cmd: "new_folder"; title: string; parent?: Id }

@@ -585,7 +585,10 @@ impl Settings {
     /// extensions, the smart folders allowed on this device, and the
     /// shortcuts' keys, which have commands of their own (`set_shortcut`).
     /// The download folder too, which only the system's dialog names
-    /// (`choose_download_folder`); a patch can only take it away.
+    /// (`choose_download_folder`); a patch can only take it away. And the
+    /// stamps of the spaces' own images, which `set_appearance_image` and
+    /// `rename_space` set: a patch carries those its page last saw, of a
+    /// picture that may be stored or removed since.
     pub fn patched(
         &self,
         patch: serde_json::Map<String, serde_json::Value>,
@@ -606,6 +609,15 @@ impl Settings {
         let mut wanted = wanted.sanitised();
         if !wanted.downloads.folder.is_empty() {
             wanted.downloads.folder.clone_from(&self.downloads.folder);
+        }
+        for (id, look) in &mut wanted.appearance.looks {
+            let kept = self.appearance.look(id);
+            look.sidebar_image = kept.sidebar_image;
+            look.empty_image = kept.empty_image;
+            look.icon_image = kept.icon_image;
+            if look.sidebar_image.is_none() && look.sidebar_effect == SidebarEffect::Image {
+                look.sidebar_effect = SidebarEffect::None;
+            }
         }
         Ok(Self {
             sync: self.sync.clone(),
@@ -994,5 +1006,28 @@ mod tests {
                 .iter()
                 .all(|s| s.clone().sanitised().as_ref() == Some(s))
         );
+    }
+
+    #[test]
+    fn a_patch_keeps_the_stamps_of_own_images() {
+        let mut start = Settings::default();
+        start.appearance.looks.insert(
+            "work".into(),
+            SpaceLook {
+                icon_image: Some(7),
+                ..SpaceLook::default()
+            },
+        );
+        // A page that last saw a sidebar image and no own icon saves the strength.
+        let serde_json::Value::Object(stale) = serde_json::json!({ "appearance": { "looks": { "work": {
+            "tint": 20, "sidebar_effect": "image", "sidebar_image": 3, "icon_image": null,
+        } } } }) else {
+            unreachable!()
+        };
+        let look = start.patched(stale).unwrap().appearance.look("work");
+        assert_eq!(look.tint, 20);
+        assert_eq!(look.icon_image, Some(7));
+        assert_eq!(look.sidebar_image, None);
+        assert_eq!(look.sidebar_effect, SidebarEffect::None);
     }
 }

@@ -219,8 +219,11 @@ pub(super) enum UiCommand {
         #[serde(default)]
         icon: Option<String>,
     },
+    /// Give space `id` another name (an empty one keeps its name), another
+    /// glyph, or both. A glyph takes the place of the space's own icon.
     RenameSpace {
         id: String,
+        #[serde(default)]
         title: String,
         #[serde(default)]
         icon: Option<String>,
@@ -1100,20 +1103,28 @@ impl MagnetiteApp {
                 self.activate_space(engine, &id);
             }
             UiCommand::RenameSpace { id, title, icon } => {
-                self.with_state(|s| {
+                let own_icon_gone = self.with_state(|s| {
                     // The private space keeps its name and icon.
                     if s.is_private_space(&id) {
-                        return;
+                        return false;
                     }
-                    if let Some(sp) = s.space_mut(&id) {
-                        if !title.trim().is_empty() {
-                            sp.title = title.trim().into();
-                        }
-                        if icon.is_some() {
-                            sp.icon = icon;
-                        }
+                    let Some(sp) = s.space_mut(&id) else {
+                        return false;
+                    };
+                    if !title.trim().is_empty() {
+                        sp.title = title.trim().into();
                     }
+                    if icon.is_none() {
+                        return false;
+                    }
+                    sp.icon = icon;
+                    // A glyph is chosen in place of the own icon.
+                    let look = s.settings.appearance.looks.get_mut(&id);
+                    look.is_some_and(|look| look.icon_image.take().is_some())
                 });
+                if own_icon_gone && let Some(file) = ImageSlot::Icon.file(&self.data_dir, &id) {
+                    let _ = std::fs::remove_file(file);
+                }
                 self.push_state(engine);
             }
             UiCommand::DeleteSpace { id } if self.with_state(|s| s.is_private_space(&id)) => {

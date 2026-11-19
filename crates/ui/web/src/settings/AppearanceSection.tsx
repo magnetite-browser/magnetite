@@ -135,12 +135,8 @@ export function AppearanceSection({ info, update, reload }: { info: Info; update
         <div className="max-w-[420px]">
           <GlyphGrid
             current={stored.icon_image == null ? glyphFor(sp.icon) : null}
-            onPick={(g) =>
-              // A glyph is chosen in place of the own picture.
-              void send({ cmd: "rename_space", id: sp.id, title: sp.title, icon: g })
-                .then(() => (stored.icon_image == null ? undefined : storeImage("icon", sp.id, null, ICON_SIDE)))
-                .then(reload)
-            }
+            // A glyph takes the place of the own picture (`rename_space`).
+            onPick={(g) => void send({ cmd: "rename_space", id: sp.id, icon: g }).then(reload)}
           />
         </div>
         <div className="mt-2">

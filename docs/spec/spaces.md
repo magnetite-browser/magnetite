@@ -35,7 +35,8 @@ by all spaces. The profile decides which logins the pages of a space use.
   for one, in place of the glyph. It is drawn into a square of 128 px and
   stored as WebP on this device like the other pictures ("Look" below),
   never as the SVG itself, and it is not synced: other devices show the
-  glyph. Choosing a glyph removes it.
+  glyph. Choosing a glyph removes it, in the dialog, in Settings and from
+  the icon beside the title.
 - **Rename**: the dialog, or double-click the title. **Icon**: the dialog,
   or click the icon. **Colour**: the dialog, with eleven presets and a
   colour picker. Settings → Appearance has all of the dialog for the space

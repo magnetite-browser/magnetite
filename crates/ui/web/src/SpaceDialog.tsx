@@ -4,7 +4,7 @@
 // beside it shows it. Esc, Done or a click elsewhere closes it.
 import { useEffect, useRef, useState } from "react";
 import { GlyphGrid, SpaceIcon, glyphFor } from "./Glyphs";
-import { ICON_SIDE, storeImage } from "./backgrounds";
+import { ICON_SIDE } from "./backgrounds";
 import { accentCss, applyAppearance, lookOf, send, type Appearance, type Space, type SpaceLook, type UiState } from "./bridge";
 import { ColourSwatches, EFFECTS, OwnImage } from "./settings/AppearanceSection";
 import { Slider } from "./settings/fields";
@@ -46,12 +46,12 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
     const name = typed.current.trim() || saved.current;
     if (name === saved.current && !glyph) return;
     saved.current = name;
-    void send({ cmd: "rename_space", id: space.id, title: name, icon: glyph });
+    return send({ cmd: "rename_space", id: space.id, title: name, icon: glyph });
   };
   // The look not saved yet (a slider that just moved), saved at the latest on closing.
   const unsaved = useRef<(() => void) | null>(null);
   const close = () => {
-    rename();
+    void rename();
     unsaved.current?.();
     void send({ cmd: "palette_close" });
   };
@@ -128,9 +128,8 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
           current={look.icon_image == null ? glyph : null}
           onPick={(g) => {
             setIcon(g);
-            rename(g);
-            // A glyph is chosen in place of the own picture.
-            if (look.icon_image != null) void storeImage("icon", space.id, null, ICON_SIDE).then(reload);
+            // A glyph takes the place of the own picture (`rename_space`).
+            void rename(g)?.then(reload);
           }}
         />
         <div className="mt-2">

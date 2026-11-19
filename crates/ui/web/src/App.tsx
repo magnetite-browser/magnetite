@@ -110,7 +110,7 @@ export function App() {
   const looseSplit = state.split && !splitIds(state.split).some((id) => splitAt.has(id)) && !splitIds(state.split).every(isFavorite) ? state.split : null;
   const ctx: RowContext = { state, spaceId: space.id, openMenu, renaming, setRenaming, newProfileFor, splitAt, inSplit, pickIcon };
   const pickSpaceIcon = (x: number, y: number) =>
-    pickIcon({ x, y }, space.icon, (g) => g && send({ cmd: "rename_space", id: space.id, title: space.title, icon: g }));
+    pickIcon({ x, y }, space.icon, (g) => g && send({ cmd: "rename_space", id: space.id, icon: g }));
   const activeRt = state.active_tab ? state.runtime[state.active_tab] : undefined;
   // Back, forward and reload act on the page in front: the peek while one is open.
   const frontRt = state.peek ? state.peek.runtime : activeRt;
