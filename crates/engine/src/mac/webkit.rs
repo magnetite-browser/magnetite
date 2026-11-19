@@ -92,6 +92,9 @@ struct DelegateState {
     /// The note about a failed load is about to load: that load is not a
     /// new page.
     failure_note: Cell<bool>,
+    /// The address the main frame was last let go to: where a load that
+    /// fails was heading, if the error does not say.
+    heading: RefCell<String>,
     /// When the page's process last ended by itself.
     crashed: Cell<Option<Instant>>,
 }
@@ -328,6 +331,7 @@ impl PageDelegate {
             reported: RefCell::default(),
             failed: RefCell::new(None),
             failure_note: Cell::new(false),
+            heading: RefCell::default(),
             crashed: Cell::new(None),
         });
         // SAFETY: `NSObject`'s initialiser.
@@ -339,13 +343,13 @@ impl PageDelegate {
     fn allows(&self, action: &WKNavigationAction) -> bool {
         let id = self.ivars().id;
         // SAFETY: live objects WebKit passes for the call.
-        let (main, url, link, flags, get, download) = unsafe {
+        let (main, url, kind, flags, get, download) = unsafe {
             let request = action.request();
             (
                 // No target frame: a new window, decided where it is asked for.
                 action.targetFrame().map(|f| f.isMainFrame()),
                 request_address(&request),
-                action.navigationType() == WKNavigationType::LinkActivated,
+                action.navigationType(),
                 action.modifierFlags(),
                 request.HTTPMethod().is_none_or(|m| m.to_string() == "GET"),
                 action.shouldPerformDownload(),
@@ -358,10 +362,14 @@ impl PageDelegate {
         let (Some(true), Some(url)) = (main, url) else {
             return true;
         };
-        if !WEB_SCHEMES.iter().any(|s| scheme_of(&url) == Some(*s)) {
-            return false;
+        if !is_web_address(&url) {
+            // The one page that is not the web's: the note about a failed
+            // load, when it loads and when the history comes back to it.
+            let back = kind == WKNavigationType::BackForward || kind == WKNavigationType::Reload;
+            return url == FAILURE_NOTE_ADDRESS && (self.ivars().failure_note.get() || back);
         }
-        if !(link && get) {
+        if !(kind == WKNavigationType::LinkActivated && get) {
+            self.ivars().heading.replace(url);
             return true;
         }
         let engine = Engine::global();
@@ -373,7 +381,11 @@ impl PageDelegate {
             engine.system_open(id, url, command && !shift, !command);
             return false;
         }
-        !engine.system_leaves_lock(id, &url)
+        let stays = !engine.system_leaves_lock(id, &url);
+        if stays {
+            self.ivars().heading.replace(url);
+        }
+        stays
     }
 
     /// Tell the engine what changed since the last report.
@@ -420,10 +432,15 @@ impl PageDelegate {
             return;
         }
         let state = self.ivars();
-        let url = (error.userInfo())
+        let named = (error.userInfo())
             .objectForKey(ns_string!("NSErrorFailingURLStringKey"))
             .and_then(|v| v.downcast::<NSString>().ok())
-            .map_or_else(|| address(web_view), |s| s.to_string());
+            .map(|s| s.to_string());
+        // A first load that fails leaves the view without an address.
+        let url = named
+            .or_else(|| Some(state.heading.borrow().clone()))
+            .filter(|url| !url.is_empty())
+            .unwrap_or_else(|| address(web_view));
         let reason = error.localizedDescription().to_string();
         crate::trace(&format!("system page #{}: load failed ({code})", state.id));
         state.failed.replace(Some(url.clone()));
@@ -465,13 +482,17 @@ const ICON_SCRIPT: &str = "(()=>{const size=l=>parseInt((l.sizes&&l.sizes.value|
 &&!/\\.svg([?#]|$)/.test(l.href)).sort((a,b)=>Math.abs(size(a)-64)-Math.abs(size(b)-64));\
 return icons[0]?icons[0].href:location.origin+'/favicon.ico'})()";
 
-/// What a page may be sent to in its main frame. Anything else (`mailto:`,
-/// an app's own scheme, a `data:` address) is not opened from here. The
-/// note about a failed load is an `about:` page.
-const WEB_SCHEMES: [&str; 4] = ["http", "https", "about", "blob"];
+/// Where the note about a failed load stands for `WebKit`: it is loaded
+/// from a text, without an address of its own.
+const FAILURE_NOTE_ADDRESS: &str = "about:blank";
 
-fn scheme_of(url: &str) -> Option<&str> {
-    url.split_once(':').map(|(scheme, _)| scheme)
+/// Whether `url` is an `http://` or `https://` address: all a page's main
+/// frame may be sent to. Anything else (`mailto:`, an app's own scheme, a
+/// `data:` or `blob:` address) is not opened from here.
+fn is_web_address(url: &str) -> bool {
+    (url.split_once(':')).is_some_and(|(scheme, _)| {
+        scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https")
+    })
 }
 
 /// The address `request` asks for, if it has one.
@@ -617,12 +638,19 @@ fn stores_file(data_dir: &Path) -> PathBuf {
     data_dir.join("system-engine-stores.json")
 }
 
-fn read_store_ids(data_dir: &Path) -> BTreeMap<String, String> {
-    std::fs::read(stores_file(data_dir))
-        .ok()
-        .and_then(|bytes| serde_json::from_slice(&bytes).ok())
-        .unwrap_or_default()
+/// The identifiers in the file; none where there is no file yet. A file
+/// that cannot be read, or holds something else, is an error and not an
+/// empty list: its stores exist, and nothing may act as if they did not.
+fn read_store_ids(data_dir: &Path) -> std::io::Result<BTreeMap<String, String>> {
+    match std::fs::read(stores_file(data_dir)) {
+        Ok(bytes) => serde_json::from_slice(&bytes).map_err(std::io::Error::other),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(BTreeMap::new()),
+        Err(e) => Err(e),
+    }
 }
+
+/// What a caller hears when the file of identifiers cannot be read.
+const STORES_UNREADABLE: &str = "The list of WebKit's data stores could not be read.";
 
 /// Keep `ids` in the file. False if they could not be written.
 fn write_store_ids(data_dir: &Path, ids: &BTreeMap<String, String>) -> bool {
@@ -648,10 +676,14 @@ fn write_store_ids(data_dir: &Path, ids: &BTreeMap<String, String>) -> bool {
 }
 
 /// The identifier of `profile`'s data store, made and kept on first use.
-/// None if a new one could not be kept: a store under an identifier that
-/// is written nowhere could never be found again, to open or to delete.
+/// None if a new one could not be kept, or the file cannot be read: a
+/// store under an identifier that is written nowhere could never be found
+/// again, to open or to delete.
 fn store_identifier(data_dir: &Path, profile: &str) -> Option<Retained<NSUUID>> {
-    let mut ids = read_store_ids(data_dir);
+    let Ok(mut ids) = read_store_ids(data_dir) else {
+        crate::trace("system engine: the list of its data stores cannot be read");
+        return None;
+    };
     let known = (ids.get(profile))
         .and_then(|id| NSUUID::initWithUUIDString(NSUUID::alloc(), &NSString::from_str(id)));
     known.or_else(|| {
@@ -698,7 +730,10 @@ pub(crate) fn forget_stores(data_dir: &Path, ids: &[String]) {
     let Some(mtm) = MainThreadMarker::new().filter(|_| available()) else {
         return;
     };
-    let known = read_store_ids(data_dir);
+    let Ok(known) = read_store_ids(data_dir) else {
+        crate::trace("system engine: the list of its data stores cannot be read");
+        return;
+    };
     for profile in ids {
         STORES.with_borrow_mut(|s| s.remove(profile));
         let uuid = (known.get(profile))
@@ -710,8 +745,9 @@ pub(crate) fn forget_stores(data_dir: &Path, ids: &[String]) {
                 crate::trace("system engine: a profile's data store could not be removed");
                 return;
             }
-            let mut ids = read_store_ids(&data_dir);
-            if ids.remove(&profile).is_some() {
+            if let Ok(mut ids) = read_store_ids(&data_dir)
+                && ids.remove(&profile).is_some()
+            {
                 write_store_ids(&data_dir, &ids);
             }
         });
@@ -733,31 +769,39 @@ pub(crate) fn release_stores(ids: &[String]) {
 
 /// Delete what `WebKit` keeps for `profile`: everything (`domain` none), or
 /// the cookies, storage and cache of the site `domain` and its subdomains.
-/// `done` hears how many cookies went with a site's data.
+/// `done` hears how many cookies went with a site's data, or why nothing
+/// was deleted: a profile whose store on disk cannot be named
+/// (`read_store_ids`) is not reported as cleared.
 pub(crate) fn clear_data(
     data_dir: &Path,
     profile: &str,
     ephemeral: bool,
     domain: Option<&str>,
-    done: Box<dyn FnOnce(Option<usize>)>,
+    done: Box<dyn FnOnce(Result<Option<usize>, String>)>,
 ) {
-    // A profile that never used WebKit has nothing to delete, and gets no
-    // store made for the question; nor is one made where `available` does
-    // not hold.
-    let used = available()
-        && (ephemeral
-            || STORES.with_borrow(|s| s.contains_key(profile))
-            || read_store_ids(data_dir).contains_key(profile));
-    let Some(mtm) = MainThreadMarker::new().filter(|_| used) else {
-        done(domain.map(|_| 0));
+    let Some(mtm) = MainThreadMarker::new().filter(|_| available()) else {
+        done(Ok(domain.map(|_| 0)));
         return;
     };
+    // A profile that never used WebKit has nothing to delete, and gets no
+    // store made for the question.
+    let used = if ephemeral {
+        Ok(true)
+    } else {
+        read_store_ids(data_dir)
+            .map(|ids| ids.contains_key(profile) || STORES.with_borrow(|s| s.contains_key(profile)))
+    };
+    match used {
+        Ok(true) => {}
+        Ok(false) => return done(Ok(domain.map(|_| 0))),
+        Err(_) => return done(Err(STORES_UNREADABLE.to_string())),
+    }
     let store = store(mtm, data_dir, profile, ephemeral);
     // WebKit's blocks may be called again in principle; `done` runs once.
     let done = std::rc::Rc::new(Cell::new(Some(done)));
     let finish = move |cookies: Option<usize>| {
         if let Some(done) = done.take() {
-            done(cookies);
+            done(Ok(cookies));
         }
     };
     // SAFETY: on the main thread; WebKit copies the blocks.
@@ -1225,7 +1269,40 @@ pub(crate) fn secure(id: ContentId) -> Option<bool> {
 
 #[cfg(test)]
 mod tests {
-    use super::{failure_note, windows_key};
+    use super::{failure_note, is_web_address, read_store_ids, stores_file, windows_key};
+
+    #[test]
+    fn only_http_addresses_are_the_webs() {
+        assert!(is_web_address("https://www.netflix.com/browse"));
+        assert!(is_web_address("HTTP://example.org/"));
+        for other in [
+            "about:blank",
+            "blob:https://example.org/1f0c",
+            "data:text/html,<p>hi",
+            "mailto:someone@example.org",
+            "httpsx://example.org/",
+            "example.org",
+        ] {
+            assert!(!is_web_address(other), "{other}");
+        }
+    }
+
+    #[test]
+    fn a_list_of_stores_that_cannot_be_read_is_not_an_empty_one() {
+        let dir = std::env::temp_dir().join(format!("magnetite-stores-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        // No file yet: nothing was ever kept.
+        assert!(read_store_ids(&dir).unwrap().is_empty());
+        std::fs::write(
+            stores_file(&dir),
+            r#"{"": "9056B7D5-9C68-4B1E-B4C3-5AF82173B8A3"}"#,
+        )
+        .unwrap();
+        assert_eq!(read_store_ids(&dir).unwrap().len(), 1);
+        std::fs::write(stores_file(&dir), "{ not what was written").unwrap();
+        assert!(read_store_ids(&dir).is_err());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn keys_follow_the_layout_and_fall_back_to_their_place() {

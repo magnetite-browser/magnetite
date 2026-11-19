@@ -169,8 +169,9 @@ holds for them:
 
 - Only the sites of a list the user sees and can change get such a page,
   and only at `http://` and `https://` addresses. Its main frame is not
-  sent to any other scheme: an app's own scheme, `mailto:` or a `data:`
-  address opens nothing.
+  sent to any other scheme: an app's own scheme, `mailto:`, a `data:` or
+  a `blob:` address opens nothing. The one exception is the note that
+  Magnetite itself loads where a page failed to load.
 - A link out of such a page reaches the app as a link out of a Chromium
   page does (`OpenUrlRequested`, source "page"), with the page's profile,
   and goes through the same checks.
@@ -185,7 +186,8 @@ holds for them:
 - A profile's store is opened on disk only under an identifier that is
   written to the data folder, and the identifier stays there until the
   engine has removed the store: no store is left that Magnetite cannot
-  find again to delete.
+  find again to delete. If that file cannot be read, no store is opened
+  on disk and deleting the engine's data reports the failure.
 - The engine's check of addresses against a list of fraudulent sites is
   off, as Chromium's Safe Browsing is: it would ask a service.
 - What Magnetite adds to Chromium pages is absent there: ad blocking,

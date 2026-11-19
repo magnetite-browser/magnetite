@@ -1,7 +1,7 @@
 //! Which engine shows a site's pages, as Settings and the site panel see
 //! it: Chromium, or the system's own (`magnetite_engine`'s `system.rs`).
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use magnetite_engine::{ContextProfile, Engine, host_of, registrable_domain};
@@ -51,7 +51,8 @@ impl MagnetiteApp {
 
     /// Settings: delete everything the system's engine keeps (cookies,
     /// site storage, cache), in every profile. Answers the UI query when
-    /// the last profile's data is gone.
+    /// the last profile is done: with an error if one of them could not be
+    /// cleared.
     pub(super) fn clear_system_engine_data(&self, engine: &Engine) {
         let profiles: Vec<Option<ContextProfile>> = self.with_state(|s| {
             (s.sidebar.profiles.iter())
@@ -65,12 +66,17 @@ impl MagnetiteApp {
         });
         let ticket = engine.defer_reply();
         let left = Rc::new(Cell::new(profiles.len()));
+        let failed: Rc<RefCell<Option<String>>> = Rc::default();
         for profile in profiles {
-            let left = left.clone();
-            let cleared = move |_| {
+            let (left, failed) = (left.clone(), failed.clone());
+            let cleared = move |outcome: Result<Option<usize>, String>| {
+                if let Err(why) = outcome {
+                    failed.replace(Some(why));
+                }
                 left.set(left.get() - 1);
                 if let (0, Some(ticket)) = (left.get(), ticket) {
-                    Engine::global().finish_reply(ticket, Ok("{}".into()));
+                    let reply = failed.take().map_or_else(|| Ok("{}".into()), Err);
+                    Engine::global().finish_reply(ticket, reply);
                 }
             };
             engine.clear_system_data(profile.as_ref(), None, Box::new(cleared));

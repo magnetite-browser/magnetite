@@ -454,12 +454,19 @@ impl Engine {
         // A system page's data is in the system engine's own store.
         if self.is_system_page(id) {
             let profile = self.content_profile(id);
-            let report = move |cookies| {
+            // Nothing deleted reads as it does for a Chromium page: the
+            // cookies could not be reached, and none of the storage went.
+            let report = move |cleared: Result<Option<usize>, String>| {
+                let failed_origins = if cleared.is_ok() {
+                    vec![]
+                } else {
+                    origins.clone()
+                };
                 done(ClearReport {
                     domain,
-                    cookies,
+                    cookies: cleared.ok().flatten(),
                     origins,
-                    failed_origins: vec![],
+                    failed_origins,
                     moved: false,
                 });
             };

@@ -95,10 +95,15 @@ pub(crate) fn store_icon(path: &Path, bytes: &[u8]) {
     if let Err(e) = std::fs::create_dir_all(dir) {
         crate::trace(&format!("favicon cache: cannot create its folder: {e}"));
     }
-    let tmp = path.with_extension("tmp");
-    if std::fs::write(&tmp, bytes).is_ok()
-        && let Err(e) = std::fs::rename(&tmp, path)
-    {
+    // A temp file of its own per call: two pages of one host can store the
+    // same icon at once, from different threads, and each rename then puts
+    // a whole file in place.
+    static STORED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let n = STORED.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let tmp = path.with_extension(format!("{}-{n}.tmp", std::process::id()));
+    let stored = std::fs::write(&tmp, bytes).and_then(|()| std::fs::rename(&tmp, path));
+    if let Err(e) = stored {
+        let _ = std::fs::remove_file(&tmp);
         crate::trace(&format!("favicon cache: cannot store an icon: {e}"));
     }
 }

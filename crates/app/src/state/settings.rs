@@ -195,17 +195,19 @@ impl SystemEngine {
     /// list is full: the next check of the settings would drop the site
     /// again without a word.
     pub fn set_site(&mut self, host: &str, site: String, system: bool) -> Result<(), String> {
-        let mut sites = self.sites.clone();
-        sites.retain(|own| !in_domain(host, own));
-        if system {
-            if sites.len() >= MAX_SYSTEM_ENGINE_SITES {
-                return Err(format!(
-                    "The list holds {MAX_SYSTEM_ENGINE_SITES} sites already. Remove one in Settings → Protected video first."
-                ));
-            }
-            sites.push(site);
+        let covers = |own: &String| in_domain(host, own);
+        // Counted before anything changes: a site that is refused leaves
+        // the list as it was.
+        let others = self.sites.iter().filter(|own| !covers(own)).count();
+        if system && others >= MAX_SYSTEM_ENGINE_SITES {
+            return Err(format!(
+                "The list holds {MAX_SYSTEM_ENGINE_SITES} sites already. Remove one in Settings → Protected video first."
+            ));
         }
-        self.sites = sites;
+        self.sites.retain(|own| !covers(own));
+        if system {
+            self.sites.push(site);
+        }
         Ok(())
     }
 

@@ -72,9 +72,9 @@ pub(crate) mod backend {
         _: &str,
         _: bool,
         _: Option<&str>,
-        done: Box<dyn FnOnce(Option<usize>)>,
+        done: Box<dyn FnOnce(Result<Option<usize>, String>)>,
     ) {
-        done(None);
+        done(Ok(None));
     }
 }
 
@@ -233,13 +233,13 @@ impl Engine {
 
     /// Delete what the system's engine keeps for `profile` (none: the
     /// default profile): everything (`domain` none), or what belongs to the
-    /// site `domain`. `done` hears how many cookies went, where that is
-    /// known (for one site), on the UI thread.
+    /// site `domain`. `done` hears, on the UI thread, how many cookies went
+    /// (where that is known: for one site), or why nothing was deleted.
     pub fn clear_system_data(
         &self,
         profile: Option<&ContextProfile>,
         domain: Option<&str>,
-        done: Box<dyn FnOnce(Option<usize>)>,
+        done: Box<dyn FnOnce(Result<Option<usize>, String>)>,
     ) {
         let (id, ephemeral) = profile.map_or(("", false), |p| (p.id.as_str(), p.ephemeral));
         backend::clear_data(&self.config().data_dir, id, ephemeral, domain, done);
