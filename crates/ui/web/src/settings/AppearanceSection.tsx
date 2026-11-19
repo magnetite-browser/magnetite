@@ -4,7 +4,7 @@
 // the rest of the space: both change the same stored appearance.
 import { useRef, useState, useEffect } from "react";
 import { storeImage, userImageUrl, type ImageSlot } from "../backgrounds";
-import { DEFAULT_ACCENT, accentCss, applyAppearance, keyLabel, lookOf, send, type Appearance, type Color, type SpaceLook } from "../bridge";
+import { DEFAULT_ACCENT, accentCss, keyLabel, lookOf, send, type Appearance, type Color, type SpaceLook } from "../bridge";
 import { Field, Group, Slider, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
@@ -87,9 +87,11 @@ export function BackgroundImage({ slot, space, stamp, maxSide, reload }: { slot:
 
 /**
  * The appearance as the controls have it: what is saved, with what they
- * changed and is not saved yet laid over it. Sliders apply shortly after
- * they stop moving, since each change lays the pages out again; `set` with
- * `now` saves at once.
+ * changed and is not saved yet laid over it. `set` saves shortly after a
+ * slider stops moving, or at once with `now`. `preview` only moves the
+ * control: for what lays the page out again (text size, sidebar width),
+ * which would pull the slider away from under the pointer, so that is
+ * saved when the slider is let go.
  */
 function useAppearance(info: Info, update: (patch: SettingsPatch) => void) {
   const saved = info.settings.appearance;
@@ -111,7 +113,6 @@ function useAppearance(info: Info, update: (patch: SettingsPatch) => void) {
   const set = (patch: Partial<Appearance>, now = false) => {
     const changed = { ...pending, ...patch };
     setPending(changed);
-    applyAppearance({ ...saved, ...changed });
     const save = () => {
       waiting.current = undefined;
       latest.current.update({ appearance: { ...latest.current.saved, ...changed } });
@@ -122,7 +123,8 @@ function useAppearance(info: Info, update: (patch: SettingsPatch) => void) {
     if (now) save();
     else timer.current = window.setTimeout(save, 250);
   };
-  return { saved, draft, set };
+  const preview = (patch: Partial<Appearance>) => setPending({ ...pending, ...patch });
+  return { saved, draft, set, preview };
 }
 
 /**
@@ -160,9 +162,30 @@ export function SpaceLookFields({ info, space, update, reload }: { info: Info; s
   );
 }
 
+/**
+ * The same words at the text size in use and at the one the slider is on,
+ * side by side: the page itself only takes the new size once the slider is
+ * let go. The page is drawn at `from`, so the new size is set relative to
+ * it. As high as the largest step up, so the rows below stay where they are.
+ */
+function TextSample({ from, to }: { from: number; to: number }) {
+  const sample = (title: string, factor: number, on: boolean) => (
+    <div className="min-w-0 flex-1">
+      <div className="set-hint">{title}</div>
+      <div className="flex h-9 items-center overflow-hidden whitespace-nowrap" style={{ fontSize: 14 * factor, color: on ? "var(--fg)" : "var(--secondary)" }}>Text in this size</div>
+    </div>
+  );
+  return (
+    <div className="mt-2 flex max-w-[460px] gap-4" aria-hidden>
+      {sample("Now", 1, from === to)}
+      {sample("New", to / from, from !== to)}
+    </div>
+  );
+}
+
 /** Layout, text size, page zoom, density and sidebar width. */
 export function AppearanceSection({ info, update, open }: { info: Info; update: (patch: SettingsPatch) => void; open: (section: string) => void }) {
-  const { draft, set } = useAppearance(info, update);
+  const { draft, set, preview } = useAppearance(info, update);
   return (
     <>
       <Group title="Window" hint="The same in every space.">
@@ -177,7 +200,8 @@ export function AppearanceSection({ info, update, open }: { info: Info; update: 
         <Toggle label="Extension bar" hint="A row of pinned extensions below the address, with a button that lists the rest. The icons leave the row above it." checked={draft.extension_bar} onChange={(on) => set({ extension_bar: on }, true)} />
       )}
       <Field side label="Text size" hint={`The sidebar, the command bar and these pages. Web pages zoom on their own with ${keyLabel("⌘+", "Ctrl +")} and ${keyLabel("⌘−", "Ctrl −")}.`}>
-        <Slider value={draft.text_scale} min={85} max={130} step={5} unit="%" reset={100} onChange={(v, now) => set({ text_scale: v }, now)} />
+        <Slider value={draft.text_scale} min={85} max={130} step={5} unit="%" reset={100} onChange={(v, now) => (now ? set({ text_scale: v }, true) : preview({ text_scale: v }))} />
+        <TextSample from={info.settings.appearance.text_scale} to={draft.text_scale} />
       </Field>
       <Field side label="Page zoom" hint="The zoom a website has until you zoom it yourself. A change counts from the next start of Magnetite.">
         <select className="field" value={info.settings.page_zoom} aria-label="Page zoom" onChange={(e) => update({ page_zoom: Number(e.target.value) })}>
@@ -192,7 +216,7 @@ export function AppearanceSection({ info, update, open }: { info: Info; update: 
         </div>
       </Field>
       <Field side label="Sidebar width" hint="The pages take the rest of the window.">
-        <Slider value={draft.sidebar_width} min={220} max={360} step={4} unit=" pt" reset={264} onChange={(v, now) => set({ sidebar_width: v }, now)} />
+        <Slider value={draft.sidebar_width} min={220} max={360} step={4} unit=" pt" reset={264} onChange={(v, now) => (now ? set({ sidebar_width: v }, true) : preview({ sidebar_width: v }))} />
       </Field>
       </Group>
       <Group>

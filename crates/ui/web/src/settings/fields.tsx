@@ -100,11 +100,26 @@ export function Switch({ label, checked, onChange }: { label: string; checked: b
   );
 }
 
-/** A labelled range with a reset button; `now` is true for the reset. */
+/**
+ * A labelled range with a reset button. `onChange` gets every value the
+ * thumb passes with `now` false, and the value it is let go at (a key step
+ * and the reset count as that too) with `now` true.
+ */
 export function Slider({ value, min, max, step, unit, reset, onChange }: { value: number; min: number; max: number; step: number; unit: string; reset: number; onChange: (v: number, now: boolean) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const latest = useRef(onChange);
+  latest.current = onChange;
+  // The browser's own "change" is the letting go; React's `onChange` is its "input".
+  useEffect(() => {
+    const el = input.current;
+    if (!el) return;
+    const released = () => latest.current(Number(el.value), true);
+    el.addEventListener("change", released);
+    return () => el.removeEventListener("change", released);
+  }, []);
   return (
     <div className="flex max-w-[460px] items-center gap-3">
-      <input className="range flex-1" type="range" min={min} max={max} step={step} value={value} style={{ ["--fill" as string]: `${((value - min) / (max - min)) * 100}%` }} onChange={(e) => onChange(Number(e.target.value), false)} />
+      <input ref={input} className="range flex-1" type="range" min={min} max={max} step={step} value={value} style={{ ["--fill" as string]: `${((value - min) / (max - min)) * 100}%` }} onChange={(e) => onChange(Number(e.target.value), false)} />
       <span className="w-14 text-right tabular-nums text-[var(--secondary)]">{value}{unit}</span>
       <button type="button" className="btn sm" disabled={value === reset} onClick={() => onChange(reset, true)}>Reset</button>
     </div>

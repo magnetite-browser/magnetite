@@ -188,7 +188,7 @@ export function SettingsPage() {
       document.removeEventListener("visibilitychange", back);
     };
   }, [reload]);
-  // Text size and density of this page, as saved (Appearance previews its draft itself).
+  // Text size and density of this page, as saved.
   const textScale = info?.settings.appearance.text_scale;
   const density = info?.settings.appearance.density;
   useLayoutEffect(() => {
