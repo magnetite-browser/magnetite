@@ -161,27 +161,11 @@ impl Engine {
         self.evaluate_in_page(id, CLOSE, false);
     }
 
-    /// Evaluate `expression` in page `id`; with `gesture`, as if the user
-    /// had just clicked (entering picture-in-picture needs that). Goes
-    /// through the `DevTools` protocol in-process (`Runtime.evaluate`, its
-    /// `userGesture` set from `gesture`).
+    /// Evaluate `expression` in page `id` (`evaluate`).
     fn evaluate_in_page(&self, id: ContentId, expression: &str, gesture: bool) {
-        let Some(host) = self.content_browser_host(id) else {
-            return;
-        };
-        let Some(mut params) = dictionary_value_create() else {
-            return;
-        };
-        params.set_string(
-            Some(&CefString::from("expression")),
-            Some(&CefString::from(expression)),
-        );
-        params.set_bool(Some(&CefString::from("userGesture")), i32::from(gesture));
-        host.execute_dev_tools_method(
-            0,
-            Some(&CefString::from("Runtime.evaluate")),
-            Some(&mut params),
-        );
+        if let Some(host) = self.content_browser_host(id) {
+            evaluate(&host, expression, gesture);
+        }
     }
 
     fn content_main_frame(&self, id: ContentId) -> Option<Frame> {
@@ -191,6 +175,28 @@ impl Engine {
     pub(crate) fn content_browser_host(&self, id: ContentId) -> Option<BrowserHost> {
         self.lock().contents.get(&id)?.browser.clone()?.host()
     }
+}
+
+/// Evaluate `expression` in the page of `host`; with `gesture`, as if the
+/// user had just clicked (entering picture-in-picture needs that). Goes
+/// through the `DevTools` protocol in-process (`Runtime.evaluate`, its
+/// `userGesture` set from `gesture`), which also reaches a tab's empty
+/// first document, where `Frame::execute_java_script` does nothing. UI
+/// thread only.
+pub(crate) fn evaluate(host: &BrowserHost, expression: &str, gesture: bool) {
+    let Some(mut params) = dictionary_value_create() else {
+        return;
+    };
+    params.set_string(
+        Some(&CefString::from("expression")),
+        Some(&CefString::from(expression)),
+    );
+    params.set_bool(Some(&CefString::from("userGesture")), i32::from(gesture));
+    host.execute_dev_tools_method(
+        0,
+        Some(&CefString::from("Runtime.evaluate")),
+        Some(&mut params),
+    );
 }
 
 // ---- renderer process ----

@@ -18,6 +18,7 @@
     clippy::borrow_as_ptr
 )]
 
+mod applink;
 mod autofill;
 mod blocker;
 mod bootstrap;

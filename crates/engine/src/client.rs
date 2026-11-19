@@ -24,6 +24,20 @@ pub enum Kind {
     Stray,
 }
 
+/// Whether `url`, which the page in `frame` wants in a new tab or window,
+/// is a link to another app. No tab is made for those: the page's own
+/// document goes there, and Chromium asks whether to open the app.
+fn page_asks_for_app(kind: Kind, frame: Option<&Frame>, url: Option<&CefString>) -> bool {
+    let (Some(frame), Some(url)) = (frame, url.map(CefString::to_string)) else {
+        return false;
+    };
+    let asks = url_source(kind) == UrlSource::Page && crate::applink::is_app_link(&url);
+    if asks {
+        crate::applink::open_from(frame, &url);
+    }
+    asks
+}
+
 /// Our own UI asks with the app's trust; everything else is a page.
 fn url_source(kind: Kind) -> UrlSource {
     if matches!(kind, Kind::Sidebar | Kind::TopBar | Kind::Overlay) {
@@ -256,7 +270,7 @@ wrap_life_span_handler! {
         fn on_before_popup(
             &self,
             browser: Option<&mut Browser>,
-            _frame: Option<&mut Frame>,
+            frame: Option<&mut Frame>,
             _popup_id: ::std::os::raw::c_int,
             target_url: Option<&CefString>,
             _target_frame_name: Option<&CefString>,
@@ -270,6 +284,9 @@ wrap_life_span_handler! {
             _no_javascript_access: Option<&mut ::std::os::raw::c_int>,
         ) -> ::std::os::raw::c_int {
             crate::trace(&format!("popup asked: disposition {}", target_disposition.get_raw()));
+            if page_asks_for_app(self.kind, frame.as_deref(), target_url) {
+                return 1;
+            }
             // A page's popup window (`window.open` with window features)
             // opens as a real window, as in other browsers: sign-in popups
             // ("Sign in with Google") talk back to their opener and fail
@@ -563,23 +580,32 @@ wrap_request_handler! {
             browser: Option<&mut Browser>,
             _frame: Option<&mut Frame>,
             request: Option<&mut Request>,
-            _is_navigation: ::std::os::raw::c_int,
+            is_navigation: ::std::os::raw::c_int,
             _is_download: ::std::os::raw::c_int,
             request_initiator: Option<&CefString>,
             _disable_default_handling: Option<&mut ::std::os::raw::c_int>,
         ) -> Option<ResourceRequestHandler> {
+            // A link to another app: Chromium asks whether to open it.
+            if is_navigation != 0
+                && request.as_ref().is_some_and(|r| crate::applink::is_app_link(&CefString::from(&r.url()).to_string()))
+            {
+                return Some(crate::applink::handler(browser.as_deref(), request_initiator));
+            }
             crate::blocker::resource_request_handler(browser.as_deref(), request.as_deref(), request_initiator)
         }
 
         fn on_open_urlfrom_tab(
             &self,
             browser: Option<&mut Browser>,
-            _frame: Option<&mut Frame>,
+            frame: Option<&mut Frame>,
             target_url: Option<&CefString>,
             target_disposition: WindowOpenDisposition,
             _user_gesture: ::std::os::raw::c_int,
         ) -> ::std::os::raw::c_int {
             crate::trace(&format!("open from tab: disposition {}", target_disposition.get_raw()));
+            if page_asks_for_app(self.kind, frame.as_deref(), target_url) {
+                return 1;
+            }
             // "Open Link in Incognito Window": Magnetite has no such window,
             // and an ordinary tab in the same profile would be the opposite.
             if target_disposition == WindowOpenDisposition::OFF_THE_RECORD {

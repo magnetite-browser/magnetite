@@ -55,6 +55,16 @@ search; search and site search addresses are `https://` with `%s` only
 (`Settings::sanitised`). Tabs from sync and the import that fail the policy
 are dropped (`state::drop_unsafe_tabs`).
 
+An address for another app (`mailto:`, `zoommtg:`, a desktop app's own
+scheme at the end of a sign-in: any scheme neither Chromium nor Magnetite
+loads) never opens in a tab and is never given to the system unasked.
+Chromium asks "Open <app>?", naming the site, as in Chrome
+(`crates/engine/src/applink.rs`). A page that wants such an address in a
+new tab or popup gets no tab: its own document goes there, which it could
+have done itself. A new tab whose first address redirects to one has its
+empty document ask, so the question names no site; a tab that shows a page
+which did not ask keeps the failed load.
+
 Magnetite asks the system to become the default browser only on the user's
 click (Settings → Links, or the welcome page's switch once "Start
 browsing" is pressed), and macOS confirms with the user
