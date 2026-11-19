@@ -340,9 +340,10 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
           <Favicon url={renamed.url} src={state.runtime[renamed.id]?.favicon} />
           <RenameInput
             value={renamed.title}
-            onCommit={(title) => {
+            label={`Name of the favorite ${renamed.title || hostOf(renamed.url)}`}
+            onCommit={(title, from) => {
               // Left as it was: no rename, so the title keeps following the page.
-              if (title !== renamed.title) send({ cmd: "rename_tab", id: renamed.id, title });
+              if (title !== from) send({ cmd: "rename_tab", id: renamed.id, title });
               ctx.setRenaming(null);
             }}
             onCancel={() => ctx.setRenaming(null)}
@@ -501,9 +502,9 @@ const TabRowInner = memo(
           ) : renaming ? (
             <RenameInput
               value={tab.title}
-              onCommit={(title) => {
+              onCommit={(title, from) => {
                 // Left as it was: no rename, so the title keeps following the page.
-                if (title !== tab.title) send({ cmd: "rename_tab", id: tab.id, title });
+                if (title !== from) send({ cmd: "rename_tab", id: tab.id, title });
                 ctx.setRenaming(null);
               }}
               onCancel={() => ctx.setRenaming(null)}
@@ -580,14 +581,18 @@ const TabRowInner = memo(
 /**
  * Title editor in place of a title: Return or leaving the field saves, Esc
  * cancels (and goes no further: it would also hide the floating sidebar).
+ * `onCommit` also gets the title the edit started from (`value` may have
+ * followed the page since). `label` names the field where no title stood.
  */
-export function RenameInput({ value, onCommit, onCancel }: { value: string; onCommit: (title: string) => void; onCancel: () => void }) {
+export function RenameInput({ value, label, onCommit, onCancel }: { value: string; label?: string; onCommit: (title: string, from: string) => void; onCancel: () => void }) {
+  const [from] = useState(value);
   return (
     <input
       autoFocus
       className="rename"
-      defaultValue={value}
-      onBlur={(e) => onCommit(e.currentTarget.value)}
+      aria-label={label}
+      defaultValue={from}
+      onBlur={(e) => onCommit(e.currentTarget.value, from)}
       onKeyDown={(e) => {
         if (e.key === "Enter") e.currentTarget.blur();
         if (e.key === "Escape") {
