@@ -219,6 +219,8 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
   // Before the tile it stands before anyway: nothing to mark.
   const own = tiles.findIndex((tile) => moved.includes(tile[0].id));
   const mark = before === null || before === own ? null : others[before] ? { tile: others[before][0].id, side: "left" } : { tile: others.at(-1)?.[0].id, side: "right" };
+  // A tile has no room for its name: it is edited in a row under the tiles.
+  const renamed = list.items.find((t) => t.id === ctx.renaming);
   return (
     <div
       className="shrink-0 px-2 pt-3"
@@ -331,6 +333,20 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
               </div>
             );
           })}
+        </div>
+      )}
+      {renamed && (
+        <div className="row fav-rename">
+          <Favicon url={renamed.url} src={state.runtime[renamed.id]?.favicon} />
+          <RenameInput
+            value={renamed.title}
+            onCommit={(title) => {
+              // Left as it was: no rename, so the title keeps following the page.
+              if (title !== renamed.title) send({ cmd: "rename_tab", id: renamed.id, title });
+              ctx.setRenaming(null);
+            }}
+            onCancel={() => ctx.setRenaming(null)}
+          />
         </div>
       )}
     </div>

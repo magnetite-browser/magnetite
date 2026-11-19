@@ -75,7 +75,8 @@ the row turns the icon into a back arrow that takes the page back.
   never unloaded for being off screen, and it is not auto-archived. A check mark shows it in the menu and a small flash on the
   row; the same entry lets the tab sleep again. Closing the tab ends it.
 - Double-click renames a tab; "Use page title" in the context menu undoes
-  it. Middle-click closes a tab.
+  it. A favorite is renamed from its context menu, in a row under the
+  tiles of its list. Middle-click closes a tab.
 - The context menu has the actions that fit the tab, among them Reload,
   Share…, Copy link, Pin tab, Unpin tab, Add to favorites, Remove from
   favorites, Open in split view, Duplicate tab, Rename, Move to another
