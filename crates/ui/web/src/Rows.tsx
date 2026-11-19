@@ -211,14 +211,14 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
         const k = rest.findIndex((tile) => tile[0].id === overTile?.dataset.fav);
         const onto = rest[k];
         // On a tile, the carried tab joins it: the two form a split, the tab
-        // on the half of the tile under the pointer, beside the page there.
+        // beside the page under the pointer, on the half of that page.
         // Between two tiles (their facing edges and the gap) it goes there.
         const joins = onto && splittable(d) && onto.length < MAX_PANES && !onto.some((t) => t.panel) && !findTab(state, d.id)?.panel;
         if (overTile && onto && joins && overMiddle(e, overTile)) {
           // Over the place the carried tab would join, the preview stays.
           if (target.closest("[data-ghost]")) return;
           const page = target.closest<HTMLElement>("[data-page]") ?? overTile;
-          const next = { id: d.id, tile: onto[0].id, cell: page.dataset.page ?? onto[0].id, side: sideOf(e, overTile) };
+          const next = { id: d.id, tile: onto[0].id, cell: page.dataset.page ?? onto[0].id, side: sideOf(e, page) };
           return setJoin((j) => (j && j.id === next.id && j.cell === next.cell && j.side === next.side ? j : next));
         }
         setJoin(null);
@@ -240,11 +240,12 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
           send({ cmd: "split_insert", target: join.cell, tab: d.id, side: join.side });
         } else if (takes(d)) {
           // The index counts the list without what moves, as the app takes it
-          // out first: the place of the tile it lands before, else the end.
+          // out first: the place of the tile it lands before (where the first
+          // of its pages stands in the list), else the end.
           const moved = movedIds(d);
           const items = list.items.filter((t) => !moved.includes(t.id));
           const before = place?.id === d.id ? without(moved)[place.index] : undefined;
-          send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "favorites", index: before ? items.indexOf(before[0]) : items.length, profile: list.profile_id, split: d.pair });
+          send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "favorites", index: before ? items.findIndex((t) => before.includes(t)) : items.length, profile: list.profile_id, split: d.pair });
         }
         setPlace(null);
         setJoin(null);

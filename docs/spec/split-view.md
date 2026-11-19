@@ -94,7 +94,7 @@ split with Today tabs, stays where it is.
 - "Add split to favorites" puts it at the end of the favorites, and dragging
   the row onto a favorites list puts it where it is dropped.
 - A tab or favorite dragged onto a favorite's tile joins it: the tile
-  previews the pair, the dragged tab on the half of the tile under the
+  previews the pair, the dragged tab on the half of the page under the
   pointer, and the drop makes the tab a favorite of that list and a page of
   the split. A tile that is a split takes a further page the same way,
   beside the page under the pointer, up to four. Between two tiles the
