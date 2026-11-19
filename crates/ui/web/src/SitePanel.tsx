@@ -46,19 +46,28 @@ function BlockAds({ url }: { url: string }) {
  */
 function SystemEngine({ url }: { url: string }) {
   const [engine, setEngine] = useState<{ site: string | null; system: boolean; known: boolean } | null>(null);
+  // Why the app did not take the choice (the list of sites is full).
+  const [refused, setRefused] = useState<string | null>(null);
   useEffect(() => {
     void send({ cmd: "site_engine", url }).then(setEngine);
   }, [url]);
   if (!engine?.site) return null;
   const set = (system: boolean) => {
+    setRefused(null);
     setEngine({ ...engine, system });
-    send({ cmd: "set_site_engine", url, system });
+    send({ cmd: "set_site_engine", url, system }).catch((e: unknown) => {
+      setEngine(engine);
+      setRefused(e instanceof Error ? e.message : String(e));
+    });
   };
   return (
-    <label className="panel-row" title={`For all of ${engine.site}: its pages open in WebKit, the Mac's own web engine, which plays protected video. No extensions or ad blocking there, and the site asks you to sign in again. The page loads again.`}>
-      <span className="flex-1">Open in WebKit</span>
-      {engine.known ? <span className="text-[12px] text-[var(--muted)]">Always, for its video</span> : <Switch label="Open this site in WebKit" checked={engine.system} onChange={set} />}
-    </label>
+    <>
+      <label className="panel-row" title={`For all of ${engine.site}: its pages open in WebKit, the Mac's own web engine, which plays protected video. No extensions or ad blocking there, and the site asks you to sign in again. The page loads again.`}>
+        <span className="flex-1">Open in WebKit</span>
+        {engine.known ? <span className="text-[12px] text-[var(--muted)]">Always, for its video</span> : <Switch label="Open this site in WebKit" checked={engine.system} onChange={set} />}
+      </label>
+      {refused && <div className="panel-note" role="alert">{refused}</div>}
+    </>
   );
 }
 
@@ -276,7 +285,7 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
         {!internal && !system && <Permissions key={`${item.id} ${host}`} pageHost={host} />}
         {system && (
           <div className="panel-group">
-            <div className="panel-note">WebKit, the Mac's own web engine, shows this page. Extensions, ad blocking and developer tools do not work here, and the site signs in apart from your other pages.</div>
+            <div className="panel-note">WebKit, the Mac's own web engine, shows this page. Extensions, ad blocking, Global Privacy Control and developer tools do not work here, and the site signs in apart from your other pages.</div>
           </div>
         )}
 

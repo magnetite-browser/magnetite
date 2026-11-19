@@ -296,7 +296,7 @@ export function SettingsPage() {
       {sectionId === "smart" && <SmartFoldersSection />}
       {sectionId === "autofill" && <AutofillSection info={info} update={update} />}
       {sectionId === "adblock" && <AdblockSection info={info} update={update} reload={reload} />}
-      {sectionId === "video" && <ProtectedVideoSection key={settings.system_engine.sites.join()} info={info} update={update} />}
+      {sectionId === "video" && <ProtectedVideoSection info={info} update={update} />}
       {sectionId === "search" && (
         <>
           <Group>

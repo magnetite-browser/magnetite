@@ -26,7 +26,7 @@ Such a page is called a system page below. Why it is built this way:
 - Sites the user names: in Settings → Protected video ("Other sites", one
   host per line, each with its subdomains), or with "Open in WebKit" in
   the site panel, which names the site of the page in front and loads the
-  page again.
+  page again. At most 100 sites; the panel says so when the list is full.
 - "Open streaming services in WebKit" in Settings turns the known services
   off as a whole. On by default. A known service shows "Always, for its
   video" in the site panel in place of a switch.
@@ -100,8 +100,11 @@ The engine keeps a profile's data in its own place,
 `~/Library/WebKit/org.magnetitebrowser.magnetite/WebsiteDataStore/<id>`,
 not in Magnetite's data folder. Which store belongs to which profile is in
 `<data-dir>/system-engine-stores.json`. A profile that is deleted loses
-its store. Icons of system pages are fetched without cookies and kept with
-the others in `<data-dir>/favicons`; a private page keeps none.
+its store at the next start, and stays in that file until the engine has
+removed it. Where the file cannot be written, a profile's store is in
+memory for that run. Icons of system pages are fetched without cookies,
+over `https://` only, and kept with the others in `<data-dir>/favicons`;
+a private page keeps none.
 
 The engine's check of addresses against a list of fraudulent sites is off,
 as Chromium's Safe Browsing is (`docs/design/security.md`).

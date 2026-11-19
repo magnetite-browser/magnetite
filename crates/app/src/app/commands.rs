@@ -2578,7 +2578,7 @@ impl MagnetiteApp {
             UiCommand::SiteAds { url } => return Ok(self.site_ads(&url)),
             UiCommand::SiteEngine { url } => return Ok(self.site_engine(&url)),
             UiCommand::SetSiteEngine { url, system } => {
-                self.set_site_engine(engine, &url, system);
+                self.set_site_engine(engine, &url, system)?;
             }
             UiCommand::ClearSystemEngineData => self.clear_system_engine_data(engine),
             UiCommand::SetSiteAds { url, blocking } => {

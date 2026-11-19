@@ -5,6 +5,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use magnetite_core::{Id, UnixSeconds};
+use magnetite_engine::in_domain;
 use serde::{Deserialize, Serialize};
 
 /// The longest the archive may keep a tab: ten years.
@@ -162,13 +163,14 @@ impl Default for SystemEngine {
 }
 
 impl SystemEngine {
-    /// Hosts only, each once, and none that the known services cover.
+    /// Hosts only, each once, and none that the known services cover
+    /// while those are on.
     fn sanitised(mut self) -> Self {
         let mut sites: Vec<String> = Vec::new();
         for site in std::mem::take(&mut self.sites) {
             if let Some(host) = site_host(&site)
                 && !sites.contains(&host)
-                && !PROTECTED_VIDEO_SITES.contains(&host.as_str())
+                && !(self.known && PROTECTED_VIDEO_SITES.contains(&host.as_str()))
                 && sites.len() < MAX_SYSTEM_ENGINE_SITES
             {
                 sites.push(host);
@@ -176,6 +178,35 @@ impl SystemEngine {
         }
         self.sites = sites;
         self
+    }
+
+    /// Whether `host` is one of the known services, while those are on.
+    pub fn knows(&self, host: &str) -> bool {
+        self.known && (PROTECTED_VIDEO_SITES.iter()).any(|site| in_domain(host, site))
+    }
+
+    /// Whether `host` is under one of the user's own sites.
+    pub fn names(&self, host: &str) -> bool {
+        self.sites.iter().any(|site| in_domain(host, site))
+    }
+
+    /// Name `site` for the system's engine (the site panel's switch), or
+    /// take every own site that covers `host` out again. An error if the
+    /// list is full: the next check of the settings would drop the site
+    /// again without a word.
+    pub fn set_site(&mut self, host: &str, site: String, system: bool) -> Result<(), String> {
+        let mut sites = self.sites.clone();
+        sites.retain(|own| !in_domain(host, own));
+        if system {
+            if sites.len() >= MAX_SYSTEM_ENGINE_SITES {
+                return Err(format!(
+                    "The list holds {MAX_SYSTEM_ENGINE_SITES} sites already. Remove one in Settings → Protected video first."
+                ));
+            }
+            sites.push(site);
+        }
+        self.sites = sites;
+        Ok(())
     }
 
     /// Every site that opens in the system's engine.
@@ -1037,6 +1068,53 @@ mod tests {
             sites: vec!["tv.example.org".into()],
         };
         assert_eq!(own.hosts(), ["tv.example.org"]);
+    }
+
+    #[test]
+    fn a_known_service_can_be_named_alone_while_the_known_ones_are_off() {
+        let mut engine = SystemEngine {
+            known: false,
+            sites: Vec::new(),
+        };
+        engine
+            .set_site("www.netflix.com", "netflix.com".into(), true)
+            .unwrap();
+        // As after any later change of the settings.
+        let kept = engine.sanitised();
+        assert_eq!(kept.sites, ["netflix.com"]);
+        assert!(kept.names("www.netflix.com") && !kept.knows("www.netflix.com"));
+        // With the known services on again they cover it.
+        let known = SystemEngine {
+            known: true,
+            ..kept
+        }
+        .sanitised();
+        assert!(known.sites.is_empty() && known.knows("www.netflix.com"));
+    }
+
+    #[test]
+    fn the_site_panel_cannot_name_more_sites_than_are_kept() {
+        let mut engine = SystemEngine {
+            known: true,
+            sites: (0..MAX_SYSTEM_ENGINE_SITES)
+                .map(|n| format!("tv{n}.example.org"))
+                .collect(),
+        };
+        let full = engine.sites.clone();
+        assert!(
+            engine
+                .set_site("more.example.org", "more.example.org".into(), true)
+                .is_err()
+        );
+        assert_eq!(engine.sites, full);
+        // Taking one out, and naming one that is there already, still work.
+        engine
+            .set_site("tv0.example.org", "tv0.example.org".into(), true)
+            .unwrap();
+        engine
+            .set_site("tv1.example.org", "tv1.example.org".into(), false)
+            .unwrap();
+        assert_eq!(engine.sites.len(), MAX_SYSTEM_ENGINE_SITES - 1);
     }
 
     #[test]

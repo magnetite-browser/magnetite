@@ -1250,8 +1250,11 @@ wrap_window_delegate! {
         }
         fn on_window_destroyed(&self, _window: Option<&mut Window>) {
             let engine = Engine::global();
-            // The page changed its engine: it lives on in another window.
-            let own = (engine.lock().contents.get(&self.id)).is_none_or(|c| c.serial == self.serial);
+            // Only the page this window was made for. One that changed its
+            // engine lives on in another window, or waits for its profile's
+            // context without any state: what the engine keeps for it
+            // (lock, mute, its place on screen) stays.
+            let own = (engine.lock().contents.get(&self.id)).is_some_and(|c| c.serial == self.serial);
             if own && engine.forget_content(self.id) {
                 engine.emit(EngineEvent::ContentClosed { id: self.id });
             }

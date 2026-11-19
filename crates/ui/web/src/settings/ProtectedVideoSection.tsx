@@ -1,7 +1,7 @@
 // Settings → Protected video: which sites open in the system's own web
 // engine (WebKit on macOS), where protected video plays that Magnetite's
 // Chromium is refused.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { send } from "../bridge";
 import { Field, Group, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
@@ -18,8 +18,17 @@ const NAMES: Record<string, string> = {
 
 export function ProtectedVideoSection({ info, update }: { info: Info; update: (patch: SettingsPatch) => void }) {
   const engine = info.settings.system_engine;
-  const [sites, setSites] = useState(engine.sites.join("\n"));
-  const [cleared, setCleared] = useState<"idle" | "confirm" | "done">("idle");
+  // What is typed, until the field is left. The saved list takes its place
+  // when it changes: as the app keeps it after a save, or from the site panel.
+  const saved = engine.sites.join("\n");
+  const [sites, setSites] = useState(saved);
+  useEffect(() => setSites(saved), [saved]);
+  const [cleared, setCleared] = useState<"idle" | "confirm" | "working" | "done" | "failed">("idle");
+  // The app answers once the data of every profile is gone.
+  const clear = () => {
+    setCleared("working");
+    send({ cmd: "clear_system_engine_data" }).then(() => setCleared("done"), () => setCleared("failed"));
+  };
   if (!info.system_engine.available) {
     return (
       <Group>
@@ -44,19 +53,23 @@ export function ProtectedVideoSection({ info, update }: { info: Info; update: (p
           <textarea className="field mono" rows={3} spellCheck={false} placeholder={"tv.example.org"} value={sites} onChange={(e) => setSites(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
         </Field>
       </Group>
-      <Group title="What is different in a WebKit page" hint="It is a tab like any other: in the sidebar, in its space, in a split or a peek. It runs no extensions, ad blocking or developer tools, and it signs in on its own: a site you are signed in to in Chromium asks again. Open pages keep their engine until they load another address.">
+      <Group title="What is different in a WebKit page" hint="It is a tab like any other: in the sidebar, in its space, in a split or a peek. It runs no extensions, ad blocking or developer tools, sends no Global Privacy Control signal, and signs in on its own: a site you are signed in to in Chromium asks again. Open pages keep their engine until they load another address.">
         <div className="set-row flex items-center gap-3" data-search-row>
           <span className="min-w-0 flex-1" data-search-name>
             <span className="set-label block">WebKit's website data</span>
-            <span className="set-hint block">{cleared === "done" ? "Deleted. The sites there ask you to sign in again." : "The cookies, site storage and cache of the pages WebKit showed, in every profile. Chromium's are deleted under Data & privacy."}</span>
+            {cleared === "failed" ? (
+              <span className="set-hint block" role="alert" style={{ color: "var(--danger)" }}>It could not be deleted. Try again.</span>
+            ) : (
+              <span className="set-hint block">{cleared === "done" ? "Deleted. The sites there ask you to sign in again." : cleared === "working" ? "Deleting…" : "The cookies, site storage and cache of the pages WebKit showed, in every profile. Chromium's are deleted under Data & privacy."}</span>
+            )}
           </span>
           {cleared === "confirm" ? (
             <>
               <button className="btn sm" onClick={() => setCleared("idle")}>Cancel</button>
-              <button className="btn sm" data-danger onClick={() => { void send({ cmd: "clear_system_engine_data" }); setCleared("done"); }}>Delete</button>
+              <button className="btn sm" data-danger onClick={clear}>Delete</button>
             </>
           ) : (
-            <button className="btn sm" onClick={() => setCleared("confirm")}>Delete…</button>
+            <button className="btn sm" disabled={cleared === "working"} onClick={() => setCleared("confirm")}>Delete…</button>
           )}
         </div>
       </Group>

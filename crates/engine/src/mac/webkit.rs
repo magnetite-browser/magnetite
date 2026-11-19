@@ -17,6 +17,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::ptr::NonNull;
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use block2::{DynBlock, RcBlock};
@@ -31,9 +32,11 @@ use objc2_app_kit::{
     NSWindowDidResizeNotification, NSWindowOrderingMode, NSWindowStyleMask,
 };
 use objc2_foundation::{
-    NSArray, NSBundle, NSDate, NSDictionary, NSError, NSHTTPCookie, NSKeyValueObservingOptions,
-    NSNotification, NSNotificationCenter, NSObjectNSKeyValueObserverRegistration, NSRect, NSString,
-    NSURL, NSURLRequest, NSUUID, ns_string,
+    NSArray, NSBundle, NSData, NSDate, NSDictionary, NSError, NSHTTPCookie, NSHTTPURLResponse,
+    NSKeyValueObservingOptions, NSNotification, NSNotificationCenter,
+    NSObjectNSKeyValueObserverRegistration, NSRect, NSString, NSURL, NSURLRequest, NSURLSession,
+    NSURLSessionConfiguration, NSURLSessionDataDelegate, NSURLSessionDataTask,
+    NSURLSessionDelegate, NSURLSessionTask, NSURLSessionTaskDelegate, NSUUID, ns_string,
 };
 use objc2_web_kit::{
     WKNavigation, WKNavigationAction, WKNavigationActionPolicy, WKNavigationDelegate,
@@ -431,22 +434,25 @@ impl PageDelegate {
         Engine::global().system_failed(state.id, url, code == REFUSED);
     }
 
-    /// Ask the page for its icon's address and hand it to the engine.
+    /// Ask the page for its icon's address and hand it to the engine, if
+    /// the page is still the one that was asked: the answer comes later,
+    /// and the tab may have gone elsewhere by then.
     fn find_icon(&self, web_view: &WKWebView) {
         let id = self.ivars().id;
+        let asked = address(web_view);
         let found = RcBlock::new(move |value: *mut AnyObject, _error: *mut NSError| {
             // SAFETY: WebKit passes the script's result, or null.
             let url = unsafe { value.as_ref() }
                 .and_then(|v| v.downcast_ref::<NSString>())
                 .map(ToString::to_string);
-            if let Some(url) = url {
+            if let Some(url) = url.filter(|_| address_of(id).as_deref() == Some(asked.as_str())) {
                 Engine::global().system_favicon(id, &url);
             }
         });
         // SAFETY: a live view, on the main thread.
         unsafe {
             web_view.evaluateJavaScript_completionHandler(ns_string!(ICON_SCRIPT), Some(&found));
-        };
+        }
     }
 }
 
@@ -460,8 +466,9 @@ const ICON_SCRIPT: &str = "(()=>{const size=l=>parseInt((l.sizes&&l.sizes.value|
 return icons[0]?icons[0].href:location.origin+'/favicon.ico'})()";
 
 /// What a page may be sent to in its main frame. Anything else (`mailto:`,
-/// an app's own scheme) is not opened from here.
-const WEB_SCHEMES: [&str; 5] = ["http", "https", "about", "blob", "data"];
+/// an app's own scheme, a `data:` address) is not opened from here. The
+/// note about a failed load is an `about:` page.
+const WEB_SCHEMES: [&str; 4] = ["http", "https", "about", "blob"];
 
 fn scheme_of(url: &str) -> Option<&str> {
     url.split_once(':').map(|(scheme, _)| scheme)
@@ -617,7 +624,8 @@ fn read_store_ids(data_dir: &Path) -> BTreeMap<String, String> {
         .unwrap_or_default()
 }
 
-fn write_store_ids(data_dir: &Path, ids: &BTreeMap<String, String>) {
+/// Keep `ids` in the file. False if they could not be written.
+fn write_store_ids(data_dir: &Path, ids: &BTreeMap<String, String>) -> bool {
     use std::io::Write as _;
     use std::os::unix::fs::OpenOptionsExt as _;
     let path = stores_file(data_dir);
@@ -636,23 +644,26 @@ fn write_store_ids(data_dir: &Path, ids: &BTreeMap<String, String>) {
     if written.is_none() {
         crate::trace("system engine: cannot keep the list of its data stores");
     }
+    written.is_some()
 }
 
 /// The identifier of `profile`'s data store, made and kept on first use.
-fn store_identifier(data_dir: &Path, profile: &str) -> Retained<NSUUID> {
+/// None if a new one could not be kept: a store under an identifier that
+/// is written nowhere could never be found again, to open or to delete.
+fn store_identifier(data_dir: &Path, profile: &str) -> Option<Retained<NSUUID>> {
     let mut ids = read_store_ids(data_dir);
     let known = (ids.get(profile))
         .and_then(|id| NSUUID::initWithUUIDString(NSUUID::alloc(), &NSString::from_str(id)));
-    known.unwrap_or_else(|| {
+    known.or_else(|| {
         let fresh = NSUUID::new();
         ids.insert(profile.to_string(), fresh.UUIDString().to_string());
-        write_store_ids(data_dir, &ids);
-        fresh
+        write_store_ids(data_dir, &ids).then_some(fresh)
     })
 }
 
-/// The data store of `profile` (`""`: the default profile): in memory only
-/// for a private one, else on disk under the profile's identifier.
+/// The data store of `profile` (`""`: the default profile): on disk under
+/// the profile's identifier. In memory only for a private profile, and for
+/// this run where the identifier could not be kept.
 fn store(
     mtm: MainThreadMarker,
     data_dir: &Path,
@@ -662,49 +673,52 @@ fn store(
     if let Some(store) = STORES.with_borrow(|s| s.get(profile).cloned()) {
         return store;
     }
+    let identifier = (!ephemeral)
+        .then(|| store_identifier(data_dir, profile))
+        .flatten();
     // SAFETY: on the main thread (`mtm`); `available` holds, or no page
     // would be made.
     let store = unsafe {
-        if ephemeral {
-            WKWebsiteDataStore::nonPersistentDataStore(mtm)
-        } else {
-            WKWebsiteDataStore::dataStoreForIdentifier(&store_identifier(data_dir, profile), mtm)
+        match identifier {
+            Some(identifier) => WKWebsiteDataStore::dataStoreForIdentifier(&identifier, mtm),
+            None => WKWebsiteDataStore::nonPersistentDataStore(mtm),
         }
     };
     STORES.with_borrow_mut(|s| s.insert(profile.to_string(), store.clone()));
     store
 }
 
-/// The profiles `ids` are gone: so are their data stores. A store still
-/// shown by a page stays until Magnetite starts again without that page.
+/// The profiles `ids` are gone: so are their data stores. A store's
+/// identifier leaves the file only once `WebKit` has removed the store: one
+/// that could not be removed (a page still shows it) is asked for again at
+/// the next start, when the app names its deleted profiles again.
 pub(crate) fn forget_stores(data_dir: &Path, ids: &[String]) {
-    let Some(mtm) = MainThreadMarker::new() else {
+    // Stores by identifier, and the call that removes one, exist where
+    // `available` holds; elsewhere nothing was ever made.
+    let Some(mtm) = MainThreadMarker::new().filter(|_| available()) else {
         return;
     };
-    let mut known = read_store_ids(data_dir);
-    let mut changed = false;
+    let known = read_store_ids(data_dir);
     for profile in ids {
         STORES.with_borrow_mut(|s| s.remove(profile));
-        let Some(id) = known.remove(profile) else {
-            continue;
-        };
-        changed = true;
-        let Some(uuid) = NSUUID::initWithUUIDString(NSUUID::alloc(), &NSString::from_str(&id))
-        else {
-            continue;
-        };
-        let done = RcBlock::new(|error: *mut NSError| {
+        let uuid = (known.get(profile))
+            .and_then(|id| NSUUID::initWithUUIDString(NSUUID::alloc(), &NSString::from_str(id)));
+        let Some(uuid) = uuid else { continue };
+        let (data_dir, profile) = (data_dir.to_path_buf(), profile.clone());
+        let done = RcBlock::new(move |error: *mut NSError| {
             if !error.is_null() {
                 crate::trace("system engine: a profile's data store could not be removed");
+                return;
+            }
+            let mut ids = read_store_ids(&data_dir);
+            if ids.remove(&profile).is_some() {
+                write_store_ids(&data_dir, &ids);
             }
         });
         // SAFETY: on the main thread; WebKit copies the block.
         unsafe {
             WKWebsiteDataStore::removeDataStoreForIdentifier_completionHandler(&uuid, &done, mtm);
-        };
-    }
-    if changed {
-        write_store_ids(data_dir, &known);
+        }
     }
 }
 
@@ -728,10 +742,12 @@ pub(crate) fn clear_data(
     done: Box<dyn FnOnce(Option<usize>)>,
 ) {
     // A profile that never used WebKit has nothing to delete, and gets no
-    // store made for the question.
-    let used = ephemeral
-        || STORES.with_borrow(|s| s.contains_key(profile))
-        || read_store_ids(data_dir).contains_key(profile);
+    // store made for the question; nor is one made where `available` does
+    // not hold.
+    let used = available()
+        && (ephemeral
+            || STORES.with_borrow(|s| s.contains_key(profile))
+            || read_store_ids(data_dir).contains_key(profile));
     let Some(mtm) = MainThreadMarker::new().filter(|_| used) else {
         done(domain.map(|_| 0));
         return;
@@ -784,42 +800,121 @@ pub(crate) fn clear_data(
 /// The largest icon a site may hand over: more is not an icon.
 const ICON_LIMIT: usize = 1 << 20;
 
-/// Fetch the image at `icon_url` and keep it as a PNG at `path`. The
-/// request carries no cookies and keeps none: it is made outside every
-/// profile's store.
-pub(crate) fn fetch_icon(icon_url: &str, path: PathBuf) {
-    use objc2_foundation::{NSData, NSURLResponse, NSURLSession, NSURLSessionConfiguration};
-    let url = Some(icon_url)
-        .filter(|u| u.starts_with("https://") || u.starts_with("http://"))
-        .and_then(|u| NSURL::URLWithString(&NSString::from_str(u)));
-    let Some(url) = url else { return };
-    let fetched = RcBlock::new(
-        move |data: *mut NSData, _response: *mut NSURLResponse, _error: *mut NSError| {
-            // SAFETY: the session passes the body, or null after an error.
-            let png = unsafe { data.as_ref() }
-                .filter(|d| d.length() <= ICON_LIMIT)
-                .and_then(png_of);
+/// Whether an icon may be fetched from `url`: over an encrypted connection
+/// only, and with no name or password in the address.
+fn fetchable(url: &NSURL) -> bool {
+    let https = url
+        .scheme()
+        .is_some_and(|s| s.to_string().eq_ignore_ascii_case("https"));
+    https && url.user().is_none() && url.password().is_none()
+}
+
+/// One icon on its way: where it is kept, and what has arrived of it (none
+/// once that was more than `ICON_LIMIT`).
+struct IconFetchState {
+    path: PathBuf,
+    body: Mutex<Option<Vec<u8>>>,
+}
+
+define_class!(
+    /// What the session fetching an icon reports to, on a thread of its
+    /// own: a redirect is followed only to an address `fetchable` allows,
+    /// the fetch ends when more than an icon arrives, and what arrived is
+    /// kept as the icon once it is complete.
+    #[unsafe(super(NSObject))]
+    #[ivars = IconFetchState]
+    struct IconFetch;
+
+    unsafe impl NSObjectProtocol for IconFetch {}
+
+    unsafe impl NSURLSessionDelegate for IconFetch {}
+
+    unsafe impl NSURLSessionTaskDelegate for IconFetch {
+        #[unsafe(method(URLSession:task:willPerformHTTPRedirection:newRequest:completionHandler:))]
+        fn redirected(
+            &self,
+            _session: &NSURLSession,
+            _task: &NSURLSessionTask,
+            _response: &NSHTTPURLResponse,
+            request: &NSURLRequest,
+            follow: &DynBlock<dyn Fn(*mut NSURLRequest)>,
+        ) {
+            let allowed = request.URL().is_some_and(|url| fetchable(&url));
+            follow.call((if allowed {
+                std::ptr::from_ref(request).cast_mut()
+            } else {
+                std::ptr::null_mut()
+            },));
+        }
+
+        #[unsafe(method(URLSession:task:didCompleteWithError:))]
+        fn completed(
+            &self,
+            _session: &NSURLSession,
+            _task: &NSURLSessionTask,
+            error: Option<&NSError>,
+        ) {
+            let state = self.ivars();
+            let body = state.body.lock().ok().and_then(|mut body| body.take());
+            let png = body
+                .filter(|_| error.is_none())
+                .and_then(|bytes| png_of(&NSData::with_bytes(&bytes)));
             if let Some(png) = png {
-                crate::favicon::store_icon(&path, &png);
+                crate::favicon::store_icon(&state.path, &png);
             }
-        },
-    );
-    // SAFETY: Foundation's objects; the session copies the block and lives
-    // until its one task is done.
-    unsafe {
-        let session = NSURLSession::sessionWithConfiguration(
-            &NSURLSessionConfiguration::ephemeralSessionConfiguration(),
-        );
-        session
-            .dataTaskWithURL_completionHandler(&url, &fetched)
-            .resume();
-        session.finishTasksAndInvalidate();
+        }
     }
+
+    unsafe impl NSURLSessionDataDelegate for IconFetch {
+        #[unsafe(method(URLSession:dataTask:didReceiveData:))]
+        fn received(&self, _session: &NSURLSession, task: &NSURLSessionDataTask, data: &NSData) {
+            let Ok(mut body) = self.ivars().body.lock() else {
+                return;
+            };
+            match body.as_mut() {
+                Some(bytes) if bytes.len() + data.length() <= ICON_LIMIT => {
+                    bytes.extend_from_slice(&data.to_vec());
+                }
+                _ => {
+                    *body = None;
+                    task.cancel();
+                }
+            }
+        }
+    }
+);
+
+/// Fetch the image at `icon_url` and keep it as a PNG at `path`. The
+/// request is made outside every profile's store, in a session that has no
+/// place for cookies: it carries none and keeps none, also across a
+/// redirect.
+pub(crate) fn fetch_icon(icon_url: &str, path: PathBuf) {
+    let url = NSURL::URLWithString(&NSString::from_str(icon_url)).filter(|url| fetchable(url));
+    let Some(url) = url else { return };
+    let configuration = NSURLSessionConfiguration::ephemeralSessionConfiguration();
+    configuration.setHTTPCookieStorage(None);
+    configuration.setHTTPShouldSetCookies(false);
+    let fetch = IconFetch::alloc().set_ivars(IconFetchState {
+        path,
+        body: Mutex::new(Some(Vec::new())),
+    });
+    // SAFETY: `NSObject`'s initialiser.
+    let fetch: Retained<IconFetch> = unsafe { msg_send![super(fetch), init] };
+    // SAFETY: the session keeps its delegate until its one task is done.
+    let session = unsafe {
+        NSURLSession::sessionWithConfiguration_delegate_delegateQueue(
+            &configuration,
+            Some(ProtocolObject::from_ref(&*fetch)),
+            None,
+        )
+    };
+    session.dataTaskWithURL(&url).resume();
+    session.finishTasksAndInvalidate();
 }
 
 /// The image in `data` (PNG, ICO, JPEG, GIF, …) as a PNG: of an icon file
 /// with several sizes, the largest.
-fn png_of(data: &objc2_foundation::NSData) -> Option<Vec<u8>> {
+fn png_of(data: &NSData) -> Option<Vec<u8>> {
     use objc2_app_kit::{NSBitmapImageFileType, NSBitmapImageRep};
     let largest = NSBitmapImageRep::imageRepsWithData(data)
         .iter()

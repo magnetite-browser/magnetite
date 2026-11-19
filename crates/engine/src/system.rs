@@ -175,7 +175,7 @@ impl Engine {
             (inner.contents.remove(&id), shares)
         };
         let Some(old) = old else { return };
-        crate::trace(&format!("page #{id} changes its engine for {url}"));
+        crate::trace(&format!("page #{id} changes its engine"));
         self.emit_shares(shares);
         crate::devtools::page_closed(id);
         self.emit(EngineEvent::MediaChanged { id, media: None });

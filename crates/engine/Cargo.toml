@@ -36,7 +36,7 @@ objc2 = "0.6"
 block2 = "0.6"
 objc2-foundation = { version = "0.3", features = [
     "NSArray", "NSBundle", "NSURL", "NSString", "NSEnumerator", "NSGeometry", "NSData", "NSNotification", "NSOperation", "block2",
-    "NSDate", "NSDictionary", "NSError", "NSHTTPCookie", "NSKeyValueObserving", "NSSet", "NSURLRequest", "NSURLResponse",
+    "NSDate", "NSDictionary", "NSError", "NSHTTPCookie", "NSHTTPCookieStorage", "NSKeyValueObserving", "NSSet", "NSURLRequest", "NSURLResponse",
     "NSURLSession", "NSUUID",
 ] }
 objc2-core-graphics = { version = "0.3", default-features = false, features = ["std", "objc2", "CGColor"] }

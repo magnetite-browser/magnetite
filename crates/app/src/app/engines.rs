@@ -1,11 +1,13 @@
 //! Which engine shows a site's pages, as Settings and the site panel see
 //! it: Chromium, or the system's own (`magnetite_engine`'s `system.rs`).
 
-use magnetite_engine::{ContextProfile, Engine, host_of, in_domain, registrable_domain};
+use std::cell::Cell;
+use std::rc::Rc;
+
+use magnetite_engine::{ContextProfile, Engine, host_of, registrable_domain};
 use serde_json::{Value, json};
 
 use super::MagnetiteApp;
-use crate::state::PROTECTED_VIDEO_SITES;
 
 impl MagnetiteApp {
     /// Site panel: whether the system's engine shows the site of the page
@@ -18,39 +20,38 @@ impl MagnetiteApp {
         };
         let (known, named) = self.with_state(|s| {
             let engine = &s.settings.system_engine;
-            (
-                engine.known
-                    && PROTECTED_VIDEO_SITES
-                        .iter()
-                        .any(|site| in_domain(&host, site)),
-                engine.sites.iter().any(|site| in_domain(&host, site)),
-            )
+            (engine.knows(&host), engine.names(&host))
         });
         json!({ "site": registrable_domain(&host), "system": known || named, "known": known })
     }
 
     /// Show the site of the page at `url` in the system's engine from now
     /// on, or in Chromium again; the page in front loads again, in the
-    /// engine it has now.
-    pub(super) fn set_site_engine(&self, engine: &Engine, url: &str, system: bool) {
+    /// engine it has now. An error, and nothing changed, if the list of
+    /// sites is full.
+    pub(super) fn set_site_engine(
+        &self,
+        engine: &Engine,
+        url: &str,
+        system: bool,
+    ) -> Result<(), String> {
         let Some(host) = host_of(url) else {
-            return;
+            return Ok(());
         };
         let sites = self.with_state(|s| {
-            let own = &mut s.settings.system_engine.sites;
-            own.retain(|site| !in_domain(&host, site));
-            if system {
-                own.push(registrable_domain(&host));
-            }
-            s.settings.system_engine.hosts()
-        });
+            let own = &mut s.settings.system_engine;
+            own.set_site(&host, registrable_domain(&host), system)?;
+            Ok::<_, String>(own.hosts())
+        })?;
         engine.set_system_engine_sites(sites);
         self.save_soon();
         self.on_active_content(engine, |engine, id| engine.content_load_url(id, url));
+        Ok(())
     }
 
     /// Settings: delete everything the system's engine keeps (cookies,
-    /// site storage, cache), in every profile.
+    /// site storage, cache), in every profile. Answers the UI query when
+    /// the last profile's data is gone.
     pub(super) fn clear_system_engine_data(&self, engine: &Engine) {
         let profiles: Vec<Option<ContextProfile>> = self.with_state(|s| {
             (s.sidebar.profiles.iter())
@@ -62,8 +63,17 @@ impl MagnetiteApp {
                 })
                 .collect()
         });
+        let ticket = engine.defer_reply();
+        let left = Rc::new(Cell::new(profiles.len()));
         for profile in profiles {
-            engine.clear_system_data(profile.as_ref(), None, Box::new(|_| {}));
+            let left = left.clone();
+            let cleared = move |_| {
+                left.set(left.get() - 1);
+                if let (0, Some(ticket)) = (left.get(), ticket) {
+                    Engine::global().finish_reply(ticket, Ok("{}".into()));
+                }
+            };
+            engine.clear_system_data(profile.as_ref(), None, Box::new(cleared));
         }
     }
 }

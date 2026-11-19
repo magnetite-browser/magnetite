@@ -70,7 +70,7 @@ Magnetite started as a new home for the workflow of the Arc browser and has grow
 - **Chromium's own tools.** Find in page, the PDF viewer, and DevTools docked beside or below the page.
 - **Passwords and autofill.** Saved passwords, addresses and cards, filled in for you and kept on your computer.
 - **Media controls** in the sidebar for whatever plays in another tab, and picture-in-picture with its own controls.
-- **Protected video.** Streaming services that ask for a browser verified by Google, which Magnetite is not yet, open in the Mac's own engine, WebKit, in a normal tab (macOS 14 or newer).
+- **Protected video.** Netflix, Disney+ and a few other streaming services ask for a browser verified by Google, which Magnetite is not yet. They, and sites you add, open in the Mac's own engine, WebKit, in a normal tab (macOS 14 or newer).
 - **Capture.** A screenshot of an element, a region, the visible part or the whole page.
 - **Smart folders.** Your review requests and issues from GitHub, GitLab, Jira or YouTrack as tabs that keep themselves current.
 
@@ -85,7 +85,7 @@ Magnetite is developed and used daily on macOS (Apple silicon). Linux and Window
 
 There are no releases yet, so for now you [build it yourself](#build-it-yourself). Expect breaking changes, including to the data format on disk.
 
-Not there yet: moving a page between windows on macOS and Windows (to do: written for both, tested on neither), and H.264 or AAC playback on Linux aarch64 and Intel Macs (the standard build of the engine comes without these codecs, so some video and music sites do not play; on Macs with Apple silicon, Linux x86_64 and Windows x86_64, Magnetite uses [its own build](https://github.com/magnetite-browser/magnetite-cef) with them). Protected video from services that ask for a verified browser (Netflix, Disney+ and others) plays on macOS only, in a tab without extensions ([protected-video.md](docs/spec/protected-video.md)). Every spec in [`docs/spec/`](docs/spec/README.md) ends with what its feature still lacks.
+Not there yet: moving a page between windows on macOS and Windows (to do: written for both, tested on neither), and H.264 or AAC playback on Linux aarch64 and Intel Macs (the standard build of the engine comes without these codecs, so some video and music sites do not play; on Macs with Apple silicon, Linux x86_64 and Windows x86_64, Magnetite uses [its own build](https://github.com/magnetite-browser/magnetite-cef) with them). Protected video from services that ask for a verified browser plays on macOS only, for the services on a short list and sites you add, in a tab without extensions ([protected-video.md](docs/spec/protected-video.md)). Every spec in [`docs/spec/`](docs/spec/README.md) ends with what its feature still lacks.
 
 ## Install
 
