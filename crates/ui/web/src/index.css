@@ -569,6 +569,22 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 .panel-tools kbd { margin-left: auto; font: inherit; font-size: 11.5px; color: var(--muted); }
 
 /* Settings: grouped navigation, a header with an icon tile, one card per setting. */
+/* The page is its own measure (a tab can be half a window in split view,
+   and the text size zooms it): `.set-layout` follows `.set-page`'s width.
+   Narrower than a page of 320 it scrolls sideways instead of squashing. */
+.set-page { height: 100%; container-type: inline-size; overflow-x: auto; }
+.set-layout { display: flex; height: 100%; min-width: 320px; }
+.set-nav-pick { display: none; }
+/* Without room for the sections at the side: search and a list of them on top. */
+@container (max-width: 720px) {
+  .set-layout { flex-direction: column; }
+  .set-nav { display: flex; gap: 8px; width: auto; overflow: visible; padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .set-nav-title, .set-nav-list { display: none; }
+  .set-search { flex: 1 0 160px; margin: 0; }
+  .set-nav-pick { display: block; flex: 1 1 120px; min-width: 0; }
+  .set-main { padding: 20px 16px; }
+  .set-main .seg { flex-wrap: wrap; max-width: 100%; }
+}
 .set-nav-label { padding: 4px 8px 4px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
 /* The search field above the sections, and the page of what it found:
    the name of each section, the sections the search left out (`data-miss`)

@@ -4,6 +4,12 @@ Settings are a page of Magnetite's own, `magnetite://ui/settings`, opened as
 a tab. A list of sections on the left, the settings of the chosen section on
 the right. What each setting does is in the spec of its feature.
 
+In a narrow page (a small window, a page of a split view, a large text
+size: less than 720 points of the page's own), the list of sections is a
+bar on top instead: the search field and a menu of the sections. A setting
+whose control has no room beside its name shows it below. Narrower than 320
+points, the page scrolls sideways.
+
 ## Sections
 
 The list has five groups:

@@ -389,13 +389,24 @@ export function SettingsPage() {
   );
 
   return (
-    <div className="flex h-full" style={{ background: "var(--bg)" }}>
+    <div className="set-page" style={{ background: "var(--bg)" }}>
+      <div className="set-layout">
       <nav className="set-nav scroll w-[232px] shrink-0 border-r border-[var(--line)] p-3">
-        <div className="px-2 pb-2 pt-1 text-[16px] font-semibold">Settings</div>
+        <div className="set-nav-title px-2 pb-2 pt-1 text-[16px] font-semibold">Settings</div>
         <label className="set-search">
           <Search width={14} height={14} />
           <input ref={searchField} type="search" className="field" placeholder="Search settings" aria-label="Search settings" value={query} onChange={(e) => type(e.target.value)} onKeyDown={(e) => e.key === "Escape" && type("")} spellCheck={false} />
         </label>
+        {/* The sections as one list, for a page too narrow for them at its side. */}
+        <select className="field set-nav-pick" aria-label="Section" value={shown ? sectionId : ""} onChange={(e) => openSection(e.target.value)}>
+          {!shown && <option value="" disabled>Search results</option>}
+          {GROUPS.map((g) => (
+            <optgroup key={g.label} label={g.label}>
+              {g.sections.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </optgroup>
+          ))}
+        </select>
+        <div className="set-nav-list">
         {GROUPS.map((g) => (
           <div key={g.label} className="mt-3">
             <div className="set-nav-label">{g.label}</div>
@@ -407,8 +418,9 @@ export function SettingsPage() {
             ))}
           </div>
         ))}
+        </div>
       </nav>
-      <main className="scroll flex-1 min-h-0 px-10 py-8">
+      <main className="set-main scroll min-h-0 min-w-0 flex-1 px-10 py-8">
         <div className="max-w-[680px]">
           {searching && !picked ? (
             <SearchResults query={query} sections={SECTIONS} body={body} open={openSection} onFound={onFound} none={found.length === 0} />
@@ -432,6 +444,7 @@ export function SettingsPage() {
           )}
         </div>
       </main>
+      </div>
     </div>
   );
 }
@@ -723,8 +736,8 @@ function LinkRules({ saved, spaces, save }: { saved: LinkRule[]; spaces: Info["s
           const why = r.site ? problem(r, rows) : null;
           return (
             <div key={i}>
-              <div className="flex items-center gap-2">
-                <input className="field mono" style={{ flex: 1, minWidth: 0 }} value={r.site} placeholder="github.com/acme" aria-label="Site" aria-invalid={!!why || undefined} onChange={(e) => change(i, { site: e.target.value })} onBlur={() => commit(rows)} />
+              <div className="flex flex-wrap items-center gap-2">
+                <input className="field mono" style={{ flex: "1 1 160px", minWidth: 0 }} value={r.site} placeholder="github.com/acme" aria-label="Site" aria-invalid={!!why || undefined} onChange={(e) => change(i, { site: e.target.value })} onBlur={() => commit(rows)} />
                 <span className="text-[13px] text-[var(--muted)]">opens in</span>
                 <select className="field" style={{ width: 180 }} value={spaces.some((s) => s.id === r.space) ? r.space : ""} aria-label="Space" onChange={(e) => commit(change(i, { space: e.target.value }))}>
                   <option value="" disabled>a space…</option>
@@ -779,10 +792,10 @@ function SiteSearches({ saved, save }: { saved: SiteSearch[]; save: (sites: Site
           const problem = s.keyword || s.name || s.url ? siteSearchProblem(s, rows) : null;
           return (
             <div key={i}>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <input className="field mono" style={{ width: 88 }} value={s.keyword} placeholder="keyword" aria-label="Keyword" aria-invalid={!!problem || undefined} onChange={(e) => change(i, { keyword: e.target.value })} onBlur={() => commit(rows)} spellCheck={false} />
                 <input className="field" style={{ width: 140 }} value={s.name} placeholder="Name" aria-label="Name" onChange={(e) => change(i, { name: e.target.value })} onBlur={() => commit(rows)} />
-                <input className="field" style={{ flex: 1, minWidth: 0 }} value={s.url} placeholder="https://example.org/search?q=%s" aria-label="Search address" onChange={(e) => change(i, { url: e.target.value })} onBlur={() => commit(rows)} spellCheck={false} />
+                <input className="field" style={{ flex: "1 1 160px", minWidth: 0 }} value={s.url} placeholder="https://example.org/search?q=%s" aria-label="Search address" onChange={(e) => change(i, { url: e.target.value })} onBlur={() => commit(rows)} spellCheck={false} />
                 <button className="ib" title="Remove" aria-label={`Remove ${s.name || "site search"}`} onClick={() => remove(i)}><Close width={14} height={14} /></button>
               </div>
               {problem && <p className="set-hint" style={{ color: "var(--danger)" }}>Not saved: {problem}</p>}
