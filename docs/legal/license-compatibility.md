@@ -362,8 +362,9 @@ Source files for packaging:
 - [ ] `Contents/Resources/COPYRIGHT-library.html`
 - [ ] `Contents/Resources/scriptlets/` with `scriptlets.json`, `LICENSE.txt`
       and `README.txt` ("Ad blocker's scriptlets")
-- [ ] CEF framework unmodified (re-signing is fine); on Apple silicon the
-      one from the magnetite-cef release pinned in `scripts/cef.sh`
+- [ ] CEF framework as its archive has it (re-signing is fine); on Apple
+      silicon the one from the magnetite-cef release pinned in
+      `scripts/cef.sh`
 - [ ] Patent question for H.264, AAC and HEVC decided ("CEF and Chromium")
 - [ ] `NSHumanReadableCopyright` (`English.lproj/InfoPlist.strings`):
       "© 2026 the Magnetite contributors. Licensed under the EUPL-1.2."
@@ -379,8 +380,8 @@ Source files for packaging:
       `THIRD_PARTY_NOTICES.md`, `CREDITS.html` (Windows CEF distribution),
       `COPYRIGHT-library.html`
 - [ ] The folder `scriptlets` next to `magnetite.exe`, with its three files
-- [ ] CEF files unmodified, including `d3dcompiler_47.dll` and
-      `dxcompiler.dll`. If `dxil.dll` is present, add it to the notices.
+- [ ] CEF files as their archive has them, including `d3dcompiler_47.dll`
+      and `dxcompiler.dll`. If `dxil.dll` is present, add it to the notices.
 - [ ] CEF from the magnetite-cef release pinned in `scripts/cef.sh`
       (`magnetite-patches.txt` next to `libcef.dll`)
 - [ ] MSVC runtime: static (`+crt-static`), or Microsoft's redistribution terms
