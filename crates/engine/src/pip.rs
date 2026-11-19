@@ -20,7 +20,9 @@ use std::time::{Duration, Instant};
 use block2::RcBlock;
 use objc2::rc::{Retained, Weak};
 use objc2::runtime::{AnyObject, NSObject, NSObjectProtocol, ProtocolObject, Sel};
-use objc2::{ClassType, MainThreadMarker, MainThreadOnly, Message, define_class, msg_send, sel};
+use objc2::{
+    ClassType, MainThreadMarker, MainThreadOnly, Message, class, define_class, msg_send, sel,
+};
 use objc2_app_kit::{
     NSAnimatablePropertyContainer, NSAnimationContext, NSApplication, NSBackingStoreType, NSBox,
     NSButton, NSCellImagePosition, NSColor, NSCursor, NSCursorFrameResizeDirections,
@@ -544,6 +546,7 @@ fn attach(mtm: MainThreadMarker) {
             live,
             observers,
         });
+        show_cursor_in_background(true);
         lay_out(p);
         // Shown briefly when the video pops out, so they can be found.
         set_shown(p, true);
@@ -585,6 +588,7 @@ fn detach() {
         };
         let Some(p) = cell.as_mut() else { return };
         let Some(s) = p.session.take() else { return };
+        show_cursor_in_background(false);
         let center = NSNotificationCenter::defaultCenter();
         for o in &s.observers {
             // SAFETY: tokens returned by addObserverForName on this center.
@@ -700,6 +704,8 @@ fn pointer_left() {
     if GESTURE.get().is_some() {
         return;
     }
+    // Ours would stay on over another app's window.
+    NSCursor::arrowCursor().set();
     PANEL.with(|cell| {
         if let Ok(mut cell) = cell.try_borrow_mut()
             && let Some(p) = cell.as_mut()
@@ -872,7 +878,8 @@ fn set_shown(p: &mut Panel, shown: bool) {
 }
 
 /// Pointing hand on buttons, the resize cursor on edges (macOS 15 has public
-/// ones; older systems keep the arrow), else the arrow.
+/// ones; older systems keep the arrow), else the arrow. They also show while
+/// another app is in front (`show_cursor_in_background`).
 fn cursor(hover: Option<Button>, edges: Option<Edges>) -> Retained<NSCursor> {
     if hover.is_some() {
         return NSCursor::pointingHandCursor();
@@ -901,6 +908,39 @@ fn cursor(hover: Option<Button>, edges: Option<Edges>) -> Retained<NSCursor> {
         position,
         NSCursorFrameResizeDirections::All,
     )
+}
+
+/// Let our cursor show while another app is in front, or no longer. macOS
+/// shows only the frontmost app's cursor, and the video floats over other
+/// apps: there its edges resized it under a plain arrow. No public API
+/// changes that (a window the system resizes itself shows no resize cursor
+/// there either), only this property of our connection to the window
+/// server. Found by name: a system without it keeps the arrow. On while the
+/// panel is on a video (`attach`, `detach`).
+fn show_cursor_in_background(on: bool) {
+    type MainConnection = unsafe extern "C" fn() -> i32;
+    type SetProperty = unsafe extern "C" fn(i32, i32, *const NSString, *const AnyObject) -> i32;
+    // SAFETY: both are C functions of the system's graphics library with
+    // these signatures, called only when present; the property takes a
+    // string key and a boolean number, both alive for the call.
+    unsafe {
+        let main = libc::dlsym(libc::RTLD_DEFAULT, c"CGSMainConnectionID".as_ptr());
+        let set = libc::dlsym(libc::RTLD_DEFAULT, c"CGSSetConnectionProperty".as_ptr());
+        if main.is_null() || set.is_null() {
+            return;
+        }
+        let main = std::mem::transmute::<*mut libc::c_void, MainConnection>(main);
+        let set = std::mem::transmute::<*mut libc::c_void, SetProperty>(set);
+        let key = NSString::from_str("SetsCursorInBackground");
+        let value: Retained<AnyObject> = msg_send![class!(NSNumber), numberWithBool: on];
+        let connection = main();
+        set(
+            connection,
+            connection,
+            Retained::as_ptr(&key),
+            Retained::as_ptr(&value),
+        );
+    }
 }
 
 fn fill(button: Button, hover: bool) -> Retained<NSColor> {

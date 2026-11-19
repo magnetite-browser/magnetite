@@ -66,7 +66,8 @@ On macOS the floating video has Magnetite's own controls:
   seek buttons closer to play/pause; under 140 pt it has no seek buttons.
 - Dragging the video moves the window. Dragging an edge or corner resizes
   it with the video's proportions, never narrower than 160 pt or wider than
-  the screen. A two-finger swipe flings it to the screen edge in that
+  the screen; the resize cursor shows there, also while another app is in
+  front. A two-finger swipe flings it to the screen edge in that
   direction; a diagonal swipe reaches a corner.
 - The video window shows no page address.
 
