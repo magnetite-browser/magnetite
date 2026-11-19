@@ -1,8 +1,8 @@
 # Releases
 
 A release is a `v*` tag. `.github/workflows/release.yml` builds the packages
-for every system, writes and signs the update manifest, renders the Homebrew
-cask and creates a **draft** GitHub release. A maintainer checks the draft and
+for every system, writes and signs the update manifest and the index of the
+Linux package repository, renders the Homebrew cask and creates a **draft** GitHub release. A maintainer checks the draft and
 publishes it by hand. Publishing is what makes installed apps update.
 
 ## Versions
@@ -84,9 +84,12 @@ Files in the release: `latest.json` (the manifest, format in
 
 The rpm and deb packages update from Magnetite's dnf and apt repository at
 `https://packages.magnetitebrowser.org` (why and how:
-`docs/adr/0011-linux-packages.md`). Publishing a release (not a
-pre-release) runs the "Linux repository" workflow, which fills the repository
-with that release's packages and puts it on GitHub Pages.
+`docs/adr/0011-linux-packages.md`). The release workflow builds the
+repository's index, signs it and adds it to the draft as
+`linux-repository.tar`. Publishing a release (not a pre-release) runs the
+"Linux repository" workflow, which checks that index against the release's
+packages and puts both on GitHub Pages. That run needs no approval: the key
+was used in the release run, which had one.
 
 Once:
 
@@ -116,7 +119,8 @@ Once:
    before it lists the package, so a replaced file would stop it.
 
 To publish a release's packages again (a failed run, a new host), run
-"Linux repository" by hand with "Use workflow from" set to its tag. Moving
+"Linux repository" by hand with "Use workflow from" set to its tag (0.0.9 or
+later: older releases carry no index). Moving
 the repository to Stackforge's servers is planned in ADR-0011.
 
 ## macOS signing and notarization
@@ -315,7 +319,8 @@ tap stays for those who installed from it.
 
 - The draft has four packages (zip and tarball), the two macOS disk images,
   an rpm and a deb with its signature (`.deb.asc`) for each Linux CPU,
-  `latest.json`, `latest.json.sig`, `magnetite.rb` and `SHA256SUMS`.
+  `latest.json`, `latest.json.sig`, `magnetite.rb`, `SHA256SUMS` and
+  `linux-repository.tar`.
 - The signature checks out with the app's key:
 
   ```sh

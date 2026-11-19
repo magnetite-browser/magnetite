@@ -46,9 +46,12 @@ repository with its key.
   and ships in the packages, so trust comes from the package the user
   installed, not from a download. The scripts refuse a signing key that is
   not that one.
-- **When.** Publishing a release (not a pre-release) runs
-  `.github/workflows/linux-repo.yml`. As on macOS, publishing is what makes
-  installed copies update.
+- **When.** The release workflow builds and signs the repository's index
+  next to the packages and adds it to the draft (`linux-repository.tar`).
+  Publishing a release (not a pre-release) runs
+  `.github/workflows/linux-repo.yml`, which checks the index against the
+  packages and puts both online. It holds no key and waits for no approval:
+  as on macOS, publishing is what makes installed copies update.
 - **The app.** A packaged Magnetite (the `system-package` file next to the
   binary) never asks the release host. When the package manager replaces its
   binary, it offers "Restart to update" (`update::SystemBinary`). The tarball

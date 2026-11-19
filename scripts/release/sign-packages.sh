@@ -4,6 +4,7 @@
 # (gpgcheck=1). A deb gets a signature file next to it (<deb>.asc): apt
 # checks the repository's index, not the package, so this is what
 # scripts/release/linux-repo.sh checks before it lists a deb in that index.
+# Both run in the release's last job, the only one that holds the key.
 #
 #   MAGNETITE_REPO_KEY="$(cat key.asc)" scripts/release/sign-packages.sh dist/*.rpm dist/*.deb
 #

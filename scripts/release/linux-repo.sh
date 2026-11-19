@@ -2,7 +2,7 @@
 # Build Magnetite's dnf and apt repository from the rpm and deb packages of
 # one release, signed with the repository key:
 #
-#   MAGNETITE_REPO_KEY="$(cat key.asc)" scripts/release/linux-repo.sh <packages> <out>
+#   MAGNETITE_REPO_KEY="$(cat key.asc)" scripts/release/linux-repo.sh <packages> <out> [<index.tar>]
 #
 #   <out>/repo-key.asc                 the public key
 #   <out>/rpm/  *.rpm, repodata/       baseurl of packaging/linux/magnetite.repo
@@ -16,13 +16,18 @@
 # <packages> holds the rpm packages, signed, and each deb with its signature
 # file (<deb>.asc), as scripts/release/sign-packages.sh leaves them.
 #
+# <index.tar>, when given, gets everything in <out> but the packages: the
+# signed part. The release carries it, so that publishing the repository
+# (scripts/release/linux-repo-site.sh) needs no key.
+#
 # Needs createrepo_c (Debian/Ubuntu: createrepo-c), apt-ftparchive
 # (apt-utils) and gpg.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"
 
 packages="${1:?usage: linux-repo.sh <packages folder> <out folder>}"
-out="${2:?usage: linux-repo.sh <packages folder> <out folder>}"
+out="${2:?usage: linux-repo.sh <packages folder> <out folder> [<index.tar>]}"
+index="${3:-}"
 shopt -s nullglob
 rpms=("$packages"/*.rpm) debs=("$packages"/*.deb)
 ((${#rpms[@]} && ${#debs[@]})) || die "no rpm and deb packages in $packages"
@@ -38,15 +43,15 @@ mkdir -p "$out/rpm" "$out/deb"
 cp "$ROOT/packaging/linux/repo-key.asc" "$out/repo-key.asc"
 
 log "rpm repository"
-# Signed by release.yml; dnf would refuse an unsigned one (gpgcheck=1).
+# Signed by sign-packages.sh; dnf would refuse an unsigned one (gpgcheck=1).
 check_rpm_signatures "$tmp" "${rpms[@]}"
 cp "${rpms[@]}" "$out/rpm/"
 createrepo_c --quiet "$out/rpm"
 sign --armor --detach-sign "$out/rpm/repodata/repomd.xml"
 
 log "apt repository"
-# apt trusts whatever the signed index lists: only packages that release.yml
-# signed get into it, not ones swapped in the release afterwards.
+# apt trusts whatever the signed index lists: only packages that
+# sign-packages.sh signed get into it.
 check_deb_signatures "$tmp" "${debs[@]}"
 cp "${debs[@]}" "$out/deb/"
 (
@@ -59,4 +64,7 @@ cp "${debs[@]}" "$out/deb/"
   sign --clearsign --output InRelease Release
   sign --armor --detach-sign --output Release.gpg Release
 )
+if [[ -n $index ]]; then
+  tar -C "$out" --exclude='*.rpm' --exclude='*.deb' -cf "$index" .
+fi
 echo "$out"

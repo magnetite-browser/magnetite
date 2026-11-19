@@ -1,7 +1,8 @@
 # Builds the packages for a v* tag and creates a draft GitHub release with
-# them, the signed update manifest and the Homebrew cask. Publishing the draft
-# is a manual step: docs/development/release.md. Publishing it also refreshes
-# the Linux package repository (linux-repo.yml). The sync server is released
+# them, the signed update manifest, the signed index of the Linux package
+# repository and the Homebrew cask. Publishing the draft is a manual step:
+# docs/development/release.md. Publishing it also puts the Linux package
+# repository online (linux-repo.yml). The sync server is released
 # from its own repository (magnetite-browser/magnetite-sync).
 name: Release
 
@@ -154,8 +155,13 @@ jobs:
         env:
           MAGNETITE_REPO_KEY: ${{ secrets.MAGNETITE_REPO_KEY }}
         run: |
-          sudo apt-get install -y -q --no-install-recommends -o Acquire::Retries=5 rpm
+          sudo apt-get update -q -o Acquire::Retries=5
+          sudo apt-get install -y -q --no-install-recommends -o Acquire::Retries=5 rpm createrepo-c apt-utils
           scripts/release/sign-packages.sh dist/*.rpm dist/*.deb
+          # The repository's signed index travels in the release, so that
+          # putting it online after publishing needs neither this key nor
+          # another approval (linux-repo.yml).
+          scripts/release/linux-repo.sh dist "$RUNNER_TEMP/site" "$RUNNER_TEMP/linux-repository.tar"
 
       - name: Homebrew cask
         run: scripts/release/render-cask.sh "$VERSION" dist >dist/magnetite.rb
@@ -176,4 +182,5 @@ jobs:
           scripts/release/release-notes.sh "$VERSION" dist >>"$RUNNER_TEMP/notes.md"
           gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
             --title "Magnetite $VERSION" --notes-file "$RUNNER_TEMP/notes.md" \
-            dist/*.zip dist/*.dmg dist/*.tar.gz dist/*.rpm dist/*.deb dist/*.deb.asc dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS
+            dist/*.zip dist/*.dmg dist/*.tar.gz dist/*.rpm dist/*.deb dist/*.deb.asc dist/latest.json dist/latest.json.sig dist/magnetite.rb dist/SHA256SUMS \
+            "$RUNNER_TEMP/linux-repository.tar"
