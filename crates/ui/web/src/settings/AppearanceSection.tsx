@@ -17,13 +17,27 @@ const SPACE_COLOURS: [string, Color][] = [
 ];
 const toHex = (c?: Color | null) => "#" + channels(c ?? DEFAULT_ACCENT).map((v) => v.toString(16).padStart(2, "0")).join("");
 const fromHex = (h: string) => toColor(parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16));
-const sameColour = (a: Color | null | undefined, b: Color) => !!a && channels(a).join() === channels(b).join();
+const sameColour = (a: Color, b: Color) => channels(a).join() === channels(b).join();
+
+/** The space colours to pick from and the colour picker; `value` is the space's colour (none: the default). */
+export function ColourSwatches({ value, onPick }: { value: Color | null | undefined; onPick: (c: Color) => void }) {
+  return (
+    <div className="swatches">
+      {SPACE_COLOURS.map(([name, c]) => (
+        <button key={name} type="button" className="swatch" title={name} aria-label={name} data-on={sameColour(value ?? DEFAULT_ACCENT, c) || undefined} style={{ background: accentCss(c) }} onClick={() => onPick(c)} />
+      ))}
+      <label className="swatch custom" title="Any colour">
+        <input type="color" value={toHex(value)} onChange={(e) => onPick(fromHex(e.target.value))} />
+      </label>
+    </div>
+  );
+}
 
 /** Chromium's zoom steps, in percent (`ZOOM_STEPS` in the engine). */
 const PAGE_ZOOM = [25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300, 400, 500];
 
 /** The built-in sidebar effects; the user's own picture is offered once one is stored. */
-const EFFECTS = [["None", "none"], ["Grain", "grain"], ["Glow", "glow"], ["Aurora", "aurora"], ["Fade", "fade"]] as const;
+export const EFFECTS = [["None", "none"], ["Grain", "grain"], ["Glow", "glow"], ["Aurora", "aurora"], ["Fade", "fade"]] as const;
 
 /**
  * Choose or remove space `space`'s own picture for `slot`, with a small preview of the
@@ -62,7 +76,7 @@ function OwnImage({ slot, space, stamp, maxSide, reload }: { slot: ImageSlot; sp
  * Space colours and their strength, backgrounds, text size, density and
  * sidebar width. Sliders apply shortly
  * after they stop moving: each change re-lays out the pages.
- * `open`: the id of the space to show first (the space menu's "Space settings…").
+ * `open`: the id of the space to show first (the space dialog's "Pictures in Settings…").
  */
 export function AppearanceSection({ info, open, update, reload }: { info: Info; open?: string; update: (patch: SettingsPatch) => void; reload: () => void }) {
   const saved = info.settings.appearance;
@@ -103,14 +117,7 @@ export function AppearanceSection({ info, open, update, reload }: { info: Info; 
         </select>
       </Field>
       <Field side label="Colour" hint="Tints the sidebar and outlines the focused page in split view. It syncs with the space.">
-        <div className="swatches">
-          {SPACE_COLOURS.map(([name, c]) => (
-            <button key={name} className="swatch" title={name} aria-label={name} data-on={sameColour(sp.accent, c) || undefined} style={{ background: accentCss(c) }} onClick={() => colour(sp.id, c)} />
-          ))}
-          <label className="swatch custom" title="Any colour">
-            <input type="color" value={toHex(sp.accent)} onChange={(e) => colour(sp.id, fromHex(e.target.value))} />
-          </label>
-        </div>
+        <ColourSwatches value={sp.accent} onPick={(c) => colour(sp.id, c)} />
       </Field>
       <Field side label="Colour strength" hint="How much of the space colour the window takes.">
         <Slider value={look.tint} min={0} max={30} step={1} unit="%" reset={8} onChange={(v, now) => setLook({ tint: v }, now)} />

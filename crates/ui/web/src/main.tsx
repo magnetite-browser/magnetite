@@ -14,6 +14,7 @@ import { SplitDrop } from "./SplitDrop";
 import { SettingsPage } from "./SettingsPage";
 import { Shared } from "./Shared";
 import { SmartFolderDialog } from "./SmartFolderDialog";
+import { SpaceDialog } from "./SpaceDialog";
 import { Switcher } from "./Switcher";
 import { TopBar } from "./TopBar";
 import { TopBarPopup } from "./TopBarPopup";
@@ -35,6 +36,7 @@ function Route() {
   if (path.startsWith("/devbar")) return <DevBar />;
   if (path.startsWith("/device")) return <DeviceBar />;
   if (path.startsWith("/smart-folder")) return <SmartFolderDialog />;
+  if (path.startsWith("/space")) return <SpaceDialog />;
   if (path.startsWith("/topbar")) return <TopBar />;
   if (path.startsWith("/empty")) return <Empty />;
   if (path.startsWith("/popup")) return <TopBarPopup />;

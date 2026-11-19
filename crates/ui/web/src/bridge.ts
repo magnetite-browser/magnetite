@@ -587,6 +587,7 @@ export type Command =
   | { cmd: "peek_to_tab" }
   | { cmd: "peek_to_split" }
   | { cmd: "smart_folder_dialog"; id?: Id }
+  | { cmd: "space_dialog"; id: Id }
   | { cmd: "smart_connect"; service: Service; host: string; token: string }
   | { cmd: "smart_disconnect"; id: Id }
   | { cmd: "smart_preview"; source: SmartSource; account?: string }

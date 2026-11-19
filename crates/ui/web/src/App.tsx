@@ -109,8 +109,8 @@ export function App() {
   const isFavorite = (id: string) => favoriteLists.some((f) => f.items.some((t) => t.id === id));
   const looseSplit = state.split && !splitIds(state.split).some((id) => splitAt.has(id)) && !splitIds(state.split).every(isFavorite) ? state.split : null;
   const ctx: RowContext = { state, spaceId: space.id, openMenu, renaming, setRenaming, newProfileFor, splitAt, inSplit, pickIcon };
-  const pickSpaceIcon = (x: number, y: number, target: Space = space) =>
-    pickIcon({ x, y }, target.icon, (g) => g && send({ cmd: "rename_space", id: target.id, title: target.title, icon: g }));
+  const pickSpaceIcon = (x: number, y: number) =>
+    pickIcon({ x, y }, space.icon, (g) => g && send({ cmd: "rename_space", id: space.id, title: space.title, icon: g }));
   const activeRt = state.active_tab ? state.runtime[state.active_tab] : undefined;
   // Back, forward and reload act on the page in front: the peek while one is open.
   const frontRt = state.peek ? state.peek.runtime : activeRt;
@@ -151,7 +151,7 @@ export function App() {
   };
 
   // Options for `target` (the active space unless right-clicked in the footer).
-  // Renaming, new folders and new profiles act on the active space, so those switch first.
+  // New folders and new profiles act on the active space, so those switch first.
   const spaceMenu = (x: number, y: number, target: Space = space) => {
     const there = (run: () => void) => () => {
       if (target.id !== space.id) send({ cmd: "switch_space", id: target.id });
@@ -164,10 +164,8 @@ export function App() {
       ]);
     }
     openMenu(x, y, [
-      { label: "Rename space", onClick: there(() => setRenamingSpace(target.id)) },
-      { label: "Change icon", onClick: () => pickSpaceIcon(x, y, target) },
-      // Colour, strength and backgrounds; switches first, so the changes show.
-      { label: "Space settings…", onClick: there(() => send({ cmd: "new_tab", url: `magnetite://ui/settings#appearance=${encodeURIComponent(target.id)}` })) },
+      // Name, icon, colour and background; switches first, so the changes show.
+      { label: "Space settings…", onClick: there(() => send({ cmd: "space_dialog", id: target.id })) },
       { label: "New folder", onClick: there(() => send({ cmd: "new_folder", title: "" })) },
       SEPARATOR,
       ...state.sidebar.profiles.map((p) => ({

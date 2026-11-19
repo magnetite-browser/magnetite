@@ -24,13 +24,18 @@ by all spaces. The profile decides which logins the pages of a space use.
   (`import.md`).
 - **Space menu**: right-click the space title, the empty part of the tab
   list or a space icon in the footer, or use the "…" button on the title.
-  It has Rename space, Change icon, Space settings…, New folder, the
-  profile choice and Delete space….
-- **Rename**: the space menu, or double-click the title. **Icon**: the space
-  menu, or click the icon. **Colour**: Settings → Appearance →
-  Colour, with eleven presets and a colour picker ("Look" below). Space
-  settings… in the space menu switches to the space and opens that page
-  for it.
+  It has Space settings…, New folder, the profile choice and Delete
+  space….
+- **Space settings**: Space settings… in the space menu switches to the
+  space and opens a dialog over the page area with its name, icon, colour,
+  colour strength and background effect ("Look" below). Each change
+  applies at once; Esc, Done or a click elsewhere closes the dialog.
+  Pictures in Settings… leads to Settings → Appearance with the space
+  chosen, where its own pictures are set. The private space has no such
+  dialog.
+- **Rename**: the dialog, or double-click the title. **Icon**: the dialog,
+  or click the icon. **Colour**: the dialog, or Settings → Appearance →
+  Colour, with eleven presets and a colour picker.
 - **Reorder**: drag a space icon in the footer onto another one. A line
   shows where it goes: before the icon under the pointer on its left half,
   after it on its right half; where it already is, no line shows. The
@@ -267,7 +272,7 @@ in front, the space beside it comes to the front for the link.
 Code: `crates/core/src/model.rs`, `crates/app/src/app/commands.rs`,
 `crates/app/src/state/profiles.rs`, `crates/app/src/state/private.rs`,
 `crates/app/src/state/tabs.rs` (`move_space`),
-`crates/ui/web/src/{App,SpaceSwitcher,IsolationSection,Glyphs}.tsx`,
+`crates/ui/web/src/{App,SpaceSwitcher,SpaceDialog,IsolationSection,Glyphs}.tsx`,
 `crates/ui/web/src/useSpaceSwipe.ts`,
 `crates/ui/web/src/settings/AppearanceSection.tsx`,
 `crates/ui/web/src/{backgrounds.ts,Empty.tsx}`, `crates/engine/src/empty.rs`.

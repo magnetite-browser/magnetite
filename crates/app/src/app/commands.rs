@@ -406,6 +406,10 @@ pub(super) enum UiCommand {
         #[serde(default)]
         id: Option<String>,
     },
+    /// Open the settings dialog of space `id`: name, icon, colour, background.
+    SpaceDialog {
+        id: String,
+    },
     /// Check a token with the service and keep the account (answers later).
     SmartConnect {
         service: Service,
@@ -1490,6 +1494,10 @@ impl MagnetiteApp {
                     |id| format!("magnetite://ui/smart-folder?id={}", urlencode(&id)),
                 );
                 engine.open_palette(&url, 560, 120);
+            }
+            UiCommand::SpaceDialog { id } => {
+                let url = format!("magnetite://ui/space?id={}", urlencode(&id));
+                engine.open_palette(&url, 480, 120);
             }
             UiCommand::SmartConnect {
                 service,
