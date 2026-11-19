@@ -123,8 +123,9 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
   Today. Dropped on the middle of another tab's row or on the page area, it
   opens in split view (`split-view.md`).
 - Over a favorites list the dragged tab or favorite shows as a tile where it
-  would land, and the other tiles make room: over another tile it takes
-  that tile's place. Dropped on the list's title, it is added at the end.
+  would land, and the other tiles make room: over the edge of another tile
+  it takes that tile's place, over its middle the two form a split
+  (`split-view.md`). Dropped on the list's title, it is added at the end.
 - `Cmd+D` pins the active Today tab at the top of Pinned, or moves the active
   pinned tab to the top of Today. It does nothing for a favorite. With a
   split in front, the split is pinned or unpinned (`split-view.md`).

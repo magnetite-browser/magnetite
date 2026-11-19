@@ -34,7 +34,8 @@ area into a row (pages side by side) or a column (pages stacked).
 | Command bar: "Add right split…", "Add left split…", "Add top split…", "Add bottom split…" | The same, on that side |
 | "Open in split view" in a tab's menu, or `Option`+click on a tab row | That tab goes right of the current tab |
 | Drag a tab onto the page area | Drop zones, see below |
-| Drag a tab onto the middle of another tab's row | The two tabs form a split |
+| Drag a tab onto the middle of another tab's row | The two tabs form a split; on a pinned tab's row the dragged tab is pinned beside it |
+| Drag a tab or favorite onto the middle of a favorite's tile | The two form a split, and the dragged tab becomes a favorite beside it |
 | "Open in split view" on a peek | The peeked page becomes a tab right of the current tab |
 
 In the command bar, picking an open tab adds that tab; an address or a
@@ -92,6 +93,15 @@ split with Today tabs, stays where it is.
   same for the split in front.
 - "Add split to favorites" puts it at the end of the favorites, and dragging
   the row onto a favorites list puts it where it is dropped.
+- A tab or favorite dragged onto the middle half of a favorite's tile joins
+  it: the tile previews the pair, the dragged tab on the half of the tile
+  under the pointer, and the drop makes the tab a favorite of that list and
+  a page of the split. A tile that is a split takes a further page the same
+  way, beside the page under the pointer, up to four. The outer quarters
+  of a tile still make room for the dragged tile, as before. A web panel
+  joins no split.
+- A tab dropped on the middle of a pinned tab's row, or on a pinned split's
+  row, is pinned beside it, so the split is a kept one.
 - In the favorites, the favorites of one split are one tile where the first
   of them stands: an icon per page, in reading order, with a thin line
   between them. With more than two pages the tile is two tiles wide. A click

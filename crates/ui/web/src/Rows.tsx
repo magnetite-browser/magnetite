@@ -141,6 +141,13 @@ export function FavoriteLists({ ctx, lists }: { ctx: RowContext; lists: Favorite
 /** What one tile of the favorites shows: a favorite, or the favorites of one split. */
 type Tile = [TabItem, ...TabItem[]];
 
+/** Over the middle half of tile `el`, where a dropped tab joins it in a split. */
+function overMiddle(e: React.DragEvent, el: HTMLElement): boolean {
+  const r = el.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width;
+  return x > 0.25 && x < 0.75;
+}
+
 /** `tabs` as the one tile they make; none without a tab. */
 function asTile(tabs: TabItem[]): Tile[] {
   const [first, ...rest] = tabs;
@@ -165,6 +172,8 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
   };
   /** The tab or split being carried over this list (`id` stands for it) and its place among the other tiles. */
   const [place, setPlace] = useState<{ id: string; index: number } | null>(null);
+  /** The tab `id` carried over the middle of a tile: dropped, it joins page `cell` of tile `tile` in a split, on `side`. */
+  const [join, setJoin] = useState<{ id: string; tile: string; cell: string; side: Side } | null>(null);
   /** A tab this list takes: nothing of the private space is kept. */
   const takes = (d: ReturnType<typeof dragging>): d is NonNullable<typeof d> =>
     d?.kind === "tab" && (state.private_space !== ctx.spaceId || state.sidebar.favorites.some((f) => f.items.some((t) => t.id === d.id)));
@@ -179,8 +188,11 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
   const without = (moved: string[]) => tiles.filter((tile) => !moved.includes(tile[0].id));
   // A place left over from a drag that ended elsewhere counts for nothing.
   const d = dragging();
-  const [carried] = place && d?.id === place.id ? asTile(movedIds(d).flatMap((id) => findTab(state, id) ?? [])) : [];
+  const joining = join && d?.id === join.id ? join : null;
+  const [carried] = d && (place?.id === d.id || joining) ? asTile(movedIds(d).flatMap((id) => findTab(state, id) ?? [])) : [];
   const others = carried ? without(carried.map((t) => t.id)) : tiles;
+  // About to join a tile, the carried tab keeps its place too: taking it
+  // out would shift the tile under the pointer away.
   const shown = carried && place ? [...others.slice(0, place.index), carried, ...others.slice(place.index)] : others;
   return (
     <div
@@ -192,11 +204,25 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
         const moved = movedIds(d);
         const rest = without(moved);
         const target = e.target as HTMLElement;
-        const over = target.closest<HTMLElement>("[data-fav]")?.dataset.fav;
+        const overTile = target.closest<HTMLElement>("[data-fav]");
+        const over = overTile?.dataset.fav;
         const k = rest.findIndex((tile) => tile[0].id === over);
         const onTitle = !!target.closest(".favs-title");
         // One of the list's own tiles starts from where it stands.
         const own = tiles.findIndex((tile) => moved.includes(tile[0].id));
+        // The middle of another tile: the two form a split, the carried tab
+        // on the half of the tile under the pointer, beside the page there.
+        // The tile's edges make room, as a gap does.
+        const onto = rest[k];
+        if (overTile && onto && splittable(d) && overMiddle(e, overTile) && onto.length < MAX_PANES && !onto.some((t) => t.panel) && !findTab(state, d.id)?.panel) {
+          const page = target.closest<HTMLElement>("[data-page]") ?? overTile;
+          const next = { id: d.id, tile: onto[0].id, cell: page.dataset.page ?? onto[0].id, side: sideOf(e, overTile) };
+          setPlace((p) => (p?.id === d.id || own < 0 ? p : { id: d.id, index: own }));
+          return setJoin((j) => (j && j.id === next.id && j.cell === next.cell && j.side === next.side ? j : next));
+        }
+        // Over the place the carried tab would join, the preview stays.
+        if (target.closest("[data-ghost]")) return;
+        setJoin(null);
         setPlace((p) => {
           const index = p?.id === d.id ? p.index : own >= 0 ? own : null;
           // Over another tile: take its place, so it moves to the side the
@@ -206,11 +232,17 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
           return p?.id === d.id && p.index === next ? p : { id: d.id, index: next };
         });
       }}
-      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setPlace(null)}
+      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) { setPlace(null); setJoin(null); } }}
       onDrop={(e) => {
         e.preventDefault();
         const d = dragging();
-        if (takes(d)) {
+        if (takes(d) && join?.id === d.id) {
+          // Beside the page it joins, in this list, then into a split with it.
+          const items = list.items.filter((t) => t.id !== d.id);
+          const at = items.findIndex((t) => t.id === join.cell) + (join.side === "right" ? 1 : 0);
+          send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "favorites", index: at, profile: list.profile_id });
+          send({ cmd: "split_insert", target: join.cell, tab: d.id, side: join.side });
+        } else if (takes(d)) {
           // The index counts the list without what moves, as the app takes it
           // out first: the place of the tile it lands before, else the end.
           const moved = movedIds(d);
@@ -219,6 +251,7 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
           send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "favorites", index: before ? items.indexOf(before[0]) : items.length, profile: list.profile_id, split: d.pair });
         }
         setPlace(null);
+        setJoin(null);
         endDrag();
       }}
     >
@@ -249,9 +282,10 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
               "data-fav": t.id,
               "data-carried": tile === carried || undefined,
               draggable: true,
-              onDragEnd: () => { setPlace(null); endDrag(); },
+              onDragEnd: () => { setPlace(null); setJoin(null); endDrag(); },
             };
-            if (tile.length === 1) {
+            const joined = joining?.tile === t.id ? joining : null;
+            if (tile.length === 1 && !joined) {
               return <button key={t.id} className="fav no-drag" data-panel={t.panel || undefined} {...drag} onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id })} {...page(t)} />;
             }
             // A split: one tile with a half per page. It drags as one item.
@@ -263,9 +297,14 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
                 data-on-screen={ids.includes(state.active_tab ?? "") || undefined}
                 data-wide={tile.length > 2 || undefined}
                 {...drag}
-                onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id, pair: true, group: ids })}
+                onDragStart={(e) => startDrag(e, tile.length === 1 ? { kind: "tab", id: t.id } : { kind: "tab", id: t.id, pair: true, group: ids })}
               >
-                {tile.map((x) => <button key={x.id} className="fav-page" {...page(x)} />)}
+                {tile.map((x) => {
+                  const own = <button key={x.id} className="fav-page" data-page={x.id} {...page(x)} />;
+                  if (joined?.cell !== x.id || !carried) return own;
+                  const ghost = <span key="ghost" className="fav-page" data-ghost><Favicon url={carried[0].url} src={state.runtime[carried[0].id]?.favicon} /></span>;
+                  return joined.side === "left" ? [ghost, own] : [own, ghost];
+                })}
               </div>
             );
           })}
@@ -368,8 +407,11 @@ const TabRowInner = memo(
           const side = over === "left" || over === "right" ? over : null;
           setOver(null);
           if (d && d.id !== tab.id) {
-            if (side && splittable(d)) send({ cmd: "split_insert", target: tab.id, tab: d.id, side });
-            else onDropAt(dropIndex(e, index));
+            if (side && splittable(d)) {
+              // Onto a pinned tab: pinned beside it, so the split is kept as one item.
+              if (section === "pinned" && !snoozable) onDropAt(side === "left" ? index : index + 1);
+              send({ cmd: "split_insert", target: tab.id, tab: d.id, side });
+            } else onDropAt(dropIndex(e, index));
           }
           endDrag();
         }}
@@ -866,7 +908,11 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
         setOver(null);
         setLifted(null);
         const tab = placing(d);
-        if (join && tab) send({ cmd: d?.pair ? "split_reorder" : "split_insert", target: join.cell, tab, side: join.side });
+        if (join && tab) {
+          // Onto a pinned split: pinned with it.
+          if (!d?.pair && owner && !today && index !== undefined && onDropAt) onDropAt(index + 1);
+          send({ cmd: d?.pair ? "split_reorder" : "split_insert", target: join.cell, tab, side: join.side });
+        }
         else if (d && !(d.pair && d.id === owner) && index !== undefined && onDropAt) onDropAt(dropIndex(e, index));
         endDrag();
       }}
