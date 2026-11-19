@@ -485,7 +485,6 @@ Used by: aho-corasick, base64, lz4_flex, memchr, strsim, typenum.
 
 ```
 Copyright (c) 2014 Paho Lurie-Gregg
-Copyright (c) 2015 Alice Maz
 Copyright (c) 2015 Andrew Gallant
 Copyright (c) 2015 Danny Guo
 Copyright (c) 2016 Titus Wormer <tituswormer@gmail.com>
