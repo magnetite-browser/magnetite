@@ -693,7 +693,7 @@ impl Engine {
                 let tools = inner.docked.values().filter_map(|d| d.window.clone());
                 pages.chain(tools).collect()
             };
-            crate::win::set_frame_color(argb, pages.iter().map(|w| w.window_handle()));
+            crate::win::set_frame_color(argb, pages.iter().map(ImplWindow::window_handle));
         }
     }
 
