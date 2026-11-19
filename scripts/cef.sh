@@ -21,7 +21,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 # The release this version of Magnetite builds with, and its archive for
 # each system. A new one is pinned here after it was checked (magnetite-cef's
-# README, "Checking a release").
+# README, "Checking a release"). THIRD_PARTY_NOTICES.md and
+# docs/legal/license-compatibility.md name what is pinned here (the release,
+# its Chromium version, the CEF commit): change them with it.
 RELEASE=156.0.30-5
 NAME="cef_binary_156.0.30+g6028375+chromium-156.0.8078.109"
 

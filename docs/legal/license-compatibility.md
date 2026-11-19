@@ -159,9 +159,10 @@ paragraph).
 **macOS on Apple silicon, and Linux and Windows on x86_64,** ship a CEF we build ourselves from the same
 sources, in [magnetite-cef](https://github.com/magnetite-browser/magnetite-cef).
 It differs from the official build in two ways, both public there with the
-build script: the H.264, AAC and HEVC decoders are on (`proprietary_codecs`,
-`ffmpeg_branding=Chrome`), and CEF carries our patches (`patches/`). For the
-licences this changes two things:
+build script: the H.264, AAC and HEVC decoders and the H.264 encoder are on
+(`proprietary_codecs`, `ffmpeg_branding=Chrome`), and CEF carries our patches
+(`patches/`). `THIRD_PARTY_NOTICES.md` says the same to whoever gets the
+app. For the licences this changes two things:
 
 - The CEF library is no longer "unmodified": we are the ones who built and
   changed it. What follows about corresponding source still holds, with
