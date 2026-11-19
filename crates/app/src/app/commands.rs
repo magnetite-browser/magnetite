@@ -18,7 +18,7 @@ use crate::sync::{self, Job};
 use crate::{capture, downloads, lock, url_policy};
 
 use super::addresses::urlencode;
-use super::tabs::{Destination, move_tab};
+use super::tabs::{Destination, move_tabs};
 use super::{
     LATE_DROP, LinkVariant, MagnetiteApp, PROMPT_SETTLE, PaletteMode, WELCOME_URL, for_ui, global,
 };
@@ -277,6 +277,11 @@ pub(super) enum UiCommand {
         /// the profile the tab runs in).
         #[serde(default)]
         profile: Option<String>,
+        /// The row of a split was moved: the pages of the split that stand
+        /// with `id` go along (`split_group`), and `index` counts the list
+        /// without them.
+        #[serde(default)]
+        split: bool,
     },
     /// Put folder `id` at `index` (counted without it) of folder `folder`,
     /// else of the top level of Pinned.
@@ -1178,11 +1183,20 @@ impl MagnetiteApp {
                 index,
                 folder,
                 profile,
+                split,
             } => {
-                let stale = self.with_state(|s| {
-                    let context =
-                        |s: &AppState| s.context(s.profile_for_tab(&id).as_deref()).map(|c| c.id);
-                    let before = context(s);
+                let (ids, stale) = self.with_state(|s| {
+                    let ids = if split {
+                        s.split_group(&id)
+                    } else {
+                        vec![id.clone()]
+                    };
+                    let contexts = |s: &AppState| -> Vec<_> {
+                        (ids.iter())
+                            .map(|id| s.context(s.profile_for_tab(id).as_deref()).map(|c| c.id))
+                            .collect()
+                    };
+                    let before = contexts(s);
                     let to = Destination {
                         space: &space,
                         section,
@@ -1190,34 +1204,42 @@ impl MagnetiteApp {
                         folder: folder.as_deref(),
                         profile: profile.as_deref(),
                     };
-                    move_tab(s, &id, &to);
+                    move_tabs(s, &ids, &to);
                     // In another profile now: its page must load again there,
                     // not go on with the cookies of the profile it left.
-                    (context(s) != before)
-                        .then(|| s.detach_content(&id))
-                        .flatten()
+                    let after = contexts(s);
+                    let stale: Vec<_> = (ids.iter().zip(before.iter().zip(&after)))
+                        .filter(|(_, (before, after))| before != after)
+                        .filter_map(|(id, _)| s.detach_content(id))
+                        .collect();
+                    (ids, stale)
                 });
                 // Moved to another space while in front: this space goes on
                 // with a tab of its own.
                 let moved_away = self.with_state(|s| {
                     let here = s.active_space.clone();
-                    let away = s.active_tab_id() == Some(id.as_str())
-                        && s.find_tab(&id)
-                            .is_some_and(|(sp, _)| sp.is_some_and(|sp| sp.id != here));
+                    let away = s.active_tab_id().is_some_and(|active| {
+                        ids.iter().any(|id| id == active)
+                            && s.find_tab(active)
+                                .is_some_and(|(sp, _)| sp.is_some_and(|sp| sp.id != here))
+                    });
                     if away {
                         s.active_tab.remove(&here);
                     }
                     away.then_some(here)
                 });
-                if let Some(c) = stale {
+                let reload = !stale.is_empty();
+                for c in stale {
                     engine.close_content(c);
                 }
                 if let Some(space) = moved_away {
                     self.activate_space(engine, &space);
-                } else if stale.is_some() {
+                } else if reload {
                     self.present(engine);
                 } else {
-                    self.apply_lock(engine, &id);
+                    for id in &ids {
+                        self.apply_lock(engine, id);
+                    }
                     self.push_state(engine);
                 }
             }

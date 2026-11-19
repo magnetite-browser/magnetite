@@ -50,7 +50,7 @@ function useOpen(key: string, initially: boolean): [boolean, () => void] {
 /** Put the dragged item at `index` of `place.list`. */
 function dropAt(place: Place, index: number) {
   if (!dragged) return;
-  send({ cmd: "move_bookmark", id: dragged, space: place.space.id, folder: place.folder?.id, index: indexAfterTaking(place.list, dragged, index) });
+  send({ cmd: "move_bookmark", id: dragged, space: place.space.id, folder: place.folder?.id, index: indexAfterTaking(place.list, [dragged], index) });
   dragged = null;
 }
 

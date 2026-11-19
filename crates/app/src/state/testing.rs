@@ -8,7 +8,7 @@ use super::AppState;
 use super::persist::default_sidebar;
 use super::settings::Settings;
 
-pub(super) fn tab(id: &str) -> TabItem {
+pub(crate) fn tab(id: &str) -> TabItem {
     TabItem {
         created_at: Some(1),
         last_active_at: Some(1),
@@ -18,7 +18,7 @@ pub(super) fn tab(id: &str) -> TabItem {
 
 /// Three Today tabs (`b` active) and a pinned one. Its files would go
 /// to a folder of its own, which exists only once something is saved.
-pub(super) fn state() -> AppState {
+pub(crate) fn state() -> AppState {
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let n = NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let dir = crate::files::test_dir(&format!("state-{n}"));

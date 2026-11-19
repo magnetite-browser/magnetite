@@ -5,7 +5,60 @@ use magnetite_core::split::{Side, SplitNode};
 
 use super::AppState;
 
+/// The list of the sidebar a tab stands in.
+#[derive(PartialEq)]
+enum Home<'a> {
+    /// The favorites of a profile.
+    Favorites(&'a str),
+    /// The pinned tabs of a space, its folders included.
+    Pinned(&'a str),
+    /// The Today tabs of a space.
+    Today(&'a str),
+}
+
 impl AppState {
+    fn home_of(&self, id: &str) -> Option<Home<'_>> {
+        let favorites = &self.sidebar.favorites;
+        if let Some(list) = (favorites.iter()).find(|f| f.items.iter().any(|t| t.id == id)) {
+            return Some(Home::Favorites(&list.profile_id));
+        }
+        self.sidebar.spaces.iter().find_map(|sp| {
+            if sp.today.iter().any(|t| t.id == id) {
+                Some(Home::Today(&sp.id))
+            } else {
+                sp.find_tab(id).map(|_| Home::Pinned(&sp.id))
+            }
+        })
+    }
+
+    /// The pages that move with `tab` as one item: those of its split that
+    /// stand in the same list (the favorites of one profile, the pinned or
+    /// the Today tabs of one space), in reading order. A tab in no split is
+    /// alone.
+    pub fn split_group(&self, tab: &str) -> Vec<Id> {
+        let home = self.home_of(tab);
+        let split = self.live_splits().find(|t| t.contains(&tab.to_string()));
+        let mut ids = split.map(|t| t.ids()).unwrap_or_default();
+        ids.retain(|id| self.home_of(id) == home);
+        if ids.is_empty() {
+            ids.push(tab.to_string());
+        }
+        ids
+    }
+
+    /// The pages of the split holding `tab` if that split is kept: each of
+    /// its pages is a favorite or a pinned tab. Such a split closes as one
+    /// item and stays.
+    pub fn kept_split(&self, tab: &str) -> Option<Vec<Id>> {
+        let ids = self
+            .live_splits()
+            .find(|t| t.contains(&tab.to_string()))?
+            .ids();
+        ids.iter()
+            .all(|id| !matches!(self.home_of(id), Some(Home::Today(_)) | None))
+            .then_some(ids)
+    }
+
     /// Splits as shown: tabs that no longer exist left out, and only splits
     /// that still have two or more pages.
     pub(super) fn live_splits(&self) -> impl Iterator<Item = SplitNode<Id>> + '_ {
@@ -209,5 +262,29 @@ mod tests {
         s.split_separate("c");
         assert_eq!(s.splits.len(), 1);
         assert_eq!(s.splits[0].ids(), vec!["p", "a"]);
+    }
+
+    #[test]
+    fn the_pages_of_a_split_in_one_list_move_as_one_item() {
+        let mut s = state();
+        assert_eq!(s.split_group("a"), vec!["a"], "no split: alone");
+        assert!(s.split_insert(Some("a"), "c", Side::Right));
+        assert!(s.split_insert(Some("c"), "p", Side::Right));
+        assert_eq!(s.split_group("c"), vec!["a", "c"]);
+        assert_eq!(
+            s.split_group("p"),
+            vec!["p"],
+            "the pinned page stands elsewhere"
+        );
+    }
+
+    #[test]
+    fn a_split_is_kept_once_none_of_its_pages_is_a_today_tab() {
+        let mut s = state();
+        assert!(s.split_insert(Some("p"), "a", Side::Right));
+        assert_eq!(s.kept_split("p"), None);
+        assert!(s.sidebar.spaces[0].pin("a"));
+        assert_eq!(s.kept_split("a"), Some(vec!["p".into(), "a".into()]));
+        assert_eq!(s.kept_split("b"), None, "in no split");
     }
 }

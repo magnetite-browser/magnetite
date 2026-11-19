@@ -3,9 +3,9 @@ import { Favicon } from "./Favicon";
 import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, PhoneIcon, ScreenShareIcon, SmartFolderIcon, SnoozeIcon, Speaker, SpeakerOff, WakeIcon, WarningIcon } from "./Icons";
 import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./smart";
 import { Glyph, glyphFor } from "./Glyphs";
-import { dragging, dropIndex, endDrag, indexAfterTaking, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
+import { dragging, dropIndex, endDrag, indexAfterTaking, movedIds, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
 import { errorCount } from "./DevBar";
-import { findTab, hostOf, send, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { findTab, hostOf, send, splitGroup, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 
 export type Section = "favorites" | "pinned" | "today";
@@ -138,6 +138,15 @@ export function FavoriteLists({ ctx, lists }: { ctx: RowContext; lists: Favorite
   ));
 }
 
+/** What one tile of the favorites shows: a favorite, or the favorites of one split. */
+type Tile = [TabItem, ...TabItem[]];
+
+/** `tabs` as the one tile they make; none without a tab. */
+function asTile(tabs: TabItem[]): Tile[] {
+  const [first, ...rest] = tabs;
+  return first ? [[first, ...rest]] : [];
+}
+
 /**
  * The favorites of one profile: an icon per favorite. A tab dragged over the
  * list is shown where it would land, and the others make room: over another
@@ -154,14 +163,24 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
       return !o;
     });
   };
-  /** The tab being carried over this list and its place among the other tiles. */
+  /** The tab or split being carried over this list (`id` stands for it) and its place among the other tiles. */
   const [place, setPlace] = useState<{ id: string; index: number } | null>(null);
   /** A tab this list takes: nothing of the private space is kept. */
   const takes = (d: ReturnType<typeof dragging>): d is NonNullable<typeof d> =>
     d?.kind === "tab" && (state.private_space !== ctx.spaceId || state.sidebar.favorites.some((f) => f.items.some((t) => t.id === d.id)));
+  // The favorites of one split are one tile, where the first of them stands,
+  // with its pages in reading order.
+  const tiles = list.items.flatMap((t) => {
+    const split = state.splits.find((s) => splitIds(s).includes(t.id));
+    if (!split) return asTile([t]);
+    const pages = splitIds(split).flatMap((id) => list.items.find((x) => x.id === id) ?? []);
+    return list.items.find((x) => pages.includes(x)) === t ? asTile(pages) : [];
+  });
+  const without = (moved: string[]) => tiles.filter((tile) => !moved.includes(tile[0].id));
   // A place left over from a drag that ended elsewhere counts for nothing.
-  const carried = place && dragging()?.id === place.id ? findTab(state, place.id) : null;
-  const others = carried ? list.items.filter((t) => t.id !== carried.id) : list.items;
+  const d = dragging();
+  const [carried] = place && d?.id === place.id ? asTile(movedIds(d).flatMap((id) => findTab(state, id) ?? [])) : [];
+  const others = carried ? without(carried.map((t) => t.id)) : tiles;
   const shown = carried && place ? [...others.slice(0, place.index), carried, ...others.slice(place.index)] : others;
   return (
     <div
@@ -170,13 +189,14 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
         const d = dragging();
         if (!takes(d)) return;
         e.preventDefault();
-        const rest = list.items.filter((t) => t.id !== d.id);
+        const moved = movedIds(d);
+        const rest = without(moved);
         const target = e.target as HTMLElement;
         const over = target.closest<HTMLElement>("[data-fav]")?.dataset.fav;
-        const k = rest.findIndex((t) => t.id === over);
+        const k = rest.findIndex((tile) => tile[0].id === over);
         const onTitle = !!target.closest(".favs-title");
         // One of the list's own tiles starts from where it stands.
-        const own = list.items.findIndex((t) => t.id === d.id);
+        const own = tiles.findIndex((tile) => moved.includes(tile[0].id));
         setPlace((p) => {
           const index = p?.id === d.id ? p.index : own >= 0 ? own : null;
           // Over another tile: take its place, so it moves to the side the
@@ -190,8 +210,14 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
       onDrop={(e) => {
         e.preventDefault();
         const d = dragging();
-        // The index counts the list without the tab, as the app takes it out first.
-        if (takes(d)) send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "favorites", index: place?.id === d.id ? place.index : list.items.length, profile: list.profile_id });
+        if (takes(d)) {
+          // The index counts the list without what moves, as the app takes it
+          // out first: the place of the tile it lands before, else the end.
+          const moved = movedIds(d);
+          const items = list.items.filter((t) => !moved.includes(t.id));
+          const before = place?.id === d.id ? without(moved)[place.index] : undefined;
+          send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "favorites", index: before ? items.indexOf(before[0]) : items.length, profile: list.profile_id, split: d.pair });
+        }
         setPlace(null);
         endDrag();
       }}
@@ -205,27 +231,42 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
       )}
       {(open || !title) && (
         <div className="favs">
-          {shown.map((t) => {
-            const rt = state.runtime[t.id];
+          {shown.map((tile) => {
+            const page = (t: TabItem) => {
+              const rt = state.runtime[t.id];
+              return {
+                "data-active": state.active_tab === t.id || state.web_panel === t.id || undefined,
+                "data-unloaded": !rt?.loaded || undefined,
+                "data-shared": rt?.shared || undefined,
+                onClick: () => send(t.panel ? { cmd: "toggle_web_panel", id: t.id } : { cmd: "activate_tab", id: t.id }),
+                onContextMenu: (e: React.MouseEvent) => { e.preventDefault(); ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, t, "favorites", { x: e.clientX, y: e.clientY })); },
+                title: [t.title, title, t.panel && "panel", rt?.shared && "being shared"].filter(Boolean).join(" · "),
+                children: <Favicon url={t.url} src={rt?.favicon} loading={rt?.loading} />,
+              };
+            };
+            const [t] = tile;
+            const drag = {
+              "data-fav": t.id,
+              "data-carried": tile === carried || undefined,
+              draggable: true,
+              onDragEnd: () => { setPlace(null); endDrag(); },
+            };
+            if (tile.length === 1) {
+              return <button key={t.id} className="fav no-drag" data-panel={t.panel || undefined} {...drag} onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id })} {...page(t)} />;
+            }
+            // A split: one tile with a half per page. It drags as one item.
+            const ids = tile.map((x) => x.id);
             return (
-              <button
+              <div
                 key={t.id}
-                className="fav no-drag"
-                data-fav={t.id}
-                data-carried={t === carried || undefined}
-                data-active={state.active_tab === t.id || state.web_panel === t.id || undefined}
-                data-panel={t.panel || undefined}
-                data-unloaded={!rt?.loaded || undefined}
-                data-shared={rt?.shared || undefined}
-                draggable
-                onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id })}
-                onDragEnd={() => { setPlace(null); endDrag(); }}
-                onClick={() => send(t.panel ? { cmd: "toggle_web_panel", id: t.id } : { cmd: "activate_tab", id: t.id })}
-                onContextMenu={(e) => { e.preventDefault(); ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, t, "favorites", { x: e.clientX, y: e.clientY })); }}
-                title={[t.title, title, t.panel && "panel", rt?.shared && "being shared"].filter(Boolean).join(" · ")}
+                className="fav fav-split no-drag"
+                data-on-screen={ids.includes(state.active_tab ?? "") || undefined}
+                data-wide={tile.length > 2 || undefined}
+                {...drag}
+                onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id, pair: true, group: ids })}
               >
-                <Favicon url={t.url} src={rt?.favicon} loading={rt?.loading} />
-              </button>
+                {tile.map((x) => <button key={x.id} className="fav-page" {...page(x)} />)}
+              </div>
             );
           })}
         </div>
@@ -641,7 +682,7 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
           const zone = over;
           setOver(null);
           if (!d || !zone) return;
-          if (d.kind === "tab") send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "pinned", index: 0, folder: folder.id });
+          if (d.kind === "tab") send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "pinned", index: 0, folder: folder.id, split: d.pair });
           else if (zone === "inside") send({ cmd: "move_folder", id: d.id, index: 0, folder: folder.id });
           else onDropAt(zone === "before" ? index : index + 1);
           endDrag();
@@ -713,8 +754,8 @@ export function NodeList({ ctx, nodes, depth, folderId }: { ctx: RowContext; nod
   const dropTab = (index: number) => {
     const d = dragging();
     if (!d) return;
-    const at = indexAfterTaking(nodes, d.id, index);
-    if (d.kind === "tab") send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "pinned", index: at, folder: folderId });
+    const at = indexAfterTaking(nodes, movedIds(d), index);
+    if (d.kind === "tab") send({ cmd: "move_tab", id: d.id, space: ctx.spaceId, section: "pinned", index: at, folder: folderId, split: d.pair });
     else send({ cmd: "move_folder", id: d.id, index: at, folder: folderId });
   };
   return (
@@ -751,9 +792,18 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
   const joining = join ? findTab(ctx.state, placing(dragging())) : null;
   const ghost = joining && <SplitCell key="ghost" tab={joining} rt={ctx.state.runtime[joining.id]} ghost />;
   const reorder = (e: React.DragEvent) => index !== undefined && onDropAt && setOver(dropIndex(e, index) === index ? "before" : "after");
+  // Pinning the split or adding it to the favorites takes the pages that
+  // stand with the row; nothing of the private space is kept.
+  const today = !!owner && ctx.state.sidebar.spaces.some((sp) => sp.id === ctx.spaceId && sp.today.some((t) => t.id === owner));
+  const keep: MenuItem[] = !owner || ctx.state.private_space === ctx.spaceId ? [] : [
+    today ? { label: "Pin split", onClick: () => send({ cmd: "pin", id: owner }) } : { label: "Unpin split", onClick: () => send({ cmd: "unpin", id: owner }) },
+    { label: "Add split to favorites", onClick: () => send({ cmd: "move_tab", id: owner, space: ctx.spaceId, section: "favorites", index: 999, split: true }) },
+    SEPARATOR,
+  ];
   const menu = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     ctx.openMenu(e.clientX, e.clientY, [
+      ...keep,
       { label: "Remove from split view", onClick: () => send({ cmd: "remove_split", id }) },
       { label: "Separate all tabs", onClick: () => send({ cmd: "separate_all", id }) },
       ...(onScreen ? [
@@ -779,7 +829,7 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
           e.dataTransfer.setDragImage(cell, e.clientX - r.left, e.clientY - r.top);
         }
         const id = cell?.dataset.cell;
-        startDrag(e, { kind: "tab", id: owner, pair: true, cell: id });
+        startDrag(e, { kind: "tab", id: owner, pair: true, cell: id, group: splitGroup(ctx.state, split, owner) });
         // A frame later, so the picture under the pointer is taken first.
         if (id) requestAnimationFrame(() => setLifted(id));
       }}

@@ -6,8 +6,10 @@ import { send } from "./bridge";
 export interface DragPayload {
   kind: "tab" | "folder";
   id: string;
-  /** A whole split row being moved (by its row's tab); in the sidebar it only reorders. */
+  /** A whole split being moved, by its row or its favorites tile (`id`: the tab that stands for it). */
   pair?: boolean;
+  /** The pages of that split that move with it (`splitGroup`). */
+  group?: string[];
   /** The page of that split row the drag started on: it can move inside the split. */
   cell?: string;
 }
@@ -71,12 +73,17 @@ export function dropIndex(e: React.DragEvent, index: number): number {
   return e.clientY - rect.top < rect.height / 2 ? index : index + 1;
 }
 
+/** The items a drag moves: the item itself, or the pages of a split that go with it. */
+export function movedIds(d: DragPayload): string[] {
+  return d.group ?? [d.id];
+}
+
 /**
- * The index to send for item `id` dropped at `index` of `list`. The app takes
- * the item out before it puts it there (`move_tab`, `move_folder`), so one
- * that stood in the same list above the drop counts one less.
+ * The index to send for the items `moved`, dropped at `index` of `list`.
+ * The app takes what moves out before it puts it there (`move_tab`,
+ * `move_folder`, `move_space`), so each moved item that stood in the same
+ * list above the drop counts one less.
  */
-export function indexAfterTaking(list: readonly { id: string }[], id: string, index: number): number {
-  const from = list.findIndex((item) => item.id === id);
-  return from >= 0 && from < index ? index - 1 : index;
+export function indexAfterTaking(list: readonly { id: string }[], moved: readonly string[], index: number): number {
+  return index - list.slice(0, index).filter((item) => moved.includes(item.id)).length;
 }

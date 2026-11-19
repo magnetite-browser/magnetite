@@ -3,7 +3,8 @@
 Split view shows two to four tabs at once in the page area: side by side,
 stacked, or both. Every page stays a normal tab with its own history, and
 extensions work in each. A split is saved, shows as one row in the sidebar,
-and comes back on screen whenever one of its tabs is opened.
+and comes back on screen whenever one of its tabs is opened. It can be
+pinned or added to the favorites as one item.
 
 ## Layout
 
@@ -66,15 +67,43 @@ fewer than four pages show.
 - A split is one row with its pages side by side, in reading order. The row
   stands where the first of its pages that belongs to the current space
   would be; the other pages have no row of their own there.
-- A split on screen whose pages all live elsewhere (favorites, other
-  spaces) shows above the Today tabs.
+- A split on screen whose pages all live in other spaces shows above the
+  Today tabs. One of favorites only is a tile in their list (below).
 - While the split is on screen the row is lit and the focused page is
   highlighted.
 - Click a page to show the split with that page focused. × or a middle
   click takes the page out of the split; the tab stays open. The page's
   menu has "Remove from split view", "Separate all tabs" and, while the
   split is on screen, "Even out sizes".
-- The row drags like a tab to reorder, from any of its pages.
+- The row drags like a tab, from any of its pages: to another place in its
+  list, to Pinned, a folder, Today or a favorites list. Its pages go along
+  (below).
+
+## Pinned splits and favorites
+
+A split is kept like a tab. What is pinned, added or moved are the pages
+that stand in the same list as the row: the Today tabs of the space, its
+pinned tabs, or the favorites of one profile. They land next to each other,
+in reading order. A page that stands elsewhere, such as a favorite in a
+split with Today tabs, stays where it is.
+
+- "Pin split" in the menu of a page on the row pins the split at the top of
+  Pinned; "Unpin split" takes it back to the top of Today. `Cmd+D` does the
+  same for the split in front.
+- "Add split to favorites" puts it at the end of the favorites, and dragging
+  the row onto a favorites list puts it where it is dropped.
+- In the favorites, the favorites of one split are one tile where the first
+  of them stands: an icon per page, in reading order, with a thin line
+  between them. With more than two pages the tile is two tiles wide. A click
+  on an icon shows the split with that page focused. The tile is lit while
+  the split is on screen, the focused page a little more. It drags as one
+  item, within the list, to another list, to Pinned or to Today.
+- The menu of an icon is the favorite's own (`sidebar.md`), with "Remove
+  from split view" and "Separate all tabs".
+- A split whose pages are all pinned tabs or favorites is a kept split: it
+  closes as one item. Closing one of its pages unloads all of them and
+  takes each back to its pinned page; the split stays, and a click on it
+  opens its pages again.
 
 ## Focus and sizes
 
@@ -101,8 +130,9 @@ fewer than four pages show.
 ## Closing
 
 - `Cmd+W` closes the focused page like any tab. A Today tab moves to the
-  archive and leaves the split. A pinned tab or favorite is unloaded and
-  leaves the split too; its item stays in the sidebar.
+  archive and leaves the split. A pinned tab or favorite that shares the
+  split with a Today tab is unloaded and leaves the split too; its item
+  stays in the sidebar. A kept split closes as a whole (above).
 - "Separate all tabs" in the page's menu or "Separate split tabs" in the
   command bar ends the split. Its pages stay open as separate tabs.
 
@@ -118,7 +148,8 @@ window, tiled over the page area
 ## Not built yet
 
 - Dragging a link from a page into a split.
-- Pinning a split as one item.
+- Syncing a kept split: another device has its pages as separate pinned
+  tabs or favorites.
 - A shortcut that removes the focused page from its split.
 
 Code: `crates/core/src/split.rs` (the tree), `crates/app/src/state/splits.rs`

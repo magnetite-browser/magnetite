@@ -16,7 +16,7 @@ export function SpaceSwitcher({ spaces, current, privateSpace, onMenu }: { space
   // `null` where it is already.
   const target = (i: number, side: "left" | "right"): number | null => {
     if (!dragged) return null;
-    const to = indexAfterTaking(spaces, dragged, side === "left" ? i : i + 1);
+    const to = indexAfterTaking(spaces, [dragged], side === "left" ? i : i + 1);
     return spaces[to]?.id === dragged ? null : to;
   };
 

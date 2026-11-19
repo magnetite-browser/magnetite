@@ -18,7 +18,7 @@ import { windowBackground } from "./backgrounds";
 import { IS_MAC, accentCss, applyAppearance, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, onRecord, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
 import { IconPicker, SpaceGlyph } from "./Glyphs";
 import { SpaceSwitcher } from "./SpaceSwitcher";
-import { dragging, endDrag, indexAfterTaking } from "./dnd";
+import { dragging, endDrag, indexAfterTaking, movedIds } from "./dnd";
 import { useSpaceSwipe } from "./useSpaceSwipe";
 import { keysHint, keysLabel } from "./settings/shortcutKeys";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
@@ -104,8 +104,10 @@ export function App() {
     const owner = ids.find((id) => findTabInSpace(space, id) !== null);
     if (owner) splitAt.set(owner, split);
   }
-  // The split on screen with no row here (favorites, other spaces) shows above Today.
-  const looseSplit = state.split && !splitIds(state.split).some((id) => splitAt.has(id)) ? state.split : null;
+  // The split on screen with no row here (pages of other spaces) shows above
+  // Today. One of favorites only is a tile in their list.
+  const isFavorite = (id: string) => favoriteLists.some((f) => f.items.some((t) => t.id === id));
+  const looseSplit = state.split && !splitIds(state.split).some((id) => splitAt.has(id)) && !splitIds(state.split).every(isFavorite) ? state.split : null;
   const ctx: RowContext = { state, spaceId: space.id, openMenu, renaming, setRenaming, newProfileFor, splitAt, inSplit, pickIcon };
   const pickSpaceIcon = (x: number, y: number, target: Space = space) =>
     pickIcon({ x, y }, target.icon, (g) => g && send({ cmd: "rename_space", id: target.id, title: target.title, icon: g }));
@@ -144,7 +146,7 @@ export function App() {
 
   const dropToday = (index: number) => {
     const d = dragging();
-    if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "today", index: indexAfterTaking(space.today, d.id, index) });
+    if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "today", index: indexAfterTaking(space.today, movedIds(d), index), split: d.pair });
   };
 
   // Options for `target` (the active space unless right-clicked in the footer).
@@ -237,7 +239,7 @@ export function App() {
         )}
 
         {/* Pinned tabs and folders, then one divider, then Today. No labels: position says it. The private space has only Today. */}
-        {!isPrivate && <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: space.pinned.length }); else if (d) send({ cmd: "move_folder", id: d.id, index: indexAfterTaking(space.pinned, d.id, space.pinned.length) }); endDrag(); }}>
+        {!isPrivate && <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: indexAfterTaking(space.pinned, movedIds(d), space.pinned.length), split: d.pair }); else if (d) send({ cmd: "move_folder", id: d.id, index: indexAfterTaking(space.pinned, movedIds(d), space.pinned.length) }); endDrag(); }}>
           <NodeList ctx={ctx} nodes={space.pinned} depth={0} />
         </div>}
 

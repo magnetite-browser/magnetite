@@ -531,7 +531,7 @@ export type Command =
   | { cmd: "read_shared"; url: string }
   | { cmd: "add_shared"; url: string }
   | { cmd: "delete_folder"; id: Id }
-  | { cmd: "move_tab"; id: Id; space: Id; section: "favorites" | "pinned" | "today"; index: number; folder?: Id; profile?: Id }
+  | { cmd: "move_tab"; id: Id; space: Id; section: "favorites" | "pinned" | "today"; index: number; folder?: Id; profile?: Id; split?: boolean }
   | { cmd: "move_folder"; id: Id; index: number; folder?: Id }
   | { cmd: "add_split"; id: Id; side?: Side }
   | { cmd: "split_insert"; target?: Id; tab: Id; side: Side }
@@ -1108,6 +1108,27 @@ export function findTab(state: UiState, id: Id | undefined): TabItem | null {
     if (t) return t;
   }
   return null;
+}
+
+/** The list tab `id` stands in: the favorites of a profile, or the pinned or Today tabs of a space. */
+function homeOf(state: UiState, id: Id): string | null {
+  const list = state.sidebar.favorites.find((f) => f.items.some((t) => t.id === id));
+  if (list) return "favorites:" + list.profile_id;
+  for (const s of state.sidebar.spaces) {
+    if (s.today.some((t) => t.id === id)) return "today:" + s.id;
+    if (findTabInSpace(s, id)) return "pinned:" + s.id;
+  }
+  return null;
+}
+
+/**
+ * The pages of `split` that stand in the same list as its page `id`, in
+ * reading order: they are pinned, moved and added to the favorites as one
+ * item (as `split_group` in the app).
+ */
+export function splitGroup(state: UiState, split: SplitNode, id: Id): Id[] {
+  const home = homeOf(state, id);
+  return splitIds(split).filter((other) => homeOf(state, other) === home);
 }
 
 /** The app runs on macOS (Finder, ⌘ shortcuts). */

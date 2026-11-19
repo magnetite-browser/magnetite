@@ -23,6 +23,7 @@ const SWITCHER_WATCH_MS: i64 = 30;
 /// Drag and drop: put tab `id` at `index` of `section` (of space
 /// `space_id`); `folder` places it inside a pinned folder of that space.
 /// Where `move_tab` puts a tab.
+#[derive(Clone, Copy)]
 pub(super) struct Destination<'a> {
     pub(super) space: &'a str,
     pub(super) section: Section,
@@ -32,6 +33,27 @@ pub(super) struct Destination<'a> {
     /// For the favorites: the profile whose list takes the tab (default: the
     /// profile the tab runs in).
     pub(super) profile: Option<&'a str>,
+}
+
+/// Put the tabs `ids` at `to`, one after the other in their order; the
+/// index counts the list without them.
+pub(super) fn move_tabs(s: &mut AppState, ids: &[String], to: &Destination) {
+    if let [id] = ids {
+        return move_tab(s, id, to);
+    }
+    // First all to the end of the list: one still standing above the place
+    // would shift it.
+    let end = Destination {
+        index: usize::MAX,
+        ..*to
+    };
+    for id in ids {
+        move_tab(s, id, &end);
+    }
+    for (i, id) in ids.iter().enumerate() {
+        let index = to.index.saturating_add(i);
+        move_tab(s, id, &Destination { index, ..*to });
+    }
 }
 
 pub(super) fn move_tab(s: &mut AppState, id: &str, to: &Destination) {
@@ -649,20 +671,28 @@ impl MagnetiteApp {
         }
     }
 
+    /// Close tab `tab_id`. A Today tab goes to the archive; a favorite or a
+    /// pinned tab is unloaded and stays. A kept split (`kept_split`) closes
+    /// as the one item it is: all its pages are unloaded, and it stays.
     pub(super) fn close_tab(&self, engine: &Engine, tab_id: &str) {
-        let (content, next, was_active, on_screen) = self.with_state(|s| {
-            let was_active = s.active_tab_id() == Some(tab_id);
+        let (contents, next, was_active, on_screen) = self.with_state(|s| {
+            let kept = s.kept_split(tab_id);
+            let closing = kept.clone().unwrap_or_else(|| vec![tab_id.to_owned()]);
+            let was_active = s
+                .active_tab_id()
+                .is_some_and(|t| closing.iter().any(|c| c == t));
             let panes = s.visible_panes();
             let on_screen = panes.iter().any(|t| t == tab_id);
             let order = s.visible_tab_ids();
+            let stays = |t: &&String| !closing.contains(t);
             let next = match order.iter().position(|t| t == tab_id) {
-                Some(p) => order
-                    .get(p + 1)
-                    .or_else(|| p.checked_sub(1).and_then(|q| order.get(q))),
+                Some(p) => {
+                    (order[p..].iter().find(stays)).or_else(|| order[..p].iter().rev().find(stays))
+                }
                 // No row in this space (a favorite, or a page of another
                 // space in the split): another page on screen, else the
                 // space's first tab.
-                None => panes.iter().find(|t| *t != tab_id).or(order.first()),
+                None => (panes.iter().find(stays)).or_else(|| order.iter().find(stays)),
             }
             .cloned();
             // By where the tab is, not by its home page: a favorite, or
@@ -670,19 +700,25 @@ impl MagnetiteApp {
             let is_pinned = s.find_tab(tab_id).is_some_and(|(space, _)| {
                 space.is_none_or(|sp| !sp.today.iter().any(|t| t.id == tab_id))
             });
-            let content = if is_pinned {
-                // Pinned items and favorites stay; closing unloads them,
-                // takes them out of a split and sends them back to their
-                // pinned page, which they open at next time.
-                s.split_remove(tab_id);
-                if let Some(t) = s.find_tab_mut(tab_id)
-                    && let Some(home) = t.home_url.clone()
-                {
-                    t.url = home;
+            let contents: Vec<ContentId> = if is_pinned {
+                // Pinned items and favorites stay; closing unloads them and
+                // sends them back to their pinned page, which they open at
+                // next time. One that shares a split with a Today tab leaves
+                // that split.
+                if kept.is_none() {
+                    s.split_remove(tab_id);
                 }
-                s.detach_content(tab_id)
+                let unload = |s: &mut AppState, id: &String| {
+                    if let Some(t) = s.find_tab_mut(id)
+                        && let Some(home) = t.home_url.clone()
+                    {
+                        t.url = home;
+                    }
+                    s.detach_content(id)
+                };
+                closing.iter().filter_map(|id| unload(s, id)).collect()
             } else {
-                s.archive_tab(tab_id)
+                s.archive_tab(tab_id).into_iter().collect()
             };
             // Nothing to move on to: no tab is in front (an unloaded pinned
             // tab must not stay "active" and load again by itself).
@@ -690,9 +726,9 @@ impl MagnetiteApp {
                 let space = s.active_space.clone();
                 s.active_tab.remove(&space);
             }
-            (content, next, was_active, on_screen)
+            (contents, next, was_active, on_screen)
         });
-        if let Some(c) = content {
+        for c in contents {
             engine.close_content(c);
         }
         match (was_active, next) {
@@ -704,27 +740,35 @@ impl MagnetiteApp {
     }
 
     /// Pin tab `id` at the top of its space's pinned tabs, or move it back
-    /// to Today. Favorites belong to no space and stay as they are.
+    /// to Today; the pages of its split that stand with it go along
+    /// (`split_group`). Favorites belong to no space and stay as they are.
     pub(super) fn set_pinned(&self, engine: &Engine, id: &str, pinned: bool) {
-        self.with_state(|s| {
+        let ids = self.with_state(|s| {
+            let ids = s.split_group(id);
             let space = s.find_tab(id).and_then(|(sp, _)| sp.map(|x| x.id.clone()));
             // The private space has only Today tabs.
             let space = space.filter(|sid| !s.is_private_space(sid));
             if let Some(sp) = space.and_then(|sid| s.space_mut(&sid)) {
-                if pinned {
-                    sp.pin(id);
-                } else if sp.unpin(id)
-                    && let Some(t) = sp.today.first_mut()
-                {
-                    // Its time in Today starts now: it must not be archived
-                    // for the hours it was pinned and not looked at.
-                    t.last_active_at = Some(now());
-                    // A Today tab opens as no web panel.
-                    t.end_panel();
+                // Each goes to the top: the last one first keeps their order.
+                for id in ids.iter().rev() {
+                    if pinned {
+                        sp.pin(id);
+                    } else if sp.unpin(id)
+                        && let Some(t) = sp.today.first_mut()
+                    {
+                        // Its time in Today starts now: it must not be archived
+                        // for the hours it was pinned and not looked at.
+                        t.last_active_at = Some(now());
+                        // A Today tab opens as no web panel.
+                        t.end_panel();
+                    }
                 }
             }
+            ids
         });
-        self.apply_lock(engine, id);
+        for id in &ids {
+            self.apply_lock(engine, id);
+        }
         self.push_state(engine);
     }
 
@@ -867,5 +911,51 @@ impl MagnetiteApp {
         });
         lock(&self.visible).remove(&win);
         self.push_state(engine);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::testing::{state, tab};
+    use magnetite_core::split::Side;
+
+    fn ids(tabs: &[magnetite_core::TabItem]) -> Vec<&str> {
+        tabs.iter().map(|t| t.id.as_str()).collect()
+    }
+
+    #[test]
+    fn a_group_of_tabs_lands_in_order_at_the_place_counted_without_it() {
+        let mut s = state();
+        let space = s.active_space.clone();
+        s.sidebar.spaces[0].today.push(tab("d"));
+        // `a` and `c` stand above the place and would shift it one by one.
+        let to = Destination {
+            space: &space,
+            section: Section::Today,
+            index: 1,
+            folder: None,
+            profile: None,
+        };
+        move_tabs(&mut s, &["a".into(), "c".into()], &to);
+        assert_eq!(ids(&s.sidebar.spaces[0].today), ["b", "a", "c", "d"]);
+    }
+
+    #[test]
+    fn a_split_added_to_the_favorites_is_kept_with_its_pages_side_by_side() {
+        let mut s = state();
+        let space = s.active_space.clone();
+        assert!(s.split_insert(Some("a"), "c", Side::Right));
+        let to = Destination {
+            space: &space,
+            section: Section::Favorites,
+            index: 0,
+            folder: None,
+            profile: None,
+        };
+        let split = s.split_group("a");
+        move_tabs(&mut s, &split, &to);
+        assert_eq!(ids(&s.sidebar.favorites[0].items), ["a", "c"]);
+        assert_eq!(s.kept_split("c"), Some(vec!["a".into(), "c".into()]));
     }
 }

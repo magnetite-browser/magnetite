@@ -126,7 +126,8 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
   would land, and the other tiles make room: over another tile it takes
   that tile's place. Dropped on the list's title, it is added at the end.
 - `Cmd+D` pins the active Today tab at the top of Pinned, or moves the active
-  pinned tab to the top of Today. It does nothing for a favorite.
+  pinned tab to the top of Today. It does nothing for a favorite. With a
+  split in front, the split is pinned or unpinned (`split-view.md`).
 - A tab that comes to Today from Pinned or the favorites counts as used at
   that moment, so auto-archive does not take it for the time before.
 - Closing the tab in front shows the next one of the space (a favorite:
@@ -156,6 +157,8 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
   profile's list, and "New profile for this favorite…" makes a profile and
   a list for it. "Duplicate favorite" plus another profile gives two
   accounts of one site, each in its list.
+- The favorites of one split show as one tile with an icon per page
+  (`split-view.md`).
 - "Open as panel" makes a favorite or a pinned tab a web panel: a click then opens it
   over the page in front instead of in its place (`web-panels.md`).
 

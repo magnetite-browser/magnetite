@@ -26,7 +26,7 @@ mod space_keys;
 mod splits;
 mod tabs;
 #[cfg(test)]
-mod testing;
+pub(crate) mod testing;
 mod windows;
 
 pub(crate) use folders::folder_in_tree_mut;

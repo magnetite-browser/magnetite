@@ -163,6 +163,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 /* the favorite being dragged, at the place it would land: marked like the placeholder of a split row */
 .fav[data-carried] { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 65%, transparent); animation: ghost-in 140ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .fav[data-carried] .favicon { opacity: 0.6; }
+/* The favorites of one split: one tile, a half per page with a hairline between them. Lit as a whole while the split is on screen, the page in focus a little more. */
+.fav-split { grid-auto-flow: column; grid-auto-columns: 1fr; place-items: stretch; padding: 2px; gap: 2px; }
+.fav-split[data-wide] { grid-column: span 2; }
+.fav-split:hover { background: rgba(255,255,255,0.06); }
+.fav-split[data-on-screen] { background: rgba(255,255,255,0.1); box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+.fav-page { position: relative; display: grid; place-items: center; border-radius: 7px; cursor: pointer; transition: background-color 100ms; }
+.fav-page:hover { background: rgba(255,255,255,0.1); }
+.fav-split[data-on-screen] .fav-page[data-active] { background: rgba(255,255,255,0.14); }
+.fav-page + .fav-page::before { content: ""; position: absolute; left: -1.5px; top: 7px; bottom: 7px; width: 1px; background: rgba(255,255,255,0.14); }
+.fav-page[data-shared]::after { content: ""; position: absolute; right: 3px; top: 3px; width: 7px; height: 7px; border-radius: 50%; background: #f05d5d; }
 /* A favorite or pinned tab that opens as a web panel: a small panel glyph (a frame with its side filled), in the tile's corner or at the row's end, lit while it is open. */
 .fav[data-panel]::after, .row .panel-mark::after { content: ""; box-sizing: border-box; width: 10px; height: 8px; border: 1.2px solid currentColor; border-radius: 2.5px; background: linear-gradient(to right, currentColor 0 3px, transparent 3px); color: var(--muted); opacity: 0.75; }
 .fav[data-panel]::after { position: absolute; right: 4px; bottom: 4px; }
@@ -463,8 +473,8 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
    colours and white text; the background marks the selected one. */
 :is(.row, .split-cell)[data-unloaded] .title { color: var(--muted); }
 :is(.row, .split-cell)[data-unloaded]:hover .title { color: var(--secondary); }
-:is(.row, .split-cell)[data-unloaded] .favicon img, .fav[data-unloaded] img { filter: grayscale(1); opacity: 0.6; }
-:is(.row, .split-cell)[data-unloaded] .favicon:not(:has(img)), .fav[data-unloaded] .favicon:not(:has(img)) { color: var(--muted); }
+:is(.row, .split-cell)[data-unloaded] .favicon img, :is(.fav, .fav-page)[data-unloaded] img { filter: grayscale(1); opacity: 0.6; }
+:is(.row, .split-cell)[data-unloaded] .favicon:not(:has(img)), :is(.fav, .fav-page)[data-unloaded] .favicon:not(:has(img)) { color: var(--muted); }
 
 /* Settings → Appearance */
 .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
