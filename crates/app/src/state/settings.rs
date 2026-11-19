@@ -184,6 +184,8 @@ pub struct SpaceLook {
     pub sidebar_image: Option<u64>,
     /// The same for the image behind the empty window.
     pub empty_image: Option<u64>,
+    /// The same for the image shown in place of the space's icon.
+    pub icon_image: Option<u64>,
 }
 
 impl Default for SpaceLook {
@@ -193,6 +195,7 @@ impl Default for SpaceLook {
             sidebar_effect: SidebarEffect::None,
             sidebar_image: None,
             empty_image: None,
+            icon_image: None,
         }
     }
 }

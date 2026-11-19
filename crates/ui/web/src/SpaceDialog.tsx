@@ -1,12 +1,16 @@
 // The space settings dialog (magnetite://ui/space?id=…), shown in the
-// centred palette window: a space's name, icon, colour and background in
-// one place. Every change applies at once, so the sidebar beside it shows
-// it. Esc, Done or a click elsewhere closes it.
+// centred palette window: a space's name, icon (a glyph or a picture of the
+// user's own), colour, background and own pictures in one place. Every change applies at once, so the sidebar
+// beside it shows it. Esc, Done or a click elsewhere closes it.
 import { useEffect, useRef, useState } from "react";
-import { GLYPH_NAMES, Glyph, SpaceGlyph, glyphFor } from "./Glyphs";
+import { GLYPH_NAMES, Glyph, SpaceIcon, glyphFor } from "./Glyphs";
+import { storeImage } from "./backgrounds";
 import { accentCss, applyAppearance, lookOf, send, type Appearance, type Space, type SpaceLook, type UiState } from "./bridge";
-import { ColourSwatches, EFFECTS } from "./settings/AppearanceSection";
+import { ColourSwatches, EFFECTS, OwnImage } from "./settings/AppearanceSection";
 import { Slider } from "./settings/fields";
+
+/** The side of a space's own icon as stored, in px: sharp at every size it is shown at. */
+const ICON_SIDE = 128;
 
 export function SpaceDialog() {
   const [state, setState] = useState<UiState | null>(null);
@@ -27,7 +31,9 @@ export function SpaceDialog() {
   return state && space && editable ? <Form space={space} appearance={state.settings.appearance} /> : null;
 }
 
-function Form({ space, appearance }: { space: Space; appearance: Appearance }) {
+function Form({ space, appearance: opened }: { space: Space; appearance: Appearance }) {
+  // The settings as the app last told them: a stored picture changes the look there.
+  const [appearance, setAppearance] = useState(opened);
   const [title, setTitle] = useState(space.title);
   const [icon, setIcon] = useState(space.icon);
   const [accent, setAccent] = useState(space.accent);
@@ -52,13 +58,19 @@ function Form({ space, appearance }: { space: Space; appearance: Appearance }) {
     unsaved.current?.();
     void send({ cmd: "palette_close" });
   };
+  // The system's file dialog is open: it takes the keyboard, which is no click elsewhere.
+  const choosing = useRef(false);
   useEffect(() => {
     const key = (e: KeyboardEvent) => e.key === "Escape" && (e.preventDefault(), close());
+    const blur = () => !choosing.current && close();
+    const focus = () => (choosing.current = false);
     window.addEventListener("keydown", key);
-    window.addEventListener("blur", close);
+    window.addEventListener("blur", blur);
+    window.addEventListener("focus", focus);
     return () => {
       window.removeEventListener("keydown", key);
-      window.removeEventListener("blur", close);
+      window.removeEventListener("blur", blur);
+      window.removeEventListener("focus", focus);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -87,12 +99,23 @@ function Form({ space, appearance }: { space: Space; appearance: Appearance }) {
     else timer.current = window.setTimeout(save, 250);
   };
 
+  /** After a picture was stored or removed: its stamp, and the effect the app chose with it. */
+  const reload = () =>
+    send({ cmd: "get_state" }).then((s) => {
+      setAppearance(s.settings.appearance);
+      setLook(lookOf(s.settings.appearance, space.id));
+    });
+
   const glyph = glyphFor(icon);
   return (
     // The dialog's own controls take the space colour too.
-    <form ref={root} className="sf" style={{ ["--space" as string]: accentCss(accent), ["--accent" as string]: accentCss(accent) }} onSubmit={(e) => (e.preventDefault(), close())}>
+    <form ref={root} className="sf space-dialog" style={{ ["--space" as string]: accentCss(accent), ["--accent" as string]: accentCss(accent) }}
+      onClickCapture={(e) => {
+        if (e.target instanceof HTMLInputElement && e.target.type === "file") choosing.current = true;
+      }}
+      onSubmit={(e) => (e.preventDefault(), close())}>
       <header className="sf-head">
-        <span className="sf-icon" style={{ background: accentCss(accent, 0.16), color: "var(--space)" }}><SpaceGlyph icon={icon} title={title || space.title} size={18} /></span>
+        <span className="sf-icon" style={{ background: accentCss(accent, 0.16), color: "var(--space)" }}><SpaceIcon space={{ id: space.id, icon, title: title || space.title }} looks={{ [space.id]: look }} size={18} /></span>
         <div className="min-w-0 flex-1">
           <h1>Space settings</h1>
           <p>Changes apply as you make them.</p>
@@ -111,16 +134,22 @@ function Form({ space, appearance }: { space: Space; appearance: Appearance }) {
               type="button"
               title={g}
               aria-label={g}
-              data-on={g === glyph || undefined}
+              data-on={(g === glyph && look.icon_image == null) || undefined}
               onClick={() => {
                 setIcon(g);
                 rename(g);
+                // A glyph is chosen in place of the own picture.
+                if (look.icon_image != null) void storeImage("icon", space.id, null, ICON_SIDE).then(reload);
               }}
             >
               <Glyph name={g} size={15} />
             </button>
           ))}
         </div>
+        <div className="mt-2">
+          <OwnImage slot="icon" space={space.id} stamp={look.icon_image} maxSide={ICON_SIDE} reload={reload} />
+        </div>
+        <div className="hint">Or a picture of your own, such as a PNG or an SVG. It stays on this device; your other devices show the icon chosen above.</div>
       </Row>
 
       <Row label="Colour">
@@ -139,8 +168,8 @@ function Form({ space, appearance }: { space: Space; appearance: Appearance }) {
         <Slider value={look.tint} min={0} max={30} step={1} unit="%" reset={8} onChange={(v, now) => changeLook({ tint: v }, now)} />
       </Row>
 
-      <Row label="Background" hint="An effect in the space colour across the window.">
-        <div className="seg sm">
+      <Row label="Background" hint="An effect in the space colour across the window, or a picture of your own under the sidebar's rows.">
+        <div className="seg sm mb-2">
           {EFFECTS.map(([label, effect]) => (
             <button key={effect} type="button" data-on={look.sidebar_effect === effect || undefined} onClick={() => changeLook({ sidebar_effect: effect }, true)}>{label}</button>
           ))}
@@ -148,23 +177,14 @@ function Form({ space, appearance }: { space: Space; appearance: Appearance }) {
             <button type="button" data-on={look.sidebar_effect === "image" || undefined} onClick={() => changeLook({ sidebar_effect: "image" }, true)}>Picture</button>
           )}
         </div>
+        <OwnImage slot="sidebar" space={space.id} stamp={look.sidebar_image} maxSide={1600} reload={reload} />
+      </Row>
+
+      <Row label="Empty window" hint="A picture behind the window while no tab is open in this space.">
+        <OwnImage slot="empty" space={space.id} stamp={look.empty_image} maxSide={2880} reload={reload} />
       </Row>
 
       <footer className="sf-foot">
-        {/* Pictures are stored from Settings alone (`events.rs`). */}
-        <button
-          type="button"
-          className="btn ghost"
-          title="A picture of your own for the sidebar or the empty window"
-          onClick={() => {
-            rename();
-            unsaved.current?.();
-            void send({ cmd: "new_tab", url: `magnetite://ui/settings#appearance=${encodeURIComponent(space.id)}` });
-            void send({ cmd: "palette_close" });
-          }}
-        >
-          Pictures in Settings…
-        </button>
         <span className="flex-1" />
         <button type="submit" className="btn primary">Done</button>
       </footer>

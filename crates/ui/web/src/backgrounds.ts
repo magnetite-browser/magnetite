@@ -1,10 +1,11 @@
 // Backgrounds from Settings → Appearance, each space its own: the effect
 // across the window or the own image in the sidebar, and the user's own
-// images (stored by the app, served at /user-images/<slot>-<space>).
+// images, a space's own icon among them (stored by the app, served at
+// /user-images/<slot>-<space>).
 import type { CSSProperties } from "react";
 import { DEFAULT_ACCENT, accentCss, send, type Color, type Id, type SpaceLook } from "./bridge";
 
-export type ImageSlot = "empty" | "sidebar";
+export type ImageSlot = "empty" | "sidebar" | "icon";
 
 /** Address of space `space`'s stored image for `slot`; `stamp` changes with every new image. */
 export const userImageUrl = (slot: ImageSlot, space: Id, stamp: number) => `/user-images/${slot}-${space}?v=${stamp}`;
@@ -103,16 +104,8 @@ export function windowBackground(part: WindowPart, chrome: string, space: Id, lo
   }
 }
 
-/**
- * Store `file` as space `space`'s image for `slot`: scaled down to `maxSide` points on
- * its longer side and re-encoded as WebP, which also drops the picture's
- * metadata (place, camera). `null` removes the stored image.
- */
-export async function storeImage(slot: ImageSlot, space: Id, file: File | null, maxSide: number): Promise<void> {
-  if (!file) {
-    await send({ cmd: "set_appearance_image", slot, space, data: null });
-    return;
-  }
+/** `file` scaled down so its longer side is at most `maxSide` px. */
+async function scaled(file: File, maxSide: number): Promise<HTMLCanvasElement> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
@@ -120,13 +113,54 @@ export async function storeImage(slot: ImageSlot, space: Id, file: File | null, 
   canvas.height = Math.round(bitmap.height * scale);
   canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   bitmap.close();
-  const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/webp", 0.85));
-  if (!blob) throw new Error("That picture could not be read");
-  const url = await new Promise<string>((done, fail) => {
+  return canvas;
+}
+
+/** `blob` as a `data:` address. */
+function dataUrl(blob: Blob): Promise<string> {
+  return new Promise((done, fail) => {
     const reader = new FileReader();
     reader.onload = () => done(String(reader.result));
     reader.onerror = () => fail(new Error("That picture could not be read"));
     reader.readAsDataURL(blob);
   });
+}
+
+/**
+ * `file` drawn whole into the middle of a square of `side` px, clear where
+ * its shape leaves room. Read as a web page reads a picture, so an SVG
+ * works too and is drawn at this size; what is stored is its picture, never
+ * the SVG itself.
+ */
+async function squared(file: File, side: number): Promise<HTMLCanvasElement> {
+  const img = new Image();
+  // A `data:` address: the pages' policy lets pictures load from no `blob:`.
+  img.src = await dataUrl(file);
+  await img.decode().catch(() => Promise.reject(new Error("That picture could not be read")));
+  // An SVG may name no size of its own.
+  const width = img.naturalWidth || side;
+  const height = img.naturalHeight || side;
+  const scale = side / Math.max(width, height);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = side;
+  canvas.getContext("2d")!.drawImage(img, (side - width * scale) / 2, (side - height * scale) / 2, width * scale, height * scale);
+  return canvas;
+}
+
+/**
+ * Store `file` as space `space`'s own image for `slot` (`null`: remove it).
+ * A background is scaled down to `maxSide` px on its longer side, an icon
+ * drawn into a square of `maxSide` px; both are stored as WebP, which leaves
+ * out the file's metadata.
+ */
+export async function storeImage(slot: ImageSlot, space: Id, file: File | null, maxSide: number): Promise<void> {
+  if (!file) {
+    await send({ cmd: "set_appearance_image", slot, space, data: null });
+    return;
+  }
+  const canvas = await (slot === "icon" ? squared : scaled)(file, maxSide);
+  const blob = await new Promise<Blob | null>((done) => canvas.toBlob(done, "image/webp", 0.85));
+  if (!blob) throw new Error("That picture could not be read");
+  const url = await dataUrl(blob);
   await send({ cmd: "set_appearance_image", slot, space, data: url.slice(url.indexOf(",") + 1) });
 }

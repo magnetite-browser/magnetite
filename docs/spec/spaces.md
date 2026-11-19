@@ -28,11 +28,14 @@ by all spaces. The profile decides which logins the pages of a space use.
   space….
 - **Space settings**: Space settings… in the space menu switches to the
   space and opens a dialog over the page area with its name, icon, colour,
-  colour strength and background effect ("Look" below). Each change
-  applies at once; Esc, Done or a click elsewhere closes the dialog.
-  Pictures in Settings… leads to Settings → Appearance with the space
-  chosen, where its own pictures are set. The private space has no such
-  dialog.
+  colour strength, background and own pictures ("Look" below). Each
+  change applies at once; Esc, Done or a click elsewhere closes the
+  dialog. The private space has no such dialog.
+- **Own icon**: the dialog takes a picture of your own, a PNG or an SVG
+  for one, in place of the glyph. It is drawn into a square of 128 px and
+  stored as WebP on this device like the other pictures ("Look" below),
+  never as the SVG itself, and it is not synced: other devices show the
+  glyph. Choosing a glyph removes it.
 - **Rename**: the dialog, or double-click the title. **Icon**: the dialog,
   or click the icon. **Colour**: the dialog, or Settings → Appearance →
   Colour, with eleven presets and a colour picker.
@@ -74,8 +77,8 @@ such as place and camera. Strength, background and pictures are kept on this
 device and are not synced: the settings in `state.json`
 (`settings.appearance.looks`), the pictures in
 `<data-dir>/appearance/`, readable by the owner only. Only the Settings page
-may store or remove a picture. Deleting a space removes its look and its
-pictures.
+and the space dialog may store or remove a picture. Deleting a space removes
+its look and its pictures.
 
 ## Switching
 

@@ -16,7 +16,7 @@ import { ExtensionBar, PinnedExtensions } from "./PinnedExtensions";
 import { DeviceTabRow, FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, type RowContext } from "./Rows";
 import { windowBackground } from "./backgrounds";
 import { IS_MAC, accentCss, applyAppearance, keyLabel, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, onRecord, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
-import { IconPicker, SpaceGlyph } from "./Glyphs";
+import { IconPicker, SpaceIcon } from "./Glyphs";
 import { SpaceSwitcher } from "./SpaceSwitcher";
 import { dragging, endDrag, indexAfterTaking, movedIds } from "./dnd";
 import { useSpaceSwipe } from "./useSpaceSwipe";
@@ -230,7 +230,7 @@ export function App() {
         </div>
         ) : (
         <div className="space-title group" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }} onDoubleClick={() => setRenamingSpace(space.id)}>
-          <button className="grid h-5 w-5 shrink-0 place-items-center rounded-md" style={{ color: "var(--space)" }} title="Change icon" onClick={(e) => pickSpaceIcon(e.clientX, e.clientY)}><SpaceGlyph icon={space.icon} title={space.title} size={15} /></button>
+          <button className="grid h-5 w-5 shrink-0 place-items-center rounded-md" style={{ color: "var(--space)" }} title="Change icon" onClick={(e) => pickSpaceIcon(e.clientX, e.clientY)}><SpaceIcon space={space} looks={state.settings.appearance.looks} size={15} /></button>
           {renamingSpace === space.id ? (
             <RenameInput value={space.title} onCommit={(title) => { send({ cmd: "rename_space", id: space.id, title }); setRenamingSpace(null); }} onCancel={() => setRenamingSpace(null)} />
           ) : (
@@ -273,7 +273,7 @@ export function App() {
       {/* Footer: archive and downloads left (one button), spaces centred, new right */}
       <div className="flex h-12 shrink-0 items-center gap-1 px-2">
         <LibraryButton opens={state.settings.library_opens} keys={state.keys} onOpen={setPanel} />
-        <SpaceSwitcher spaces={state.sidebar.spaces} current={space.id} privateSpace={state.private_space} onMenu={spaceMenu} />
+        <SpaceSwitcher spaces={state.sidebar.spaces} looks={state.settings.appearance.looks} current={space.id} privateSpace={state.private_space} onMenu={spaceMenu} />
         <button
           className="ib lg plus-btn"
           aria-label={newMenu ? "Close menu" : "New…"}

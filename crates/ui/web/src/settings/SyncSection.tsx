@@ -1,7 +1,7 @@
 // Settings → Sync: start or join a chain, show the sync code, leave or delete,
 // and choose which spaces stay on this device.
 import { useEffect, useState } from "react";
-import { SpaceGlyph } from "../Glyphs";
+import { SpaceIcon } from "../Glyphs";
 import { send } from "../bridge";
 import { useArmed } from "../dismiss";
 import { Field, Group, Switch } from "./fields";
@@ -26,7 +26,7 @@ function SpacesOnThisDevice({ info, reload }: { info: Info; reload: () => Promis
       <div className="iso-list">
         {info.spaces.map((sp) => (
           <label key={sp.id} className="iso-row" data-search-row>
-            <span className="icon-slot" style={{ color: "var(--accent)" }}><SpaceGlyph icon={sp.icon} title={sp.title} size={15} /></span>
+            <span className="icon-slot" style={{ color: "var(--accent)" }}><SpaceIcon space={sp} looks={info.settings.appearance.looks} size={15} /></span>
             <span className="min-w-0 flex-1 truncate" data-search-name>{sp.title}</span>
             <span className="shrink-0 text-[13px] text-[var(--secondary)]">Only on this device</span>
             <Switch

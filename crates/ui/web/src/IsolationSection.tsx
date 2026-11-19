@@ -1,7 +1,7 @@
 // Settings → Isolation: which spaces and favorites share logins, in plain words.
 import { Group } from "./settings/fields";
 import { Favicon } from "./Favicon";
-import { SpaceGlyph } from "./Glyphs";
+import { SpaceIcon } from "./Glyphs";
 import { PrivateIcon, SeparateIcon, SharedIcon, type IconComponent } from "./Icons";
 import { hostOf, send } from "./bridge";
 import { useArmed } from "./dismiss";
@@ -54,7 +54,7 @@ export function IsolationSection({ info, reload }: { info: Info; reload: () => v
               reload={reload}
               defaultId={defaultId}
               target={{ kind: "space", id: sp.id, title: sp.title, profileId: sp.profile_id }}
-              icon={<span className="icon-slot" style={{ color: "var(--accent)" }}><SpaceGlyph icon={sp.icon} title={sp.title} size={15} /></span>}
+              icon={<span className="icon-slot" style={{ color: "var(--accent)" }}><SpaceIcon space={sp} looks={info.settings.appearance.looks} size={15} /></span>}
             />
           ))}
         </div>

@@ -89,7 +89,7 @@ const SETTINGS_CHANGED = "magnetite-settings-changed";
 
 export function SettingsPage() {
   const [info, setInfo] = useState<Info | null>(null);
-  // The address names the section, and after "=" what in it to show: `#code=example.org`, `#appearance=<space id>`.
+  // The address names the section, and after "=" what in it to show: `#code=example.org`.
   const [place, setPlace] = useState(fromHash);
   const sectionId = place.id;
   // What is typed into the search field; while there is any, the page shows
@@ -279,7 +279,7 @@ export function SettingsPage() {
           </Group>
         </>
       )}
-      {sectionId === "appearance" && <AppearanceSection key={place.item} info={info} open={place.item} update={update} reload={reload} />}
+      {sectionId === "appearance" && <AppearanceSection info={info} update={update} reload={reload} />}
       {sectionId === "smart" && <SmartFoldersSection />}
       {sectionId === "autofill" && <AutofillSection info={info} update={update} />}
       {sectionId === "adblock" && <AdblockSection info={info} update={update} reload={reload} />}

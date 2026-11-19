@@ -483,14 +483,19 @@ impl EngineDelegate for MagnetiteApp {
         if settings_only && !trusted.iter().any(|page| origin.starts_with(page)) {
             return Err("only the Settings page may do that".into());
         }
-        // Pictures are stored from Settings alone: the welcome page has no
-        // use for them. Nor for the list of every site's permissions, which
-        // no other page may read or change.
+        // Pictures are stored from Settings and the space dialog alone: the
+        // welcome page has no use for them.
+        let picture_pages = ["magnetite://ui/settings", "magnetite://ui/space?"];
+        if matches!(cmd, UiCommand::SetAppearanceImage { .. })
+            && !picture_pages.iter().any(|page| origin.starts_with(page))
+        {
+            return Err("only Settings and the space dialog may do that".into());
+        }
+        // Nor has any other page a use for the list of every site's
+        // permissions: Settings alone may read or change it.
         if matches!(
             cmd,
-            UiCommand::SetAppearanceImage { .. }
-                | UiCommand::AllPermissions { .. }
-                | UiCommand::SetProfilePermission { .. }
+            UiCommand::AllPermissions { .. } | UiCommand::SetProfilePermission { .. }
         ) && !origin.starts_with("magnetite://ui/settings")
         {
             return Err("only the Settings page may do that".into());

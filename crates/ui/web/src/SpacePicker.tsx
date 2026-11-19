@@ -2,7 +2,7 @@
 // opened with keys of its own, from the Spaces menu or by the command
 // "Show all spaces": type part of a name, Enter goes to the space.
 import { useEffect, useRef, useState } from "react";
-import { SpaceGlyph } from "./Glyphs";
+import { SpaceIcon } from "./Glyphs";
 import { MaskIcon } from "./Icons";
 import { IS_MAC, accentCss, send, type Space, type UiState } from "./bridge";
 import { useDismiss } from "./dismiss";
@@ -109,7 +109,7 @@ export function SpacePicker({ state, onClose }: { state: UiState; onClose: () =>
                 onClick={() => go(space)}
               >
                 <span className="icon-slot" style={{ color: accentCss(space.accent) }}>
-                  {space.id === state.private_space ? <MaskIcon width={16} height={16} /> : <SpaceGlyph icon={space.icon} title={space.title} size={16} />}
+                  {space.id === state.private_space ? <MaskIcon width={16} height={16} /> : <SpaceIcon space={space} looks={state.settings.appearance.looks} size={16} />}
                 </span>
                 <div className="min-w-0 flex-1 truncate">{space.title}</div>
                 {(current || showProfile) && (
