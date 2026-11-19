@@ -33,7 +33,6 @@ cp "${debs[@]}" "$out/deb/"
 
 gpg --batch --yes --dearmor --output "$tmp/keyring.gpg" "$ROOT/packaging/linux/repo-key.asc"
 verify() { gpg --batch --no-default-keyring --keyring "$tmp/keyring.gpg" --verify "$@" 2>/dev/null; }
-sha() { sha256sum "$1" | cut -d' ' -f1; }
 
 log "apt repository"
 (
@@ -44,11 +43,11 @@ log "apt repository"
   gpg --batch --no-default-keyring --keyring "$tmp/keyring.gpg" --decrypt InRelease 2>/dev/null |
     cmp -s - Release || die "InRelease and Release differ"
   for index in Packages Packages.gz; do
-    grep -q "^ $(sha "$index") .* $index\$" Release || die "Release does not list this $index"
+    grep -q "^ $(sha256_of "$index") .* $index\$" Release || die "Release does not list this $index"
   done
-  # Each file under its own name: "<sha256>  ./<deb>", as sha256sum prints.
+  # Each file under its own name: "<sha256>  ./<deb>", one line each.
   awk '$1 == "Filename:" { name = $2 } $1 == "SHA256:" { print $2 "  " name }' Packages | sort >"$tmp/listed"
-  sha256sum ./*.deb | sort | cmp -s - "$tmp/listed" || die "Packages does not list exactly these debs"
+  for deb in ./*.deb; do echo "$(sha256_of "$deb")  $deb"; done | sort | cmp -s - "$tmp/listed" || die "Packages does not list exactly these debs"
 )
 
 log "rpm repository"
@@ -57,7 +56,8 @@ log "rpm repository"
   verify repodata/repomd.xml.asc repodata/repomd.xml || die "repomd.xml is not signed with the repository key"
   primary=(repodata/*primary.xml.*)
   ((${#primary[@]} == 1)) || die "repodata has no primary.xml"
-  grep -q ">$(sha "${primary[0]}")<" repodata/repomd.xml || die "repomd.xml does not list this ${primary[0]}"
+  grep -q ">$(sha256_of "${primary[0]}")<" repodata/repomd.xml &&
+    grep -q "href=\"${primary[0]}\"" repodata/repomd.xml || die "repomd.xml does not list this ${primary[0]}"
   case "${primary[0]}" in
     *.zst) zstd -dcq "${primary[0]}" ;;
     *) gzip -dc "${primary[0]}" ;;
@@ -65,7 +65,7 @@ log "rpm repository"
   [[ $(grep -c '<package type="rpm">' "$tmp/primary.xml") -eq ${#rpms[@]} ]] || die "the rpm metadata does not list ${#rpms[@]} packages"
   # Checksum and file name stand in the same <package> entry, in this order.
   for rpm in *.rpm; do
-    awk -v sum=">$(sha "$rpm")<" -v name="href=\"$rpm\"" '
+    awk -v sum=">$(sha256_of "$rpm")<" -v name="href=\"$rpm\"" '
       /<package type="rpm">/ { ok = 0 }
       index($0, sum) { ok = 1 }
       ok && index($0, name) { found = 1 }
