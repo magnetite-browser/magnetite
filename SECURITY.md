@@ -2,11 +2,11 @@
 
 Security fixes land on the main branch and ship with the next release.
 Older releases get no fixes of their own: the newest release is the one to
-run. Magnetite looks for it by itself (Settings → About). On macOS, and on
-Windows when its installer put it there, it installs the update; a copy from
-the Linux tarball or the Windows zip opens the release page for a download
-by hand. A Magnetite installed from the rpm or deb updates with the system's
-packages.
+run. Magnetite looks for it by itself (Settings → About). The released macOS
+app, and a Magnetite put there by the Windows installer, install the update.
+Any other copy (the Linux tarball, the Windows zip, a build of your own) is
+pointed to the release page for a download by hand. A Magnetite installed
+from the rpm or deb updates with the system's packages.
 
 ## Reporting a vulnerability
 
