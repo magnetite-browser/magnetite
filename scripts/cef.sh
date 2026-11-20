@@ -24,8 +24,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # README, "Checking a release"). THIRD_PARTY_NOTICES.md and
 # docs/legal/license-compatibility.md name what is pinned here (the release,
 # its Chromium version, the CEF commit): change them with it.
-RELEASE=156.0.30-5
-NAME="cef_binary_156.0.30+g6028375+chromium-156.0.8078.109"
+RELEASE=156.0.31
+NAME="cef_binary_156.0.31+ge603d97+chromium-156.0.8078.111"
 
 case ${1:-} in
   "" | -h | --help) sed -n '/^set -euo/q; 2,$p' "$0"; exit 0 ;;
@@ -33,20 +33,20 @@ esac
 case "$(host_os)-$(host_arch)" in
   macos-aarch64)
     ARCHIVE="${NAME}_macosarm64_minimal.tar.bz2"
-    SHA256=573934a5aa62c82e6822fd06af76c16cdcfe4732a3da3b791fbef3068c8a239d
+    SHA256=46234bf24badf0fee72b303bb75fff0a834fd9436439ce69ed34063d692d0430
     ;;
   linux-x86_64)
     ARCHIVE="${NAME}_linux64_minimal.tar.bz2"
-    SHA256=84aac1005ea47cde50eb48d63bd937f427afe96b635f252ba96d3ce114b4d5e5
+    SHA256=43f4b95cd4d5d014a1117f8a95bf610fd74bedc9f4364a44f739962b75332731
     ;;
   windows-x86_64)
     ARCHIVE="${NAME}_windows64_minimal.tar.bz2"
-    SHA256=48182ac06933c2d22fc5a35b423d5438b7ca06065166c0c3dcd8923bf1bb4ac7
+    SHA256=ebb7c550639c9f94a89bba5f906f4c93e5dcb74d10e1d0d483aab7d9acbb1031
     ;;
   *) die "Magnetite's own CEF build is for macOS on Apple silicon, Linux on x86_64 and Windows on x86_64 only" ;;
 esac
 
-# The CEF version the Rust bindings are made for: "156.5.0+156.0.30" -> 156.0.30.
+# The CEF version the Rust bindings are made for: "156.7.0+156.0.31" -> 156.0.31.
 wanted="$(grep -A1 '^name = "cef-dll-sys"$' "$ROOT/Cargo.lock" | sed -n 's/^version = ".*+\(.*\)"$/\1/p')"
 [[ ${ARCHIVE#cef_binary_} == "$wanted+"* ]] ||
   die "Cargo.lock wants CEF $wanted, the pinned build is $RELEASE: build that version in magnetite-cef and pin it in scripts/cef.sh"

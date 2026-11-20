@@ -231,16 +231,16 @@ What `CREDITS.html` (macOS arm64 distribution) contains, by licence type.
    (MPL-2.0 §3.2). The upstream links plus the offer cover this.
 4. **APSL-2.0**: include the licence (in `CREDITS.html`). We make no changes.
 
-**CEF source.** The corresponding source is Chromium 156.0.8078.109
-(<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.109>)
+**CEF source.** The corresponding source is Chromium 156.0.8078.111
+(<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.111>)
 for our own CEF build (macOS on Apple silicon, Linux and Windows on x86_64) and
-156.0.8078.96
-(<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.96>)
-for the official one, each plus CEF commit `6028375a4532fb89d23b58635f5c0d3a82c93959`, which contains
+156.0.8078.100
+(<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.100>)
+for the official one, each plus CEF commit `e603d97dd5cb8b0e37d8f1daa2bc5c7eab1aa7a5`, which contains
 CEF's Chromium patches. Google's official tarballs are
 `chromium-<version>.tar.xz` (4.4 GB) and `…-lite.tar.xz` (2.0 GB) in
 `commondatastorage.googleapis.com/chromium-browser-official/`, but there is
-none for either version (checked 2026-11-19). For a version without one, we
+none for either version (checked 2026-11-20). For a version without one, we
 pack a full checkout of the tag (`gclient sync`, with all of its DEPS)
 ourselves. GitHub release files must stay under 2 GiB, so the full tarball
 cannot be a release asset.
@@ -248,7 +248,7 @@ Options, simplest first:
 
 - **A. Written offer plus a private archive.** Already in
   `THIRD_PARTY_NOTICES.md`. For each CEF version we ship, keep the Chromium
-  tarball and a CEF source archive (`git archive 6028375`) for at least
+  tarball and a CEF source archive (`git archive e603d97`) for at least
   three years after we last ship that version. For the CEF we build
   ourselves, keep with them what turns that source into the shipped library:
   the magnetite-cef commit the release was built from (its `patches/` and

@@ -23,7 +23,7 @@ fn main() {
 }
 
 /// CEF's and Chromium's version from `cef_version.h`, whose line reads
-/// `#define CEF_VERSION "156.0.30+g6028375+chromium-156.0.8078.107"`.
+/// `#define CEF_VERSION "156.0.31+ge603d97+chromium-156.0.8078.111"`.
 fn versions(header: &str) -> Option<(&str, &str)> {
     let version = header.lines().find_map(|line| {
         line.strip_prefix("#define CEF_VERSION \"")?
