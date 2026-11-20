@@ -25,6 +25,9 @@ pub(crate) struct MiniChrome {
     open: LabelButton,
     /// The page's address: what the field shows while it has the keyboard.
     url: String,
+    /// The user changed the field's text since it last showed the address:
+    /// a page that moves on then leaves the field alone.
+    edited: bool,
 }
 
 /// Height of the row (DIP).
@@ -209,6 +212,7 @@ impl MiniChrome {
             copy,
             open,
             url: String::new(),
+            edited: false,
         })
     }
 }
@@ -326,15 +330,21 @@ impl Engine {
     pub(crate) fn update_mini_address(&self, id: ContentId, url: &str) {
         let field = self.lock().contents.get_mut(&id).and_then(|c| {
             let m = c.mini.as_mut()?;
-            let before = std::mem::replace(&mut m.url, url.to_string());
-            Some((m.address.clone(), before))
+            m.url = url.to_string();
+            Some((m.address.clone(), m.edited))
         });
-        let Some((field, before)) = field else {
+        let Some((field, edited)) = field else {
             return;
         };
-        let typed = CefString::from(&field.text()).to_string() != shown_address(&before);
-        if View::from(&field).has_focus() == 0 || !typed {
+        if View::from(&field).has_focus() == 0 || !edited {
             show_address(&field, url);
+        }
+    }
+
+    /// Note whether mini window `id`'s address field holds something typed.
+    fn set_mini_edited(&self, id: ContentId, edited: bool) {
+        if let Some(m) = (self.lock().contents.get_mut(&id)).and_then(|c| c.mini.as_mut()) {
+            m.edited = edited;
         }
     }
 
@@ -530,9 +540,19 @@ wrap_textfield_delegate! {
             let Some(field) = view.and_then(|v| v.as_textfield()) else { return };
             let Some((_, url)) = Engine::global().mini_address(self.id) else { return };
             show_address(&field, &url);
+            Engine::global().set_mini_edited(self.id, false);
         }
     }
     impl TextfieldDelegate {
+        // Typing, pasting, cutting: the field holds the user's text from
+        // now on, unless it is the page's address again.
+        fn on_after_user_action(&self, textfield: Option<&mut Textfield>) {
+            let Some(field) = textfield else { return };
+            let engine = Engine::global();
+            let Some((_, url)) = engine.mini_address(self.id) else { return };
+            let typed = CefString::from(&field.text()).to_string();
+            engine.set_mini_edited(self.id, typed != shown_address(&url));
+        }
         fn on_key_event(&self, textfield: Option<&mut Textfield>, event: Option<&KeyEvent>) -> ::std::os::raw::c_int {
             let (Some(field), Some(event)) = (textfield, event) else { return 0 };
             if event.type_ != KeyEventType::RAWKEYDOWN {
