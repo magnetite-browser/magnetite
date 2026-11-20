@@ -141,7 +141,7 @@ Package = tuple[str, Path]  # (licence expression, directory with its files)
 def run(*cmd: str, cwd: Path = ROOT) -> str:
     # By its full path: on Windows `pnpm` is `pnpm.cmd`, which is found only so.
     program = shutil.which(cmd[0]) or cmd[0]
-    return subprocess.run((program, *cmd[1:]), cwd=cwd, check=True, capture_output=True, text=True).stdout
+    return subprocess.run((program, *cmd[1:]), cwd=cwd, check=True, capture_output=True, encoding="utf-8").stdout
 
 
 def rust_crates() -> dict[Key, Package]:
