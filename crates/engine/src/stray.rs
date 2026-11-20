@@ -1,7 +1,9 @@
-//! Windows Chromium opens by itself: an extension's new tab
-//! (`chrome.tabs.create`), its pop-up window, an options page. Chromium
-//! gives them a plain Chrome window outside our layout; we hide it at once
-//! and open its address as one of our tabs instead. A pop-up window
+//! Windows Chromium opens by itself: an extension's pop-up window, an
+//! options page, a welcome page. Chromium gives them a plain Chrome window
+//! outside our layout; we hide it at once and open its address as one of
+//! our tabs instead. A tab from `chrome.tabs.create` comes this way only
+//! from a CEF without `extension-tab.patch`; one with it hands us the
+//! tab's page instead (`adopt_extension_tab`). A pop-up window
 //! (`chrome.windows.create({type: "popup"})`) stays a window, as in other
 //! browsers: the extension keeps watching it, and closing it would end
 //! what it is for (Bitwarden's passkey window falls back to the browser's
@@ -35,6 +37,20 @@ fn popup_may_show(url: &str) -> bool {
         .iter()
         .any(|p| url.starts_with(p))
         || url == "about:blank"
+}
+
+/// Whether `url` is an empty page or Chromium's new tab page: a tab asked
+/// for without an address, which means nothing to open here.
+pub(crate) fn is_blank(url: &str) -> bool {
+    url.is_empty()
+        || url == "about:blank"
+        || [
+            "chrome://newtab",
+            "chrome://new-tab-page",
+            "chrome-search://",
+        ]
+        .iter()
+        .any(|p| url.starts_with(p))
 }
 
 impl Engine {
@@ -78,16 +94,7 @@ impl Engine {
             crate::trace("stray window from an unknown context: not opened");
             return true;
         }
-        let blank = url.is_empty()
-            || url == "about:blank"
-            || [
-                "chrome://newtab",
-                "chrome://new-tab-page",
-                "chrome-search://",
-            ]
-            .iter()
-            .any(|p| url.starts_with(p));
-        if !blank {
+        if !is_blank(url) {
             self.emit(EngineEvent::OpenUrlRequested {
                 from: None,
                 url: url.to_string(),

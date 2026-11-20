@@ -637,6 +637,50 @@ impl MagnetiteApp {
         Some(id)
     }
 
+    /// An extension opened a tab (`chrome.tabs.create`) and the engine has
+    /// its page already, `page`, loading `url` in the profile of context
+    /// `context`: a Today tab for that page, placed as `open_url_from`
+    /// places a page's new tab, and nothing loads a second time. An
+    /// address the policy refuses, or a tab with no place (its private
+    /// space closed), closes the page.
+    pub(super) fn keep_extension_tab(
+        &self,
+        engine: &Engine,
+        page: ContentId,
+        url: &str,
+        mut background: bool,
+        context: &str,
+    ) {
+        let tab = url_policy::allowed(url, url_policy::Source::Chromium)
+            .then(|| {
+                self.with_state(|s| {
+                    let opener = s.profile_for_context(context);
+                    let id = s.open_tab_from(opener.as_deref(), url, url)?;
+                    let (space, _) = s.find_tab(&id)?;
+                    background |= space.is_some_and(|sp| s.is_hidden_space(&sp.id));
+                    if let Some(t) = s.find_tab_mut(&id) {
+                        t.unread = background;
+                    }
+                    s.content_to_tab.insert(page, id.clone());
+                    let rt = s.runtime.entry(id.clone()).or_default();
+                    rt.content = Some(page);
+                    rt.loaded = true;
+                    Some(id)
+                })
+            })
+            .flatten();
+        let Some(tab) = tab else {
+            trace(|| "an extension's tab has no place here: closed".to_string());
+            engine.close_content(page);
+            return;
+        };
+        if background {
+            self.push_state(engine);
+        } else {
+            self.activate_tab(engine, &tab);
+        }
+    }
+
     /// Open `url`, a link from another app, as a background Today tab of
     /// space `space` (the one a link rule names), which stays where it is:
     /// the tab is marked unread and runs in that space's profile.

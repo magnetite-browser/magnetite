@@ -271,7 +271,7 @@ wrap_life_span_handler! {
             &self,
             browser: Option<&mut Browser>,
             frame: Option<&mut Frame>,
-            _popup_id: ::std::os::raw::c_int,
+            popup_id: ::std::os::raw::c_int,
             target_url: Option<&CefString>,
             _target_frame_name: Option<&CefString>,
             target_disposition: WindowOpenDisposition,
@@ -284,6 +284,16 @@ wrap_life_span_handler! {
             _no_javascript_access: Option<&mut ::std::os::raw::c_int>,
         ) -> ::std::os::raw::c_int {
             crate::trace(&format!("popup asked: disposition {}", target_disposition.get_raw()));
+            // An extension's new tab, not a page's popup: taken as it is, or
+            // left to Chromium, whose window then goes the old way
+            // (`stray.rs`). Never opened from here as well.
+            if popup_id == crate::content::EXTENSION_TAB_POPUP {
+                let url = target_url.map(CefString::to_string).unwrap_or_default();
+                let background = target_disposition == WindowOpenDisposition::NEW_BACKGROUND_TAB;
+                let taken = self.kind == Kind::Content
+                    && Engine::global().expect_extension_tab(browser.as_deref(), url, background);
+                return i32::from(!taken);
+            }
             if page_asks_for_app(self.kind, frame.as_deref(), target_url) {
                 return 1;
             }

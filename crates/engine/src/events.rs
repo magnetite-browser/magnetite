@@ -353,6 +353,16 @@ pub enum EngineEvent {
         source: UrlSource,
         context: Option<String>,
     },
+    /// An extension opened a tab (`chrome.tabs.create`) and its page exists
+    /// already: content `id`, loading `url` in the profile `context` (`""`:
+    /// the default context) of the page the tab was opened from. The
+    /// delegate makes a tab for it, or closes the content.
+    ExtensionTabOpened {
+        id: ContentId,
+        url: String,
+        background: bool,
+        context: String,
+    },
     Shortcut {
         from: Option<ContentId>,
         shortcut: Shortcut,
@@ -426,6 +436,7 @@ impl EngineEvent {
             Self::MediaAccessChanged { .. } => "MediaAccessChanged",
             Self::LoadingChanged { .. } => "LoadingChanged",
             Self::OpenUrlRequested { .. } => "OpenUrlRequested",
+            Self::ExtensionTabOpened { .. } => "ExtensionTabOpened",
             Self::Shortcut { .. } => "Shortcut",
             Self::Relaunched { .. } => "Relaunched",
             Self::QuitRequested => "QuitRequested",

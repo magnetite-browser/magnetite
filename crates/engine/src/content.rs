@@ -74,6 +74,19 @@ pub(crate) struct QueuedContent {
     pub home: crate::WindowId,
 }
 
+/// The `popup_id` Magnetite's CEF (`extension-tab.patch`) asks with in
+/// `on_before_popup` for a tab an extension opens with `chrome.tabs.create`.
+/// No popup of a page has it.
+pub(crate) const EXTENSION_TAB_POPUP: i32 = -1;
+
+/// A tab an extension asked for, between CEF's question (`on_before_popup`)
+/// and the view of its page, which CEF makes within the same call
+/// (`on_popup_browser_view_created`).
+pub(crate) struct PendingTab {
+    pub url: String,
+    pub background: bool,
+}
+
 /// Space between split pages (and around docked `DevTools`).
 pub const SPLIT_GAP: i32 = 8;
 
@@ -273,6 +286,76 @@ impl Engine {
         let mut wd = ContentWindowDelegate::new(id, PageView::Chromium(view), bounds, serial);
         window_create_top_level(Some(&mut wd));
         crate::trace(&format!("create_content #{id} window created"));
+    }
+
+    /// CEF asks whether the tab an extension opens for `url`, from the page
+    /// in `opener`, may come to us as a view. True for a page of ours and
+    /// an address to show; the view follows at once (`adopt_extension_tab`).
+    pub(crate) fn expect_extension_tab(
+        &self,
+        opener: Option<&Browser>,
+        url: String,
+        background: bool,
+    ) -> bool {
+        if crate::stray::is_blank(&url) || self.content_id_for(opener).is_none() {
+            return false;
+        }
+        self.lock().pending_tab = Some(PendingTab { url, background });
+        true
+    }
+
+    /// CEF made `view` for the tab an extension opened from the page in
+    /// `source`: it becomes a page of ours in a window of its own (hidden),
+    /// in `source`'s profile, as `build_content` makes one. The extension
+    /// holds this very tab, so nothing is loaded a second time and the id
+    /// it got stays good. CEF needs the view in a window before this
+    /// returns. False if no such tab is expected, or `source` is no page
+    /// of ours any more: CEF then gives the view a window of its own.
+    pub(crate) fn adopt_extension_tab(&self, source: &BrowserView, view: &BrowserView) -> bool {
+        let (tab, opener, id) = {
+            let mut inner = self.lock();
+            let Some(tab) = inner.pending_tab.take() else {
+                return false;
+            };
+            let mut target = View::from(source);
+            let opener = (inner.contents.values())
+                .find(|c| c.view.is(&mut target))
+                .map(|c| (c.profile.clone(), c.ephemeral));
+            let id = inner.next_id;
+            inner.next_id += 1;
+            (tab, opener, id)
+        };
+        let Some((profile, ephemeral)) = opener else {
+            return false;
+        };
+        crate::trace(&format!("extension tab: content #{id}"));
+        let serial = self.next_serial();
+        self.lock().contents.insert(
+            id,
+            ContentState {
+                home: self.current_window(),
+                window: None,
+                view: PageView::Chromium(view.clone()),
+                browser: None,
+                profile: profile.clone(),
+                ephemeral,
+                devtools: None,
+                slot: None,
+                tab_target: None,
+                mini: None,
+                adopted: false,
+                serial,
+            },
+        );
+        let mut wd = ContentWindowDelegate::new(id, PageView::Chromium(view.clone()), None, serial);
+        window_create_top_level(Some(&mut wd));
+        self.emit(EngineEvent::ExtensionTabOpened {
+            id,
+            url: tab.url,
+            background: tab.background,
+            context: profile,
+        });
+        true
     }
 
     /// The frame of the window page `id` lives in: the parent of the page's
@@ -1159,7 +1242,14 @@ wrap_browser_view_delegate! {
             _client: Option<&mut Client>,
             is_devtools: ::std::os::raw::c_int,
         ) -> Option<BrowserViewDelegate> {
-            (is_devtools != 0).then(crate::devdock::DevToolsViewDelegate::new)
+            if is_devtools != 0 {
+                return Some(crate::devdock::DevToolsViewDelegate::new());
+            }
+            // An extension's tab becomes a page like this one; a page's
+            // popup window keeps CEF's default view.
+            let engine = Engine::global();
+            let tab = engine.lock().pending_tab.is_some();
+            tab.then(|| ContentViewDelegate::new(engine.chrome_toolbar()))
         }
         fn on_popup_browser_view_created(
             &self,
@@ -1168,10 +1258,12 @@ wrap_browser_view_delegate! {
             is_devtools: ::std::os::raw::c_int,
         ) -> ::std::os::raw::c_int {
             // DevTools dock beside the page unless the user wants Chromium's
-            // own window. A page's popup window (the only other popup that
-            // gets here, see on_before_popup) gets CEF's default window.
+            // own window. An extension's tab becomes a page of ours. A
+            // page's popup window (the only other popup that gets here, see
+            // on_before_popup) gets CEF's default window.
             match (is_devtools != 0, browser_view, popup_browser_view) {
                 (true, Some(source), Some(tools)) => i32::from(Engine::global().dock_devtools(source, tools)),
+                (false, Some(source), Some(tab)) => i32::from(Engine::global().adopt_extension_tab(source, tab)),
                 _ => 0,
             }
         }
