@@ -61,11 +61,11 @@ export function ProtectedVideoSection({ info, update }: { info: Info; update: (p
           onChange={(on) => update({ system_engine: { ...engine, auto: on } })}
         />
         <Field label="Other sites" hint={`Sites that open in ${name} too, one per line: a site's name stands for its subdomains. Sites that moved by themselves are listed here. The site panel (the button left of the address) has the same switch for the page in front.`}>
-          <textarea className="field mono" rows={3} spellCheck={false} placeholder={"tv.example.org"} value={sites} onChange={(e) => setSites(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
+          <textarea className="field mono" rows={3} spellCheck={false} aria-label="Other sites" placeholder={"tv.example.org"} value={sites} onChange={(e) => setSites(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
         </Field>
         {(engine.auto || engine.chromium.length > 0) && (
           <Field label="Kept in Chromium" hint={`Sites that never move by themselves, one per line: those you took back with the site panel's switch, and any you add.`}>
-            <textarea className="field mono" rows={2} spellCheck={false} placeholder={"music.example.org"} value={chromium} onChange={(e) => setChromium(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
+            <textarea className="field mono" rows={2} spellCheck={false} aria-label="Kept in Chromium" placeholder={"music.example.org"} value={chromium} onChange={(e) => setChromium(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
           </Field>
         )}
       </Group>

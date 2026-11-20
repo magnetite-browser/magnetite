@@ -44,8 +44,9 @@ Such a page is called a system page below. Why it is built this way:
   whatever it plays: it is listed under "Kept in Chromium" in Settings,
   where sites can be added and removed (at most 100; the oldest makes
   room).
-- From a private space a site moves until Magnetite is quit, and is
-  written nowhere.
+- In a private space both count until Magnetite is quit and are written
+  nowhere: a site that moves by itself, and the site panel's switch. The
+  switch there cannot take out a site that Settings names.
 - "Open streaming services in WebKit" (in WebView2) in Settings turns the known services
   off as a whole. On by default. A known service shows "Always, for its
   video" in the site panel in place of a switch.

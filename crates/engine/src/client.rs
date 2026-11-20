@@ -117,7 +117,8 @@ wrap_client! {
                 && frame.is_main() != 0
                 && CefString::from(&msg.name()).to_string() == crate::protected::MESSAGE
             {
-                Engine::global().on_protected_report(browser.as_deref(), frame);
+                let reported = msg.argument_list().map(|a| CefString::from(&a.string(0)).to_string()).unwrap_or_default();
+                Engine::global().on_protected_report(browser.as_deref(), frame, &reported);
                 return 1;
             }
             let router = Engine::global().lock().router.clone();

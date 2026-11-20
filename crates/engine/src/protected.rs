@@ -9,10 +9,12 @@
 //! (`EngineEvent::ProtectedPlaybackFailed`). A service that plays here gets
 //! its key and is left alone.
 //!
-//! The report is untrusted, since a renderer sends it: it carries nothing,
-//! and the page's address is the one the browser knows. Any page can make
-//! it by using the interface, which costs it its Chromium page and nothing
-//! of the user's.
+//! The report is untrusted, since a renderer sends it. It names the address
+//! of the document it is about, and counts only while the browser knows the
+//! frame at that same address: a report that arrives after the tab went on
+//! to another page says nothing about that page. Any page can make it by
+//! using the interface, which costs it its Chromium page and nothing of the
+//! user's.
 
 use cef::*;
 
@@ -21,16 +23,25 @@ use crate::events::EngineEvent;
 
 pub const MESSAGE: &str = "magnetite.protected";
 const HOOK_JS: &str = include_str!("protected_hook.js");
+/// The longest address a report is taken for.
+const MAX_ADDRESS: usize = 4096;
 
 /// Whether pages are watched at all: only where a system engine can be
 /// hosted to move them to.
 const WATCHED: bool = cfg!(any(target_os = "macos", target_os = "windows"));
 
 impl Engine {
-    /// Protected playback failed in the main frame `frame` of the page in
-    /// `browser`. A mini window stays Chromium's, so it does not tell.
-    pub(crate) fn on_protected_report(&self, browser: Option<&Browser>, frame: &Frame) {
-        if !Self::system_engine_available() {
+    /// Protected playback failed in the document at `reported`, in the main
+    /// frame `frame` of the page in `browser`. A mini window stays
+    /// Chromium's, so it does not tell.
+    pub(crate) fn on_protected_report(
+        &self,
+        browser: Option<&Browser>,
+        frame: &Frame,
+        reported: &str,
+    ) {
+        let url = CefString::from(&frame.url()).to_string();
+        if !Self::system_engine_available() || reported.len() > MAX_ADDRESS || reported != url {
             return;
         }
         let Some(id) = self.content_id_for(browser) else {
@@ -39,7 +50,6 @@ impl Engine {
         if self.is_mini(id) || self.is_system_page(id) {
             return;
         }
-        let url = CefString::from(&frame.url()).to_string();
         let context = self.content_context(id);
         self.emit(EngineEvent::ProtectedPlaybackFailed { id, url, context });
     }
@@ -95,6 +105,10 @@ wrap_v8_handler! {
         ) -> ::std::os::raw::c_int {
             let Some(frame) = v8_context_get_current_context().and_then(|c| c.frame()) else { return 1 };
             let Some(mut msg) = process_message_create(Some(&CefString::from(MESSAGE))) else { return 1 };
+            // The document the report is about, for the browser to compare.
+            if let Some(args) = msg.argument_list() {
+                args.set_string(0, Some(&CefString::from(&frame.url())));
+            }
             frame.send_process_message(ProcessId::BROWSER, Some(&mut msg));
             1
         }

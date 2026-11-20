@@ -651,7 +651,7 @@ impl Engine {
     }
 
     /// Profile id of page `id`'s context (`""`: the default context).
-    pub(crate) fn content_context(&self, id: ContentId) -> Option<String> {
+    pub fn content_context(&self, id: ContentId) -> Option<String> {
         self.lock().contents.get(&id).map(|c| c.profile.clone())
     }
 

@@ -2098,6 +2098,7 @@ impl MagnetiteApp {
                 // reads the level when it starts, before Magnetite could set it.
                 engine.set_default_zoom(settings.page_zoom);
                 engine.set_languages(&settings.languages);
+                self.settle_private_engines();
                 engine.set_system_engine_sites(self.system_engine_sites());
                 engine.set_quick_search_key(settings.quick_search);
                 self.dev_settings_changed(engine);

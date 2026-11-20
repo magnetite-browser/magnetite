@@ -95,9 +95,10 @@ pub struct MagnetiteApp {
     record: Mutex<record::Recorder>,
     /// The spaces' own keys the engine was last told (`apply_space_keys`).
     space_keys: Mutex<Vec<magnetite_engine::Combo>>,
-    /// Sites that moved to the system's engine from a private space
-    /// (`engines.rs`): for this run only, never written anywhere.
-    private_system_sites: Mutex<Vec<String>>,
+    /// The engine of the sites that were moved in a private space, by
+    /// themselves or with the site panel's switch (`engines.rs`): for this
+    /// run only, never written anywhere. Only its two lists count.
+    private_engines: Mutex<crate::state::SystemEngine>,
 }
 
 /// When the sidebar was last sent the state, and whether another sending
@@ -263,7 +264,10 @@ impl MagnetiteApp {
             blocker,
             record: Mutex::new(record::Recorder::default()),
             space_keys: Mutex::new(Vec::new()),
-            private_system_sites: Mutex::new(Vec::new()),
+            private_engines: Mutex::new(crate::state::SystemEngine {
+                known: false,
+                ..Default::default()
+            }),
         }
     }
 

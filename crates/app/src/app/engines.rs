@@ -12,11 +12,19 @@ use crate::lock;
 
 impl MagnetiteApp {
     /// Every site the system's engine shows: those of the settings, and
-    /// those that moved there from a private space in this run.
+    /// those that moved there in a private space in this run.
     pub(super) fn system_engine_sites(&self) -> Vec<String> {
         let mut sites = self.with_state(|s| s.settings.system_engine.hosts());
-        sites.extend(lock(&self.private_system_sites).iter().cloned());
+        sites.extend(lock(&self.private_engines).sites.iter().cloned());
         sites
+    }
+
+    /// The settings changed: a site they keep in Chromium now is no longer
+    /// one that moved in a private space.
+    pub(super) fn settle_private_engines(&self) {
+        let kept = self.with_state(|s| s.settings.system_engine.chromium.clone());
+        (lock(&self.private_engines).sites)
+            .retain(|site| !kept.iter().any(|own| in_domain(site, own)));
     }
 
     /// Protected video did not play in Chromium page `id` at `url`, of
@@ -24,7 +32,7 @@ impl MagnetiteApp {
     /// the user decided otherwise for its site, the site opens in the
     /// system's engine from now on, and the page loads again there.
     /// From a private space the site moves for this run only, and nothing
-    /// is kept of it.
+    /// is kept of it. A page that went elsewhere meanwhile is left alone.
     pub(super) fn protected_playback_failed(
         &self,
         engine: &Engine,
@@ -32,7 +40,10 @@ impl MagnetiteApp {
         url: &str,
         context: Option<&str>,
     ) {
-        let Some(host) = host_of(url) else { return };
+        let Some(host) = host_of(url).filter(|_| engine.page_url(id).as_deref() == Some(url))
+        else {
+            return;
+        };
         let site = registrable_domain(&host);
         let private = self.with_state(|s| {
             let private = s.is_private_context(context);
@@ -45,7 +56,15 @@ impl MagnetiteApp {
         });
         match private {
             None => return,
-            Some(true) => lock(&self.private_system_sites).push(site.clone()),
+            Some(true) => {
+                let mut run = lock(&self.private_engines);
+                if run.names(&host)
+                    || run.keeps(&host)
+                    || run.set_site(&host, site.clone(), true).is_err()
+                {
+                    return;
+                }
+            }
             Some(false) => self.save_soon(),
         }
         engine.set_system_engine_sites(self.system_engine_sites());
@@ -69,7 +88,7 @@ impl MagnetiteApp {
             let engine = &s.settings.system_engine;
             (engine.knows(&host), engine.names(&host))
         });
-        let named = named || (lock(&self.private_system_sites).iter()).any(|s| in_domain(&host, s));
+        let named = named || lock(&self.private_engines).names(&host);
         json!({
             "site": registrable_domain(&host),
             "system": known || named,
@@ -81,8 +100,10 @@ impl MagnetiteApp {
 
     /// Show the site of the page at `url` in the system's engine from now
     /// on, or in Chromium again; the page in front loads again, in the
-    /// engine it has now. An error, and nothing changed, if the list of
-    /// sites is full.
+    /// engine it has now. From a page of a private space the choice counts
+    /// for this run only and is written nowhere. An error, and nothing
+    /// changed, if the list of sites is full, or if a private page asks
+    /// for Chromium where the settings name the site.
     pub(super) fn set_site_engine(
         &self,
         engine: &Engine,
@@ -92,12 +113,32 @@ impl MagnetiteApp {
         let Some(host) = host_of(url) else {
             return Ok(());
         };
-        self.with_state(|s| {
-            (s.settings.system_engine).set_site(&host, registrable_domain(&host), system)
-        })?;
-        lock(&self.private_system_sites).retain(|own| !in_domain(&host, own));
+        let site = registrable_domain(&host);
+        let context = self
+            .focused_content(None)
+            .map(|id| engine.content_context(id));
+        let (private, named) = self.with_state(|s| {
+            let private = context.is_some_and(|c| s.is_private_context(c.as_deref()));
+            (private, s.settings.system_engine.names(&host))
+        });
+        if private {
+            if !system && named {
+                let name = Engine::system_engine_name().0;
+                return Err(format!(
+                    "Settings → Protected video opens this site in {name}. Change it there."
+                ));
+            }
+            lock(&self.private_engines).set_site(&host, site, system)?;
+        } else {
+            self.with_state(|s| s.settings.system_engine.set_site(&host, site, system))?;
+            // The settings decide from here on.
+            let mut run = lock(&self.private_engines);
+            run.sites.retain(|own| !in_domain(&host, own));
+            run.chromium.retain(|own| !in_domain(&host, own));
+            drop(run);
+            self.save_soon();
+        }
         engine.set_system_engine_sites(self.system_engine_sites());
-        self.save_soon();
         self.on_active_content(engine, |engine, id| engine.content_load_url(id, url));
         Ok(())
     }

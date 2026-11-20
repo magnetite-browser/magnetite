@@ -221,10 +221,12 @@ impl SystemEngine {
     /// protected video fails in a page of it: not one that is there already, and
     /// not one the user took back to Chromium.
     pub fn moves(&self, host: &str) -> bool {
-        self.auto
-            && !self.knows(host)
-            && !self.names(host)
-            && !self.chromium.iter().any(|site| in_domain(host, site))
+        self.auto && !self.knows(host) && !self.names(host) && !self.keeps(host)
+    }
+
+    /// Whether `host` is under a site the user took back to Chromium.
+    pub fn keeps(&self, host: &str) -> bool {
+        self.chromium.iter().any(|site| in_domain(host, site))
     }
 
     /// Whether `host` is one of the known services, while those are on.
@@ -674,9 +676,16 @@ const MAX_SITE_CODE: usize = 256 * 1024;
 /// The host a site was named by, in lower case and without `www.`: what
 /// was typed may be a whole address. `None` if it names no host.
 fn site_host(typed: &str) -> Option<String> {
+    let typed = typed.trim();
     // The host as `host_and_path` finds it: a scheme counts only at the start.
-    let (host, _) = host_and_path(typed.trim())?;
-    Some(host)
+    if let Some((host, _)) = host_and_path(typed) {
+        return Some(host);
+    }
+    // A server on this computer is the one name without a dot.
+    let rest = typed.split_once("://").map_or(typed, |(_, rest)| rest);
+    let host = rest.split(['/', ':', '?', '#']).next()?;
+    host.eq_ignore_ascii_case("localhost")
+        .then(|| "localhost".to_string())
 }
 
 /// Sync configuration. Keys are kept out of `state.json` (see `sync.rs`).
@@ -1284,12 +1293,16 @@ mod tests {
                 "music.example.com".into(),
             ],
             // Named for both lists: it opens in the system's engine.
-            chromium: vec!["Radio.example.net".into(), "tv.example.org".into()],
+            chromium: vec![
+                "Radio.example.net".into(),
+                "tv.example.org".into(),
+                "http://localhost:8080/player".into(),
+            ],
             ..SystemEngine::default()
         };
         let kept = typed.sanitised();
         assert_eq!(kept.sites, ["tv.example.org", "music.example.com"]);
-        assert_eq!(kept.chromium, ["radio.example.net"]);
+        assert_eq!(kept.chromium, ["radio.example.net", "localhost"]);
     }
 
     #[test]

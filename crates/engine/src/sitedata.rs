@@ -240,7 +240,8 @@ impl Engine {
         }
     }
 
-    fn page_url(&self, id: ContentId) -> Option<String> {
+    /// The address page `id` shows now, in whichever engine.
+    pub fn page_url(&self, id: ContentId) -> Option<String> {
         if self.is_system_page(id) {
             return crate::system::backend::address_of(id);
         }
