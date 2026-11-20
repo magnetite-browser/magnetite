@@ -381,6 +381,12 @@ pub enum EngineEvent {
         id: ContentId,
         space: Option<String>,
     },
+    /// Enter in mini window `id`'s address field: `input` is what was
+    /// typed, an address or a search.
+    MiniNavigate {
+        id: ContentId,
+        input: String,
+    },
 }
 
 impl EngineEvent {
@@ -427,6 +433,7 @@ impl EngineEvent {
             Self::Tick => "Tick",
             Self::MemoryPressure(_) => "MemoryPressure",
             Self::MiniToTab { .. } => "MiniToTab",
+            Self::MiniNavigate { .. } => "MiniNavigate",
         }
     }
 }

@@ -295,6 +295,7 @@ impl EngineDelegate for MagnetiteApp {
                 shortcut,
             } if self.is_mini(id) => self.mini_shortcut(engine, id, shortcut),
             EngineEvent::MiniToTab { id, space } => self.mini_to_tab(engine, id, space.as_deref()),
+            EngineEvent::MiniNavigate { id, input } => self.mini_navigate(engine, id, &input),
             // Keys from a page window act on that page (peek, split pane).
             EngineEvent::Shortcut {
                 shortcut: Shortcut::CopyLink,

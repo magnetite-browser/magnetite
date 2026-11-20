@@ -1,6 +1,7 @@
 //! Mini windows: one page in a small window of its own, outside the frame,
-//! with a slim row above it: back, forward, reload, the site's host (drags
-//! the window), "Open in <space>", a menu of all spaces, and close.
+//! with a slim row above it: back, forward, reload, the address (the site's
+//! host until it has the keyboard), a free stretch the window is dragged by,
+//! copy link, "Open in <space>", a menu of all spaces, and close.
 //!
 //! A mini window is a content window (`content.rs`) that starts top-level
 //! instead of as a child of the frame, with the row as Views widgets above
@@ -20,8 +21,11 @@ pub(crate) struct MiniChrome {
     pub row: Panel,
     back: LabelButton,
     forward: LabelButton,
-    host: LabelButton,
+    address: Textfield,
+    copy: LabelButton,
     open: LabelButton,
+    /// The page's address: what the field shows while it has the keyboard.
+    url: String,
 }
 
 /// Height of the row (DIP).
@@ -31,8 +35,10 @@ const TEXT: u32 = 0xFFE4_E4E7;
 const DIM: u32 = 0xFF6E_6E76;
 /// Width and height of the row's icons (DIP).
 const ICON: u16 = 16;
-/// Longest host or address the row shows, in characters.
+/// Longest host the address field shows, in characters.
 const HOST_CHARS: usize = 60;
+/// How long the copy button shows a tick after a copy (ms).
+const COPIED_MS: i64 = 1500;
 
 /// What a button of the row does.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -40,10 +46,50 @@ enum Action {
     Back,
     Forward,
     Reload,
-    /// The host: no action; the window is dragged by it.
-    Host,
+    Copy,
     Open,
     Close,
+}
+
+/// `over` laid on `under` (ARGB) at `percent` opacity; the result is opaque.
+fn blend(under: u32, over: u32, percent: u32) -> u32 {
+    let [_, under, over] = [0, under, over].map(u32::to_be_bytes);
+    let mix = |i: usize| {
+        let mixed = (u32::from(under[i]) * (100 - percent) + u32::from(over[i]) * percent) / 100;
+        u8::try_from(mixed).unwrap_or(u8::MAX)
+    };
+    u32::from_be_bytes([0xFF, mix(1), mix(2), mix(3)])
+}
+
+/// The address field's fill on a row in `background`: a little lighter.
+fn field_fill(background: u32) -> u32 {
+    blend(background, TEXT, 8)
+}
+
+/// Give mini window `window` the address field's colours: the row's text
+/// colour on the field's fill, and no outline. A theme change resets them,
+/// so the window's delegate calls this again then.
+pub(crate) fn colour_window(window: &Window) {
+    use cef::sys::cef_color_id_t as Id;
+    let fill = field_fill(Engine::global().lock().win.chrome_color);
+    for (id, colour) in [
+        (Id::CEF_ColorTextfieldBackground, fill),
+        (Id::CEF_ColorTextfieldForeground, TEXT),
+        (Id::CEF_ColorTextfieldForegroundPlaceholder, DIM),
+        (Id::CEF_ColorTextfieldOutline, fill),
+    ] {
+        window.set_theme_color(id as ::std::os::raw::c_int, colour);
+    }
+}
+
+/// What the address field shows while the keyboard is elsewhere: `url`'s
+/// host, or the address itself for a page that has none.
+fn host_text(url: &str) -> String {
+    crate::client::host_of(url)
+        .unwrap_or_else(|| url.to_string())
+        .chars()
+        .take(HOST_CHARS)
+        .collect()
 }
 
 /// "Open in <space>" for the space shown first.
@@ -101,12 +147,17 @@ impl MiniChrome {
         let back = icon(Action::Back, Glyph::Back, "Back")?;
         let forward = icon(Action::Forward, Glyph::Forward, "Forward")?;
         icon(Action::Reload, Glyph::Reload, "Reload")?;
-        let host = add(Action::Host, "", "")?;
-        host.set_horizontal_alignment(HorizontalAlignment::LEFT);
-        host.set_text_color(ButtonState::DISABLED, TEXT);
-        host.set_ink_drop_enabled(0);
-        host.set_enabled(0);
-        layout.set_flex_for_view(Some(&mut View::from(&host)), 1);
+        let address = textfield_create(Some(&mut AddressField::new(id)))?;
+        address.set_accessible_name(Some(&CefString::from("Address")));
+        address.set_placeholder_text(Some(&CefString::from("Search or enter URL")));
+        address.set_background_color(field_fill(background));
+        row.add_child_view(Some(&mut View::from(&address)));
+        layout.set_flex_for_view(Some(&mut View::from(&address)), 3);
+        // The free stretch beside the field: the window is dragged by it.
+        let grip = panel_create(Some(&mut Grip::new()))?;
+        row.add_child_view(Some(&mut View::from(&grip)));
+        layout.set_flex_for_view(Some(&mut View::from(&grip)), 1);
+        let copy = icon(Action::Copy, Glyph::Link, "Copy link")?;
         let open = add(Action::Open, &open_label(spaces), "Open as a tab (⌘O)")?;
         let menu = menu_button_create(
             Some(&mut SpaceMenuButton::new(id)),
@@ -122,8 +173,10 @@ impl MiniChrome {
             row,
             back,
             forward,
-            host,
+            address,
+            copy,
             open,
+            url: String::new(),
         })
     }
 }
@@ -236,20 +289,56 @@ impl Engine {
         }
     }
 
-    /// Mini window `id`'s page went to `url`: the row shows its host.
+    /// Mini window `id`'s page went to `url`: the field shows its host, or
+    /// the whole address while it has the keyboard and nothing was typed.
     pub(crate) fn update_mini_address(&self, id: ContentId, url: &str) {
-        let host = self.lock().contents.get(&id).and_then(|c| {
-            let m = c.mini.as_ref()?;
-            Some(m.host.clone())
+        let field = self.lock().contents.get_mut(&id).and_then(|c| {
+            let m = c.mini.as_mut()?;
+            let before = std::mem::replace(&mut m.url, url.to_string());
+            Some((m.address.clone(), before))
         });
-        if let Some(host) = host {
-            let text: String = crate::client::host_of(url)
-                .unwrap_or_else(|| url.to_string())
-                .chars()
-                .take(HOST_CHARS)
-                .collect();
-            host.set_text(Some(&CefString::from(text.as_str())));
+        let Some((field, before)) = field else {
+            return;
+        };
+        if View::from(&field).has_focus() == 0 {
+            field.set_text(Some(&CefString::from(host_text(url).as_str())));
+        } else if CefString::from(&field.text()).to_string() == before {
+            field.set_text(Some(&CefString::from(url)));
+            field.select_all(0);
         }
+    }
+
+    /// Mini window `id`'s address field and its page's address.
+    fn mini_address(&self, id: ContentId) -> Option<(Textfield, String)> {
+        let inner = self.lock();
+        let m = inner.contents.get(&id)?.mini.as_ref()?;
+        Some((m.address.clone(), m.url.clone()))
+    }
+
+    /// Put the keyboard into mini window `id`'s address field, which then
+    /// shows the whole address, selected.
+    pub fn focus_mini_address(&self, id: ContentId) {
+        if let Some((field, _)) = self.mini_address(id) {
+            View::from(&field).request_focus();
+        }
+    }
+
+    /// Mini window `id`'s copy button shows `glyph`.
+    fn set_mini_copy_icon(&self, id: ContentId, glyph: Glyph) {
+        let copy =
+            (self.lock().contents.get(&id)).and_then(|c| Some(c.mini.as_ref()?.copy.clone()));
+        if let Some(copy) = copy {
+            copy.set_image(ButtonState::NORMAL, glyph.image(ICON, TEXT).as_mut());
+        }
+    }
+
+    /// Mini window `id`'s copy button shows a tick for a moment.
+    fn mini_copied(&self, id: ContentId) {
+        self.set_mini_copy_icon(id, Glyph::Check);
+        Self::post_delayed(
+            Box::new(move || Engine::global().set_mini_copy_icon(id, Glyph::Link)),
+            COPIED_MS,
+        );
     }
 
     /// Mini window `id`'s page can go back or forward (or not) now.
@@ -363,18 +452,12 @@ wrap_panel_delegate! {
     impl PanelDelegate {}
 }
 
-wrap_button_delegate! {
-    struct MiniButton {
-        id: ContentId,
-        action: Action,
-    }
+// The free stretch of the row: the window's draggable region (the field
+// and the buttons beside it stay clickable).
+wrap_panel_delegate! {
+    struct Grip {}
     impl ViewDelegate {
-        /// The host is where the window is dragged: it fills the row's
-        /// middle, so it is the draggable region (the buttons stay clickable).
         fn on_layout_changed(&self, view: Option<&mut View>, new_bounds: Option<&Rect>) {
-            if self.action != Action::Host {
-                return;
-            }
             let (Some(view), Some(bounds)) = (view, new_bounds) else { return };
             let mut origin = Point { x: 0, y: 0 };
             if view.convert_point_to_window(Some(&mut origin)) == 0 {
@@ -388,6 +471,74 @@ wrap_button_delegate! {
             window.set_draggable_regions(Some(&[region]));
         }
     }
+    impl PanelDelegate {}
+}
+
+// The address field. Without the keyboard it shows the site's host; with
+// it, the whole address, selected, ready to be copied or typed over. Enter
+// sends what it holds to the app (`MiniNavigate`), Esc gives the keyboard
+// back to the page.
+wrap_textfield_delegate! {
+    struct AddressField {
+        id: ContentId,
+    }
+    impl ViewDelegate {
+        fn on_focus(&self, view: Option<&mut View>) {
+            let Some(field) = view.and_then(|v| v.as_textfield()) else { return };
+            let Some((_, url)) = Engine::global().mini_address(self.id) else { return };
+            field.set_text(Some(&CefString::from(url.as_str())));
+            field.select_all(0);
+            // A click puts the caret where it landed after this: select
+            // again once the click is through.
+            let id = self.id;
+            Engine::post(Box::new(move || {
+                let Some((field, url)) = Engine::global().mini_address(id) else { return };
+                let untouched = CefString::from(&field.text()).to_string() == url;
+                if untouched && View::from(&field).has_focus() != 0 {
+                    field.select_all(0);
+                }
+            }));
+        }
+        fn on_blur(&self, view: Option<&mut View>) {
+            let Some(field) = view.and_then(|v| v.as_textfield()) else { return };
+            let Some((_, url)) = Engine::global().mini_address(self.id) else { return };
+            field.set_text(Some(&CefString::from(host_text(&url).as_str())));
+        }
+    }
+    impl TextfieldDelegate {
+        fn on_key_event(&self, textfield: Option<&mut Textfield>, event: Option<&KeyEvent>) -> ::std::os::raw::c_int {
+            let (Some(field), Some(event)) = (textfield, event) else { return 0 };
+            if event.type_ != KeyEventType::RAWKEYDOWN {
+                return 0;
+            }
+            let engine = Engine::global();
+            let id = self.id;
+            match event.windows_key_code {
+                // Enter
+                0x0D => {
+                    let input = CefString::from(&field.text()).to_string();
+                    if !input.trim().is_empty() {
+                        engine.emit(EngineEvent::MiniNavigate { id, input });
+                    }
+                    1
+                }
+                // Esc
+                0x1B => {
+                    engine.focus_content(id);
+                    1
+                }
+                _ => 0,
+            }
+        }
+    }
+}
+
+wrap_button_delegate! {
+    struct MiniButton {
+        id: ContentId,
+        action: Action,
+    }
+    impl ViewDelegate {}
     impl ButtonDelegate {
         fn on_button_pressed(&self, _button: Option<&mut Button>) {
             let engine = Engine::global();
@@ -396,7 +547,11 @@ wrap_button_delegate! {
                 Action::Back => engine.content_go_back(id),
                 Action::Forward => engine.content_go_forward(id),
                 Action::Reload => engine.content_reload(id),
-                Action::Host => {}
+                // As the key does; the button answers with a tick.
+                Action::Copy => {
+                    engine.emit(EngineEvent::Shortcut { from: Some(id), shortcut: crate::Shortcut::CopyLink });
+                    engine.mini_copied(id);
+                }
                 Action::Open => engine.emit(EngineEvent::MiniToTab { id, space: None }),
                 // Not from inside the window's own button.
                 Action::Close => Engine::post(Box::new(move || Engine::global().close_content(id))),

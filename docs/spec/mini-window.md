@@ -52,13 +52,22 @@ A row above the page holds, from left to right:
 |---|---|
 | ← → | back and forward in the page's history (dimmed when there is none) |
 | ↻ | reload |
-| The site's host | the address for a page that is no web page; drags the window |
+| The address field | shows the site's host (the address for a page that is no web page); with the keyboard in it, the whole address, selected. Enter goes there in this window |
+| 🔗 | copies the page's link, as Copy Link does; shows a tick for a moment |
 | "Open in <space>" | keeps the page as a tab of the space in front of the main window (`Cmd+O`) |
 | ▾ | a menu of all spaces: "Open in <space>" for each |
 | ✕ | close |
 
 - The window has rounded corners and a shadow, no traffic lights, and is
-  moved by the host in the row. It takes the page's title as its own.
+  moved by the free stretch of the row between the address field and the
+  copy button. It takes the page's title as its own.
+- A click into the address field or `Cmd+L` puts the keyboard there. What
+  is typed is read like the command bar's input: an address, a web search
+  or a site search (`gh rust`). An address Magnetite does not open
+  (`docs/design/security.md`) does nothing. Enter gives the keyboard back
+  to the page, and so does `Esc`, which leaves the page where it is.
+- The copied link is the one Copy Link gives: without tracking parameters
+  while Settings → "Remove trackers from copied links" is on.
 - The page runs in the profile of the space in front of the main window
   when it opens, like a peek opened by a link from another app.
 - A link in the page navigates it. A link that asks for a new tab or window
@@ -66,7 +75,8 @@ A row above the page holds, from left to right:
   a peek or a tab, and the main window comes to the front.
 - In the page, `Cmd+W` closes the mini window; `Esc` belongs to the page.
   Reload, back, forward, zoom, find, Copy Link, Print and developer tools, by key
-  or from the menu bar, act on the mini window's page. Developer tools open
+  or from the menu bar, act on the mini window's page; `Cmd+L` goes to its
+  address field. Developer tools open
   in a window of their own. Every other Magnetite shortcut brings the main
   window to the front and acts there.
 - A page that asks for a permission (location, notifications, camera…)
@@ -106,7 +116,7 @@ search switch is `settings.quick_search`, this device's own.
 - No system-wide key on Linux.
 
 Code: `crates/app/src/app/mini.rs` (`open_mini`, `mini_to_tab`,
-`mini_shortcut`), `events.rs` (`Ask::target`), `crates/app/src/state/tabs.rs`
+`mini_navigate`, `mini_shortcut`), `events.rs` (`Ask::target`), `crates/app/src/state/tabs.rs`
 (`keep_mini`), `crates/engine/src/mini.rs` (the row, `mini_to_tab`),
 `content.rs` (`create_page`), `overlay.rs` (`open_quick_search`),
 `mac/hotkey.rs`, `menubar.rs`, `crates/ui/web/src/CommandBar.tsx` (`quick`

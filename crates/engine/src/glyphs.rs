@@ -13,6 +13,9 @@ pub(crate) enum Glyph {
     Reload,
     Down,
     Close,
+    /// Two links of a chain: "copy link", as in the address row.
+    Link,
+    Check,
 }
 
 type Point = (f32, f32);
@@ -28,6 +31,24 @@ impl Glyph {
                 vec![(18.0, 6.0), (6.0, 18.0)],
                 vec![(6.0, 6.0), (18.0, 18.0)],
             ],
+            Self::Check => vec![vec![(20.0, 6.0), (9.0, 17.0), (4.0, 12.0)]],
+            Self::Link => {
+                // The upper right link: a short arc out of the middle, then
+                // half a circle round its end and a short way back. The
+                // other link is the same, turned half round.
+                let arc = |centre: Point, from: f32, to: f32| {
+                    (0..=16_u8).map(move |step| {
+                        let angle = (from + (to - from) * f32::from(step) / 16.0).to_radians();
+                        (centre.0 + 5.0 * angle.cos(), centre.1 + 5.0 * angle.sin())
+                    })
+                };
+                let upper: Vec<Point> = arc((14.0, 10.0), 143.13, 45.0)
+                    .chain(arc((17.0, 7.0), 45.0, -135.0))
+                    .chain([(11.75, 5.18)])
+                    .collect();
+                let lower = upper.iter().map(|&(x, y)| (24.0 - x, 24.0 - y)).collect();
+                vec![upper, lower]
+            }
             Self::Reload => {
                 // Most of a circle, clockwise from the right to the upper
                 // right, then the arrow head at its end.

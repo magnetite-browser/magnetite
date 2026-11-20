@@ -74,13 +74,26 @@ impl MagnetiteApp {
         engine.focus_content(id);
     }
 
+    /// Enter in mini window `id`'s address field: its page goes to `input`,
+    /// an address or a search like the command bar's, and gets the keyboard.
+    pub(super) fn mini_navigate(&self, engine: &Engine, id: ContentId, input: &str) {
+        let url = self.normalise_url(input);
+        if !self.is_mini(id) || !url_policy::allowed(&url, url_policy::Source::User) {
+            return;
+        }
+        engine.content_load_url(id, &url);
+        engine.focus_content(id);
+    }
+
     /// A key or menu bar item from mini window `id`: those for a page act
-    /// on its page, `Cmd+O` opens it in the current space, and the others
-    /// are for the main window, which comes to the front.
+    /// on its page, `Cmd+O` opens it in the current space, `Cmd+L` goes to
+    /// its address field, and the others are for the main window, which
+    /// comes to the front.
     pub(super) fn mini_shortcut(&self, engine: &Engine, id: ContentId, shortcut: Shortcut) {
         match shortcut {
             Shortcut::CloseTab => self.close_mini(engine, id),
             Shortcut::PeekToTab => self.mini_to_tab(engine, id, None),
+            Shortcut::FocusAddress => engine.focus_mini_address(id),
             Shortcut::Reload
             | Shortcut::Back
             | Shortcut::Forward

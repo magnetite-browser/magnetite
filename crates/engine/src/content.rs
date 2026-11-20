@@ -1224,6 +1224,7 @@ wrap_window_delegate! {
                 if let Some(row) = row {
                     window.add_child_view_at(Some(&mut View::from(&row)), 0);
                 }
+                crate::mini::colour_window(window);
                 window.set_bounds(Some(bounds));
                 #[cfg(target_os = "macos")]
                 crate::mac::round_window_corners(window.window_handle(), 10.0, true);
@@ -1272,6 +1273,12 @@ wrap_window_delegate! {
             // Asked again whenever the window is shown (magnetite-cef,
             // `window-reparent.patch`): a page moves with its answer.
             Engine::global().home_frame(self.id)
+        }
+        // A theme change resets the colours of a mini window's address field.
+        fn on_theme_colors_changed(&self, window: Option<&mut Window>, _chrome_theme: ::std::os::raw::c_int) {
+            if let (Some(_), Some(window)) = (&self.mini, window) {
+                crate::mini::colour_window(window);
+            }
         }
         fn initial_bounds(&self, _window: Option<&mut Window>) -> Rect {
             self.mini.clone().unwrap_or_else(|| Engine::global().content_rect())

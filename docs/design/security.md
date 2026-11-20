@@ -26,7 +26,9 @@ name.
 - The quick search (`Cmd+Option+N`) is the command bar page in a window of
   its own, with the same rules as every overlay: our UI only, the same
   commands as the command bar. What it opens goes through `open_mini` as
-  typed input (`url_policy::Source::User`), checked like any. A mini
+  typed input (`url_policy::Source::User`), checked like any, and so does
+  what is typed into a mini window's address field (`mini_navigate`). The
+  field is a native text field of the window, not a page. A mini
   window's page is a web page like a tab's (`Kind::Content`), never one of
   our privileged pages unless the user opened `magnetite://ui/` there.
 - The system-wide key is a Carbon hot key (`mac/hotkey.rs`) on macOS and a
