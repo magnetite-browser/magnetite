@@ -8,6 +8,7 @@ mod default_browser;
 mod dividers;
 mod edge;
 mod hotkey;
+mod icon_fetch;
 mod layers;
 mod running;
 mod share;

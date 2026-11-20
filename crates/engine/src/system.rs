@@ -310,6 +310,17 @@ impl Engine {
         }
     }
 
+    /// Page `id` shows an element of its own full screen (a video), or no
+    /// more. WebView2 only says so: its page's window is made full screen,
+    /// and the view fills it. `WebKit` makes a window of its own.
+    #[cfg(target_os = "windows")]
+    pub(crate) fn system_fullscreen(&self, id: ContentId, on: bool) {
+        let window = (self.lock().contents.get(&id)).and_then(|c| c.window.clone());
+        if let Some(window) = window {
+            window.set_fullscreen(i32::from(on));
+        }
+    }
+
     pub(crate) fn system_failed(&self, id: ContentId, url: String, refused: bool) {
         self.emit(EngineEvent::LoadFailed { id, url, refused });
     }
