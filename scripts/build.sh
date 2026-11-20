@@ -179,6 +179,10 @@ package_macos() {
     cp "$bin/magnetite-helper" "$helper/Contents/MacOS/$name"
   done
 
+  # CEF ships a read-only file (gpu_shader_cache.bin). Magnetite 0.0.8 to
+  # 0.0.11 cannot take the download mark off such a file, and then refuse
+  # the update: every file in the bundle is writable by its owner.
+  chmod -R u+w "$app"
   log "signing (${MACOS_SIGN_IDENTITY:-ad hoc})"
   sign_macos "$app"
   # A bad signature gets the process killed at launch; --help only prints.

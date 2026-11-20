@@ -480,13 +480,17 @@ fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), St
 /// zip against the signed manifest and lets Gatekeeper assess the app
 /// itself, which is what the mark is for.
 fn unpack(zip: &Path, into: &Path) -> Result<(), String> {
-    run("/usr/bin/ditto", &["-x", "-k"], &[zip, into])?;
-    // `-s`: links themselves are marked too. A file without the mark is
-    // fine for `-r`; a mark that stays makes it fail.
-    run("/usr/bin/xattr", &["-d", "-r", "-s", QUARANTINE], &[into]).map_err(|_| {
+    let marked = |_| {
         "Cannot prepare the update (it stays marked as a download). Download it from the release page."
             .to_string()
-    })
+    };
+    run("/usr/bin/ditto", &["-x", "-k"], &[zip, into])?;
+    // The mark only comes off a file its owner may write, and a bundle can
+    // hold read-only files (CEF's `gpu_shader_cache.bin` is one).
+    run("/bin/chmod", &["-R", "u+w"], &[into]).map_err(marked)?;
+    // `-s`: links themselves are marked too. A file without the mark is
+    // fine for `-r`; a mark that stays makes it fail.
+    run("/usr/bin/xattr", &["-d", "-r", "-s", QUARANTINE], &[into]).map_err(marked)
 }
 
 /// After Magnetite quits: start `bundle` again and delete `cleanup`, which
@@ -718,7 +722,7 @@ mod tests {
     }
 
     /// What `unpack` meets in an installed Magnetite: every unpacked file
-    /// marked as downloaded, links included.
+    /// marked as downloaded, links and read-only files included.
     #[cfg(target_os = "macos")]
     #[test]
     fn an_unpacked_update_carries_no_quarantine_mark() {
@@ -727,6 +731,11 @@ mod tests {
         std::fs::create_dir_all(&app).unwrap();
         std::fs::write(app.join("magnetite"), b"binary").unwrap();
         std::os::unix::fs::symlink("magnetite", app.join("link")).unwrap();
+        let read_only = app.join("read-only");
+        std::fs::write(&read_only, b"cache").unwrap();
+        let mut mode = std::fs::metadata(&read_only).unwrap().permissions();
+        mode.set_readonly(true);
+        std::fs::set_permissions(&read_only, mode).unwrap();
         let zip = dir.join("update.zip");
         run(
             "/usr/bin/ditto",
@@ -745,7 +754,12 @@ mod tests {
         let unpacked_app = unpacked.join("Magnetite.app");
         let binary = unpacked_app.join("magnetite");
         assert_eq!(std::fs::read(&binary).unwrap(), b"binary");
-        for path in [unpacked_app.join("link"), binary, unpacked_app] {
+        for path in [
+            unpacked_app.join("link"),
+            unpacked_app.join("read-only"),
+            binary,
+            unpacked_app,
+        ] {
             // `xattr -p` fails for an attribute that is not there.
             assert!(
                 run("/usr/bin/xattr", &["-s", "-p", QUARANTINE], &[&path]).is_err(),
