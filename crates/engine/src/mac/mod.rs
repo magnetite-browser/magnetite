@@ -492,6 +492,185 @@ pub fn round_window_corners(handle: cef::sys::cef_window_handle_t, radius: f64, 
             let _: () = msg_send![&*layer, setCornerCurve: curve];
         }
     }
+    set_corner_radius(handle, radius, [false; 4]);
+}
+
+/// What `topCornerRounded` and `bottomCornerRounded` of the frame views of
+/// CEF's windows answered before `corner_rounded` took their place.
+static CORNERS_ROUNDED: std::sync::OnceLock<[objc2::runtime::Imp; 2]> = std::sync::OnceLock::new();
+
+type CornerRounded = unsafe extern "C-unwind" fn(&AnyObject, Sel) -> Bool;
+
+/// `topCornerRounded` and `bottomCornerRounded` of a window's frame view:
+/// no for the window of a square page (`set_system_corner`), else what the
+/// class answered before.
+extern "C-unwind" fn corner_rounded(frame: &AnyObject, cmd: Sel) -> Bool {
+    // SAFETY: reads what `set_system_corner` stored, or null.
+    let square = unsafe {
+        objc2::ffi::objc_getAssociatedObject(std::ptr::from_ref(frame).cast(), square_key())
+    };
+    if !square.is_null() {
+        return Bool::NO;
+    }
+    let Some([top, bottom]) = CORNERS_ROUNDED.get() else {
+        return Bool::YES;
+    };
+    let before = if cmd == sel!(topCornerRounded) {
+        top
+    } else {
+        bottom
+    };
+    // SAFETY: the implementation this one took the place of, with its type.
+    unsafe { std::mem::transmute::<objc2::runtime::Imp, CornerRounded>(*before)(frame, cmd) }
+}
+
+/// The key a square window's mark is kept under (its address is the key).
+fn square_key() -> *const std::ffi::c_void {
+    static KEY: u8 = 0;
+    std::ptr::from_ref(&KEY).cast()
+}
+
+/// Make the class of `frame` (the frame view of one of CEF's windows) ask
+/// `corner_rounded` whether its corners are round. False if that cannot be
+/// done; the windows keep the system's corners then.
+fn teach_frames_corners(frame: &objc2_app_kit::NSView) -> bool {
+    use objc2::runtime::{AnyClass, Imp};
+    let ours = corner_rounded as CornerRounded;
+    // SAFETY: same calling convention; called only through the runtime.
+    let ours: Imp = unsafe { std::mem::transmute::<CornerRounded, Imp>(ours) };
+    // SAFETY: `class` returns the class the view was made with, not the one
+    // key-value observing put in front of it.
+    let class: &AnyClass = unsafe { msg_send![frame, class] };
+    let sels = [sel!(topCornerRounded), sel!(bottomCornerRounded)];
+    // Not public API: without both, and the message that makes AppKit ask
+    // them again, there is nothing to do.
+    let [Some(top), Some(bottom)] = sels.map(|sel| class.instance_method(sel)) else {
+        return false;
+    };
+    if class
+        .instance_method(sel!(windowCornerMaskChanged))
+        .is_none()
+    {
+        return false;
+    }
+    let before = [top.implementation(), bottom.implementation()];
+    if before.iter().all(|imp| std::ptr::fn_addr_eq(*imp, ours)) {
+        return true;
+    }
+    // One class of frame views only: what it answered before is kept once.
+    let kept = CORNERS_ROUNDED.get_or_init(|| before);
+    if !std::iter::zip(kept, &before).all(|(a, b)| std::ptr::fn_addr_eq(*a, *b)) {
+        crate::trace("square page: a second frame view class, left as it is");
+        return false;
+    }
+    // SAFETY: adds methods with the types of the inherited ones to a class
+    // that does not define them itself; the main thread, where AppKit sends
+    // them.
+    let added = [(sels[0], top), (sels[1], bottom)].map(|(sel, method)| unsafe {
+        objc2::ffi::class_addMethod(
+            std::ptr::from_ref(class).cast_mut(),
+            sel,
+            ours,
+            objc2::ffi::method_getTypeEncoding(method),
+        )
+        .as_bool()
+    });
+    added == [true, true]
+}
+
+/// macOS rounds a page's window itself (16 pt since macOS 26), whatever its
+/// layer says: take that corner away for a square page, or give it back.
+/// The window's frame view decides it and there is no public API to tell it
+/// otherwise, so where the frame view does not answer as expected the page
+/// keeps the system's corners.
+fn set_system_corner(window: &NSWindow, round: bool) {
+    // SAFETY: the frame view of a live window, on the main thread.
+    let Some(frame) = window.contentView().and_then(|c| unsafe { c.superview() }) else {
+        return;
+    };
+    let key = square_key();
+    // SAFETY: a mark under a key of our own on a live view: a static
+    // string, or none.
+    unsafe {
+        let object: *mut AnyObject = Retained::as_ptr(&frame).cast_mut().cast();
+        let marked = !objc2::ffi::objc_getAssociatedObject(object.cast_const(), key).is_null();
+        if marked != round || (!round && !teach_frames_corners(&frame)) {
+            return;
+        }
+        let mark = if round {
+            std::ptr::null_mut()
+        } else {
+            std::ptr::from_ref(part_role()).cast_mut().cast()
+        };
+        objc2::ffi::objc_setAssociatedObject(
+            object,
+            key,
+            mark,
+            objc2::ffi::OBJC_ASSOCIATION_RETAIN_NONATOMIC,
+        );
+        // AppKit asks the frame view about its corners only when told
+        // that they changed (`teach_frames_corners` saw that it can be).
+        let _: () = msg_send![&*frame, windowCornerMaskChanged];
+    }
+}
+
+/// Change the corner radius of a page window rounded before
+/// (`round_window_corners`), and of a system page's own window over it.
+/// `handle` is the window's content `NSView`. 0 makes it square, but for
+/// its corners that lie in a corner of the frame window (`in_window_corner`:
+/// top left, top right, bottom left, bottom right): those follow the frame
+/// window's own round corners, which a page would stand out of.
+pub fn set_corner_radius(
+    handle: cef::sys::cef_window_handle_t,
+    radius: f64,
+    in_window_corner: [bool; 4],
+) {
+    use objc2_app_kit::NSView;
+    if handle.is_null() {
+        return;
+    }
+    // SAFETY: CEF hands us a live NSView of a page window; main thread.
+    let view: &NSView = unsafe { &*handle.cast::<NSView>() };
+    let Some(window) = view.window() else { return };
+    set_system_corner(&window, radius > 0.0);
+    // `CACornerMask`, in a view's layer: the lower corners come first.
+    let (radius, corners) = if radius > 0.0 {
+        (radius, 0b1111_usize)
+    } else {
+        let [top_left, top_right, bottom_left, bottom_right] = in_window_corner;
+        let corners = [bottom_left, bottom_right, top_left, top_right];
+        let mask = (corners.iter().enumerate())
+            .fold(0, |mask, (bit, on)| mask | (usize::from(*on) << bit));
+        (system_corner(&root_window(&window)), mask)
+    };
+    for content in [window.contentView(), webkit::holder_in(&window)] {
+        // SAFETY: CoreAnimation's setters on the layer of a view alive here.
+        unsafe {
+            let layer: Option<Retained<AnyObject>> =
+                content.and_then(|content| msg_send![&*content, layer]);
+            if let Some(layer) = layer {
+                let _: () = msg_send![&*layer, setCornerRadius: radius];
+                let _: () = msg_send![&*layer, setMaskedCorners: corners];
+            }
+        }
+    }
+}
+
+/// The corner radius macOS gives `window` itself, 0 if it does not say:
+/// there is no public API, so it is read only if the window answers
+/// `_cornerRadius`.
+fn system_corner(window: &NSWindow) -> f64 {
+    let sel = sel!(_cornerRadius);
+    // SAFETY: asked only after the window says it implements the getter,
+    // which returns a CGFloat.
+    unsafe {
+        let has: bool = msg_send![window, respondsToSelector: sel];
+        if has {
+            msg_send![window, _cornerRadius]
+        } else {
+            0.0
+        }
+    }
 }
 
 /// Watches two-finger swipes, once, on the UI (main) thread:
@@ -973,17 +1152,16 @@ fn visible_corner(view: &objc2_app_kit::NSView, own: f64) -> f64 {
     let Some(window) = view.window() else {
         return own;
     };
-    let sel = objc2::sel!(_cornerRadius);
-    // SAFETY: asked only after the window says it implements the getter,
-    // which returns a CGFloat.
-    let system: f64 = unsafe {
-        let has: bool = msg_send![&*window, respondsToSelector: sel];
-        if has {
-            msg_send![&*window, _cornerRadius]
-        } else {
-            0.0
-        }
-    };
+    // A square page's window still names the system's radius.
+    // SAFETY: the frame view of a live window; reads our own mark, or null.
+    let square = (window.contentView().and_then(|c| unsafe { c.superview() })).is_some_and(|f| {
+        let frame: *const AnyObject = Retained::as_ptr(&f).cast();
+        !unsafe { objc2::ffi::objc_getAssociatedObject(frame, square_key()) }.is_null()
+    });
+    if square {
+        return own;
+    }
+    let system = system_corner(&window);
     own.max(system)
 }
 
@@ -1043,8 +1221,10 @@ pub fn set_focus_ring(handle: cef::sys::cef_window_handle_t, argb: Option<u32>) 
         });
         let bounds: objc2_foundation::NSRect = msg_send![&*host, bounds];
         let radius: f64 = msg_send![&*host, cornerRadius];
+        let corners: usize = msg_send![&*host, maskedCorners];
         let _: () = msg_send![&*ring, setFrame: bounds];
         let _: () = msg_send![&*ring, setCornerRadius: visible_corner(view, radius)];
+        let _: () = msg_send![&*ring, setMaskedCorners: corners];
         // Crisp on every screen: the layer draws at the window's pixel density.
         let scale = view.window().map_or(1.0, |w| w.backingScaleFactor());
         let _: () = msg_send![&*ring, setContentsScale: scale];

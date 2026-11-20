@@ -157,8 +157,8 @@ const WM_MOUSEACTIVATE: u32 = 0x21;
 const WM_LBUTTONDOWN: u32 = 0x201;
 const MA_NOACTIVATE: isize = 3;
 
-/// Corner radius of a page and width of the outline, in points at 100 %
-/// scaling.
+/// Corner radius of a peek and width of a page's outline, in points at
+/// 100 % scaling.
 const PAGE_RADIUS: i32 = 10;
 const RING_WIDTH: i32 = 2;
 /// How dark the pages behind a peek get, of 255 (macOS: 45 %).
@@ -170,7 +170,9 @@ struct Ring {
     /// The page it outlines; null while there is none.
     page: Hwnd,
     argb: u32,
-    drawn: (i32, i32, u32),
+    /// The page's corner radius, in points at 100 % scaling.
+    radius: i32,
+    drawn: (i32, i32, u32, i32),
 }
 
 thread_local! {
@@ -248,8 +250,9 @@ unsafe extern "system" fn on_message(
 }
 
 /// Outline the page whose window is `page` in `argb` (the focused page of a
-/// split), or remove the outline (`None`). There is one outline at most.
-pub fn set_focus_ring(page: Option<cef::sys::cef_window_handle_t>, argb: u32) {
+/// split), or remove the outline (`None`). The page's corners have `radius`
+/// points at 100 % scaling. There is one outline at most.
+pub fn set_focus_ring(page: Option<cef::sys::cef_window_handle_t>, argb: u32, radius: i32) {
     RING.with_borrow_mut(|ring| {
         let Some(page) = page.map(|p| p.0.cast::<c_void>()).filter(|p| !p.is_null()) else {
             if let Some(ring) = ring.as_mut() {
@@ -265,10 +268,12 @@ pub fn set_focus_ring(page: Option<cef::sys::cef_window_handle_t>, argb: u32) {
             hwnd: layer(owner, true),
             page,
             argb,
-            drawn: (0, 0, 0),
+            radius,
+            drawn: (0, 0, 0, 0),
         });
         ring.page = page;
         ring.argb = argb;
+        ring.radius = radius;
         place_ring(ring);
     });
 }
@@ -302,7 +307,8 @@ fn place_ring(ring: &mut Ring) {
         let dpi = i32::try_from(GetDpiForWindow(ring.page))
             .unwrap_or(96)
             .max(96);
-        if ring.drawn == (size.0, size.1, ring.argb) {
+        let drawn = (size.0, size.1, ring.argb, ring.radius);
+        if ring.drawn == drawn {
             SetWindowPos(
                 ring.hwnd,
                 std::ptr::null_mut(),
@@ -312,8 +318,15 @@ fn place_ring(ring: &mut Ring) {
                 0,
                 SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
             );
-        } else if draw_ring(ring.hwnd, (rect[0], rect[1]), size, ring.argb, dpi) {
-            ring.drawn = (size.0, size.1, ring.argb);
+        } else if draw_ring(
+            ring.hwnd,
+            (rect[0], rect[1]),
+            size,
+            ring.argb,
+            ring.radius,
+            dpi,
+        ) {
+            ring.drawn = drawn;
         }
         // Right above its page and no higher: the palette, a peek and the
         // notification panel stay above both.
@@ -333,17 +346,18 @@ fn place_ring(ring: &mut Ring) {
     }
 }
 
-/// Paint the outline of a page of `size` pixels into the window `hwnd` and
-/// put it at `at`.
-fn draw_ring(hwnd: Hwnd, at: (i32, i32), size: (i32, i32), argb: u32, dpi: i32) -> bool {
+/// Paint the outline of a page of `size` pixels, its corners of `radius`
+/// points, into the window `hwnd` and put it at `at`.
+fn draw_ring(
+    hwnd: Hwnd,
+    at: (i32, i32),
+    size: (i32, i32),
+    argb: u32,
+    radius: i32,
+    dpi: i32,
+) -> bool {
     paint_layer(hwnd, at, size, |pixels| {
-        ring_pixels(
-            pixels,
-            size,
-            PAGE_RADIUS * dpi / 96,
-            RING_WIDTH * dpi / 96,
-            argb,
-        );
+        ring_pixels(pixels, size, radius * dpi / 96, RING_WIDTH * dpi / 96, argb);
     })
 }
 

@@ -392,16 +392,27 @@ impl Engine {
         };
         let (page, tools) = self.split_slot(id, slot);
         let page = self.device_rect(id, page);
-        if let Some(w) = window {
-            w.set_bounds(Some(&page));
+        // Square where the page reaches the window's edges (`PageFrame`).
+        let radius = self.corner_radius(id);
+        let place = |w: &Window, rect: &Rect| {
+            w.set_bounds(Some(rect));
+            #[cfg(target_os = "macos")]
+            crate::mac::set_corner_radius(
+                w.window_handle(),
+                f64::from(radius),
+                self.in_window_corner(rect),
+            );
             // The rounded cut does not follow the new size.
             #[cfg(target_os = "windows")]
-            crate::win::clip_page(w.window_handle());
+            crate::win::clip_page(w.window_handle(), radius);
+            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            let _ = radius;
+        };
+        if let Some(w) = window {
+            place(&w, &page);
         }
         if let (Some(w), Some((r, _))) = (tools_window, &tools) {
-            w.set_bounds(Some(r));
-            #[cfg(target_os = "windows")]
-            crate::win::clip_page(w.window_handle());
+            place(&w, r);
         }
         if let Some(d) = self.lock().docked.get_mut(&id) {
             d.gap = tools.map(|(_, gap)| gap);

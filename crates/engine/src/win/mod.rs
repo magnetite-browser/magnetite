@@ -136,7 +136,7 @@ pub fn round_window_corners(handle: cef::sys::cef_window_handle_t, shadow: bool)
         set(handle, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE);
         match_frame(handle);
         set(handle, DWMWA_SYSTEMBACKDROP_TYPE, DWMSBT_NONE);
-        clip_page(handle);
+        clip_page(handle, PAGE_RADIUS);
     }
 }
 
@@ -163,9 +163,10 @@ pub fn square_window(handle: cef::sys::cef_window_handle_t) {
     set(handle, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE);
 }
 
-/// Cut a page's window to a rounded rectangle of its present size. The
+/// Cut a page's window to a rounded rectangle of its present size, its
+/// corners of `radius` points at 100 % scaling; 0 leaves it whole. The
 /// region does not follow the window: call again after every resize.
-pub fn clip_page(handle: cef::sys::cef_window_handle_t) {
+pub fn clip_page(handle: cef::sys::cef_window_handle_t, radius: i32) {
     if handle.0.is_null() {
         return;
     }
@@ -179,12 +180,16 @@ pub fn clip_page(handle: cef::sys::cef_window_handle_t) {
         }
         let (width, height) = (rect[2] - rect[0], rect[3] - rect[1]);
         let dpi = i32::try_from(GetDpiForWindow(hwnd)).unwrap_or(96).max(96);
-        let diameter = 2 * PAGE_RADIUS * dpi / 96;
-        // The region's right and bottom edges are exclusive, and a round
-        // rectangle's are drawn one pixel inside them.
-        let region = CreateRoundRectRgn(0, 0, width + 1, height + 1, diameter, diameter);
-        if !region.is_null() {
-            SetWindowRgn(hwnd, region, 1);
+        let diameter = 2 * radius * dpi / 96;
+        if diameter == 0 {
+            SetWindowRgn(hwnd, std::ptr::null_mut(), 1);
+        } else {
+            // The region's right and bottom edges are exclusive, and a
+            // round rectangle's are drawn one pixel inside them.
+            let region = CreateRoundRectRgn(0, 0, width + 1, height + 1, diameter, diameter);
+            if !region.is_null() {
+                SetWindowRgn(hwnd, region, 1);
+            }
         }
     }
     // The outline of a split's focused page is a window of its own.

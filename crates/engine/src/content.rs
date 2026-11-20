@@ -1068,7 +1068,17 @@ impl Engine {
         #[cfg(target_os = "windows")]
         {
             let focused = pages.iter().find(|(_, ring)| *ring);
-            crate::win::set_focus_ring(focused.map(|(window, _)| window.window_handle()), accent);
+            // A page of a split has the frame's corners, or none.
+            let radius = if Self::page_frame_shows(&self.lock()) {
+                Self::PAGE_RADIUS
+            } else {
+                0
+            };
+            crate::win::set_focus_ring(
+                focused.map(|(window, _)| window.window_handle()),
+                accent,
+                radius,
+            );
         }
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = (pages, accent);
@@ -1367,9 +1377,16 @@ wrap_window_delegate! {
             // Hidden until the app activates the tab.
             window.set_bounds(Some(&engine.content_rect()));
             #[cfg(target_os = "macos")]
-            crate::mac::round_window_corners(window.window_handle(), 10.0, false);
+            crate::mac::round_window_corners(
+                window.window_handle(),
+                f64::from(engine.corner_radius(self.id)),
+                false,
+            );
             #[cfg(target_os = "windows")]
-            crate::win::round_window_corners(window.window_handle(), false);
+            {
+                crate::win::round_window_corners(window.window_handle(), false);
+                crate::win::clip_page(window.window_handle(), engine.corner_radius(self.id));
+            }
             #[cfg(target_os = "macos")]
             crate::mac::pin_window(window.window_handle());
             if let PageView::System(id) = &self.view {

@@ -91,6 +91,7 @@ pub use events::{
     ExtensionMenuAction, MemoryPressure, Shortcut, UrlSource,
 };
 pub use extensions::{ExtensionInfo, is_extension_id};
+pub use frame::PageFrame;
 pub use keymap::{Action, Combo, First, KeysError, Overrides, Priorities};
 pub use keys::set_page_first_sites;
 pub use languages::LanguagePrefs;

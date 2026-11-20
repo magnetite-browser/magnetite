@@ -334,6 +334,9 @@ pub struct Appearance {
     /// A row of extension icons below the sidebar's address, in place of
     /// the icons in its title band.
     pub extension_bar: bool,
+    /// When the frame shows around the pages; without it they reach the
+    /// window's edges.
+    pub page_frame: magnetite_engine::PageFrame,
     /// How each space looks beyond its colour, by space id. A space without
     /// an entry has the default look. Kept on this device.
     pub looks: BTreeMap<String, SpaceLook>,
@@ -374,6 +377,7 @@ impl Default for Appearance {
             sidebar_width: 264,
             top_bar: false,
             extension_bar: false,
+            page_frame: magnetite_engine::PageFrame::Always,
             looks: BTreeMap::new(),
         }
     }

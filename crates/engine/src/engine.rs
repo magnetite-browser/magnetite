@@ -166,6 +166,8 @@ pub(crate) struct Inner {
     pub chrome_toolbar: bool,
     /// The top bar is on (`set_top_bar_visible`).
     pub top_bar_visible: bool,
+    /// When the frame around the pages shows (`set_page_frame`).
+    pub page_frame: crate::PageFrame,
     /// Where DevTools open, and the docked ones per page.
     pub devtools_dock: crate::DevToolsDock,
     pub docked: HashMap<ContentId, crate::devdock::DockedDevTools>,
@@ -297,6 +299,7 @@ impl Engine {
                 queued: Vec::new(),
                 chrome_toolbar: config.chrome_toolbar,
                 top_bar_visible: false,
+                page_frame: crate::PageFrame::default(),
                 devtools_dock: crate::DevToolsDock::default(),
                 docked: HashMap::new(),
                 pending_panels: HashMap::new(),

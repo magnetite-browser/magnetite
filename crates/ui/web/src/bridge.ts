@@ -441,6 +441,8 @@ export interface Appearance {
   top_bar: boolean;
   /** A row of extension icons below the sidebar's address, in place of the icons in its title band. */
   extension_bar: boolean;
+  /** When the frame shows around the pages (`windowed`: not in full screen); without it they reach the window's edges. */
+  page_frame: "always" | "windowed" | "never";
   /** How each space looks beyond its colour, by space id; a space without an entry has `DEFAULT_LOOK`. Kept on this device. */
   looks: Record<Id, SpaceLook>;
 }

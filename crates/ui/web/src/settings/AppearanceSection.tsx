@@ -183,7 +183,10 @@ function TextSample({ from, to }: { from: number; to: number }) {
   );
 }
 
-/** Layout, text size, page zoom, density and sidebar width. */
+/** The choices for the frame around the page. */
+const PAGE_FRAMES = [["Always", "always"], ["Not in full screen", "windowed"], ["Never", "never"]] as const satisfies readonly (readonly [string, Appearance["page_frame"]])[];
+
+/** Layout, the frame around the page, text size, page zoom, density and sidebar width. */
 export function AppearanceSection({ info, update, open }: { info: Info; update: (patch: SettingsPatch) => void; open: (section: string) => void }) {
   const { draft, set, preview } = useAppearance(info, update);
   return (
@@ -199,6 +202,13 @@ export function AppearanceSection({ info, update, open }: { info: Info; update: 
       {!draft.top_bar && (
         <Toggle label="Extension bar" hint="A row of pinned extensions below the address, with a button that lists the rest. The icons leave the row above it." checked={draft.extension_bar} onChange={(on) => set({ extension_bar: on }, true)} />
       )}
+      <Field side label="Frame around the page" hint="The gap between a page and the window's edges, and the page's round corners. Without it a page reaches the edges of the window.">
+        <div className="seg">
+          {PAGE_FRAMES.map(([label, frame]) => (
+            <button key={frame} data-on={draft.page_frame === frame || undefined} aria-pressed={draft.page_frame === frame} onClick={() => set({ page_frame: frame }, true)}>{label}</button>
+          ))}
+        </div>
+      </Field>
       <Field side label="Text size" hint={`The sidebar, the command bar and these pages. Web pages zoom on their own with ${keyLabel("⌘+", "Ctrl +")} and ${keyLabel("⌘−", "Ctrl −")}.`}>
         <Slider value={draft.text_scale} min={85} max={130} step={5} unit="%" reset={100} onChange={(v, now) => (now ? set({ text_scale: v }, true) : preview({ text_scale: v }))} />
         <TextSample from={info.settings.appearance.text_scale} to={draft.text_scale} />

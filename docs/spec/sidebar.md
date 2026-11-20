@@ -220,8 +220,8 @@ still drags the window.
 
 Dragging the sidebar's right edge sets its width (220 to 360 points, 264 by
 default; double-click resets). Settings → Appearance has the width too, plus
-text size (85 to 130 %), row density (compact, comfortable, spacious) and
-the layout (below).
+text size (85 to 130 %), row density (compact, comfortable, spacious), the
+layout and the frame around the page (both below).
 
 ## Top bar
 
@@ -244,6 +244,22 @@ switches at once, without a restart.
 - The sidebar keeps the rest: favorites, tabs, the footer. Hidden (`Cmd+S`),
   it still slides out over the pages, below the bar.
 - Empty space in the bar drags the window; a double-click maximizes it.
+
+## Frame around the page
+
+Settings → Appearance → **Frame around the page** says when a page has the
+gap to the window's edges and the sidebar, and its round corners:
+
+- **Always** (the default).
+- **Not in full screen**: the pages of a full screen window have none.
+- **Never**.
+
+Without the frame a page reaches the edges of the window and the sidebar,
+with square corners. On macOS a corner of the page that lies in a corner of
+the window follows the window's round corner. The pages of a split keep the
+gap between them, where they are resized. A peek keeps its round corners,
+and so does a web panel that lies over the pages. It switches at once,
+without a restart, and is the same in every window.
 
 ## Keyboard
 

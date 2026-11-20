@@ -3,10 +3,35 @@
 //! front has developer tools) above the content panel.
 
 use cef::*;
+use serde::{Deserialize, Serialize};
 
 use crate::client::MagnetiteClient;
 use crate::engine::{Engine, WindowId, WindowState};
 use crate::events::{ContentId, EngineEvent};
+
+/// When the frame shows around the pages: the gap to the window's edges and
+/// the sidebar, and the pages' rounded corners. Without it a page reaches
+/// the window's edges, with square corners.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PageFrame {
+    #[default]
+    Always,
+    /// Not while the window is full screen.
+    Windowed,
+    Never,
+}
+
+impl PageFrame {
+    /// Whether a window that is `fullscreen` or not has the frame.
+    fn shows(self, fullscreen: bool) -> bool {
+        match self {
+            Self::Always => true,
+            Self::Windowed => !fullscreen,
+            Self::Never => false,
+        }
+    }
+}
 
 pub(crate) struct FrameState {
     pub window: Window,
@@ -138,8 +163,11 @@ impl Engine {
         }
     }
 
-    /// Gap between the page and the frame edges / sidebar, in DIP.
+    /// Gap between the page and the frame edges / sidebar, in DIP, while
+    /// the frame around the pages shows (`PageFrame`).
     pub const CONTENT_INSET: i32 = 8;
+    /// Corner radius of a page inside the frame, in DIP.
+    pub(crate) const PAGE_RADIUS: i32 = 10;
     /// How far the window-drag strip reaches into the top of the pages.
     const GRAB_OVERLAP: i32 = 6;
     /// Height of the top bar (`magnetite://ui/topbar`).
@@ -155,7 +183,7 @@ impl Engine {
         };
         let panel = self.content_panel_in_screen();
         let strip = Rect {
-            height: Self::CONTENT_INSET + Self::GRAB_OVERLAP,
+            height: self.content_inset() + Self::GRAB_OVERLAP,
             ..panel
         };
         #[cfg(target_os = "macos")]
@@ -207,12 +235,76 @@ impl Engine {
     /// `content_rect` with the room a docked web panel takes: the whole
     /// page area, which the panel is placed in.
     pub(crate) fn page_area(&self) -> Rect {
-        Self::inset(&self.content_panel_in_screen())
+        self.inset(&self.content_panel_in_screen())
+    }
+
+    /// Whether the current window has the frame around its pages.
+    pub(crate) fn page_frame_shows(inner: &crate::engine::Inner) -> bool {
+        let fullscreen = (inner.win.frame.as_ref()).is_some_and(|f| f.window.is_fullscreen() != 0);
+        inner.page_frame.shows(fullscreen)
+    }
+
+    /// The gap around the current window's pages: none without the frame.
+    fn content_inset(&self) -> i32 {
+        if Self::page_frame_shows(&self.lock()) {
+            Self::CONTENT_INSET
+        } else {
+            0
+        }
+    }
+
+    /// The corner radius page `id` has where it is placed now: square
+    /// without the frame, unless it floats over the pages (a peek, a web
+    /// panel that is not docked).
+    pub(crate) fn corner_radius(&self, id: ContentId) -> i32 {
+        let inner = self.lock();
+        let floats = inner.win.peek == Some(id)
+            || (!crate::content::WEB_PANEL_DOCKED && inner.win.web_panel == Some(id));
+        if floats || Self::page_frame_shows(&inner) {
+            Self::PAGE_RADIUS
+        } else {
+            0
+        }
+    }
+
+    /// Which corners of `rect` (on screen) lie in a corner of the current
+    /// window: top left, top right, bottom left, bottom right. None in full
+    /// screen, where the window has no round corners.
+    #[cfg(target_os = "macos")]
+    pub(crate) fn in_window_corner(&self, rect: &Rect) -> [bool; 4] {
+        let Some(window) = self.frame_window().filter(|w| w.is_fullscreen() == 0) else {
+            return [false; 4];
+        };
+        let b = window.bounds();
+        let (left, top) = (rect.x == b.x, rect.y == b.y);
+        let right = rect.x + rect.width == b.x + b.width;
+        let bottom = rect.y + rect.height == b.y + b.height;
+        [left && top, right && top, left && bottom, right && bottom]
+    }
+
+    /// When the frame around the pages shows, in every window.
+    pub fn set_page_frame(&self, frame: PageFrame) {
+        if std::mem::replace(&mut self.lock().page_frame, frame) == frame {
+            return;
+        }
+        for win in self.windows() {
+            self.in_window(win, || self.apply_page_frame());
+        }
+    }
+
+    /// The frame around the current window's pages came or went (the
+    /// setting, full screen): the pages take their new place and corners.
+    fn apply_page_frame(&self) {
+        self.reposition_contents();
+        self.apply_drag_regions();
+        // The outline of a split's focused page has the page's corners.
+        let focus = self.lock().win.focused_pane;
+        self.update_focus_ring(focus);
     }
 
     /// The content panel `r` without the frame's inset around the pages.
-    fn inset(r: &Rect) -> Rect {
-        let i = Self::CONTENT_INSET;
+    fn inset(&self, r: &Rect) -> Rect {
+        let i = self.content_inset();
         Rect {
             x: r.x + i,
             y: r.y + i,
@@ -233,7 +325,7 @@ impl Engine {
                 .filter(|_| crate::content::WEB_PANEL_DOCKED)?;
             inner.win.web_panel_width
         };
-        let area = Self::inset(&self.content_panel_in_window());
+        let area = self.inset(&self.content_panel_in_window());
         let panel = crate::content::web_panel_rect(&area, width);
         let grip = Rect {
             x: panel.x + panel.width,
@@ -1042,14 +1134,14 @@ wrap_window_delegate! {
         }
 
         // Entering or leaving full screen takes or brings back the row of
-        // our own window buttons above the pages.
+        // our own window buttons above the pages, and the frame around
+        // the pages where it shows only outside full screen.
         fn on_window_fullscreen_transition(&self, _window: Option<&mut Window>, is_completed: ::std::os::raw::c_int) {
             if is_completed != 0 {
                 let engine = Engine::global();
                 engine.in_window(self.win, || {
                     engine.sync_caption();
-                    engine.reposition_contents();
-                    engine.apply_drag_regions();
+                    engine.apply_page_frame();
                 });
             }
         }
@@ -1176,4 +1268,21 @@ fn cef_owned(text: &str) -> CefString {
     let mut raw: sys::_cef_string_utf16_t = unsafe { std::mem::zeroed() };
     unsafe { sys::cef_string_utf8_to_utf16(text.as_ptr().cast(), text.len(), &mut raw) };
     CefString::from(raw)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PageFrame;
+
+    #[test]
+    fn the_frame_goes_in_full_screen_only_where_it_is_set_so() {
+        for (frame, windowed, fullscreen) in [
+            (PageFrame::Always, true, true),
+            (PageFrame::Windowed, true, false),
+            (PageFrame::Never, false, false),
+        ] {
+            assert_eq!(frame.shows(false), windowed, "{frame:?} in a window");
+            assert_eq!(frame.shows(true), fullscreen, "{frame:?} in full screen");
+        }
+    }
 }

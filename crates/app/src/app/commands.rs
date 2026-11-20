@@ -2084,6 +2084,7 @@ impl MagnetiteApp {
                 })?;
                 engine.set_sidebar_width(settings.appearance.sidebar_width);
                 engine.set_top_bar_visible(settings.appearance.top_bar);
+                engine.set_page_frame(settings.appearance.page_frame);
                 engine
                     .set_chrome_toolbar(settings.chrome_toolbar || engine.config().chrome_toolbar);
                 Self::apply_devtools_dock(engine, settings.devtools_dock);
