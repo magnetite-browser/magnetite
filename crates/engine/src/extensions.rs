@@ -12,7 +12,8 @@
 //! the popup to its own toolbar, which every page window has out of sight
 //! (`content.rs`), so the popup opens at the page's top-left corner, next to
 //! the sidebar, or with the top bar on at its top-right corner, below the top
-//! bar's buttons.
+//! bar's buttons. A page of the system's engine has a Chromium tab for this
+//! (`shadow.rs`).
 
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
@@ -375,7 +376,7 @@ impl Engine {
     }
 
     /// Call `f` with page `id`'s tab target (the `DevTools` id of the tab that
-    /// holds the page), found once and remembered. Every page window is a
+    /// holds the page, or a system page's shadow), found once and remembered. Every page window is a
     /// browser window of its own, so the tab is the one in the page's window:
     /// the page names its own target, the browser-wide session gives that
     /// target's window and the tabs, and the tab with the same window wins
@@ -402,7 +403,10 @@ impl Engine {
                 let text = |k: &str| info.get(k).and_then(Value::as_str).map(str::to_string);
                 Some((text("targetId")?, text("url").unwrap_or_default()))
             });
-            let Some((page, url)) = page else { return };
+            let Some((page, url)) = page else {
+                crate::trace("extension action: the page has no Chromium tab");
+                return;
+            };
             crate::devpipe::call(
                 "Browser.getWindowForTarget",
                 &json!({ "targetId": page }),
@@ -436,7 +440,14 @@ impl Engine {
                 },
             );
         });
-        self.devtools(id, "Target.getTargetInfo", &json!({}), reply);
+        // A system page is among Chromium's tabs through its shadow.
+        self.devtools_at(
+            self.tab_host(id),
+            id,
+            "Target.getTargetInfo",
+            &json!({}),
+            reply,
+        );
     }
 }
 

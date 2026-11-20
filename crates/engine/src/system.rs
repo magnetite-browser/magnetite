@@ -10,10 +10,11 @@
 //! A system page is a page like any other to the rest of the engine and to
 //! the app: the same id, the same window in the frame (so it is shown,
 //! split, peeked and closed the same way) and the same events. What differs
-//! is what fills the window, and what a page of that engine cannot do: it
-//! runs no Chrome extensions and none of Magnetite's hooks into Chromium
-//! (ad blocking, the media row, `DevTools`, capture, find in page), and it
-//! signs in apart from the Chromium pages of its profile.
+//! is what fills the window, and what a page of that engine cannot do: no
+//! extension reaches into it (on macOS extensions get a Chromium tab of the
+//! page's own instead, `shadow.rs`), it has none of Magnetite's hooks into
+//! Chromium (ad blocking, the media row, `DevTools`, capture, find in page),
+//! and it signs in apart from the Chromium pages of its profile.
 //!
 //! Which engine a page has is decided by the address it is given: when it
 //! is made, when the app sends it elsewhere, and when a Chromium page is
@@ -143,12 +144,15 @@ impl Engine {
     }
 
     /// Make page `id` in the system's engine, in a window of the kind every
-    /// page has (hidden), loading `url` in `profile`'s own data store.
+    /// page has (hidden), loading `url` in `profile`'s own data store. Its
+    /// Chromium tab for extensions (`shadow.rs`), where it gets one, is
+    /// made in `context` (`profile`'s, ready; none for the default one).
     pub(crate) fn build_system_content(
         &self,
         id: ContentId,
         url: &str,
         profile: Option<&ContextProfile>,
+        context: Option<cef::RequestContext>,
     ) {
         let profile_id = profile.map(|p| p.id.clone()).unwrap_or_default();
         let ephemeral = profile.is_some_and(|p| p.ephemeral);
@@ -157,6 +161,9 @@ impl Engine {
             self.emit(EngineEvent::ContentClosed { id });
             return;
         }
+        let shadow = (crate::shadow::HOSTED)
+            .then(|| crate::shadow::view(url, context))
+            .flatten();
         let serial = self.next_serial();
         self.lock().contents.insert(
             id,
@@ -165,6 +172,10 @@ impl Engine {
                 window: None,
                 view: PageView::System(id),
                 browser: None,
+                shadow: shadow.clone().map(|view| crate::shadow::Shadow {
+                    view,
+                    browser: None,
+                }),
                 profile: profile_id,
                 ephemeral,
                 devtools: None,
@@ -175,7 +186,8 @@ impl Engine {
                 serial,
             },
         );
-        let mut delegate = ContentWindowDelegate::new(id, PageView::System(id), None, serial);
+        let mut delegate =
+            ContentWindowDelegate::new(id, PageView::System(id), shadow, None, serial);
         cef::window_create_top_level(Some(&mut delegate));
         self.emit(EngineEvent::ContentCreated { id });
     }
@@ -308,6 +320,7 @@ impl Engine {
     }
 
     pub(crate) fn system_url(&self, id: ContentId, url: String) {
+        self.sync_shadow(id);
         self.emit(EngineEvent::UrlChanged { id, url });
     }
 

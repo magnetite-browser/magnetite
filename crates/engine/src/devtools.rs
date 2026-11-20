@@ -29,7 +29,19 @@ impl Engine {
     /// Run DevTools-protocol `method` with `params` in page `id`. `reply` runs
     /// on the UI thread; it gets an error if the page is gone.
     pub fn devtools(&self, id: ContentId, method: &str, params: &Value, reply: Reply) {
-        let Some(host) = self.content_browser_host(id) else {
+        self.devtools_at(self.content_browser_host(id), id, method, params, reply);
+    }
+
+    /// `devtools` in `host`, a browser that belongs to page `id`.
+    pub(crate) fn devtools_at(
+        &self,
+        host: Option<BrowserHost>,
+        id: ContentId,
+        method: &str,
+        params: &Value,
+        reply: Reply,
+    ) {
+        let Some(host) = host else {
             reply(Err("page is gone".into()));
             return;
         };

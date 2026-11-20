@@ -139,6 +139,11 @@ fn load_asset(ui_dir: &std::path::Path, path: &str) -> Option<(Vec<u8>, String)>
     Some((bytes, mime.to_string()))
 }
 
+/// A handler that answers a request with `bytes`, of type `mime`.
+pub(crate) fn bytes_handler(bytes: Vec<u8>, mime: &str) -> ResourceHandler {
+    BytesResourceHandler::new(Arc::new(bytes), mime.to_string(), Arc::new(Mutex::new(0)))
+}
+
 wrap_resource_handler! {
     struct BytesResourceHandler {
         data: Arc<Vec<u8>>,

@@ -85,6 +85,15 @@ Option 4 until option 3 is there, on macOS and Windows.
     Chromium.
   - WebKit's check of addresses against a list of fraudulent sites is off,
     as Chromium's Safe Browsing is: both ask a service.
+  - The page's own window, under the attached one, holds a Chromium view
+    that is never seen (`shadow.rs`): the tab an extension's action runs
+    for, with the toolbar its popup hangs on. Every request of it is
+    answered with an empty document at the address the page shows, so it
+    loads nothing from the network, and an extension asked for the tab in
+    front finds the page's site. Without it a click on an extension did
+    nothing on a system page. It costs a renderer process per system
+    page. Chromium gives it the keyboard with its window; the WebKit view
+    takes the keyboard back each time.
 - **On Windows** the view is a WebView2 controller (`win/webview2.rs`):
   - It lives in a plain child window of Magnetite's inside the page's own
     window. A child moves, hides and is cut round with its parent, and
@@ -115,6 +124,11 @@ Checked in a running build (macOS 27.2, CEF 156):
   screen only while its page is; it is gone when the tab closes. Two system
   pages share a split, with the outline on the one that has the keyboard.
 - A page in a private space gets no store on disk.
+- An extension's popup opens over a system page and names the page's
+  address as the tab in front; the keyboard is the page's before, and
+  again after the popup closed. The Chromium view follows the page's
+  address, also in a profile whose context was still being made, and goes
+  with the page when it changes its engine.
 - Signing in to Disney+ and playing a title there, with the pointer's hover
   and cursors, by hand.
 - WebKit offers FairPlay for H.264 and HEVC in a process that is not Safari.
@@ -139,7 +153,7 @@ Checked in a running build (Windows 11, WebView2 157, CEF 156):
 ## Consequences
 
 - Magnetite shows pages in two engines. A system page has none of what
-  hooks into Chromium: extensions, ad blocking, the media row, DevTools,
+  hooks into Chromium: what an extension does inside a page, ad blocking, the media row, DevTools,
   capture, find in page, the user's own CSS and JavaScript, Chromium's
   password manager and its permission prompts. The site panel says which
   engine shows a page, and Settings say what differs. What of this is

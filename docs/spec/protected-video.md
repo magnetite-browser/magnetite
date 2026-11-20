@@ -66,6 +66,12 @@ the page's own full screen.
   `Shift+Cmd`+click one in front, `Shift`+click a peek, as in a Chromium
   page. A link out of a tab locked to its site (a pinned tab, a favorite)
   opens elsewhere.
+- **Extensions.** On macOS an extension opens on a system page as on any
+  other: its popup at the page's corner, with the page's address as the
+  tab in front, so a password manager lists the logins of the site and a
+  password can be copied from it. The extension does not reach the page
+  itself: it fills nothing in and changes nothing there (see below). A tab
+  it opens from its popup opens as a tab.
 - **Pointer.** On macOS hover effects and the page's own cursors show
   while the page has the keyboard, which it gets when it is shown and with
   a click into it. After a click into the sidebar they rest until the next
@@ -95,7 +101,10 @@ the page's own full screen.
 
 What a system page does not have, because it hooks into Chromium:
 
-- Chrome extensions, also password managers.
+- What an extension does in a page: filling a form, content scripts,
+  reading the page. On macOS the extension gets a Chromium tab of the
+  page's own to act on, which holds an empty document at the page's
+  address and is never seen; on Windows it gets none.
 - Ad blocking, Global Privacy Control, the user's own CSS and JavaScript.
 - The media row in the sidebar, the floating video, muting a tab.
 - DevTools and the developer features, capture, find in page, printing.
@@ -135,7 +144,7 @@ WebView2's developer tools are off too.
 - Noticing that a page failed to play in Chromium and offering the switch.
 
 Code: `crates/engine/src/system.rs` (which engine, changing it, a system
-page's events), `mac/webkit.rs` (the WebKit view, its data stores),
+page's events), `shadow.rs` (the Chromium tab extensions act on), `mac/webkit.rs` (the WebKit view, its data stores),
 `win/webview2.rs` (the WebView2 view, its profiles), `win/icon_fetch.rs`,
 `mac/mod.rs` (`set_focus_ring`), `content.rs` (`PageView`, `make_page`),
 `client.rs` (`on_before_browse`), `favicon.rs`, `sitedata.rs`,

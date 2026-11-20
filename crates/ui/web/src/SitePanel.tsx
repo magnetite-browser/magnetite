@@ -87,7 +87,7 @@ function SystemEngine({ url }: { url: string }) {
   };
   return (
     <>
-      <label className="panel-row" title={`For all of ${engine.site}: its pages open in ${engine.name}, ${engine.about}, which plays protected video. No extensions or ad blocking there, and the site asks you to sign in again. The page loads again.`}>
+      <label className="panel-row" title={`For all of ${engine.site}: its pages open in ${engine.name}, ${engine.about}, which plays protected video. Extensions cannot read or fill its pages, there is no ad blocking, and the site asks you to sign in again. The page loads again.`}>
         <span className="flex-1">Open in {engine.name}</span>
         {engine.known ? <span className="text-[12px] text-[var(--muted)]">Always, for its video</span> : <Switch label={`Open this site in ${engine.name}`} checked={engine.system} onChange={set} />}
       </label>
@@ -315,7 +315,7 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
         {!internal && !system && <Permissions key={`${item.id} ${host}`} pageHost={host} />}
         {system && (
           <div className="panel-group">
-            <div className="panel-note">{engine ? `${engine.name}, ${engine.about},` : "The system's own web engine"} shows this page. Extensions, ad blocking, Global Privacy Control and developer tools do not work here, and the site signs in apart from your other pages.</div>
+            <div className="panel-note">{engine ? `${engine.name}, ${engine.about},` : "The system's own web engine"} shows this page. Extensions cannot read or fill it; ad blocking, Global Privacy Control and developer tools do not work here, and the site signs in apart from your other pages.</div>
           </div>
         )}
 

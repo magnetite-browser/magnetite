@@ -77,6 +77,9 @@ Settings.
   that page's top-left corner, next to the sidebar (with the top bar on, at
   its top-right corner, below the top bar's buttons), and acts on that page:
   a password manager fills it, a blocker's switch applies to its site.
+- On a page the system's engine shows (`protected-video.md`) the popup
+  opens the same way on macOS and is told the page's address, but the
+  extension does not reach the page: nothing is filled in.
 - With no page open, a notice asks to open one first.
 - "Options" opens the extension's options page as a tab, in the profile of
   the page in front, where the extension is installed.

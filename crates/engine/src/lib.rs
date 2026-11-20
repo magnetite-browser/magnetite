@@ -61,6 +61,7 @@ mod prompts;
 mod router;
 mod scheme;
 mod scriptlets;
+mod shadow;
 mod site;
 mod sitecode;
 mod sitedata;
