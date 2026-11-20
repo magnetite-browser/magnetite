@@ -32,8 +32,8 @@ repository, <https://github.com/magnetite-browser/magnetite-sync>
    leaves.
 4. While syncing, the page shows the server, the time of the last sync and
    the last error, with "Sync now" and "Show sync code".
-   The shown code has a QR code beside its words, for Magnetite on a phone
-   to scan (see "The code as a QR code").
+   The shown code has a QR code beside its words, which holds the code and
+   the server for Magnetite's phone apps (see "The code as a QR code").
 5. "Leave on this device" forgets the code here; the chain and the other
    devices stay as they are. "Delete sync chain…" (click twice) also erases
    the chain on the server for every device.
@@ -44,10 +44,13 @@ Beside the 24 words, the page draws a QR code that holds the link
 
     magnetite://sync?server=<address of the server>&words=<the 24 words>
 
-with both values percent-encoded and the words separated by `%20`. Magnetite
-on a phone scans it and joins with what it reads, so neither the words nor
-the address of an own server are typed. The QR code is as secret as the
-words and shows only while they show. It is made on the device; a link is
+with both values percent-encoded and the words separated by `%20`. It is
+there for Magnetite's phone apps (`magnetite-ios`, `magnetite-android`):
+their "Scan QR Code" step, where a chain is joined, reads the link and joins
+with it, so neither the words nor the address of an own server are typed.
+The browser itself does not read the link, and a phone app without that
+step joins with the words, as a computer does. The QR code is as secret as
+the words and shows only while they show. It is made on the device; a link is
 used and not plain text, so a phone's camera app does not offer to search
 the web for the words.
 

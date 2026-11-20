@@ -148,7 +148,7 @@ export function SyncSection({ info, reload, job, setJob, spaces = true, only }: 
         <Group>
         {spaces && <SpacesOnThisDevice info={info} reload={reload} />}
 
-        <Field label="Your sync code" hint="Enter these 24 words on another device to sync it, or scan the QR code with Magnetite on a phone. The words are the only key to your synced data, and the QR code holds them too: the server cannot read the data, and nobody can recover the words for you.">
+        <Field label="Your sync code" hint="Enter these 24 words on another device to sync it. On a phone, “Scan QR Code” in Magnetite reads the QR code instead; a phone without that step takes the words. The words are the only key to your synced data, and the QR code holds them too: the server cannot read the data, and nobody can recover the words for you.">
           {/* Found by the buttons that lead here, also once the code shows and they are gone. */}
           <span hidden data-search-name>Show sync code Start syncing</span>
           {code ? (
@@ -161,7 +161,7 @@ export function SyncSection({ info, reload, job, setJob, spaces = true, only }: 
                 {code.qr && (
                   <figure className="w-[216px]">
                     <QrCode rows={code.qr} label="Your sync code as a QR code" />
-                    <figcaption className="hint text-center">Scan with Magnetite on a phone</figcaption>
+                    <figcaption className="hint text-center">For “Scan QR Code” in Magnetite on a phone</figcaption>
                   </figure>
                 )}
               </div>
