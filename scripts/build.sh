@@ -141,7 +141,9 @@ sign_macos() {
   local app_ent="$ent/app.entitlements"
   if [[ -n ${MACOS_PROVISIONING_PROFILE:-} ]]; then
     [[ $identity != - ]] || die "MACOS_PROVISIONING_PROFILE needs a Developer ID in MACOS_SIGN_IDENTITY"
-    cp "$MACOS_PROVISIONING_PROFILE" "$app/Contents/embedded.provisionprofile"
+    # Not cp: a read-only profile would be a read-only file in the bundle
+    # (see the chmod in package_macos).
+    install -m 644 "$MACOS_PROVISIONING_PROFILE" "$app/Contents/embedded.provisionprofile"
     app_ent="$(mktemp -t magnetite-entitlements)"
     passkey_entitlements "$MACOS_PROVISIONING_PROFILE" "$app_ent"
   fi
