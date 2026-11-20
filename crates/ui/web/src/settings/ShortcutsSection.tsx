@@ -104,6 +104,23 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
     );
   };
 
+  /** Last in a row: takes back everything to its left, the keys of `action` and who gets them first. */
+  const resetButton = (action: ShortcutAction) => {
+    const now = info.shortcuts.find((s) => s.action === action);
+    if (!now) return null;
+    const first = now.default_first === "page" ? "page first" : "Magnetite first";
+    return (
+      <button
+        className="btn sm"
+        disabled={now.keys === now.default && now.first === now.default_first}
+        title={`Back to ${now.default ? keysLabel(now.default) : "no keys"}, ${first}`}
+        onClick={() => reset(action)}
+      >
+        Reset
+      </button>
+    );
+  };
+
   /** One row: the name, the keys, and the buttons that change them. */
   const row = (target: Target, key: string, label: React.ReactNode) => {
     const now = current(target);
@@ -125,10 +142,8 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
               </span>
               <button className="btn sm" onClick={() => { setProblem(null); setRecording({ target }); }}>Change</button>
               <button className="btn sm" disabled={!now?.keys && !now?.unused} title="No keys from now on" onClick={() => void save(target, null)}>Remove</button>
-              {target.kind === "action" && (
-                <button className="btn sm" disabled={now?.keys === now?.default} title={now?.default ? `Back to ${keysLabel(now.default)}` : "Back to no keys"} onClick={() => reset(target.action)}>Reset</button>
-              )}
               {target.kind === "action" && firstPick(target.action)}
+              {target.kind === "action" && resetButton(target.action)}
             </>
           )}
         </div>

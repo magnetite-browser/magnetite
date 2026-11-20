@@ -67,13 +67,14 @@ impl MagnetiteApp {
         Ok(())
     }
 
-    /// Give `action` its default keys back, or every action (`None`); then
-    /// no space has keys of its own either, and every shortcut goes first
-    /// to whom it does by default.
+    /// Give `action` its default keys back and let it go first to whom it
+    /// does by default, or every action (`None`); then no space has keys
+    /// of its own either.
     pub(super) fn reset_shortcut(&self, engine: &Engine, action: Option<Action>) {
         self.with_state(|s| {
             if let Some(action) = action {
                 s.settings.shortcuts.reset(action);
+                (s.settings.shortcut_priority).set(action, action.default_first());
             } else {
                 s.settings.shortcuts = Overrides::default();
                 s.settings.shortcut_priority = Priorities::default();

@@ -12,8 +12,8 @@ with the keys it has now, and then the spaces ("Keys for a space" below).
 |---|---|
 | "Change" | waits for the next key press and gives the shortcut those keys; Esc, or leaving the page, cancels |
 | "Remove" | the shortcut gets no keys; its command stays in the menu bar and the command bar |
-| "Reset" | the shortcut gets its default keys back |
-| "Reset all" | every shortcut gets its default keys back |
+| "Reset" | at the end of the row: the shortcut gets its default keys back, and goes first to whom it does by default |
+| "Reset all" | every shortcut gets its default keys back, and goes first to whom it does by default |
 
 - While the page waits for keys, no shortcut runs and the menu bar's items
   have no keys, so the keys pressed reach the page. This ends with the key
@@ -73,8 +73,8 @@ in Settings → Shortcuts has a choice for that:
 - The choice belongs to the shortcut, not to its keys: it stays when the
   shortcut gets other keys. A choice that differs from the default is
   shown in the accent colour.
-- A choice counts at once, in every window. "Reset all" takes every choice
-  back; "Reset" of one shortcut only its keys.
+- A choice counts at once, in every window. "Reset" takes the choice of its
+  shortcut back along with its keys, "Reset all" every choice.
 - The keys that cannot be changed and the keys of a space have no choice:
   Magnetite gets them first.
 
