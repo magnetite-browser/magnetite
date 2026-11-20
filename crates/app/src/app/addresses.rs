@@ -13,6 +13,8 @@ pub(super) fn normalise_url_with(input: &str, template: &str, sites: &[SiteSearc
         || s.starts_with("about:")
         || s.starts_with("chrome://")
         || s.starts_with("magnetite://")
+        // A page of a site without an origin: `blob:null/<id>`.
+        || (s.starts_with("blob:") && !s.contains(' '))
     {
         return s.to_string();
     }
@@ -97,6 +99,11 @@ mod tests {
         let open = |input| normalise_url_with(input, "https://search.example/?q=%s", &[]);
         assert_eq!(open("example.org/a"), "https://example.org/a");
         assert_eq!(open("about:blank"), "about:blank");
+        assert_eq!(open("blob:null/0c5f-1a"), "blob:null/0c5f-1a");
+        assert_eq!(
+            open("blob: what is it"),
+            "https://search.example/?q=blob%3A+what+is+it"
+        );
         // Servers on this computer speak plain http.
         assert_eq!(open("localhost:3000"), "http://localhost:3000");
         assert_eq!(open("app.localhost/x"), "http://app.localhost/x");
