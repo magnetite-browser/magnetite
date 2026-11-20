@@ -3,7 +3,7 @@
 // Rust -> JS: window.__magnetite.setState(state) and a few UI calls.
 // JS -> Rust: window.magnetiteQuery({request: JSON, onSuccess, onFailure}) (CEF message router).
 
-import type { ShortcutAction, ShortcutKeys } from "./settings/shortcutKeys";
+import type { ShortcutAction, ShortcutFirst, ShortcutKeys } from "./settings/shortcutKeys";
 import type { Info } from "./settings/types";
 
 export type Id = string;
@@ -704,6 +704,7 @@ export type Command =
   | { cmd: "export_bookmarks"; format: BookmarkFormat; space?: Id }
   | { cmd: "shortcut"; shortcut: string | { select_tab: number } | { select_space: number } }
   | { cmd: "set_shortcut"; action: ShortcutAction; keys: string | null }
+  | { cmd: "set_shortcut_first"; action: ShortcutAction; first: ShortcutFirst }
   | { cmd: "set_space_shortcut"; id: Id; keys: string | null }
   | { cmd: "reset_shortcut"; action?: ShortcutAction }
   | { cmd: "record_shortcut"; on: boolean };

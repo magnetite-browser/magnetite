@@ -58,12 +58,25 @@ search from anywhere (`mini-window.md`), `F12`, and the keys inside a peek
 
 ## Who gets a key first
 
-The shortcuts for tabs, windows and spaces are taken before the page sees
-the key, whatever keys they have. The others ("Show or hide the sidebar",
-"Open or close the web panel", "Pin or unpin the tab", the group "The page"
-and the group "Magnetite") go
-to the page first, which may use the key itself (`site-controls.md`). This
-belongs to the shortcut, not to its keys.
+A web app can have a use of its own for a shortcut's keys. Each shortcut
+in Settings → Shortcuts has a choice for that:
+
+| Choice | A key pressed in a page |
+|---|---|
+| "Magnetite first" | runs the shortcut; the page never sees the key |
+| "Page first" | goes to the page, which may use it; the shortcut runs if the page leaves the key alone |
+
+- Until the user chooses, the shortcuts for tabs, windows and spaces are
+  "Magnetite first", and the others ("Show or hide the sidebar", "Open or
+  close the web panel", "Pin or unpin the tab", the groups "The page",
+  "Magnetite" and "Developer") are "Page first" (`site-controls.md`).
+- The choice belongs to the shortcut, not to its keys: it stays when the
+  shortcut gets other keys. A choice that differs from the default is
+  shown in the accent colour.
+- A choice counts at once, in every window. "Reset all" takes every choice
+  back; "Reset" of one shortcut only its keys.
+- The keys that cannot be changed and the keys of a space have no choice:
+  Magnetite gets them first.
 
 With the sidebar (docked or floating) or the top bar in focus, a shortcut
 runs as in a page.
@@ -74,8 +87,9 @@ have no Cmd, Ctrl or Option (a function key), each press switches at once.
 
 ## Sync and other systems
 
-- Changed shortcuts are part of the synced settings (`sync.md`), so they
-  are set up once. Only what differs from the defaults is saved and sent.
+- Changed shortcuts, and who gets their keys first, are part of the synced
+  settings (`sync.md`), so they are set up once. Only what differs from the
+  defaults is saved and sent.
 - Keys are saved with the system's main modifier, not the literal key: Cmd
   on macOS is Ctrl elsewhere. The Control key of a Mac is Ctrl elsewhere
   too; of two shortcuts that end up on the same keys that way, the one
@@ -93,12 +107,14 @@ have no Cmd, Ctrl or Option (a function key), each press switches at once.
 | What | Where |
 |---|---|
 | The shortcuts with other keys or none: `{"new_tab": "primary+J", "print": null}` | `settings.shortcuts` in `state.json`, and the synced settings |
+| The shortcuts whose keys go first to someone else than by default: `{"find": "magnetite", "close_tab": "page"}` | `settings.shortcut_priority` in `state.json`, and the synced settings |
 | A space's keys: `"shortcut": "ctrl+alt+M"` | the space in the sidebar (`state.json`, and the synced sidebar) |
 
 ## Not built yet
 
 - Other keys for the commands under "Keys that cannot be changed".
 - Several keys for one shortcut.
+- A choice per site of who gets the keys first.
 
 Code: `crates/engine/src/keymap.rs` (defaults, checks), `keys.rs` (matching
 key presses), `menubar.rs` (`apply_keys`),

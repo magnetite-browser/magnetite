@@ -90,7 +90,7 @@ pub use events::{
     ExtensionMenuAction, MemoryPressure, Shortcut, UrlSource,
 };
 pub use extensions::{ExtensionInfo, is_extension_id};
-pub use keymap::{Action, Combo, KeysError, Overrides};
+pub use keymap::{Action, Combo, First, KeysError, Overrides, Priorities};
 pub use languages::LanguagePrefs;
 pub use media::{MediaAction, MediaState};
 pub use privacy::set_global_privacy_control;

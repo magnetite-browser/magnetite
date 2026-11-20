@@ -638,6 +638,11 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 /* Settings → Shortcuts: one shortcut per row, its keys and buttons on the right. */
 .shortcut-row { font-size: 14px; border-top: 1px solid var(--line); }
 .shortcut-row:first-child { border-top: 0; }
+/* Who gets the keys first: quiet until it differs from the default. */
+.field.sm.shortcut-first { flex: none; width: 132px; color: var(--muted); }
+.field.sm.shortcut-first[data-changed] { color: var(--accent); }
+/* The keys are a column of their own: the choice before them and the buttons after line up down the list. */
+.shortcut-keys { flex: none; min-width: 72px; display: flex; justify-content: flex-end; white-space: nowrap; }
 .shortcut-row kbd { min-width: 28px; padding: 3px 8px; border-radius: 6px; background: rgba(255,255,255,0.1); font: inherit; font-size: 13px; text-align: center; color: var(--fg); }
 
 /* Settings → Custom CSS & JS: a code field as wide as its card, growing downwards. */

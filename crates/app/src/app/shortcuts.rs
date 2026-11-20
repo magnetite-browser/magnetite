@@ -1,18 +1,35 @@
 //! Keys and menu bar items, and the command palette they open.
 
 use magnetite_core::split::Side;
-use magnetite_engine::{Action, Combo, ContentId, Engine, KeysError, Overrides, Shortcut};
+use magnetite_engine::{
+    Action, Combo, ContentId, Engine, First, KeysError, Overrides, Priorities, Shortcut,
+};
 use serde_json::json;
 
 use super::addresses::urlencode;
 use super::{LinkVariant, MagnetiteApp, PaletteMode};
 
 impl MagnetiteApp {
-    /// Hand the engine the keys the shortcuts have now (Settings →
-    /// Shortcuts): at start, and whenever they change here or through sync.
+    /// Hand the engine the keys the shortcuts have now and who gets them
+    /// first (Settings → Shortcuts): at start, and whenever they change
+    /// here or through sync.
     pub(super) fn apply_shortcut_keys(&self, engine: &Engine) {
-        let keys = self.with_state(|s| s.settings.shortcuts.clone());
-        engine.set_shortcut_keys(&keys);
+        let (keys, first) = self.with_state(|s| {
+            let settings = &s.settings;
+            (
+                settings.shortcuts.clone(),
+                settings.shortcut_priority.clone(),
+            )
+        });
+        engine.set_shortcut_keys(&keys, &first);
+    }
+
+    /// From now on a key of `action` pressed in a page goes to `first`
+    /// before the other.
+    pub(super) fn set_shortcut_first(&self, engine: &Engine, action: Action, first: First) {
+        self.with_state(|s| s.settings.shortcut_priority.set(action, first));
+        self.apply_shortcut_keys(engine);
+        self.push_state(engine);
     }
 
     /// Give `action` the keys `keys` (`None`: no keys), or tell why not.
@@ -51,13 +68,15 @@ impl MagnetiteApp {
     }
 
     /// Give `action` its default keys back, or every action (`None`); then
-    /// no space has keys of its own either.
+    /// no space has keys of its own either, and every shortcut goes first
+    /// to whom it does by default.
     pub(super) fn reset_shortcut(&self, engine: &Engine, action: Option<Action>) {
         self.with_state(|s| {
             if let Some(action) = action {
                 s.settings.shortcuts.reset(action);
             } else {
                 s.settings.shortcuts = Overrides::default();
+                s.settings.shortcut_priority = Priorities::default();
                 for space in &mut s.sidebar.spaces {
                     space.shortcut = None;
                 }

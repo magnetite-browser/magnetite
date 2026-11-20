@@ -69,6 +69,9 @@ type Group = (typeof SHORTCUT_GROUPS)[number];
 /** A shortcut whose keys can be changed, as the app names it. */
 export type ShortcutAction = { [G in Group as G["label"]]: keyof G["actions"] }[Group["label"]];
 
+/** Who gets a shortcut's keys first when a page is in focus: Magnetite (the page never sees them), or the page (the shortcut runs if the page leaves them alone). */
+export type ShortcutFirst = "magnetite" | "page";
+
 /** The keys each shortcut has now, as the app saves them (`primary+shift+T`); one without keys is missing. */
 export type ShortcutKeys = Partial<Record<ShortcutAction, string>>;
 

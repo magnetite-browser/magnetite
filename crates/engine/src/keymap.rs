@@ -138,29 +138,31 @@ impl Action {
         Self::ALL.into_iter().find(|a| a.shortcut() == shortcut)
     }
 
-    /// Taken before the page sees the key, so a web app cannot have it. The
-    /// others reach the page first and run only if it leaves them alone
-    /// (docs/spec/site-controls.md).
-    pub fn reserved(self) -> bool {
-        matches!(
-            self,
+    /// Who gets the action's keys first until the user says otherwise
+    /// (Settings → Shortcuts): the shortcuts for tabs, windows and spaces
+    /// are taken before the page sees the key, the others reach the page
+    /// first and run only if it leaves them alone
+    /// (docs/spec/shortcuts.md, "Who gets a key first").
+    pub fn default_first(self) -> First {
+        match self {
             Self::NewTab
-                | Self::FocusAddress
-                | Self::CloseTab
-                | Self::ReopenClosed
-                | Self::NextTab
-                | Self::PrevTab
-                | Self::NewSplit
-                | Self::NewWindow
-                | Self::CloseWindow
-                | Self::NewSpace
-                | Self::PrivateSpace
-                | Self::ClosePrivateSpace
-                | Self::HidePrivateSpace
-                | Self::NextSpace
-                | Self::PrevSpace
-                | Self::SpacePicker
-        )
+            | Self::FocusAddress
+            | Self::CloseTab
+            | Self::ReopenClosed
+            | Self::NextTab
+            | Self::PrevTab
+            | Self::NewSplit
+            | Self::NewWindow
+            | Self::CloseWindow
+            | Self::NewSpace
+            | Self::PrivateSpace
+            | Self::ClosePrivateSpace
+            | Self::HidePrivateSpace
+            | Self::NextSpace
+            | Self::PrevSpace
+            | Self::SpacePicker => First::Magnetite,
+            _ => First::Page,
+        }
     }
 
     /// The keys the action has until the user changes them, on macOS (`mac`)
@@ -481,6 +483,58 @@ pub fn refusal(combo: Combo) -> Option<KeysError> {
         .map(|(_, by)| KeysError::Fixed(by))
 }
 
+/// Who gets a shortcut's keys first when a page is in focus.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum First {
+    /// Taken before the page sees the key: a web app cannot have it.
+    Magnetite,
+    /// The page has the key first; the shortcut runs if it leaves it alone.
+    Page,
+}
+
+/// The shortcuts whose keys go first to someone else than by default
+/// (`Action::default_first`). Like `Overrides`: only what differs is
+/// saved, and reading skips what this version does not know.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
+#[serde(transparent)]
+pub struct Priorities(BTreeMap<Action, First>);
+
+impl<'de> Deserialize<'de> for Priorities {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        type Error = serde::de::value::Error;
+        let raw = BTreeMap::<String, String>::deserialize(deserializer)?;
+        let known = raw.into_iter().filter_map(|(action, first)| {
+            let action: Result<Action, Error> = Action::deserialize(action.into_deserializer());
+            let first: Result<First, Error> = First::deserialize(first.into_deserializer());
+            Some((action.ok()?, first.ok()?))
+        });
+        let mut all = Self(known.collect());
+        all.0
+            .retain(|action, first| *first != action.default_first());
+        Ok(all)
+    }
+}
+
+impl Priorities {
+    /// Who gets the keys of `action` first now.
+    pub fn first(&self, action: Action) -> First {
+        (self.0.get(&action).copied()).unwrap_or_else(|| action.default_first())
+    }
+
+    pub fn set(&mut self, action: Action, first: First) {
+        if first == action.default_first() {
+            self.0.remove(&action);
+        } else {
+            self.0.insert(action, first);
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
 /// What the user changed: an action's own keys, or `None` for no keys.
 /// Actions on their default keys are not in it, so it stays small in
 /// `state.json` and in sync. Reading it skips what this version does not
@@ -753,6 +807,31 @@ mod tests {
         assert_eq!(
             keys.combo_of(Action::Settings),
             Action::Settings.default_combo()
+        );
+    }
+
+    #[test]
+    fn who_gets_a_key_first_is_saved_only_where_it_differs() {
+        let mut first = Priorities::default();
+        assert_eq!(first.first(Action::CloseTab), First::Magnetite);
+        assert_eq!(first.first(Action::Find), First::Page);
+        first.set(Action::Find, First::Magnetite);
+        first.set(Action::CloseTab, First::Magnetite);
+        assert_eq!(first.first(Action::Find), First::Magnetite);
+        assert_eq!(
+            serde_json::to_string(&first).unwrap(),
+            r#"{"find":"magnetite"}"#
+        );
+        first.set(Action::Find, First::Page);
+        assert!(first.is_empty());
+        // From a newer version or another device: read as far as known.
+        let read: Priorities = serde_json::from_str(
+            r#"{"close_tab":"page","teleport":"page","print":"nobody","find":"page"}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            serde_json::to_string(&read).unwrap(),
+            r#"{"close_tab":"page"}"#
         );
     }
 

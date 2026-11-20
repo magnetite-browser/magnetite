@@ -14,7 +14,7 @@ use std::sync::{Mutex, RwLock};
 use std::time::{Duration, Instant};
 
 use crate::events::{DevPanel, Shortcut};
-use crate::keymap::{Action, Combo, Overrides};
+use crate::keymap::{Action, Combo, First, Overrides, Priorities};
 
 // The flags are `u32` on macOS and Linux and `i32` on Windows.
 #[allow(clippy::unnecessary_cast, clippy::cast_sign_loss)]
@@ -38,14 +38,27 @@ const SPACE_DIGITS: u32 = if cfg!(target_os = "macos") { CTRL } else { ALT };
 /// The keys of the actions as the user has them (Settings → Shortcuts), and
 /// until when shortcuts are off because Settings records new keys.
 static KEYS: RwLock<Option<Overrides>> = RwLock::new(None);
+/// Who gets each action's keys first, as the user has it (the same page).
+static FIRST: RwLock<Option<Priorities>> = RwLock::new(None);
 static PAUSED_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
 /// The keys that spaces have of their own (from the app).
 static SPACE_KEYS: RwLock<Vec<Combo>> = RwLock::new(Vec::new());
 
-/// Use these keys from now on.
-fn set_overrides(overrides: &Overrides) {
+/// Use these keys from now on, and give them first to whom `priorities` says.
+fn set_overrides(overrides: &Overrides, priorities: &Priorities) {
     if let Ok(mut keys) = KEYS.write() {
         *keys = Some(overrides.clone());
+    }
+    if let Ok(mut first) = FIRST.write() {
+        *first = Some(priorities.clone());
+    }
+}
+
+/// Who gets the keys of `action` first now.
+fn first(action: Action) -> First {
+    match FIRST.read().ok().as_deref() {
+        Some(Some(priorities)) => priorities.first(action),
+        _ => action.default_first(),
     }
 }
 
@@ -69,9 +82,10 @@ const RECORDING: Duration = Duration::from_secs(20);
 
 impl crate::Engine {
     /// Use the user's keys for the shortcuts from now on (Settings →
-    /// Shortcuts), in the pages and in the menu bar.
-    pub fn set_shortcut_keys(&self, overrides: &Overrides) {
-        set_overrides(overrides);
+    /// Shortcuts), in the pages and in the menu bar, and hand a key pressed
+    /// in a page first to whom `priorities` says.
+    pub fn set_shortcut_keys(&self, overrides: &Overrides, priorities: &Priorities) {
+        set_overrides(overrides, priorities);
         #[cfg(target_os = "macos")]
         crate::menubar::apply_keys();
     }
@@ -142,8 +156,9 @@ fn pressed(event: &KeyEvent) -> Option<Combo> {
     Some(combo)
 }
 
-/// Map a raw key-down event to a *reserved* shortcut: matched before the page
-/// sees the key, so web apps cannot take it (see docs/spec/site-controls.md).
+/// Map a raw key-down event to a shortcut that Magnetite gets first: matched
+/// before the page sees the key, so web apps cannot take it (see
+/// docs/spec/shortcuts.md, "Who gets a key first").
 pub fn shortcut_for_key(event: &KeyEvent) -> Option<Shortcut> {
     let combo = pressed(event).filter(|_| !paused())?;
     let mods = event.modifiers & (CMD_FLAG | SHIFT | ALT | CTRL);
@@ -158,7 +173,7 @@ pub fn shortcut_for_key(event: &KeyEvent) -> Option<Shortcut> {
         });
     }
     match action_for(combo) {
-        Some(action) => action.reserved().then(|| action.shortcut()),
+        Some(action) => (first(action) == First::Magnetite).then(|| action.shortcut()),
         None => space_keys(combo),
     }
 }
@@ -168,8 +183,18 @@ pub fn shortcut_for_key(event: &KeyEvent) -> Option<Shortcut> {
 pub fn yieldable_shortcut(event: &KeyEvent) -> Option<Shortcut> {
     let combo = pressed(event).filter(|_| !paused())?;
     action_for(combo)
-        .filter(|a| !a.reserved())
+        .filter(|a| first(*a) == First::Page)
         .map(Action::shortcut)
+}
+
+/// Whether the event is a shortcut that the page gets first only because
+/// the user said so. Chromium keeps some of these keys from pages itself
+/// (new tab, close tab, …), so it has to be told to hand them on.
+pub fn yielded_by_choice(event: &KeyEvent) -> bool {
+    pressed(event)
+        .filter(|_| !paused())
+        .and_then(action_for)
+        .is_some_and(|a| first(a) == First::Page && a.default_first() == First::Magnetite)
 }
 
 /// Chromium's own zoom commands; we let Chromium zoom and then report it.

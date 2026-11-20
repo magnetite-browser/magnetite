@@ -739,7 +739,7 @@ wrap_keyboard_handler! {
             browser: Option<&mut Browser>,
             event: Option<&KeyEvent>,
             _os_event: OsKeyEvent<'_>,
-            _is_keyboard_shortcut: Option<&mut ::std::os::raw::c_int>,
+            is_keyboard_shortcut: Option<&mut ::std::os::raw::c_int>,
         ) -> ::std::os::raw::c_int {
             let engine = Engine::global();
             // The sidebar's and the top bar's shortcuts run here, not in their pages: the keys are
@@ -765,7 +765,16 @@ wrap_keyboard_handler! {
             } else {
                 // Peek keys count only in the peek; in a mini window `Cmd+O`
                 // ("Open in") does too.
-                let Some(shortcut) = keys::peek_shortcut(event) else { return 0 };
+                let Some(shortcut) = keys::peek_shortcut(event) else {
+                    // The page first, by the user's choice: Chromium would
+                    // run its own command for some of these keys without
+                    // asking the page. As a shortcut of ours it goes to the
+                    // page, and to `on_key_event` if the page leaves it.
+                    if keys::yielded_by_choice(event) && let Some(ours) = is_keyboard_shortcut {
+                        *ours = 1;
+                    }
+                    return 0;
+                };
                 let from = from();
                 let peek = from.is_some() && from == engine.peek_content();
                 let mini = shortcut == Shortcut::PeekToTab && from.is_some_and(|id| engine.is_mini(id));

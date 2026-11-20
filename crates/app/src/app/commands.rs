@@ -519,6 +519,12 @@ pub(super) enum UiCommand {
         #[serde(default)]
         keys: Option<String>,
     },
+    /// A key of shortcut `action` pressed in a page goes to `first`
+    /// ("magnetite" or "page") before the other.
+    SetShortcutFirst {
+        action: magnetite_engine::Action,
+        first: magnetite_engine::First,
+    },
     /// Give space `id` the keys `keys` (as `Combo` saves them), or none.
     /// A shortcut or space that had these keys loses them. Answers
     /// `{"error": …}` for keys a shortcut cannot have.
@@ -1973,6 +1979,8 @@ impl MagnetiteApp {
                             "action": action,
                             "keys": s.settings.shortcuts.combo_of(*action).map(|c| c.to_string()),
                             "default": action.default_combo().map(|c| c.to_string()),
+                            "first": s.settings.shortcut_priority.first(*action),
+                            "default_first": action.default_first(),
                         })).collect::<Vec<_>>(),
                     })
                 }));
@@ -2098,6 +2106,9 @@ impl MagnetiteApp {
                 if let Err(error) = self.set_shortcut(engine, action, keys.as_deref()) {
                     return Ok(json!({ "error": error.to_string() }));
                 }
+            }
+            UiCommand::SetShortcutFirst { action, first } => {
+                self.set_shortcut_first(engine, action, first);
             }
             UiCommand::SetSpaceShortcut { id, keys } => {
                 if let Err(error) = self.set_space_shortcut(engine, &id, keys.as_deref()) {

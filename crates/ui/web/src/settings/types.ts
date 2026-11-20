@@ -1,6 +1,6 @@
 // What the Settings page works with.
 import type { Color, DefaultBrowser, ExtensionInfo, Settings } from "../bridge";
-import type { ShortcutAction } from "./shortcutKeys";
+import type { ShortcutAction, ShortcutFirst } from "./shortcutKeys";
 
 /** Everything the Settings page shows (`get_settings`). */
 export interface Info {
@@ -42,7 +42,8 @@ export interface Info {
   /** Whether this system has a web engine of its own that Magnetite can show pages in, and the services that open in it. */
   system_engine: { available: boolean; known_sites: string[]; name: string; about: string };
   /** Every shortcut whose keys can be changed, with the keys it has and those it began with (null: none). */
-  shortcuts: { action: ShortcutAction; keys: string | null; default: string | null }[];
+  /** `first`: who gets the keys first when a page is in focus, and `default_first` who does until the user says otherwise. */
+  shortcuts: { action: ShortcutAction; keys: string | null; default: string | null; first: ShortcutFirst; default_first: ShortcutFirst }[];
   /** Where Chromium keeps its encryption key: macOS Keychain, or its fixed test key (`--mock-keychain`). */
   keychain: "keychain" | "test";
 }

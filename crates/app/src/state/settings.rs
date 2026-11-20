@@ -61,6 +61,9 @@ pub struct Settings {
     /// The shortcuts the user gave other keys, or none (Settings →
     /// Shortcuts); the rest have their default keys. Synced.
     pub shortcuts: magnetite_engine::Overrides,
+    /// The shortcuts whose keys go first to someone else than by default:
+    /// to the page, or to Magnetite (Settings → Shortcuts). Synced.
+    pub shortcut_priority: magnetite_engine::Priorities,
     /// The system-wide quick search key (⌥⌘N) is registered. This
     /// device's own choice, never synced.
     pub quick_search: bool,
@@ -708,7 +711,8 @@ impl Settings {
     /// its copy of the rest may be old. What pages never change stays as it
     /// is here whatever the patch says: everything about sync, the pinned
     /// extensions, the smart folders allowed on this device, and the
-    /// shortcuts' keys, which have commands of their own (`set_shortcut`).
+    /// shortcuts' keys and who gets them first, which have commands of
+    /// their own (`set_shortcut`, `set_shortcut_first`).
     /// The download folder too, which only the system's dialog names
     /// (`choose_download_folder`); a patch can only take it away. And the
     /// stamps of the spaces' own images, which `set_appearance_image`
@@ -750,6 +754,7 @@ impl Settings {
             chromium_pins_seen: self.chromium_pins_seen.clone(),
             smart_allowed: self.smart_allowed.clone(),
             shortcuts: self.shortcuts.clone(),
+            shortcut_priority: self.shortcut_priority.clone(),
             ..wanted
         })
     }
@@ -769,6 +774,7 @@ impl Default for Settings {
             link_rules: Vec::new(),
             site_code: Vec::new(),
             shortcuts: magnetite_engine::Overrides::default(),
+            shortcut_priority: magnetite_engine::Priorities::default(),
             quick_search: true,
             chrome_toolbar: false,
             appearance: Appearance::default(),

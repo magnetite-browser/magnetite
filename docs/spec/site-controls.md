@@ -211,6 +211,9 @@ or written without one of these actions.
 
 ## Shortcuts
 
+The last column is what holds until the user chooses otherwise in
+Settings → Shortcuts (`shortcuts.md`, "Who gets a key first").
+
 | Shortcut (macOS default) | Action | If the page uses the key too |
 |---|---|---|
 | `Cmd+L` | Command bar with the current address | Magnetite gets it |
