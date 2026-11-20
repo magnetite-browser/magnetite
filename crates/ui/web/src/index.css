@@ -120,7 +120,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .drop[data-before]::before { top: -4px; }
 .drop[data-after]::after { bottom: -4px; }
 
-.favicon { width: 16px; height: 16px; border-radius: 4px; flex: none; display: grid; place-items: center; font-size: 10px; font-weight: 600; color: var(--secondary); background: rgba(255,255,255,0.1); overflow: hidden; }
+/* The letter tile needs the tile's own line height: a taller inherited line
+   box overflows the 16px grid downwards and takes the letter with it. */
+.favicon { width: 16px; height: 16px; border-radius: 4px; flex: none; display: grid; place-items: center; font-size: 10px; line-height: 16px; font-weight: 600; color: var(--secondary); background: rgba(255,255,255,0.1); overflow: hidden; }
 .favicon[data-img] { background: none; }
 /* an icon in a favicon's place (folder, new tab, commands): no tile behind it */
 .icon-slot { width: 16px; height: 16px; flex: none; display: grid; place-items: center; color: var(--secondary); }
