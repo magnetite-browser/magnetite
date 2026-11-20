@@ -66,6 +66,25 @@ fn go_to(url: &str) -> Option<String> {
     Some(format!("location.assign({address})"))
 }
 
+/// What a tab's empty first document runs to go to app link `url`: only
+/// there, and never in a page that committed after we looked. The script is
+/// sent asynchronously and runs in whatever document is current by then, so
+/// that document checks itself, in the same step as it navigates: still
+/// `about:blank` with no origin of its own, so Chromium's question names no
+/// site. A site's page fails the first check; an `about:blank` a site opened
+/// has that site's origin and fails the second.
+fn empty_document_goes_to(url: &str) -> Option<String> {
+    let go = go_to(url)?;
+    Some(format!(
+        r#"if (location.href === "about:blank" && self.origin === "null") {go}"#
+    ))
+}
+
+/// Whether a main frame at `url` shows nothing yet.
+fn shows_nothing(url: &str) -> bool {
+    url.is_empty() || url == "about:blank"
+}
+
 /// The document in `frame` goes to app link `url`, as if the page had done
 /// so itself: Chromium asks whether to open the app, and the page stays.
 /// Gives the page nothing it could not do without us.
@@ -130,16 +149,24 @@ wrap_resource_request_handler! {
             let (true, Some(browser), Some(frame), Some(request)) = (self.unasked, browser, frame, request) else {
                 return;
             };
-            let shown = CefString::from(&frame.url()).to_string();
-            let empty = frame.is_main() != 0 && (shown.is_empty() || shown == "about:blank");
+            let empty = frame.is_main() != 0 && shows_nothing(&CefString::from(&frame.url()).to_string());
             if !empty || !SENT.lock().is_ok_and(|mut s| s.insert(browser.identifier())) {
                 return;
             }
-            let (browser, js) = (browser.clone(), go_to(&CefString::from(&request.url()).to_string()));
+            let (browser, js) = (browser.clone(), empty_document_goes_to(&CefString::from(&request.url()).to_string()));
             // The channel that reaches an empty document is for the UI thread.
+            // A page may have come in the meantime: then it stays as it is,
+            // and nothing is left waiting for a navigation that will not come.
+            // The script checks once more where it runs (`empty_document_goes_to`).
             crate::engine::Engine::post(Box::new(move || {
-                if let (Some(host), Some(js)) = (browser.host(), js) {
-                    crate::media::evaluate(&host, &js, false);
+                let still_empty = browser.main_frame().is_some_and(|f| shows_nothing(&CefString::from(&f.url()).to_string()));
+                match (still_empty, browser.host(), js) {
+                    (true, Some(host), Some(js)) => crate::media::evaluate(&host, &js, false),
+                    _ => {
+                        if let Ok(mut sent) = SENT.lock() {
+                            sent.remove(&browser.identifier());
+                        }
+                    }
                 }
             }));
         }
@@ -148,7 +175,33 @@ wrap_resource_request_handler! {
 
 #[cfg(test)]
 mod tests {
-    use super::is_app_link;
+    use super::{empty_document_goes_to, is_app_link, shows_nothing};
+
+    #[test]
+    fn only_the_empty_document_goes_to_the_app() {
+        // The document that runs the script checks itself, in the same step
+        // as it navigates: a page that committed after we looked stays.
+        assert_eq!(
+            empty_document_goes_to("t3code://app/?code=1&state=2").as_deref(),
+            Some(
+                r#"if (location.href === "about:blank" && self.origin === "null") location.assign("t3code://app/?code=1&state=2")"#
+            )
+        );
+        // The address is a string literal, whatever it holds.
+        let tricky = empty_document_goes_to(r#"zoommtg://a");alert(1);("</x>\"#).unwrap();
+        assert!(
+            tricky.ends_with(r#"location.assign("zoommtg://a\");alert(1);(\"</x>\\")"#),
+            "{tricky}"
+        );
+    }
+
+    #[test]
+    fn a_tab_shows_nothing_only_before_its_first_page() {
+        assert!(shows_nothing(""));
+        assert!(shows_nothing("about:blank"));
+        assert!(!shows_nothing("https://example.org/"));
+        assert!(!shows_nothing("about:blank#x"));
+    }
 
     #[test]
     fn only_schemes_nothing_here_loads_are_app_links() {
