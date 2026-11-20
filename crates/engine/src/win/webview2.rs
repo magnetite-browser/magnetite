@@ -351,30 +351,68 @@ pub(crate) fn clear_data(
     if !available() {
         return done(Ok(nothing));
     }
-    // A page of the profile's that is open: its view reaches the data,
-    // which all the profile's pages share (`store`).
-    let open = PAGES.with_borrow(|pages| {
-        (pages.values())
-            .filter(|p| p.profile == profile)
-            .find_map(|p| p.view.clone())
+    // The stores that hold the profile's data: each one its open pages use
+    // (one, unless the list of names became unreadable during the run and
+    // a page went to memory), reached through one of their views, and the
+    // one on disk under its kept name where no page uses that. A run whose
+    // list cannot be read must not pass a store on disk for cleared.
+    let mut open: Vec<(String, ICoreWebView2)> = Vec::new();
+    PAGES.with_borrow(|pages| {
+        for page in pages.values().filter(|p| p.profile == profile) {
+            if let Some(view) = &page.view
+                && !open.iter().any(|(store, _)| *store == page.store)
+            {
+                open.push((page.store.clone(), view.clone()));
+            }
+        }
     });
+    let mut on_disk = None;
+    if !ephemeral {
+        let Ok(names) = read_store_names(data_dir) else {
+            return done(Err(STORES_UNREADABLE.to_string()));
+        };
+        on_disk = names
+            .get(profile)
+            .filter(|name| !open.iter().any(|(store, _)| store == *name))
+            .cloned();
+    }
+    // A profile that never used WebView2 (or a private one without a page,
+    // whose data went with it) has nothing to delete, and gets no store
+    // made for the question.
+    if open.is_empty() && on_disk.is_none() {
+        return done(Ok(nothing));
+    }
+    let left = open.len() + usize::from(on_disk.is_some());
+    let all = Rc::new(RefCell::new(Combined {
+        left,
+        cookies: 0,
+        failed: None,
+        done: Some(done),
+    }));
+    let one = move |result: Result<Option<usize>, String>| {
+        let mut all = all.borrow_mut();
+        match result {
+            Ok(count) => all.cookies += count.unwrap_or(0),
+            Err(why) => all.failed = Some(why),
+        }
+        all.left -= 1;
+        if all.left == 0
+            && let Some(done) = all.done.take()
+        {
+            let result = match all.failed.take() {
+                Some(why) => Err(why),
+                None => Ok(nothing.map(|_| all.cookies)),
+            };
+            drop(all);
+            done(result);
+        }
+    };
     let domain = domain.map(str::to_string);
-    if let Some(view) = open {
+    for (_, view) in open {
         crate::trace("system engine: clearing data through an open page");
-        return clear_with(&view, domain, done);
+        clear_with(&view, domain.clone(), Box::new(one.clone()));
     }
-    // A private profile without a page has nothing left in memory.
-    if ephemeral {
-        return done(Ok(nothing));
-    }
-    let Ok(names) = read_store_names(data_dir) else {
-        return done(Err(STORES_UNREADABLE.to_string()));
-    };
-    // A profile that never used WebView2 has nothing to delete, and gets no
-    // store made for the question.
-    let Some(name) = names.get(profile).cloned() else {
-        return done(Ok(nothing));
-    };
+    let Some(name) = on_disk else { return };
     DATA_DIR.with_borrow_mut(|d| {
         d.get_or_insert_with(|| data_dir.to_path_buf());
     });
@@ -388,14 +426,22 @@ pub(crate) fn clear_data(
                 domain,
                 Box::new(move |result| {
                     finish();
-                    done(result);
+                    one(result);
                 }),
             ),
-            None => done(Err(
+            None => one(Err(
                 "WebView2 could not open the profile's data.".to_string()
             )),
         }),
     );
+}
+
+/// The answers of a profile's stores, gathered for one answer.
+struct Combined {
+    left: usize,
+    cookies: usize,
+    failed: Option<String>,
+    done: Option<Cleared>,
 }
 
 /// What hears whether data was deleted: how many cookies went, where that
