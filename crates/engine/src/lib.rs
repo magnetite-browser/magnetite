@@ -77,7 +77,7 @@ pub use autofill::AutofillPrefs;
 pub use blocker::{Filters, List as FilterList, set_allowed_sites, set_filters};
 #[cfg(target_os = "windows")]
 pub use bootstrap::set_sandbox_info;
-pub use bootstrap::{run, run_helper, started_by_bootstrap};
+pub use bootstrap::{reserve_devtools_pipe, run, run_helper, started_by_bootstrap};
 pub use capture::{FrozenFrame, PageTiles};
 pub use client::host_of;
 pub use config::EngineConfig;

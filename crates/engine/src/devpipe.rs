@@ -48,7 +48,9 @@ pub(crate) fn open() -> bool {
     false
 }
 
-/// Make the pipe; call once in the browser process before CEF starts.
+/// Make the pipe; call in the browser process before CEF starts, and before
+/// any thread that may open a file (`reserve_devtools_pipe`). A second call
+/// finds it made.
 /// Returns false (and the features needing it stay off) when fds 3 and 4
 /// are already in use.
 #[cfg(unix)]

@@ -34,6 +34,15 @@ fn sandbox_info() -> *mut u8 {
 
 /// Run the browser process. Blocks until Magnetite quits.
 /// Returns the process exit code.
+/// Make the private `DevTools` pipe (`devpipe.rs`) now. It needs file
+/// descriptors 3 and 4, which are free when a program starts and which the
+/// next file opened anywhere in the process takes: call this first in the
+/// browser process, before any thread is started. Without it [`run`] tries
+/// later, and fails for the whole run if a thread has a file open then.
+pub fn reserve_devtools_pipe() {
+    crate::devpipe::open();
+}
+
 pub fn run(config: EngineConfig, delegate: Arc<dyn EngineDelegate>) -> i32 {
     #[cfg(target_os = "macos")]
     let _loader = {
@@ -63,6 +72,7 @@ pub fn run(config: EngineConfig, delegate: Arc<dyn EngineDelegate>) -> i32 {
         crate::trace(&format!("cannot create {}: {e}", config.data_dir.display()));
     }
     // Before CEF starts: Chromium picks up the pipe's fds during start-up.
+    // Made already where the application asked first (`reserve_devtools_pipe`).
     if !crate::devpipe::open() {
         crate::trace("no DevTools pipe: fds 3 and 4 are taken");
     }

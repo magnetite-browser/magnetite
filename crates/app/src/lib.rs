@@ -118,6 +118,10 @@ fn is_helper(args: impl Iterator<Item = String>) -> bool {
 
 /// Run the browser. Blocks until it quits; returns the process exit code.
 pub fn run() -> i32 {
+    // Before anything opens a file: the ad blocker compiles its lists on a
+    // thread while the engine starts, and a file of its took one of the
+    // pipe's descriptors, after which no extension opened for that run.
+    magnetite_engine::reserve_devtools_pipe();
     // Windows starts its default browser with the link as the one argument
     // after `--single-argument` (`packaging/windows/magnetite.iss`): that
     // is a link from another program, never options of ours.
