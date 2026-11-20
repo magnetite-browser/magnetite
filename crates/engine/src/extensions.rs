@@ -391,8 +391,18 @@ impl Engine {
             f(tab);
             return;
         }
+        // The page may change its engine while its tab is looked for: the
+        // tab found then belongs to the page that was, not to the one under
+        // the same id now.
+        let Some(serial) = self.lock().contents.get(&id).map(|c| c.serial) else {
+            return;
+        };
         let found = move |tab: String| {
-            if let Some(c) = Engine::global().lock().contents.get_mut(&id) {
+            {
+                let mut inner = Engine::global().lock();
+                let Some(c) = inner.contents.get_mut(&id).filter(|c| c.serial == serial) else {
+                    return;
+                };
                 c.tab_target = Some(tab.clone());
             }
             f(tab);

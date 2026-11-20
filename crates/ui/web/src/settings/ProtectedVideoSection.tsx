@@ -54,7 +54,7 @@ export function ProtectedVideoSection({ info, update }: { info: Info; update: (p
           <textarea className="field mono" rows={3} spellCheck={false} placeholder={"tv.example.org"} value={sites} onChange={(e) => setSites(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
         </Field>
       </Group>
-      <Group title={`What is different in a ${name} page`} hint="It is a tab like any other: in the sidebar, in its space, in a split or a peek. Extensions open there but cannot read or fill the page. It has no ad blocking or developer tools, sends no Global Privacy Control signal, and signs in on its own: a site you are signed in to in Chromium asks again. Open pages keep their engine until they load another address.">
+      <Group title={`What is different in a ${name} page`} hint="It is a tab like any other: in the sidebar, in its space, in a split or a peek. Extensions cannot read or fill the page. It has no ad blocking or developer tools, sends no Global Privacy Control signal, and signs in on its own: a site you are signed in to in Chromium asks again. Open pages keep their engine until they load another address.">
         <div className="set-row flex items-center gap-3" data-search-row>
           <span className="min-w-0 flex-1" data-search-name>
             <span className="set-label block">{name}'s website data</span>
