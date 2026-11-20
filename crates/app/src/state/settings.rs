@@ -279,8 +279,14 @@ impl AdblockSettings {
 
 /// The site (registrable domain) a user means by `typed`: a name, or a
 /// whole address, of which the host counts. `None` for what names no host.
-fn typed_site(typed: &str) -> Option<String> {
+pub fn typed_site(typed: &str) -> Option<String> {
     let typed = typed.trim().to_lowercase();
+    // An IP address counts as it is; one of version 6 has colons of its
+    // own, which an address without brackets would lose.
+    let bare = typed.trim_matches(['[', ']']);
+    if bare.parse::<std::net::IpAddr>().is_ok() {
+        return Some(bare.to_string());
+    }
     let host = if typed.contains("://") {
         magnetite_engine::host_of(&typed)?
     } else {
@@ -655,10 +661,7 @@ impl Settings {
         self.history_days = self.history_days.min(MAX_ARCHIVE_DAYS);
         self.appearance = self.appearance.clamped();
         self.adblock = self.adblock.sanitised();
-        let typed: Vec<String> = (self.shortcut_sites.iter())
-            .filter_map(|s| typed_site(s))
-            .collect();
-        self.shortcut_sites = site_names(&typed);
+        self.shortcut_sites = site_names(&self.shortcut_sites);
         self.developer = self.developer.sanitised();
         self.system_engine = self.system_engine.sanitised();
         if !usable_search(&self.search_template) {
@@ -782,6 +785,7 @@ impl Settings {
             smart_allowed: self.smart_allowed.clone(),
             shortcuts: self.shortcuts.clone(),
             shortcut_priority: self.shortcut_priority.clone(),
+            shortcut_sites: self.shortcut_sites.clone(),
             ..wanted
         })
     }
@@ -844,19 +848,35 @@ mod tests {
     }
 
     #[test]
-    fn a_typed_shortcut_site_is_kept_by_its_name() {
-        let kept = Settings {
-            shortcut_sites: vec![
-                "https://www.Figma.com/design/1".into(),
-                "app.example.org".into(),
-                "example.org".into(),
-                "not a site".into(),
-                " ".into(),
-            ],
-            ..Settings::default()
+    fn a_typed_site_is_kept_by_its_name() {
+        let site = |typed: &str| typed_site(typed);
+        assert_eq!(
+            site("https://www.Figma.com/design/1").as_deref(),
+            Some("figma.com")
+        );
+        assert_eq!(site(" app.example.org ").as_deref(), Some("example.org"));
+        assert_eq!(site("localhost:3000").as_deref(), Some("localhost"));
+        assert_eq!(site("not a site"), None);
+        assert_eq!(site(" "), None);
+        // An IP address stays whole, typed again too.
+        for typed in ["[2001:db8::1]", "2001:db8::1", "http://[2001:db8::1]:8080/"] {
+            assert_eq!(site(typed).as_deref(), Some("2001:db8::1"), "{typed}");
         }
-        .sanitised();
-        assert_eq!(kept.shortcut_sites, ["example.org", "figma.com"]);
+        assert_eq!(site("127.0.0.1:8080").as_deref(), Some("127.0.0.1"));
+    }
+
+    #[test]
+    fn a_settings_patch_leaves_the_shortcut_sites() {
+        let before = Settings {
+            shortcut_sites: vec!["example.org".into()],
+            ..Settings::default()
+        };
+        let patch = serde_json::json!({ "shortcut_sites": ["example.com"] });
+        let serde_json::Value::Object(patch) = patch else {
+            unreachable!()
+        };
+        let after = before.patched(patch).expect("a patch");
+        assert_eq!(after.shortcut_sites, ["example.org"]);
     }
 
     #[test]

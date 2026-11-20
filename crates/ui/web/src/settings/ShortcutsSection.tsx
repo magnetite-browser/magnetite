@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { SpaceIcon } from "../Glyphs";
 import { accentCss, send } from "../bridge";
 import { keysLabel, pressedKeys, SHORTCUT_GROUPS, SHORTCUT_LABEL, type ShortcutAction, type ShortcutFirst } from "./shortcutKeys";
-import type { Info, SettingsPatch } from "./types";
+import type { Info } from "./types";
 
 /** How long "Change" waits for keys. */
 const WAIT_MS = 20_000;
@@ -19,14 +19,16 @@ const same = (a: Target, b: Target) => (a.kind === "action" ? b.kind === "action
 /** The target being given new keys: waiting for them, or holding keys another target has. */
 type Recording = { target: Target; taken?: { keys: string; by: Target } };
 
-export function ShortcutsSection({ info, update, reload }: { info: Info; update: (patch: SettingsPatch) => void; reload: () => void }) {
+export function ShortcutsSection({ info, reload }: { info: Info; reload: () => void }) {
   const sites = info.settings.shortcut_sites;
   // A site typed to be added to them. The app keeps its name (`example.org`
-  // of a whole address) or nothing, so the list is read again from the app.
+  // of a whole address) or nothing, and adds it to the list it has, so the
+  // list is read again from the app.
   const [newSite, setNewSite] = useState("");
+  const setSite = (site: string, page_first: boolean) => void send({ cmd: "set_site_shortcuts", url: site, page_first }).then(reload);
   const addSite = () => {
     if (!newSite.trim()) return;
-    void send({ cmd: "set_settings", settings: { shortcut_sites: [...sites, newSite] } }).then(reload);
+    setSite(newSite, true);
     setNewSite("");
   };
   const [recording, setRecording] = useState<Recording | null>(null);
@@ -188,7 +190,7 @@ export function ShortcutsSection({ info, update, reload }: { info: Info; update:
             {sites.map((site) => (
               <li key={site} className="set-row flex items-center gap-3" data-search-row>
                 <span className="flex-1 truncate" data-search-name>{site}</span>
-                <button className="btn sm" title="Each shortcut's own choice counts on this site again" onClick={() => update({ shortcut_sites: sites.filter((s) => s !== site) })}>Remove</button>
+                <button className="btn sm" title="Each shortcut's own choice counts on this site again" onClick={() => setSite(site, false)}>Remove</button>
               </li>
             ))}
           </ul>

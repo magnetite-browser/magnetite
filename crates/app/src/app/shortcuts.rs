@@ -2,13 +2,13 @@
 
 use magnetite_core::split::Side;
 use magnetite_engine::{
-    Action, Combo, ContentId, Engine, First, KeysError, Overrides, Priorities, Shortcut, host_of,
-    registrable_domain,
+    Action, Combo, ContentId, Engine, First, KeysError, Overrides, Priorities, Shortcut,
 };
 use serde_json::{Value, json};
 
 use super::addresses::urlencode;
 use super::{LinkVariant, MagnetiteApp, PaletteMode};
+use crate::state::typed_site;
 
 impl MagnetiteApp {
     /// Hand the engine the keys the shortcuts have now and who gets them
@@ -30,17 +30,18 @@ impl MagnetiteApp {
     /// The site (registrable domain) of the page at `url`, if a web page,
     /// and whether its pages get the keys of every shortcut first.
     pub(super) fn site_shortcuts(&self, url: &str) -> Value {
-        let site = host_of(url).map(|h| registrable_domain(&h));
+        let site = typed_site(url);
         let first = (site.as_ref())
             .is_some_and(|site| self.with_state(|s| s.settings.shortcut_sites.contains(site)));
         json!({ "site": site, "page_first": first })
     }
 
-    /// From now on the pages of the site of the page at `url` get the keys
-    /// of every shortcut first (`page_first`), or each shortcut's own
-    /// choice counts there again.
+    /// From now on the pages of the site `url` names (a page's address,
+    /// or a name typed in Settings) get the keys of every shortcut first
+    /// (`page_first`), or each shortcut's own choice counts there again.
+    /// What names no site changes nothing.
     pub(super) fn set_site_shortcuts(&self, engine: &Engine, url: &str, page_first: bool) {
-        let Some(site) = host_of(url).map(|h| registrable_domain(&h)) else {
+        let Some(site) = typed_site(url) else {
             return;
         };
         self.with_state(|s| {

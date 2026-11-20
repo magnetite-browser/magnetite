@@ -89,6 +89,9 @@ first" (`site-controls.md`).
   leaves them alone. A site that uses the keys of "Close tab" keeps them
   too; the command stays in the menu bar and the command bar.
 - The keys without a choice stay Magnetite's there as well.
+- A page the system's own engine shows (`site-controls.md`) has no such
+  switch: there Magnetite gets its keys first as on any site.
+- Only the site panel and Settings can change which sites these are.
 - A site is the registrable domain, as for the site panel's other
   switches: `www.example.org` and `app.example.org` are `example.org`. It
   is the site of the page a tab shows, also for keys pressed in a frame of

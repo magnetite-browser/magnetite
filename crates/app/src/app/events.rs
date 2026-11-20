@@ -492,6 +492,15 @@ impl EngineDelegate for MagnetiteApp {
         if settings_only && !trusted.iter().any(|page| origin.starts_with(page)) {
             return Err("only the Settings page may do that".into());
         }
+        // Which sites get the shortcuts' keys first is chosen in the site
+        // panel (the sidebar, the top bar's window) and in Settings alone.
+        let site_panel = origin.strip_prefix("magnetite://ui/").is_some_and(|page| {
+            let pages = ["?", "#", "popup", "settings"];
+            page.is_empty() || pages.iter().any(|p| page.starts_with(p))
+        });
+        if matches!(cmd, UiCommand::SetSiteShortcuts { .. }) && !site_panel {
+            return Err("only the site panel and Settings may do that".into());
+        }
         // Pictures are stored from Settings and the space dialog alone: the
         // welcome page has no use for them.
         let picture_pages = ["magnetite://ui/settings", "magnetite://ui/space?"];

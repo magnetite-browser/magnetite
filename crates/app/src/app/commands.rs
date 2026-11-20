@@ -687,8 +687,8 @@ pub(super) enum UiCommand {
     SiteShortcuts {
         url: String,
     },
-    /// Site panel: the site of the page at `url` gets the keys of every
-    /// shortcut first, or no longer.
+    /// Site panel and Settings: the site of the page at `url`, or the site
+    /// `url` names, gets the keys of every shortcut first, or no longer.
     SetSiteShortcuts {
         url: String,
         page_first: bool,
@@ -2071,7 +2071,6 @@ impl MagnetiteApp {
             }
             UiCommand::SetSettings { settings: patch } => {
                 let before = self.with_state(|s| s.settings.adblock.clone());
-                let shortcut_sites_before = self.with_state(|s| s.settings.shortcut_sites.clone());
                 let downloads_before = self.with_state(|s| s.settings.downloads.clone());
                 let (settings, code_changed) = self.with_state(|s| {
                     let settings = s.settings.patched(patch)?;
@@ -2111,9 +2110,6 @@ impl MagnetiteApp {
                     self.apply_adblock(true);
                 } else if after.allowed_sites != before.allowed_sites {
                     self.apply_adblock_sites();
-                }
-                if settings.shortcut_sites != shortcut_sites_before {
-                    self.apply_shortcut_keys(engine);
                 }
                 self.push_state(engine);
             }

@@ -334,7 +334,7 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
                 {rt?.muted ? <SpeakerOff width={15} height={15} /> : <Speaker width={15} height={15} />}
               </button>
             )}
-            <SiteShortcuts key={`${item.id} ${host} keys`} url={item.url} />
+            {!system && <SiteShortcuts key={`${item.id} ${host} keys`} url={item.url} />}
             <SystemEngine key={`${item.id} ${host} engine`} url={item.url} />
             {!system && <DevSwitch state={state} url={item.url} own={rt?.dev.clears ?? false} />}
             {/* Per tab: a confirmation or a report is not the next tab's. */}

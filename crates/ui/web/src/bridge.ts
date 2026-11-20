@@ -382,7 +382,7 @@ export interface Settings {
   developer: { enabled: boolean; hosts: string[] };
   /** Which sites the system's own web engine shows (Settings → Protected video): the known streaming services, and sites of the user's own, by host. This device's own, never synced. */
   system_engine: { known: boolean; sites: string[] };
-  /** Sites (registrable domains) whose pages get the keys of every shortcut first (the site panel, Settings → Shortcuts). Synced. */
+  /** Sites (registrable domains) whose pages get the keys of every shortcut first (the site panel, Settings → Shortcuts). Synced. Changed with `set_site_shortcuts`; a settings patch leaves them. */
   shortcut_sites: string[];
   adblock: {
     enabled: boolean;
@@ -522,7 +522,7 @@ export type Command =
   | { cmd: "site_ads"; url: string }
   | { cmd: "set_site_ads"; url: string; blocking: boolean }
   | { cmd: "site_shortcuts"; url: string }
-  /** The site of the page at `url` gets the keys of every shortcut first from now on, or each shortcut's own choice counts there again. */
+  /** The site of the page at `url`, or the site `url` names, gets the keys of every shortcut first from now on, or each shortcut's own choice counts there again. From the site panel and Settings only. */
   | { cmd: "set_site_shortcuts"; url: string; page_first: boolean }
   | { cmd: "site_engine"; url: string }
   /** Show the site of the page at `url` in the system's engine from now on, or in Chromium again; the page in front loads again. */
