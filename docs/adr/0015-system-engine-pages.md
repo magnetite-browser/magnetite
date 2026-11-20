@@ -134,6 +134,7 @@ Checked in a running build (Windows 11, WebView2 157, CEF 156):
   the next start. Deleting one site's data and all of it works.
 - A load that fails shows the note at the address that failed; a page
   element's full screen fills the screen and comes back.
+- Signing in to Disney+ and playing a title there, by hand.
 
 ## Consequences
 
