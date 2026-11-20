@@ -44,29 +44,31 @@ impl MagnetiteApp {
         else {
             return;
         };
-        let site = registrable_domain(&host);
-        let private = self.with_state(|s| {
+        let moved = self.with_state(|s| {
             let private = s.is_private_context(context);
             let own = &mut s.settings.system_engine;
             if !own.moves(&host) {
                 return None;
             }
+            let site = own.site_to_move(&host, registrable_domain(&host));
             // A full list keeps the page where it is.
-            (private || own.set_site(&host, site.clone(), true).is_ok()).then_some(private)
+            (private || own.set_site(&host, site.clone(), true).is_ok()).then_some((private, site))
         });
-        match private {
-            None => return,
-            Some(true) => {
-                let mut run = lock(&self.private_engines);
-                if run.names(&host)
-                    || run.keeps(&host)
-                    || run.set_site(&host, site.clone(), true).is_err()
-                {
-                    return;
-                }
+        let Some((private, site)) = moved else { return };
+        let site = if private {
+            let mut run = lock(&self.private_engines);
+            let site = run.site_to_move(&host, site);
+            if run.names(&host)
+                || run.keeps(&host)
+                || run.set_site(&host, site.clone(), true).is_err()
+            {
+                return;
             }
-            Some(false) => self.save_soon(),
-        }
+            site
+        } else {
+            self.save_soon();
+            site
+        };
         engine.set_system_engine_sites(self.system_engine_sites());
         engine.content_load_url(id, url);
         let name = Engine::system_engine_name().0;

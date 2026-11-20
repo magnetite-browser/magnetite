@@ -74,10 +74,12 @@
   }
   const generateRequest = (original) => ({
     generateRequest() {
+      const result = apply(original, this, arguments);
+      // A call that is refused (no init data) asks for no licence.
       try {
-        if (weakHas(protectedOnes, this)) requested();
+        if (weakHas(protectedOnes, this)) then(result, requested, () => {});
       } catch (_) {}
-      return apply(original, this, arguments);
+      return result;
     },
   }).generateRequest;
   const createSession = (original) => ({

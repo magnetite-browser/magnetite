@@ -224,6 +224,16 @@ impl SystemEngine {
         self.auto && !self.knows(host) && !self.names(host) && !self.keeps(host)
     }
 
+    /// The name `host`'s site moves under: its `domain`, or `host` alone
+    /// where the domain would take in a site kept in Chromium.
+    pub fn site_to_move(&self, host: &str, domain: String) -> String {
+        if self.chromium.iter().any(|kept| in_domain(kept, &domain)) {
+            host.to_string()
+        } else {
+            domain
+        }
+    }
+
     /// Whether `host` is under a site the user took back to Chromium.
     pub fn keeps(&self, host: &str) -> bool {
         self.chromium.iter().any(|site| in_domain(host, site))
@@ -1331,6 +1341,17 @@ mod tests {
             ..SystemEngine::default()
         };
         assert!(!off.moves("play.example.org"));
+        // A site kept in Chromium is not taken along by its neighbour.
+        let kept = SystemEngine {
+            chromium: vec!["music.example.org".into()],
+            ..SystemEngine::default()
+        };
+        let named = |host: &str| kept.site_to_move(host, "example.org".into());
+        assert_eq!(named("video.example.org"), "video.example.org");
+        assert_eq!(
+            SystemEngine::default().site_to_move("video.example.org", "example.org".into()),
+            "example.org"
+        );
     }
 
     #[test]

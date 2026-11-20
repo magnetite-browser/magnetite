@@ -31,12 +31,14 @@ Such a page is called a system page below. Why it is built this way:
   ("Open in WebView2" on Windows) in the site panel, which names the site of the page in front and loads the
   page again. At most 100 sites; the panel says so when the list is full.
 - A site whose protected video fails in Chromium: the site is added to
-  "Other sites" and the page loads again in the system's engine, with a
+  "Other sites" (by its domain, or by the page's own host where the
+  domain would take in a site kept in Chromium) and the page loads again in the system's engine, with a
   note in the sidebar. It counts as failed when the page itself asks
   Widevine for a licence request and none of its keys is usable ten
   seconds later, which is how a service that refuses an unverified
   browser looks from inside, whatever error it shows. A service that plays
-  in Chromium has its key long before and stays there. A player in a frame
+  in Chromium has its key within a second or two as a rule, and stays
+  there. A player in a frame
   from another site does not move the page around it. "Move sites whose
   protected video fails to WebKit" (to WebView2) in Settings turns this
   off. On by default.
@@ -158,10 +160,10 @@ WebView2's developer tools are off too.
 - JavaScript dialogs (`alert`, `confirm`) and choosing a file to upload.
 - A service on a path of a larger site (Prime Video under `amazon.com`):
   only whole hosts can be named.
-- A service that refuses before it asks for a licence stays in Chromium
-  unless it is on the list or named, as does one whose licence only
-  arrives after more than ten seconds, which moves although it would have
-  played.
+- A service that refuses before it asks for a licence is not noticed: it
+  stays in Chromium unless it is on the list or named.
+- A service whose licence arrives after more than ten seconds moves,
+  although it would have played in Chromium.
 - A site that moved from a player in one of its frames, and asking before
   a page with unsaved input loads again.
 
