@@ -58,10 +58,7 @@ impl MagnetiteApp {
         let site = if private {
             let mut run = lock(&self.private_engines);
             let site = run.site_to_move(&host, site);
-            if run.names(&host)
-                || run.keeps(&host)
-                || run.set_site(&host, site.clone(), true).is_err()
-            {
+            if !run.moves(&host) || run.set_site(&host, site.clone(), true).is_err() {
                 return;
             }
             site

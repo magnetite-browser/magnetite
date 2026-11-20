@@ -32,7 +32,8 @@ Such a page is called a system page below. Why it is built this way:
   page again. At most 100 sites; the panel says so when the list is full.
 - A site whose protected video fails in Chromium: the site is added to
   "Other sites" (by its domain, or by the page's own host where the
-  domain would take in a site kept in Chromium) and the page loads again in the system's engine, with a
+  domain would take in a site kept in Chromium; not at all where that
+  site lies under the page's own host) and the page loads again in the system's engine, with a
   note in the sidebar. It counts as failed when the page itself asks
   Widevine for a licence request and none of its keys is usable ten
   seconds later, which is how a service that refuses an unverified

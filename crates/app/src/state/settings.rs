@@ -219,9 +219,14 @@ impl SystemEngine {
 
     /// Whether the site of `host` moves to the system's engine when
     /// protected video fails in a page of it: not one that is there already, and
-    /// not one the user took back to Chromium.
+    /// not one the user took back to Chromium, and not one that has such a
+    /// site under it, which the move would take along.
     pub fn moves(&self, host: &str) -> bool {
-        self.auto && !self.knows(host) && !self.names(host) && !self.keeps(host)
+        self.auto
+            && !self.knows(host)
+            && !self.names(host)
+            && !self.keeps(host)
+            && !self.chromium.iter().any(|kept| in_domain(kept, host))
     }
 
     /// The name `host`'s site moves under: its `domain`, or `host` alone
@@ -1346,6 +1351,7 @@ mod tests {
             chromium: vec!["music.example.org".into()],
             ..SystemEngine::default()
         };
+        assert!(kept.moves("video.example.org") && !kept.moves("example.org"));
         let named = |host: &str| kept.site_to_move(host, "example.org".into());
         assert_eq!(named("video.example.org"), "video.example.org");
         assert_eq!(
