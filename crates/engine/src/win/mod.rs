@@ -12,6 +12,7 @@ mod layers;
 mod running;
 mod share;
 mod video;
+pub(crate) mod webview2;
 
 pub use default_browser::{handles, open_default_apps};
 pub use dividers::{DividerKey, set_dividers};
