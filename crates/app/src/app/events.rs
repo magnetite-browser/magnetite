@@ -40,8 +40,7 @@ impl EngineDelegate for MagnetiteApp {
                 engine.set_default_zoom(self.with_state(|s| s.settings.page_zoom));
                 engine.set_languages(&self.with_state(|s| s.settings.languages.clone()));
                 // Before the first page: its address decides its engine.
-                engine
-                    .set_system_engine_sites(self.with_state(|s| s.settings.system_engine.hosts()));
+                engine.set_system_engine_sites(self.system_engine_sites());
                 engine.set_sidebar_width(width);
                 engine.set_top_bar_visible(self.with_state(|s| s.settings.appearance.top_bar));
                 engine.set_page_frame(self.with_state(|s| s.settings.appearance.page_frame));
@@ -152,6 +151,9 @@ impl EngineDelegate for MagnetiteApp {
                     }
                 });
                 self.push_state(engine);
+            }
+            EngineEvent::ProtectedPlayback { id, url, context } => {
+                self.protected_playback(engine, id, &url, context.as_deref());
             }
             EngineEvent::Download(report) => {
                 let changed = self.with_state(|s| {

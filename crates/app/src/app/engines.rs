@@ -4,12 +4,58 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use magnetite_engine::{ContextProfile, Engine, host_of, registrable_domain};
+use magnetite_engine::{ContentId, ContextProfile, Engine, host_of, in_domain, registrable_domain};
 use serde_json::{Value, json};
 
 use super::MagnetiteApp;
+use crate::lock;
 
 impl MagnetiteApp {
+    /// Every site the system's engine shows: those of the settings, and
+    /// those that moved there from a private space in this run.
+    pub(super) fn system_engine_sites(&self) -> Vec<String> {
+        let mut sites = self.with_state(|s| s.settings.system_engine.hosts());
+        sites.extend(lock(&self.private_system_sites).iter().cloned());
+        sites
+    }
+
+    /// Chromium page `id` at `url`, of profile `context`, starts protected
+    /// video. Unless the user decided otherwise for its site, the site
+    /// opens in the system's engine from now on, and the page loads again
+    /// there: Magnetite's Chromium plays protected video only for services
+    /// that do not ask for a verified browser, and cannot tell which do.
+    /// From a private space the site moves for this run only, and nothing
+    /// is kept of it.
+    pub(super) fn protected_playback(
+        &self,
+        engine: &Engine,
+        id: ContentId,
+        url: &str,
+        context: Option<&str>,
+    ) {
+        let Some(host) = host_of(url) else { return };
+        let site = registrable_domain(&host);
+        let private = self.with_state(|s| {
+            let private = s.is_private_context(context);
+            let own = &mut s.settings.system_engine;
+            if !own.moves(&host) {
+                return None;
+            }
+            // A full list keeps the page where it is.
+            (private || own.set_site(&host, site.clone(), true).is_ok()).then_some(private)
+        });
+        match private {
+            None => return,
+            Some(true) => lock(&self.private_system_sites).push(site.clone()),
+            Some(false) => self.save_soon(),
+        }
+        engine.set_system_engine_sites(self.system_engine_sites());
+        engine.content_load_url(id, url);
+        let name = Engine::system_engine_name().0;
+        let text = format!("{site} plays protected video and opens in {name} from now on.");
+        Self::ui_call(engine, "notice", &json!({ "text": text }));
+    }
+
     /// Site panel: whether the system's engine shows the site of the page
     /// at `url`, and whether that is one of the known services (`known`),
     /// which the panel cannot turn off one by one.
@@ -23,6 +69,7 @@ impl MagnetiteApp {
             let engine = &s.settings.system_engine;
             (engine.knows(&host), engine.names(&host))
         });
+        let named = named || (lock(&self.private_system_sites).iter()).any(|s| in_domain(&host, s));
         json!({
             "site": registrable_domain(&host),
             "system": known || named,
@@ -45,12 +92,11 @@ impl MagnetiteApp {
         let Some(host) = host_of(url) else {
             return Ok(());
         };
-        let sites = self.with_state(|s| {
-            let own = &mut s.settings.system_engine;
-            own.set_site(&host, registrable_domain(&host), system)?;
-            Ok::<_, String>(own.hosts())
+        self.with_state(|s| {
+            (s.settings.system_engine).set_site(&host, registrable_domain(&host), system)
         })?;
-        engine.set_system_engine_sites(sites);
+        lock(&self.private_system_sites).retain(|own| !in_domain(&host, own));
+        engine.set_system_engine_sites(self.system_engine_sites());
         self.save_soon();
         self.on_active_content(engine, |engine, id| engine.content_load_url(id, url));
         Ok(())

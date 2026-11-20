@@ -60,6 +60,7 @@ mod peek_buttons;
 mod pip;
 mod privacy;
 mod prompts;
+mod protected;
 mod router;
 mod scheme;
 mod scriptlets;

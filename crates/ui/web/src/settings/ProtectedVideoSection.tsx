@@ -23,6 +23,9 @@ export function ProtectedVideoSection({ info, update }: { info: Info; update: (p
   const saved = engine.sites.join("\n");
   const [sites, setSites] = useState(saved);
   useEffect(() => setSites(saved), [saved]);
+  const savedChromium = engine.chromium.join("\n");
+  const [chromium, setChromium] = useState(savedChromium);
+  useEffect(() => setChromium(savedChromium), [savedChromium]);
   const [cleared, setCleared] = useState<"idle" | "confirm" | "working" | "done" | "failed">("idle");
   // The app answers once the data of every profile is gone.
   const clear = () => {
@@ -40,7 +43,8 @@ export function ProtectedVideoSection({ info, update }: { info: Info; update: (p
   }
   const known = info.system_engine.known_sites.map((site) => NAMES[site] ?? site);
   const { name, about } = info.system_engine;
-  const save = () => update({ system_engine: { ...engine, sites: sites.split(/[\s,]+/).filter(Boolean) } });
+  const hosts = (typed: string) => typed.split(/[\s,]+/).filter(Boolean);
+  const save = () => update({ system_engine: { ...engine, sites: hosts(sites), chromium: hosts(chromium) } });
   return (
     <>
       <Group>
@@ -50,9 +54,20 @@ export function ProtectedVideoSection({ info, update }: { info: Info; update: (p
           checked={engine.known}
           onChange={(on) => update({ system_engine: { ...engine, known: on } })}
         />
-        <Field label="Other sites" hint={`Sites that open in ${name} too, one per line: a site's name stands for its subdomains. The site panel (the button left of the address) has the same switch for the page in front.`}>
+        <Toggle
+          label={`Move sites that play protected video to ${name}`}
+          hint={`When a page starts protected video in Chromium, its site opens in ${name} from then on and the page loads again there. Magnetite cannot tell beforehand which services refuse its Chromium. Turn the switch in the site panel off again to keep a site in Chromium.`}
+          checked={engine.auto}
+          onChange={(on) => update({ system_engine: { ...engine, auto: on } })}
+        />
+        <Field label="Other sites" hint={`Sites that open in ${name} too, one per line: a site's name stands for its subdomains. Sites that moved by themselves are listed here. The site panel (the button left of the address) has the same switch for the page in front.`}>
           <textarea className="field mono" rows={3} spellCheck={false} placeholder={"tv.example.org"} value={sites} onChange={(e) => setSites(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
         </Field>
+        {(engine.auto || engine.chromium.length > 0) && (
+          <Field label="Kept in Chromium" hint={`Sites that never move by themselves, one per line: those you took back with the site panel's switch, and any you add.`}>
+            <textarea className="field mono" rows={2} spellCheck={false} placeholder={"music.example.org"} value={chromium} onChange={(e) => setChromium(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
+          </Field>
+        )}
       </Group>
       <Group title={`What is different in a ${name} page`} hint="It is a tab like any other: in the sidebar, in its space, in a split or a peek. Extensions cannot read or fill the page. It has no ad blocking or developer tools, sends no Global Privacy Control signal, and signs in on its own: a site you are signed in to in Chromium asks again. Open pages keep their engine until they load another address.">
         <div className="set-row flex items-center gap-3" data-search-row>

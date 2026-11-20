@@ -60,6 +60,16 @@ Option 4 until option 3 is there, on macOS and Windows.
   names in Settings or with a switch in the site panel. The list is this
   device's own and is not synced: whether a system has such an engine
   differs per device.
+- **A site that starts protected video in Chromium joins the list by
+  itself** (`protected.rs`). A script in the page's main frame reports the
+  first request for a Widevine licence; the app names the site and loads
+  the page again. Whether a service refuses an unverified build is decided
+  on its licence server and shows in no interface, so the request itself
+  is the signal, and a service Chromium would have played moves too; the
+  user takes such a site back, and it then stays. Asking for Widevine's
+  presence is not taken as the signal: pages do that without playing
+  anything. The report comes from a renderer, so any page can make it; it
+  moves that page's own site and nothing else, and the sidebar says so.
 - **On macOS** the view is a `WKWebView` (`mac/webkit.rs`):
   - It lives in a plain window of AppKit's, without a frame, that lies
     over the page's own window and is attached to it as a child. The

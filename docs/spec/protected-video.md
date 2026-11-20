@@ -30,6 +30,21 @@ Such a page is called a system page below. Why it is built this way:
   host per line, each with its subdomains), or with "Open in WebKit"
   ("Open in WebView2" on Windows) in the site panel, which names the site of the page in front and loads the
   page again. At most 100 sites; the panel says so when the list is full.
+- A site whose page starts protected video in Chromium: the site is added
+  to "Other sites" and the page loads again in the system's engine, with a
+  note in the sidebar. Magnetite's Chromium plays protected video for
+  services that ask for no verified browser, and nothing tells beforehand
+  which do, so every site that starts one moves. What counts is a request
+  for a Widevine licence by the page itself; asking whether Widevine is
+  there, as many pages do without playing anything, does not, nor does a
+  player in a frame from another site. "Move sites that play protected
+  video to WebKit" (to WebView2) in Settings turns this off. On by default.
+- A site taken out again with the site panel's switch stays in Chromium
+  whatever it plays: it is listed under "Kept in Chromium" in Settings,
+  where sites can be added and removed (at most 100; the oldest makes
+  room).
+- From a private space a site moves until Magnetite is quit, and is
+  written nowhere.
 - "Open streaming services in WebKit" (in WebView2) in Settings turns the known services
   off as a whole. On by default. A known service shows "Always, for its
   video" in the site panel in place of a switch.
@@ -141,14 +156,20 @@ WebView2's developer tools are off too.
 - JavaScript dialogs (`alert`, `confirm`) and choosing a file to upload.
 - A service on a path of a larger site (Prime Video under `amazon.com`):
   only whole hosts can be named.
-- Noticing that a page failed to play in Chromium and offering the switch.
+- Telling a service that plays in Chromium from one that refuses it: a
+  site that would have played there moves too, and has to be taken back by
+  hand.
+- A site that moved from a player in one of its frames, and asking before
+  a page with unsaved input loads again.
 
 Code: `crates/engine/src/system.rs` (which engine, changing it, a system
-page's events), `shadow.rs` (the Chromium tab extensions act on), `mac/webkit.rs` (the WebKit view, its data stores),
+page's events), `protected.rs` and `protected_hook.js` (a Chromium page
+that starts protected video), `shadow.rs` (the Chromium tab extensions act on), `mac/webkit.rs` (the WebKit view, its data stores),
 `win/webview2.rs` (the WebView2 view, its profiles), `win/icon_fetch.rs`,
 `mac/mod.rs` (`set_focus_ring`), `content.rs` (`PageView`, `make_page`),
 `client.rs` (`on_before_browse`), `favicon.rs`, `sitedata.rs`,
 `crates/app/src/state/settings.rs` (`SystemEngine`,
-`PROTECTED_VIDEO_SITES`), `app/engines.rs` (the site panel's switch),
+`PROTECTED_VIDEO_SITES`), `app/engines.rs` (the site panel's switch, a
+site that moves by itself),
 `crates/ui/web/src/settings/ProtectedVideoSection.tsx`, `SitePanel.tsx`
 (`SystemEngine`).

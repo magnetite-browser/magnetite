@@ -276,6 +276,7 @@ wrap_render_process_handler! {
             } else if let (Some(b), Some(f), Some(c)) = (browser.as_deref(), frame.as_deref(), context.as_deref()) {
                 crate::media::install(b, f, c);
                 crate::tabshare::install(f, c);
+                crate::protected::install(f, c);
             }
         }
         fn on_context_released(&self, browser: Option<&mut Browser>, frame: Option<&mut Frame>, context: Option<&mut V8Context>) {

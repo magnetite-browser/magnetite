@@ -381,7 +381,7 @@ export interface Settings {
   /** Developer features (Settings → Developer). */
   developer: { enabled: boolean; hosts: string[] };
   /** Which sites the system's own web engine shows (Settings → Protected video): the known streaming services, and sites of the user's own, by host. This device's own, never synced. */
-  system_engine: { known: boolean; sites: string[] };
+  system_engine: { known: boolean; auto: boolean; sites: string[]; chromium: string[] };
   /** Sites (registrable domains) whose pages get the keys of every shortcut first (the site panel, Settings → Shortcuts). Synced. Changed with `set_site_shortcuts`; a settings patch leaves them. */
   shortcut_sites: string[];
   adblock: {
