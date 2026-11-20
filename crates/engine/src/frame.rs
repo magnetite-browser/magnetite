@@ -290,6 +290,10 @@ impl Engine {
         for win in self.windows() {
             self.in_window(win, || self.apply_page_frame());
         }
+        // Windows has one outline for all windows, and the last window gone
+        // through took it: it is the current window's.
+        let focus = self.lock().win.focused_pane;
+        self.update_focus_ring(focus);
     }
 
     /// The frame around the current window's pages came or went (the
