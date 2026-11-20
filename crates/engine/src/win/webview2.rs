@@ -31,6 +31,7 @@ use webview2_com::Microsoft::Web::WebView2::Win32::{
     COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN, COREWEBVIEW2_MOVE_FOCUS_REASON_PROGRAMMATIC,
     COREWEBVIEW2_PROCESS_FAILED_KIND, COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED,
     COREWEBVIEW2_WEB_ERROR_STATUS, COREWEBVIEW2_WEB_ERROR_STATUS_CANNOT_CONNECT,
+    COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_COMMON_NAME_IS_INCORRECT,
     COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_EXPIRED,
     COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_IS_INVALID,
     COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_REVOKED,
@@ -136,7 +137,9 @@ struct Page {
     /// Where it loads first, until it has a view; then the address it was
     /// last at, to load again if WebView2 has to start anew.
     url: String,
-    /// The WebView2 profile it is in (`store`), and whether `InPrivate`.
+    /// The Magnetite profile it belongs to (`""`: the default one), the
+    /// WebView2 profile it is in (`store`), and whether that is `InPrivate`.
+    profile: String,
     store: String,
     private: bool,
     /// The window of ours that holds the view, a child of the page's own.
@@ -150,8 +153,14 @@ struct Page {
     /// The address that could not be loaded, while the page shows the
     /// note about it: the page stands at that address.
     failed: Option<String>,
+    /// The failed load was refused for its certificate.
+    failed_certificate: bool,
     /// The note about a failed load is about to load: let it.
     note_coming: bool,
+    /// The navigation the page is at (WebView2's id), and whether it is
+    /// still loading: what an older navigation reports changes neither.
+    navigation: u64,
+    loading: bool,
     /// When the page's process last ended by itself.
     crashed: Option<Instant>,
 }
@@ -175,6 +184,15 @@ thread_local! {
     static PAGES: RefCell<HashMap<ContentId, Page>> = RefCell::new(HashMap::new());
     static ENVIRONMENT: RefCell<Environment> = const { RefCell::new(Environment::None) };
     static DATA_DIR: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
+    /// The `InPrivate` store of each profile whose data is in memory this
+    /// run: all its pages share one, as a private space's pages share one
+    /// session.
+    static IN_MEMORY: RefCell<HashMap<String, String>> = RefCell::new(HashMap::new());
+    /// Which environment the views belong to; a new one after WebView2's own
+    /// process ended. What a view of an older one reports is not acted on.
+    static GENERATION: Cell<u64> = const { Cell::new(0) };
+    /// When WebView2's own process last ended by itself.
+    static BROWSER_ENDED: Cell<Option<Instant>> = const { Cell::new(None) };
 }
 
 // ---- data stores ----
@@ -238,10 +256,13 @@ fn fresh_name() -> Option<String> {
 /// that is written nowhere could never be found again, to open or delete.
 fn store(data_dir: &Path, profile: &str, ephemeral: bool) -> (String, bool) {
     let in_memory = || {
-        (
-            format!("private-{}", fresh_name().unwrap_or_default()),
-            true,
-        )
+        let name = IN_MEMORY.with_borrow_mut(|names| {
+            names
+                .entry(profile.to_string())
+                .or_insert_with(|| format!("private-{}", fresh_name().unwrap_or_default()))
+                .clone()
+        });
+        (name, true)
     };
     if ephemeral {
         return in_memory();
@@ -308,8 +329,11 @@ pub(crate) fn forget_stores(data_dir: &Path, ids: &[String]) {
 }
 
 /// The private profiles `ids` have no page left. WebView2 lets go of an
-/// `InPrivate` profile's data when its last view closes: nothing to do.
-pub(crate) fn release_stores(_ids: &[String]) {}
+/// `InPrivate` profile's data when its last view closes; a page made for
+/// one of them later starts with a store of its own.
+pub(crate) fn release_stores(ids: &[String]) {
+    IN_MEMORY.with_borrow_mut(|names| names.retain(|profile, _| !ids.contains(profile)));
+}
 
 /// Delete what WebView2 keeps for `profile`: everything (`domain` none), or
 /// the cookies of the site `domain` and its subdomains and the storage of
@@ -327,14 +351,11 @@ pub(crate) fn clear_data(
     if !available() {
         return done(Ok(nothing));
     }
-    // A page of the profile's that is open: its view reaches the data.
+    // A page of the profile's that is open: its view reaches the data,
+    // which all the profile's pages share (`store`).
     let open = PAGES.with_borrow(|pages| {
         (pages.values())
-            .filter(|p| {
-                p.private == ephemeral
-                    && (ephemeral
-                        || store_of_profile(data_dir, profile).as_deref() == Some(p.store.as_str()))
-            })
+            .filter(|p| p.profile == profile)
             .find_map(|p| p.view.clone())
     });
     let domain = domain.map(str::to_string);
@@ -375,11 +396,6 @@ pub(crate) fn clear_data(
             )),
         }),
     );
-}
-
-/// The kept WebView2 profile name of `profile`, if there is one.
-fn store_of_profile(data_dir: &Path, profile: &str) -> Option<String> {
-    read_store_names(data_dir).ok()?.get(profile).cloned()
 }
 
 /// What hears whether data was deleted: how many cookies went, where that
@@ -442,7 +458,7 @@ fn clear_everything(
 fn clear_site(
     view: &ICoreWebView2,
     domain: String,
-    finish: impl Fn(Result<Option<usize>, String>) + 'static,
+    finish: impl Fn(Result<Option<usize>, String>) + Clone + 'static,
 ) -> windows_core::Result<()> {
     // SAFETY: a live view; WebView2 keeps the handler until it reports.
     unsafe {
@@ -452,10 +468,12 @@ fn clear_site(
             w!(""),
             &GetCookiesCompletedHandler::create(Box::new(move |result, list| {
                 let removed = result.and_then(|()| {
-                    let Some(list) = list else { return Ok(0) };
+                    let Some(list) = list else {
+                        return Ok((0, false));
+                    };
                     let mut count = 0u32;
                     list.Count(&raw mut count)?;
-                    let mut removed = 0usize;
+                    let (mut removed, mut missed) = (0usize, false);
                     for index in 0..count {
                         let cookie = list.GetValueAtIndex(index)?;
                         let of_site = get(|d| cookie.Domain(d))
@@ -466,6 +484,8 @@ fn clear_site(
                             let name = get(|n| cookie.Name(n)).unwrap_or_default();
                             let domain = get(|d| cookie.Domain(d)).unwrap_or_default();
                             let path = get(|p| cookie.Path(p)).unwrap_or_default();
+                            // The others are still tried; the answer says
+                            // that one stayed.
                             if deleter
                                 .DeleteCookiesWithDomainAndPath(
                                     &HSTRING::from(name),
@@ -475,21 +495,36 @@ fn clear_site(
                                 .is_ok()
                             {
                                 removed += 1;
+                            } else {
+                                missed = true;
                             }
                         }
                     }
                     crate::trace(&format!(
                         "system engine: {removed} of {count} cookies are the site's"
                     ));
-                    Ok(removed)
+                    Ok((removed, missed))
                 });
                 if let Err(e) = &removed {
                     crate::trace(&format!("system engine: no cookies read ({})", e.code().0));
                 }
                 match removed {
-                    Ok(removed) => {
-                        clear_site_storage(&view, &domain);
-                        finish(Ok(Some(removed)));
+                    // The answer once the storage is gone too: the hidden
+                    // view a profile without pages is cleared through
+                    // closes with it.
+                    Ok((removed, missed)) => {
+                        let finish = finish.clone();
+                        clear_site_storage(
+                            &view,
+                            &domain,
+                            Box::new(move |stored| {
+                                finish(if missed || !stored {
+                                    Err("Some of the site's data could not be deleted.".to_string())
+                                } else {
+                                    Ok(Some(removed))
+                                });
+                            }),
+                        );
                     }
                     Err(_) => finish(not_cleared()),
                 }
@@ -504,7 +539,8 @@ fn clear_site(
 /// profile's data and no other: at the site's own addresses, and at those
 /// of the site's pages that are open. WebView2 lists no data by site, so
 /// storage of another subdomain that no page shows stays.
-fn clear_site_storage(view: &ICoreWebView2, domain: &str) {
+/// `done` hears, once every address has answered, whether all of it went.
+fn clear_site_storage(view: &ICoreWebView2, domain: &str, done: Box<dyn FnOnce(bool)>) {
     let open: Vec<String> = PAGES.with_borrow(|pages| {
         (pages.values())
             .filter_map(|page| origin_of(&page.url))
@@ -518,16 +554,39 @@ fn clear_site_storage(view: &ICoreWebView2, domain: &str) {
             origins.push(origin);
         }
     }
+    let left = Rc::new(Cell::new(origins.len()));
+    let failed = Rc::new(Cell::new(false));
+    let done = Rc::new(RefCell::new(Some(done)));
+    let answered = move |left: &Cell<usize>, failed: &Cell<bool>, ok: bool| {
+        if !ok {
+            failed.set(true);
+        }
+        left.set(left.get() - 1);
+        if left.get() == 0
+            && let Some(done) = done.borrow_mut().take()
+        {
+            done(!failed.get());
+        }
+    };
     for origin in origins {
         let params = serde_json::json!({ "origin": origin, "storageTypes": "all" }).to_string();
+        let (l, f, a) = (left.clone(), failed.clone(), answered.clone());
+        let handler =
+            CallDevToolsProtocolMethodCompletedHandler::create(Box::new(move |result, _| {
+                a(&l, &f, result.is_ok());
+                Ok(())
+            }));
         // SAFETY: a live view; WebView2 keeps the handler until it reports.
-        let _ = unsafe {
+        let asked = unsafe {
             view.CallDevToolsProtocolMethod(
                 w!("Storage.clearDataForOrigin"),
                 &HSTRING::from(params),
-                &CallDevToolsProtocolMethodCompletedHandler::create(Box::new(|_, _| Ok(()))),
+                &handler,
             )
         };
+        if asked.is_err() {
+            answered(&left, &failed, false);
+        }
     }
 }
 
@@ -754,6 +813,7 @@ pub(crate) fn create(
     let (store, private) = store(data_dir, profile, ephemeral);
     let page = Page {
         url: url.to_string(),
+        profile: profile.to_string(),
         store,
         private,
         host: None,
@@ -762,7 +822,10 @@ pub(crate) fn create(
         view: None,
         wants_focus: false,
         failed: None,
+        failed_certificate: false,
         note_coming: false,
+        navigation: 0,
+        loading: false,
         crashed: None,
     };
     PAGES.with_borrow_mut(|p| p.insert(id, page));
@@ -931,6 +994,7 @@ pub(crate) fn attach(id: ContentId, handle: cef::sys::cef_window_handle_t) {
     };
     let Ok(host) = host else {
         crate::trace(&format!("system page #{id}: no window for it"));
+        Engine::global().system_failed(id, page_url(id), false);
         return;
     };
     // SAFETY: our window, above the page window's own children; the watch
@@ -993,6 +1057,7 @@ fn make_view(env: &ICoreWebView2Environment, id: ContentId) {
     };
     if asked.is_err() {
         crate::trace(&format!("system page #{id}: WebView2 made no view"));
+        Engine::global().system_failed(id, page_url(id), false);
     }
 }
 
@@ -1007,6 +1072,10 @@ fn view_made(id: ContentId, controller: &ICoreWebView2Controller) {
     }
     // SAFETY: a live controller, on the thread it was made on.
     let Ok(view) = (unsafe { controller.CoreWebView2() }) else {
+        crate::trace(&format!("system page #{id}: WebView2 made no view"));
+        // SAFETY: as above; nobody else holds it.
+        let _ = unsafe { controller.Close() };
+        Engine::global().system_failed(id, page_url(id), false);
         return;
     };
     // SAFETY: as above.
@@ -1036,7 +1105,9 @@ fn view_made(id: ContentId, controller: &ICoreWebView2Controller) {
         };
         page.controller = Some(controller.clone());
         page.view = Some(view.clone());
-        (page.url.clone(), page.wants_focus, page.host, page.parent)
+        // A request for the keyboard is used once.
+        let wants_focus = std::mem::take(&mut page.wants_focus);
+        (page.url.clone(), wants_focus, page.host, page.parent)
     });
     listen(id, controller, &view);
     fit_host(id);
@@ -1075,6 +1146,7 @@ fn held(key: u16) -> bool {
 /// What page `id` reports, as the engine's events.
 fn listen(id: ContentId, controller: &ICoreWebView2Controller, view: &ICoreWebView2) {
     let mut token = 0i64;
+    let generation = GENERATION.get();
     // SAFETY: live objects; WebView2 keeps each handler until the view is
     // closed (`close`).
     unsafe {
@@ -1100,10 +1172,15 @@ fn listen(id: ContentId, controller: &ICoreWebView2Controller, view: &ICoreWebVi
                     args.SetCancel(true)?;
                     return Ok(());
                 }
+                let mut navigation = 0u64;
+                args.NavigationId(&raw mut navigation)?;
                 PAGES.with_borrow_mut(|p| {
                     if let Some(page) = p.get_mut(&id) {
                         page.failed = None;
+                        page.failed_certificate = false;
                         page.url.clone_from(&url);
+                        page.navigation = navigation;
+                        page.loading = true;
                     }
                 });
                 Engine::global().system_started(id, &url);
@@ -1137,7 +1214,9 @@ fn listen(id: ContentId, controller: &ICoreWebView2Controller, view: &ICoreWebVi
         );
         let _ = view.add_HistoryChanged(
             &HistoryChangedEventHandler::create(Box::new(move |_, _| {
-                report_loading(id, false);
+                // Back and forward changed; whether the page loads did not.
+                let loading = PAGES.with_borrow(|p| p.get(&id).is_some_and(|page| page.loading));
+                report_loading(id, loading);
                 Ok(())
             })),
             &raw mut token,
@@ -1147,6 +1226,19 @@ fn listen(id: ContentId, controller: &ICoreWebView2Controller, view: &ICoreWebVi
                 let (Some(view), Some(args)) = (view, args) else {
                     return Ok(());
                 };
+                // A navigation another one took the place of: the page is
+                // at the newer one, which still loads.
+                let mut navigation = 0u64;
+                args.NavigationId(&raw mut navigation)?;
+                let current = PAGES.with_borrow_mut(|p| {
+                    p.get_mut(&id)
+                        .filter(|page| page.navigation == navigation)
+                        .map(|page| page.loading = false)
+                        .is_some()
+                });
+                if !current {
+                    return Ok(());
+                }
                 let mut ok = BOOL::default();
                 args.IsSuccess(&raw mut ok)?;
                 let mut status = COREWEBVIEW2_WEB_ERROR_STATUS::default();
@@ -1214,10 +1306,11 @@ fn listen(id: ContentId, controller: &ICoreWebView2Controller, view: &ICoreWebVi
                 if let Some(args) = args {
                     args.ProcessFailedKind(&raw mut kind)?;
                 }
-                process_failed(
-                    id,
-                    kind == COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED,
-                );
+                if kind == COREWEBVIEW2_PROCESS_FAILED_KIND_BROWSER_PROCESS_EXITED {
+                    browser_ended(generation);
+                } else {
+                    page_crashed(id);
+                }
                 Ok(())
             })),
             &raw mut token,
@@ -1294,33 +1387,49 @@ fn listen(id: ContentId, controller: &ICoreWebView2Controller, view: &ICoreWebVi
 /// less than this long ago.
 const CRASH_PAUSE: Duration = Duration::from_secs(10);
 
-/// Page `id`'s process ended (`browser`: WebView2's own, with every view).
-fn process_failed(id: ContentId, browser: bool) {
-    crate::trace(&format!("system page #{id}: its process ended"));
-    if browser {
-        // Every view is gone with it: the environment starts anew, and each
-        // page gets a new view at the address it was at.
-        let ids: Vec<ContentId> = PAGES.with_borrow_mut(|pages| {
-            for page in pages.values_mut() {
-                page.controller = None;
-                page.view = None;
-            }
-            pages
-                .iter()
-                .filter(|(_, p)| p.host.is_some())
-                .map(|(id, _)| *id)
-                .collect()
-        });
-        ENVIRONMENT.with_borrow_mut(|e| {
-            if matches!(e, Environment::Ready(_)) {
-                *e = Environment::None;
-            }
-        });
-        for id in ids {
-            on_environment(Waiting::Page(id));
-        }
+/// WebView2's own process ended, and every view of environment
+/// `generation` with it. Each view reports it: the first report of an
+/// environment starts it anew, and each page gets a new view at the address
+/// it was at; the others are of one that is gone already. Not again within
+/// `CRASH_PAUSE`: a WebView2 that keeps ending would otherwise start for
+/// ever, and its pages say they could not be loaded instead.
+fn browser_ended(generation: u64) {
+    if generation != GENERATION.get() {
         return;
     }
+    GENERATION.set(generation + 1);
+    crate::trace("system engine: WebView2's process ended");
+    let again = BROWSER_ENDED
+        .replace(Some(Instant::now()))
+        .is_none_or(|last| last.elapsed() > CRASH_PAUSE);
+    let ids: Vec<ContentId> = PAGES.with_borrow_mut(|pages| {
+        for page in pages.values_mut() {
+            page.controller = None;
+            page.view = None;
+        }
+        pages
+            .iter()
+            .filter(|(_, p)| p.host.is_some())
+            .map(|(id, _)| *id)
+            .collect()
+    });
+    ENVIRONMENT.with_borrow_mut(|e| {
+        if matches!(e, Environment::Ready(_)) {
+            *e = Environment::None;
+        }
+    });
+    for id in ids {
+        if again {
+            on_environment(Waiting::Page(id));
+        } else {
+            Engine::global().system_failed(id, page_url(id), false);
+        }
+    }
+}
+
+/// Page `id`'s own process ended.
+fn page_crashed(id: ContentId) {
+    crate::trace(&format!("system page #{id}: its process ended"));
     // Once: a page that ends its process whenever it loads would otherwise
     // load for ever.
     let again = PAGES.with_borrow_mut(|p| {
@@ -1352,6 +1461,7 @@ fn load_failed(id: ContentId, view: &ICoreWebView2, status: COREWEBVIEW2_WEB_ERR
     PAGES.with_borrow_mut(|p| {
         if let Some(page) = p.get_mut(&id) {
             page.failed = Some(url.clone());
+            page.failed_certificate = certificate_failed(status);
             page.note_coming = true;
         }
     });
@@ -1363,6 +1473,17 @@ fn load_failed(id: ContentId, view: &ICoreWebView2, status: COREWEBVIEW2_WEB_ERR
         url,
         status == COREWEBVIEW2_WEB_ERROR_STATUS_CANNOT_CONNECT,
     );
+}
+
+/// Whether a load failed for the site's certificate.
+fn certificate_failed(status: COREWEBVIEW2_WEB_ERROR_STATUS) -> bool {
+    [
+        COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_COMMON_NAME_IS_INCORRECT,
+        COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_EXPIRED,
+        COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_IS_INVALID,
+        COREWEBVIEW2_WEB_ERROR_STATUS_CERTIFICATE_REVOKED,
+    ]
+    .contains(&status)
 }
 
 /// Why a load failed, in plain words.
@@ -1519,8 +1640,14 @@ pub(crate) fn stop(id: ContentId) {
     }
 }
 
-/// Give page `id` the keyboard.
+/// Give page `id` the keyboard. Only the latest request counts: one made
+/// before a page had its view is forgotten when another page is asked.
 pub(crate) fn focus(id: ContentId) {
+    PAGES.with_borrow_mut(|pages| {
+        for page in pages.values_mut() {
+            page.wants_focus = false;
+        }
+    });
     match controller_of(id) {
         Some(controller) => {
             // SAFETY: a live controller.
@@ -1554,8 +1681,18 @@ pub(crate) fn set_zoom(id: ContentId, percent: u32) {
 
 /// Whether page `id` came over an encrypted connection; `None` for a page
 /// without a network address. WebView2 says nothing of mixed content on a
-/// page: it blocks what an `https://` page would load insecurely.
+/// page: it blocks what an `https://` page would load insecurely. A page
+/// that failed to load came over no connection: not secure where the
+/// certificate was refused, else nothing to say.
 pub(crate) fn secure(id: ContentId) -> Option<bool> {
+    let failed = PAGES.with_borrow(|p| {
+        p.get(&id)
+            .filter(|page| page.failed.is_some())
+            .map(|page| page.failed_certificate)
+    });
+    if let Some(certificate) = failed {
+        return certificate.then_some(false);
+    }
     let url = address_of(id)?;
     if url.starts_with("https://") {
         Some(true)
@@ -1625,6 +1762,10 @@ mod tests {
         assert_ne!(other, first);
         let (in_memory, private) = store(&dir, "secret", true);
         assert!(private && in_memory.starts_with("private-"));
+        // A private profile's pages share one store, until it is released.
+        assert_eq!(store(&dir, "secret", true).0, in_memory);
+        super::release_stores(&["secret".to_string()]);
+        assert_ne!(store(&dir, "secret", true).0, in_memory);
         // Only the two on disk are written down.
         assert_eq!(read_store_names(&dir).unwrap().len(), 2);
         std::fs::remove_dir_all(&dir).unwrap();

@@ -28,6 +28,9 @@ use windows_core::{HSTRING, PCWSTR, w};
 
 /// The largest icon a site may hand over: more is not an icon.
 const ICON_LIMIT: usize = 1 << 20;
+/// The largest picture decoded, in pixels: an icon's largest size, and more.
+/// A small file may declare a huge picture; it is not decoded.
+const MAX_PIXELS: u64 = 1024 * 1024;
 /// How many redirects an icon's address may take.
 const REDIRECTS: usize = 5;
 
@@ -75,16 +78,34 @@ fn parts(url: &str) -> Option<(String, u16, String)> {
     Some((host.to_string(), port, path))
 }
 
-/// Where a redirect from `from` to `location` leads: an address of its own,
-/// or a path on the same host.
+/// Where a redirect from `from` to `location` leads, the location read as a
+/// reference against `from`: an address of its own, one without a scheme
+/// (`//host/…`), a path on the same host, or one beside `from`'s.
 fn redirected(from: &str, location: &str) -> Option<String> {
-    if location.contains("://") {
+    let location = location.trim();
+    if let Some((scheme, _)) = location.split_once(':')
+        && !scheme.is_empty()
+        && scheme
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.'))
+        && !scheme.contains('/')
+    {
         return Some(location.to_string());
     }
-    let (host, port, _) = parts(from)?;
-    location
-        .starts_with('/')
-        .then(|| format!("https://{host}:{port}{location}"))
+    if location.starts_with("//") {
+        return Some(format!("https:{location}"));
+    }
+    let (host, port, path) = parts(from)?;
+    let origin = format!("https://{host}:{port}");
+    let path = path.split('?').next().unwrap_or("/");
+    if location.starts_with('/') {
+        Some(format!("{origin}{location}"))
+    } else if location.starts_with('?') {
+        Some(format!("{origin}{path}{location}"))
+    } else {
+        let folder = &path[..=path.rfind('/').unwrap_or(0)];
+        Some(format!("{origin}{folder}{location}"))
+    }
 }
 
 /// The body at `url`, following redirects that `parts` allows, if it is no
@@ -257,7 +278,7 @@ fn encode(bytes: &[u8]) -> Option<Vec<u8>> {
             let (mut width, mut height) = (0u32, 0u32);
             frame.GetSize(&raw mut width, &raw mut height).ok()?;
             let area = u64::from(width) * u64::from(height);
-            if largest.as_ref().is_none_or(|(a, _)| area > *a) {
+            if area <= MAX_PIXELS && largest.as_ref().is_none_or(|(a, _)| area > *a) {
                 largest = Some((area, frame));
             }
         }
@@ -333,7 +354,14 @@ mod tests {
         );
         let away = redirected("https://a.example/x", "http://b.example/a.png").unwrap();
         assert!(parts(&away).is_none());
-        assert_eq!(redirected("https://a.example/x", "a.png"), None);
+        assert_eq!(
+            redirected("https://a.example/icons/x?y=1", "a.png").as_deref(),
+            Some("https://a.example:443/icons/a.png")
+        );
+        assert_eq!(
+            redirected("https://a.example/x", "//cdn.example/a.png").as_deref(),
+            Some("https://cdn.example/a.png")
+        );
     }
 
     #[test]
