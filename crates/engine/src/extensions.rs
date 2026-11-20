@@ -401,12 +401,10 @@ impl Engine {
     /// target's window and the tabs, and the tab with the same window wins
     /// (tabs showing the page's address are asked first).
     fn with_tab_target(&self, id: ContentId, f: impl FnOnce(String) + Send + 'static) {
-        if let Some(tab) = self
-            .lock()
-            .contents
-            .get(&id)
-            .and_then(|c| c.tab_target.clone())
-        {
+        // Its own statement: `f` runs without the engine's lock, which it
+        // may take itself.
+        let known = (self.lock().contents.get(&id)).and_then(|c| c.tab_target.clone());
+        if let Some(tab) = known {
             f(tab);
             return;
         }
