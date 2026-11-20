@@ -811,7 +811,8 @@ interface Replies {
   smart_save: { id: Id };
   smart_connect: Account;
   smart_preview: SmartItem[];
-  sync_code: { words: string | null };
+  /** `qr`: server and words as a QR code for a phone, one string per row, "1" a dark square. */
+  sync_code: { words: string | null; qr: string[] | null };
   copy_link: CopyResult;
   read_shared: { folder: Folder | null };
   add_shared: { added: boolean };

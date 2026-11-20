@@ -43,6 +43,8 @@ sha2.workspace = true
 libc = "0.2"
 # Shared links are compressed (already in the build through ureq).
 flate2 = "1"
+# The sync code as a QR code for a phone; the page draws the squares.
+qrcode = { version = "0.15", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 magnetite-sync = { git = "https://github.com/magnetite-browser/magnetite-sync", tag = "v0.1.0" }

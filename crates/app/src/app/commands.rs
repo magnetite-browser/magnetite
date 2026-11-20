@@ -1895,7 +1895,13 @@ impl MagnetiteApp {
             }
             UiCommand::SyncNow => self.sync_now(),
             UiCommand::SyncCode => {
-                return Ok(json!({ "words": sync::code_words(&self.data_dir) }));
+                let words = sync::code_words(&self.data_dir);
+                let server = self.with_state(|s| s.settings.sync.server_url.clone());
+                // For a phone to scan: the server and the words in one link.
+                let qr = words
+                    .as_deref()
+                    .and_then(|w| sync::qr_rows(&sync::join_link(&server, w)));
+                return Ok(json!({ "words": words, "qr": qr }));
             }
             UiCommand::SyncLeave => self.sync_client().submit(Job::Leave),
             UiCommand::SyncDeleteChain => {

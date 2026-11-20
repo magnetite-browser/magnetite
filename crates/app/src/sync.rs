@@ -103,6 +103,31 @@ pub fn code_words(data_dir: &Path) -> Option<String> {
     load_code(data_dir).map(|c| c.words())
 }
 
+/// What a phone scans to join the chain on `server` with the 24 `words`: a
+/// `magnetite://sync` link that carries both (docs/spec/sync.md, "The code
+/// as a QR code"). Spaces are `%20`, which every platform's link parser reads.
+pub fn join_link(server: &str, words: &str) -> String {
+    let mut link = url::Url::parse("magnetite://sync").expect("a constant link");
+    link.query_pairs_mut()
+        .append_pair("server", server)
+        .append_pair("words", words);
+    // A `+` of the input is written as `%2B`, so every `+` left is a space.
+    link.as_str().replace('+', "%20")
+}
+
+/// `text` as a QR code: one string per row, `1` for a dark square. `None`
+/// when the text is too long for one.
+pub fn qr_rows(text: &str) -> Option<Vec<String>> {
+    let code = qrcode::QrCode::new(text).ok()?;
+    let row = |squares: &[qrcode::Color]| {
+        squares
+            .iter()
+            .map(|c| if *c == qrcode::Color::Dark { '1' } else { '0' })
+            .collect()
+    };
+    Some(code.to_colors().chunks(code.width()).map(row).collect())
+}
+
 /// The address requests go to (no trailing slash). The server must use
 /// `https://`; plain `http://` is accepted only for this machine (`localhost`,
 /// `127.0.0.1`, `::1`). A path prefix is fine; user info and queries are not.
@@ -939,6 +964,24 @@ mod tests {
     }
 
     use super::*;
+
+    #[test]
+    fn join_link_carries_server_and_words() {
+        let words = SyncCode::generate().words();
+        let link = join_link("https://sync.example.org/a b+c", &words);
+        assert!(link.starts_with(
+            "magnetite://sync?server=https%3A%2F%2Fsync.example.org%2Fa%20b%2Bc&words="
+        ));
+        assert!(!link.contains('+') && !link.contains(' '));
+        // Read back by a parser that, like a phone's, takes `+` as itself.
+        let read = link.rsplit_once("&words=").unwrap().1.replace("%20", " ");
+        assert_eq!(read, words);
+
+        let rows = qr_rows(&link).unwrap();
+        assert!(rows.iter().all(|r| r.len() == rows.len()));
+        // The finder pattern's corner.
+        assert!(rows[0].starts_with("1111111"));
+    }
     use magnetite_core::{Profile, SidebarSnapshot, Space};
     use std::io::{BufRead, BufReader, Read, Write};
     use std::net::TcpListener;

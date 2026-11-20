@@ -251,6 +251,7 @@ carries its own notices there.
 | potential_utf | Unicode-3.0 | magnetite |
 | psl | MIT/Apache-2.0 | magnetite |
 | psl-types | MIT/Apache-2.0 | magnetite |
+| qrcode | MIT OR Apache-2.0 | magnetite |
 | rand | MIT OR Apache-2.0 | magnetite |
 | rand_core | MIT OR Apache-2.0 | magnetite |
 | regex | MIT OR Apache-2.0 | magnetite |
@@ -321,7 +322,7 @@ text share one copy, preceded by all of their copyright lines.
 
 #### 1. MIT
 
-Used by: adler2, aead, anstream, anstyle, anstyle-parse, anstyle-query, anstyle-wincon, anyhow, arrayvec, bitflags, block-buffer, block2, bytes, cef, cef-dll-sys, cfg-if, chacha20, chacha20poly1305, cipher, clap, clap_builder, clap_lex, cmov, colorchoice, const-oid, cpufeatures, crypto-common, csstype, ctutils, digest, ed25519, either, flate2, form_urlencoded, getrandom, hkdf, hmac, http, httparse, hybrid-array, idna, idna_adapter, inout, is_terminal_polyfill, itertools, itoa, libc, log, objc2, objc2-app-kit, objc2-core-foundation, objc2-core-graphics, objc2-encode, objc2-foundation, objc2-web-kit, once_cell, once_cell_polyfill, percent-encoding, png, poly1305, rand, rand_core, regex, regex-automata, regex-syntax, rustc-hash, rustls, rustls-pki-types, seahash, semver, serde, serde_core, serde_json, sha2, signature, smallvec, stable_deref_trait, thiserror, tinyvec, unicode-normalization, universal-hash, ureq-proto, url, utf8-zero, utf8_iter, utf8parse, utf_types, zeroize, zmij.
+Used by: adler2, aead, anstream, anstyle, anstyle-parse, anstyle-query, anstyle-wincon, anyhow, arrayvec, bitflags, block-buffer, block2, bytes, cef, cef-dll-sys, cfg-if, chacha20, chacha20poly1305, cipher, clap, clap_builder, clap_lex, cmov, colorchoice, const-oid, cpufeatures, crypto-common, csstype, ctutils, digest, ed25519, either, flate2, form_urlencoded, getrandom, hkdf, hmac, http, httparse, hybrid-array, idna, idna_adapter, inout, is_terminal_polyfill, itertools, itoa, libc, log, objc2, objc2-app-kit, objc2-core-foundation, objc2-core-graphics, objc2-encode, objc2-foundation, objc2-web-kit, once_cell, once_cell_polyfill, percent-encoding, png, poly1305, qrcode, rand, rand_core, regex, regex-automata, regex-syntax, rustc-hash, rustls, rustls-pki-types, seahash, semver, serde, serde_core, serde_json, sha2, signature, smallvec, stable_deref_trait, thiserror, tinyvec, unicode-normalization, universal-hash, ureq-proto, url, utf8-zero, utf8_iter, utf8parse, utf_types, zeroize, zmij.
 
 ```
 Copyright (c) 2006-2009 Graydon Hoare
@@ -340,6 +341,7 @@ Copyright (c) 2015-2026 The RustCrypto Project Developers
 Copyright (c) 2016 Artyom Pavlov
 Copyright (c) 2016 Joe Wilm
 Copyright (c) 2016 Joseph Birr-Pixton <jpixton@gmail.com>
+Copyright (c) 2016 kennytm
 Copyright (c) 2016-2025 RustCrypto Developers
 Copyright (c) 2016-2026 The RustCrypto Project Developers
 Copyright (c) 2017 Artyom Pavlov
