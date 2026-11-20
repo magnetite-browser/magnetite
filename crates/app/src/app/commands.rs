@@ -682,6 +682,17 @@ pub(super) enum UiCommand {
     SiteAds {
         url: String,
     },
+    /// Site panel: whether the site of the page at `url` gets the keys of
+    /// every shortcut first.
+    SiteShortcuts {
+        url: String,
+    },
+    /// Site panel: the site of the page at `url` gets the keys of every
+    /// shortcut first, or no longer.
+    SetSiteShortcuts {
+        url: String,
+        page_first: bool,
+    },
     /// Site panel: block ads on the site of the page at `url` again, or not.
     SetSiteAds {
         url: String,
@@ -2060,6 +2071,7 @@ impl MagnetiteApp {
             }
             UiCommand::SetSettings { settings: patch } => {
                 let before = self.with_state(|s| s.settings.adblock.clone());
+                let shortcut_sites_before = self.with_state(|s| s.settings.shortcut_sites.clone());
                 let downloads_before = self.with_state(|s| s.settings.downloads.clone());
                 let (settings, code_changed) = self.with_state(|s| {
                     let settings = s.settings.patched(patch)?;
@@ -2099,6 +2111,9 @@ impl MagnetiteApp {
                     self.apply_adblock(true);
                 } else if after.allowed_sites != before.allowed_sites {
                     self.apply_adblock_sites();
+                }
+                if settings.shortcut_sites != shortcut_sites_before {
+                    self.apply_shortcut_keys(engine);
                 }
                 self.push_state(engine);
             }
@@ -2595,6 +2610,10 @@ impl MagnetiteApp {
                 lock(&self.capture).result = None;
             }
             UiCommand::SiteAds { url } => return Ok(self.site_ads(&url)),
+            UiCommand::SiteShortcuts { url } => return Ok(self.site_shortcuts(&url)),
+            UiCommand::SetSiteShortcuts { url, page_first } => {
+                self.set_site_shortcuts(engine, &url, page_first);
+            }
             UiCommand::SiteEngine { url } => return Ok(self.site_engine(&url)),
             UiCommand::SetSiteEngine { url, system } => {
                 self.set_site_engine(engine, &url, system)?;

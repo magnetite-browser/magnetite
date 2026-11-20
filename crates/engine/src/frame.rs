@@ -1126,7 +1126,7 @@ wrap_window_delegate! {
         }
 
         fn on_key_event(&self, _window: Option<&mut Window>, event: Option<&KeyEvent>) -> ::std::os::raw::c_int {
-            let Some(shortcut) = event.and_then(|e| crate::keys::shortcut_for_key(e).or_else(|| crate::keys::yieldable_shortcut(e))) else { return 0 };
+            let Some(shortcut) = event.and_then(crate::keys::any_shortcut) else { return 0 };
             let engine = Engine::global();
             engine.in_window(self.win, || engine.emit(EngineEvent::Shortcut { from: None, shortcut }));
             1

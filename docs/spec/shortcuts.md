@@ -78,6 +78,24 @@ in Settings → Shortcuts has a choice for that:
 - The keys that cannot be changed and the keys of a space have no choice:
   Magnetite gets them first.
 
+### A site that gets them all
+
+A web app with many shortcuts of its own, such as an editor, can have the
+keys of every shortcut first: the site panel's switch "Site's shortcuts
+first" (`site-controls.md`).
+
+- On such a site every shortcut counts as "Page first", whatever its own
+  choice says: the site may use the keys, and the shortcut runs if the site
+  leaves them alone. A site that uses the keys of "Close tab" keeps them
+  too; the command stays in the menu bar and the command bar.
+- The keys without a choice stay Magnetite's there as well.
+- A site is the registrable domain, as for the site panel's other
+  switches: `www.example.org` and `app.example.org` are `example.org`. It
+  is the site of the page a tab shows, also for keys pressed in a frame of
+  another site inside it.
+- Settings → Shortcuts lists these sites, each with "Remove". "Reset all"
+  empties the list.
+
 With the sidebar (docked or floating) or the top bar in focus, a shortcut
 runs as in a page.
 
@@ -87,8 +105,9 @@ have no Cmd, Ctrl or Option (a function key), each press switches at once.
 
 ## Sync and other systems
 
-- Changed shortcuts, and who gets their keys first, are part of the synced
-  settings (`sync.md`), so they are set up once. Only what differs from the
+- Changed shortcuts, who gets their keys first and the sites that get
+  them all first are part of the synced settings (`sync.md`), so they are
+  set up once. Only what differs from the
   defaults is saved and sent.
 - Keys are saved with the system's main modifier, not the literal key: Cmd
   on macOS is Ctrl elsewhere. The Control key of a Mac is Ctrl elsewhere
@@ -108,13 +127,15 @@ have no Cmd, Ctrl or Option (a function key), each press switches at once.
 |---|---|
 | The shortcuts with other keys or none: `{"new_tab": "primary+J", "print": null}` | `settings.shortcuts` in `state.json`, and the synced settings |
 | The shortcuts whose keys go first to someone else than by default: `{"find": "magnetite", "close_tab": "page"}` | `settings.shortcut_priority` in `state.json`, and the synced settings |
+| The sites that get every shortcut's keys first: `["example.org"]` | `settings.shortcut_sites` in `state.json`, and the synced settings |
 | A space's keys: `"shortcut": "ctrl+alt+M"` | the space in the sidebar (`state.json`, and the synced sidebar) |
 
 ## Not built yet
 
 - Other keys for the commands under "Keys that cannot be changed".
 - Several keys for one shortcut.
-- A choice per site of who gets the keys first.
+- A choice per shortcut on one site (a site gets all of them first, or
+  none).
 
 Code: `crates/engine/src/keymap.rs` (defaults, checks), `keys.rs` (matching
 key presses), `menubar.rs` (`apply_keys`),

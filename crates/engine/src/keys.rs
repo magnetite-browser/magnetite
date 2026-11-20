@@ -10,11 +10,14 @@
 use cef::sys;
 use cef::*;
 
+use std::collections::HashSet;
 use std::sync::{Mutex, RwLock};
 use std::time::{Duration, Instant};
 
+use crate::client::host_of;
 use crate::events::{DevPanel, Shortcut};
 use crate::keymap::{Action, Combo, First, Overrides, Priorities};
+use crate::sitedata::registrable_domain;
 
 // The flags are `u32` on macOS and Linux and `i32` on Windows.
 #[allow(clippy::unnecessary_cast, clippy::cast_sign_loss)]
@@ -40,6 +43,9 @@ const SPACE_DIGITS: u32 = if cfg!(target_os = "macos") { CTRL } else { ALT };
 static KEYS: RwLock<Option<Overrides>> = RwLock::new(None);
 /// Who gets each action's keys first, as the user has it (the same page).
 static FIRST: RwLock<Option<Priorities>> = RwLock::new(None);
+/// Sites (registrable domains) whose pages get every shortcut's keys first
+/// (the site panel).
+static PAGE_FIRST_SITES: RwLock<Option<HashSet<String>>> = RwLock::new(None);
 static PAUSED_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
 /// The keys that spaces have of their own (from the app).
 static SPACE_KEYS: RwLock<Vec<Combo>> = RwLock::new(Vec::new());
@@ -54,8 +60,37 @@ fn set_overrides(overrides: &Overrides, priorities: &Priorities) {
     }
 }
 
-/// Who gets the keys of `action` first now.
-fn first(action: Action) -> First {
+/// The sites (registrable domains) whose pages get the keys of every
+/// shortcut first, whatever the shortcut's own choice says.
+pub fn set_page_first_sites(sites: impl IntoIterator<Item = String>) {
+    *PAGE_FIRST_SITES
+        .write()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(sites.into_iter().collect());
+}
+
+/// Whether `event` is a shortcut's key pressed in a page of a site that
+/// gets those first. `url` is asked for the page's address only for such a
+/// key, and only while there are such sites.
+pub fn page_first_site(event: &KeyEvent, url: impl FnOnce() -> Option<String>) -> bool {
+    let Ok(sites) = PAGE_FIRST_SITES.read() else {
+        return false;
+    };
+    let Some(sites) = sites.as_ref().filter(|sites| !sites.is_empty()) else {
+        return false;
+    };
+    if pressed(event).and_then(action_for).is_none() {
+        return false;
+    }
+    let site = url().and_then(|url| host_of(&url).map(|h| registrable_domain(&h)));
+    site.is_some_and(|site| sites.contains(&site))
+}
+
+/// Who gets the keys of `action` first now; the page, on a site that gets
+/// every shortcut's keys first (`site`).
+fn first(action: Action, site: bool) -> First {
+    if site {
+        return First::Page;
+    }
     match FIRST.read().ok().as_deref() {
         Some(Some(priorities)) => priorities.first(action),
         _ => action.default_first(),
@@ -158,8 +193,10 @@ fn pressed(event: &KeyEvent) -> Option<Combo> {
 
 /// Map a raw key-down event to a shortcut that Magnetite gets first: matched
 /// before the page sees the key, so web apps cannot take it (see
-/// docs/spec/shortcuts.md, "Who gets a key first").
-pub fn shortcut_for_key(event: &KeyEvent) -> Option<Shortcut> {
+/// docs/spec/shortcuts.md, "Who gets a key first"). `site`: the page is of
+/// a site that gets the keys first (`page_first_site`); the fixed keys and
+/// those of a space stay Magnetite's there too.
+pub fn shortcut_for_key(event: &KeyEvent, site: bool) -> Option<Shortcut> {
     let combo = pressed(event).filter(|_| !paused())?;
     let mods = event.modifiers & (CMD_FLAG | SHIFT | ALT | CTRL);
     let key = event.windows_key_code;
@@ -173,34 +210,42 @@ pub fn shortcut_for_key(event: &KeyEvent) -> Option<Shortcut> {
         });
     }
     match action_for(combo) {
-        Some(action) => (first(action) == First::Magnetite).then(|| action.shortcut()),
+        Some(action) => (first(action, site) == First::Magnetite).then(|| action.shortcut()),
         None => space_keys(combo),
     }
 }
 
 /// Magnetite shortcuts a page may claim for itself: they are matched only after
-/// the page had the key and did not handle it (`preventDefault`).
-pub fn yieldable_shortcut(event: &KeyEvent) -> Option<Shortcut> {
+/// the page had the key and did not handle it (`preventDefault`). `site`
+/// as for `shortcut_for_key`.
+pub fn yieldable_shortcut(event: &KeyEvent, site: bool) -> Option<Shortcut> {
     let combo = pressed(event).filter(|_| !paused())?;
     action_for(combo)
-        .filter(|a| first(*a) == First::Page)
+        .filter(|a| first(*a, site) == First::Page)
         .map(Action::shortcut)
 }
 
+/// The shortcut `event` is the key of, whoever gets it first: for a key
+/// pressed where no page is to ask (the sidebar, the top bar), or that a
+/// page's window was left with.
+pub fn any_shortcut(event: &KeyEvent) -> Option<Shortcut> {
+    shortcut_for_key(event, false).or_else(|| yieldable_shortcut(event, false))
+}
+
 /// Whether the event is a shortcut that the page gets first by something
-/// the user changed: the choice itself, or the keys of a shortcut that goes
-/// to the page first. Chromium keeps some keys from pages itself (new tab,
+/// the user changed: the choice itself, the page's site (`site`), or the
+/// keys of a shortcut that goes to the page first. Chromium keeps some keys from pages itself (new tab,
 /// close tab, …) and would run its own command for them, so it has to be
 /// told to hand them on. A shortcut left as it came needs no telling: its
 /// default keys are none of those.
-pub fn yielded_by_choice(event: &KeyEvent) -> bool {
+pub fn yielded_by_choice(event: &KeyEvent, site: bool) -> bool {
     let Some(combo) = pressed(event).filter(|_| !paused()) else {
         return false;
     };
     action_for(combo).is_some_and(|action| {
         let untouched =
             action.default_first() == First::Page && action.default_combo() == Some(combo.here());
-        first(action) == First::Page && !untouched
+        first(action, site) == First::Page && !untouched
     })
 }
 
@@ -303,4 +348,42 @@ pub(crate) fn command_id_for(name: &str) -> Option<i32> {
     // SAFETY: valid NUL-terminated string; CEF only reads it.
     let id = unsafe { sys::cef_id_for_command_id_name(c.as_ptr()) };
     (id > 0).then_some(id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn key(code: u8, modifiers: u32) -> KeyEvent {
+        KeyEvent {
+            type_: KeyEventType::RAWKEYDOWN,
+            windows_key_code: i32::from(code),
+            modifiers,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_site_that_goes_first_gets_every_shortcut_but_the_fixed_keys() {
+        let close = key(b'W', CMD);
+        assert_eq!(shortcut_for_key(&close, false), Some(Shortcut::CloseTab));
+        assert_eq!(shortcut_for_key(&close, true), None);
+        assert_eq!(yieldable_shortcut(&close, true), Some(Shortcut::CloseTab));
+        // Chromium keeps these keys from pages unless told.
+        assert!(!yielded_by_choice(&close, false));
+        assert!(yielded_by_choice(&close, true));
+        let first_tab = key(b'1', CMD);
+        assert_eq!(
+            shortcut_for_key(&first_tab, true),
+            Some(Shortcut::SelectTab(1))
+        );
+
+        set_page_first_sites(["figma.com".to_string()]);
+        let on = |url: &'static str| page_first_site(&close, || Some(url.to_string()));
+        assert!(on("https://www.figma.com/design/1"));
+        assert!(!on("https://example.org/figma.com"));
+        assert!(!on("magnetite://ui/settings"));
+        // No shortcut's key: the address is not even asked for.
+        assert!(!page_first_site(&key(b'A', 0), || unreachable!()));
+    }
 }

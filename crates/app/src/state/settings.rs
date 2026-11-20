@@ -64,6 +64,10 @@ pub struct Settings {
     /// The shortcuts whose keys go first to someone else than by default:
     /// to the page, or to Magnetite (Settings → Shortcuts). Synced.
     pub shortcut_priority: magnetite_engine::Priorities,
+    /// Sites (registrable domains) whose pages get the keys of every
+    /// shortcut first, whatever the shortcut's own choice (the site panel,
+    /// Settings → Shortcuts). Synced.
+    pub shortcut_sites: Vec<String>,
     /// The system-wide quick search key (⌥⌘N) is registered. This
     /// device's own choice, never synced.
     pub quick_search: bool,
@@ -268,15 +272,20 @@ impl AdblockSettings {
             }
         }
         self.lists = lists;
-        let mut sites: Vec<String> = (self.allowed_sites.iter())
-            .map(|s| s.trim().trim_end_matches('.').to_lowercase())
-            .filter(|s| !s.is_empty())
-            .collect();
-        sites.sort();
-        sites.dedup();
-        self.allowed_sites = sites;
+        self.allowed_sites = site_names(&self.allowed_sites);
         self
     }
+}
+
+/// `sites` as lower-case names, sorted, each once.
+fn site_names(sites: &[String]) -> Vec<String> {
+    let mut sites: Vec<String> = (sites.iter())
+        .map(|s| s.trim().trim_end_matches('.').to_lowercase())
+        .filter(|s| !s.is_empty())
+        .collect();
+    sites.sort();
+    sites.dedup();
+    sites
 }
 
 /// How the sidebar and Magnetite's own pages look (Settings → Appearance).
@@ -632,6 +641,7 @@ impl Settings {
         self.history_days = self.history_days.min(MAX_ARCHIVE_DAYS);
         self.appearance = self.appearance.clamped();
         self.adblock = self.adblock.sanitised();
+        self.shortcut_sites = site_names(&self.shortcut_sites);
         self.developer = self.developer.sanitised();
         self.system_engine = self.system_engine.sanitised();
         if !usable_search(&self.search_template) {
@@ -775,6 +785,7 @@ impl Default for Settings {
             site_code: Vec::new(),
             shortcuts: magnetite_engine::Overrides::default(),
             shortcut_priority: magnetite_engine::Priorities::default(),
+            shortcut_sites: Vec::new(),
             quick_search: true,
             chrome_toolbar: false,
             appearance: Appearance::default(),

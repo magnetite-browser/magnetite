@@ -283,10 +283,12 @@ impl Engine {
 
     /// A key pressed in page `id`, before the page sees it. True if it is
     /// one of Magnetite's reserved shortcuts (or a peek's key, in the peek):
-    /// the app runs it and the page does not get the key.
+    /// the app runs it and the page does not get the key. On a site that
+    /// gets the shortcuts' keys first, only the fixed keys are reserved.
     pub(crate) fn system_key(&self, id: ContentId, event: &cef::KeyEvent) -> bool {
         use crate::keys;
-        let shortcut = keys::shortcut_for_key(event)
+        let site = keys::page_first_site(event, || backend::address_of(id));
+        let shortcut = keys::shortcut_for_key(event, site)
             .or_else(|| keys::peek_shortcut(event).filter(|_| self.peek_content() == Some(id)));
         let Some(shortcut) = shortcut else {
             return false;

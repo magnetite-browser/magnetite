@@ -396,7 +396,7 @@ export function SettingsPage() {
           </Group>
         </>
       )}
-      {sectionId === "shortcuts" && <ShortcutsSection info={info} reload={() => void reload()} />}
+      {sectionId === "shortcuts" && <ShortcutsSection info={info} update={update} reload={() => void reload()} />}
       {sectionId === "code" && <SiteCodeSection key={place.item} saved={settings.site_code} open={place.item} save={(code) => update({ site_code: code })} />}
       {sectionId === "about" && <About info={info} update={update} />}
     </>

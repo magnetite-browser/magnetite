@@ -64,6 +64,9 @@ focus returns to the chip.
 - **Block ads:** shown while the ad blocker is on (`ad-blocking.md`). Off
   lets the whole site load everything and loads the page again.
 - **Mute tab:** mutes this tab's audio until unmuted or the tab is unloaded.
+- **Site's shortcuts first:** the whole site gets the keys of Magnetite's
+  shortcuts before Magnetite does (`shortcuts.md`, "A site that gets them
+  all"). Counts at once, without loading the page again.
 - **Developer mode:** the developer bar, a caution border on its tab and the console error
   count for this site (`developer.md`). Always on for pages this computer
   serves.
@@ -212,7 +215,8 @@ or written without one of these actions.
 ## Shortcuts
 
 The last column is what holds until the user chooses otherwise in
-Settings → Shortcuts (`shortcuts.md`, "Who gets a key first").
+Settings → Shortcuts (`shortcuts.md`, "Who gets a key first") or gives a
+site every shortcut's keys first in its site panel.
 
 | Shortcut (macOS default) | Action | If the page uses the key too |
 |---|---|---|
@@ -287,6 +291,7 @@ has stored something.
 | Origins seen | memory | Magnetite quits |
 | Last capture (PNG) | memory | replaced, dismissed, or Magnetite quits |
 | Tracker removal, DevTools dock and size | `state.json` | changed |
+| Sites that get the shortcuts' keys first (`settings.shortcut_sites`) | `state.json`, and the synced settings | changed |
 | Own CSS and JavaScript per site (`settings.site_code`) | `state.json` | changed |
 
 ## Not built yet

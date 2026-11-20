@@ -38,6 +38,25 @@ function BlockAds({ url }: { url: string }) {
   );
 }
 
+/** Who gets the keys of Magnetite's shortcuts first on this site: a web app with shortcuts of its own can have them all (Settings → Shortcuts). */
+function SiteShortcuts({ url }: { url: string }) {
+  const [keys, setKeys] = useState<Reply<"site_shortcuts"> | null>(null);
+  useEffect(() => {
+    void send({ cmd: "site_shortcuts", url }).then(setKeys);
+  }, [url]);
+  if (!keys?.site) return null;
+  const set = (page_first: boolean) => {
+    setKeys({ ...keys, page_first });
+    send({ cmd: "set_site_shortcuts", url, page_first });
+  };
+  return (
+    <label className="panel-row" title={`For all of ${keys.site}: the site may use the keys of Magnetite's shortcuts itself, and a shortcut runs only if the site leaves its keys alone. The digits that choose a tab or a space stay Magnetite's.`}>
+      <span className="flex-1">Site's shortcuts first</span>
+      <Switch label="This site gets the keys of shortcuts first" checked={keys.page_first} onChange={set} />
+    </label>
+  );
+}
+
 /** What the app says of the site's engine (`site_engine`). */
 type SiteEngine = Reply<"site_engine">;
 
@@ -315,6 +334,7 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
                 {rt?.muted ? <SpeakerOff width={15} height={15} /> : <Speaker width={15} height={15} />}
               </button>
             )}
+            <SiteShortcuts key={`${item.id} ${host} keys`} url={item.url} />
             <SystemEngine key={`${item.id} ${host} engine`} url={item.url} />
             {!system && <DevSwitch state={state} url={item.url} own={rt?.dev.clears ?? false} />}
             {/* Per tab: a confirmation or a report is not the next tab's. */}

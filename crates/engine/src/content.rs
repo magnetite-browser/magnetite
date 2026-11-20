@@ -1295,7 +1295,7 @@ wrap_window_delegate! {
         fn with_standard_window_buttons(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 0 }
         fn can_close(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
         fn on_key_event(&self, _window: Option<&mut Window>, event: Option<&KeyEvent>) -> ::std::os::raw::c_int {
-            let Some(shortcut) = event.and_then(|e| crate::keys::shortcut_for_key(e).or_else(|| crate::keys::yieldable_shortcut(e))) else { return 0 };
+            let Some(shortcut) = event.and_then(crate::keys::any_shortcut) else { return 0 };
             Engine::global().emit(EngineEvent::Shortcut { from: Some(self.id), shortcut });
             1
         }

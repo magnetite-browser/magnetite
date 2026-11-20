@@ -382,6 +382,8 @@ export interface Settings {
   developer: { enabled: boolean; hosts: string[] };
   /** Which sites the system's own web engine shows (Settings → Protected video): the known streaming services, and sites of the user's own, by host. This device's own, never synced. */
   system_engine: { known: boolean; sites: string[] };
+  /** Sites (registrable domains) whose pages get the keys of every shortcut first (the site panel, Settings → Shortcuts). Synced. */
+  shortcut_sites: string[];
   adblock: {
     enabled: boolean;
     /** Ids of the filter lists subscribed to (`Info.adblock.lists`). */
@@ -519,6 +521,9 @@ export type Command =
   | { cmd: "device_set"; page: number; config: DeviceConfig | null }
   | { cmd: "site_ads"; url: string }
   | { cmd: "set_site_ads"; url: string; blocking: boolean }
+  | { cmd: "site_shortcuts"; url: string }
+  /** The site of the page at `url` gets the keys of every shortcut first from now on, or each shortcut's own choice counts there again. */
+  | { cmd: "set_site_shortcuts"; url: string; page_first: boolean }
   | { cmd: "site_engine"; url: string }
   /** Show the site of the page at `url` in the system's engine from now on, or in Chromium again; the page in front loads again. */
   | { cmd: "set_site_engine"; url: string; system: boolean }
@@ -841,6 +846,8 @@ interface Replies {
   device_get: DeviceConfig | null;
   /** `site`: the registrable domain of the page asked about; null for no web page. */
   site_ads: { site: string | null; enabled: boolean; blocking: boolean };
+  /** `site`: as for `site_ads`. `page_first`: its pages get the keys of every shortcut first. */
+  site_shortcuts: { site: string | null; page_first: boolean };
   /** `site`: as for `site_ads`, and null also where the system has no engine to use. `known`: one of the services that always open there (Settings → Protected video). */
   /** `name` and `about`: the system's engine as the user reads of it ("WebView2", "Microsoft Edge's engine, …"). */
   site_engine: { site: string | null; system: boolean; known: boolean; name: string; about: string };
