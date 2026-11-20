@@ -1,7 +1,6 @@
 //! Mini windows: one page in a small window of its own, outside the frame,
-//! with a slim row above it: back, forward, reload, the address (the site's
-//! host until it has the keyboard) with copy link over its right end, a gap
-//! the window is dragged by, "Open in <space>", a menu of all spaces, and close.
+//! with a slim row above it: back, forward, reload, the address with copy
+//! link over its right end, a gap the window is dragged by, "Open in <space>", a menu of all spaces, and close.
 //!
 //! A mini window is a content window (`content.rs`) that starts top-level
 //! instead of as a child of the frame, with the row as Views widgets above
@@ -29,7 +28,7 @@ pub(crate) struct MiniChrome {
 }
 
 /// Height of the row (DIP).
-const ROW_HEIGHT: i32 = 34;
+const ROW_HEIGHT: i32 = 42;
 /// Width of the gap the window is dragged by (DIP).
 const GRIP_WIDTH: i32 = 28;
 /// Width of the copy button, which lies over the field's right end (DIP).
@@ -39,8 +38,6 @@ const TEXT: u32 = 0xFFE4_E4E7;
 const DIM: u32 = 0xFF6E_6E76;
 /// Width and height of the row's icons (DIP).
 const ICON: u16 = 16;
-/// Longest host the address field shows, in characters.
-const HOST_CHARS: usize = 60;
 /// How long the copy button shows a tick after a copy (ms).
 const COPIED_MS: i64 = 1500;
 
@@ -88,14 +85,15 @@ pub(crate) fn colour_window(window: &Window) {
     }
 }
 
-/// What the address field shows while the keyboard is elsewhere: `url`'s
-/// host, or the address itself for a page that has none.
-fn host_text(url: &str) -> String {
-    crate::client::host_of(url)
-        .unwrap_or_else(|| url.to_string())
-        .chars()
-        .take(HOST_CHARS)
-        .collect()
+/// What the address field shows for `url`: the address without `https://`
+/// and a lone `/`. Read back as typed input it is the same address again, so
+/// the field can be edited in place (which is why `www.` stays).
+fn shown_address(url: &str) -> &str {
+    let rest = url.strip_prefix("https://").unwrap_or(url);
+    match rest.strip_suffix('/') {
+        Some(host) if !host.contains(['/', '?', '#']) => host,
+        _ => rest,
+    }
 }
 
 /// Make `button` an icon button showing `glyph`: in the text's colour,
@@ -104,6 +102,13 @@ fn iconed(button: &LabelButton, glyph: Glyph) {
     for (state, colour) in [(ButtonState::NORMAL, TEXT), (ButtonState::DISABLED, DIM)] {
         button.set_image(state, glyph.image(ICON, colour).as_mut());
     }
+}
+
+/// The address field shows `url` from its start: a long address is cut off
+/// at the end, not at the host.
+fn show_address(field: &Textfield, url: &str) {
+    field.set_text(Some(&CefString::from(shown_address(url))));
+    field.select_range(Some(&Range { from: 0, to: 0 }));
 }
 
 /// "Open in <space>" for the space shown first.
@@ -124,9 +129,9 @@ impl MiniChrome {
             horizontal: 1,
             cross_axis_alignment: AxisAlignment::STRETCH,
             inside_border_insets: Insets {
-                top: 2,
+                top: 6,
                 left: 6,
-                bottom: 2,
+                bottom: 6,
                 right: 6,
             },
             between_child_spacing: 2,
@@ -316,8 +321,8 @@ impl Engine {
         }
     }
 
-    /// Mini window `id`'s page went to `url`: the field shows its host, or
-    /// the whole address while it has the keyboard and nothing was typed.
+    /// Mini window `id`'s page went to `url`: the field shows it, unless
+    /// something else was typed there meanwhile.
     pub(crate) fn update_mini_address(&self, id: ContentId, url: &str) {
         let field = self.lock().contents.get_mut(&id).and_then(|c| {
             let m = c.mini.as_mut()?;
@@ -327,11 +332,9 @@ impl Engine {
         let Some((field, before)) = field else {
             return;
         };
-        if View::from(&field).has_focus() == 0 {
-            field.set_text(Some(&CefString::from(host_text(url).as_str())));
-        } else if CefString::from(&field.text()).to_string() == before {
-            field.set_text(Some(&CefString::from(url)));
-            field.select_all(0);
+        let typed = CefString::from(&field.text()).to_string() != shown_address(&before);
+        if View::from(&field).has_focus() == 0 || !typed {
+            show_address(&field, url);
         }
     }
 
@@ -342,11 +345,13 @@ impl Engine {
         Some((m.address.clone(), m.url.clone()))
     }
 
-    /// Put the keyboard into mini window `id`'s address field, which then
-    /// shows the whole address, selected.
+    /// `Cmd+L`: put the keyboard into mini window `id`'s address field with
+    /// the address selected, to be copied or typed over. The selection ends
+    /// at the start, so a long address stays in view from its start.
     pub fn focus_mini_address(&self, id: ContentId) {
         if let Some((field, _)) = self.mini_address(id) {
             View::from(&field).request_focus();
+            field.select_all(1);
         }
     }
 
@@ -511,35 +516,20 @@ wrap_panel_delegate! {
     impl PanelDelegate {}
 }
 
-// The address field. Without the keyboard it shows the site's host; with
-// it, the whole address, selected, ready to be copied or typed over. Enter
-// sends what it holds to the app (`MiniNavigate`), Esc gives the keyboard
-// back to the page.
+// The address field. It is edited in place: a click puts the cursor where it
+// lands, and the text never changes under the pointer. Enter sends what the
+// field holds to the app (`MiniNavigate`), Esc gives the keyboard back to
+// the page, and without the keyboard the field shows the page's address
+// again.
 wrap_textfield_delegate! {
     struct AddressField {
         id: ContentId,
     }
     impl ViewDelegate {
-        fn on_focus(&self, view: Option<&mut View>) {
-            let Some(field) = view.and_then(|v| v.as_textfield()) else { return };
-            let Some((_, url)) = Engine::global().mini_address(self.id) else { return };
-            field.set_text(Some(&CefString::from(url.as_str())));
-            field.select_all(0);
-            // A click puts the caret where it landed after this: select
-            // again once the click is through.
-            let id = self.id;
-            Engine::post(Box::new(move || {
-                let Some((field, url)) = Engine::global().mini_address(id) else { return };
-                let untouched = CefString::from(&field.text()).to_string() == url;
-                if untouched && View::from(&field).has_focus() != 0 {
-                    field.select_all(0);
-                }
-            }));
-        }
         fn on_blur(&self, view: Option<&mut View>) {
             let Some(field) = view.and_then(|v| v.as_textfield()) else { return };
             let Some((_, url)) = Engine::global().mini_address(self.id) else { return };
-            field.set_text(Some(&CefString::from(host_text(&url).as_str())));
+            show_address(&field, &url);
         }
     }
     impl TextfieldDelegate {
@@ -553,7 +543,10 @@ wrap_textfield_delegate! {
             match event.windows_key_code {
                 // Enter
                 0x0D => {
-                    let input = CefString::from(&field.text()).to_string();
+                    let typed = CefString::from(&field.text()).to_string();
+                    let Some((_, url)) = engine.mini_address(id) else { return 1 };
+                    // Left as it was, the field means the page's own address.
+                    let input = if typed == shown_address(&url) { url } else { typed };
                     if !input.trim().is_empty() {
                         engine.emit(EngineEvent::MiniNavigate { id, input });
                     }
@@ -646,5 +639,26 @@ wrap_menu_model_delegate! {
                 Engine::global().emit(EngineEvent::MiniToTab { id: self.id, space });
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::shown_address;
+
+    #[test]
+    fn the_shown_address_drops_what_every_address_has() {
+        assert_eq!(shown_address("https://example.com/"), "example.com");
+        assert_eq!(
+            shown_address("https://www.example.com/a/?q=1#top"),
+            "www.example.com/a/?q=1#top"
+        );
+        // A path's own last slash stays, and so does any other scheme.
+        assert_eq!(shown_address("https://example.com/a/"), "example.com/a/");
+        assert_eq!(
+            shown_address("http://localhost:3000/"),
+            "http://localhost:3000/"
+        );
+        assert_eq!(shown_address("about:blank"), "about:blank");
     }
 }

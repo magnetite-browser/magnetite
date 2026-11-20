@@ -52,7 +52,7 @@ A row above the page holds, from left to right:
 |---|---|
 | ← → | back and forward in the page's history (dimmed when there is none) |
 | ↻ | reload |
-| The address field | shows the site's host (the address for a page that is no web page); with the keyboard in it, the whole address, selected. Enter goes there in this window |
+| The address field | shows the page's address without `https://`, a long one cut off at the end. It is edited in place; Enter goes to what it holds, in this window |
 | 🔗, at the field's right end | copies the page's link, as Copy Link does; shows a tick for a moment |
 | "Open in <space>" | keeps the page as a tab of the space in front of the main window (`Cmd+O`) |
 | ▾ | a menu of all spaces: "Open in <space>" for each |
@@ -61,11 +61,13 @@ A row above the page holds, from left to right:
 - The window has rounded corners and a shadow, no traffic lights, and is
   moved by the gap in the row between the address field and "Open in
   <space>". It takes the page's title as its own.
-- A click into the address field or `Cmd+L` puts the keyboard there. What
-  is typed is read like the command bar's input: an address, a web search
-  or a site search (`gh rust`). An address Magnetite does not open
+- A click into the address field puts the cursor where it lands; `Cmd+L`
+  puts the keyboard there with the whole address selected. What the field
+  holds is read like the command bar's input: an address, a web search or
+  a site search (`gh rust`). An address Magnetite does not open
   (`docs/design/security.md`) does nothing. Enter gives the keyboard back
-  to the page, and so does `Esc`, which leaves the page where it is.
+  to the page, and so does `Esc`, which leaves the page where it is and
+  the field showing its address again.
 - The copied link is the one Copy Link gives: without tracking parameters
   while Settings → "Remove trackers from copied links" is on.
 - The page runs in the profile of the space in front of the main window
