@@ -187,14 +187,21 @@ pub fn yieldable_shortcut(event: &KeyEvent) -> Option<Shortcut> {
         .map(Action::shortcut)
 }
 
-/// Whether the event is a shortcut that the page gets first only because
-/// the user said so. Chromium keeps some of these keys from pages itself
-/// (new tab, close tab, …), so it has to be told to hand them on.
+/// Whether the event is a shortcut that the page gets first by something
+/// the user changed: the choice itself, or the keys of a shortcut that goes
+/// to the page first. Chromium keeps some keys from pages itself (new tab,
+/// close tab, …) and would run its own command for them, so it has to be
+/// told to hand them on. A shortcut left as it came needs no telling: its
+/// default keys are none of those.
 pub fn yielded_by_choice(event: &KeyEvent) -> bool {
-    pressed(event)
-        .filter(|_| !paused())
-        .and_then(action_for)
-        .is_some_and(|a| first(a) == First::Page && a.default_first() == First::Magnetite)
+    let Some(combo) = pressed(event).filter(|_| !paused()) else {
+        return false;
+    };
+    action_for(combo).is_some_and(|action| {
+        let untouched =
+            action.default_first() == First::Page && action.default_combo() == Some(combo.here());
+        first(action) == First::Page && !untouched
+    })
 }
 
 /// Chromium's own zoom commands; we let Chromium zoom and then report it.
