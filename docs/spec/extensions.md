@@ -82,6 +82,9 @@ Settings.
   the page in front, where the extension is installed.
 - Pages an extension opens itself (a welcome page, `chrome.tabs.create`, a
   normal window) open as Magnetite tabs in the profile they came from. A
+  tab from `chrome.tabs.create` is the tab the extension got back: its id
+  stays good for `chrome.tabs.get`, `update` and `remove`, and
+  `active: false` opens it in the background, marked unread. A
   pop-up window (Bitwarden's passkey window) opens as a small window of its
   own, as in other browsers.
 
@@ -151,9 +154,17 @@ Settings.
   see `docs/development/upstream.md`). A second click during the wait would
   cancel the popup, so a sidebar button ignores clicks until the popup has
   the keyboard, for at most five seconds.
-- A tab or normal window an extension opens with `chrome.tabs.create` or
-  `chrome.windows.create` becomes a new Magnetite tab. The id Chromium
+- A normal window an extension opens with `chrome.windows.create` becomes
+  a new Magnetite tab that loads the address again. The id Chromium
   returned to the extension belongs to the closed window.
+- With no page open, `chrome.tabs.create` fails ("No current window") and
+  opens nothing.
+- `chrome.tabs.create` ignores `index` and `pinned`: the tab goes where
+  Magnetite puts new tabs. With the official CEF (systems Magnetite's own
+  CEF build is not made for) such a tab still loads again under another id.
+- A tab an extension closes with `chrome.tabs.remove` stays in the sidebar
+  without its page, as a tab does whose page closed itself; it loads again
+  when chosen.
 - An extension's pop-up window is a plain Chromium window outside
   Magnetite's layout. On Linux it still becomes a tab, so an extension
   that waits for its window (Bitwarden's passkeys) gives up there.
