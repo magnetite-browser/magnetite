@@ -869,8 +869,12 @@ fn clear_store(
                 let of_site: Vec<Retained<WKWebsiteDataRecord>> = (records.as_ref().iter())
                     .filter(|r| crate::sitedata::in_domain(&r.displayName().to_string(), &site))
                     .collect();
-                let done = done.clone();
-                let removed = RcBlock::new(move || done(count));
+                // Kept by the last block too, as above.
+                let (done, kept) = (done.clone(), store.clone());
+                let removed = RcBlock::new(move || {
+                    let _ = &kept;
+                    done(count);
+                });
                 let of_site = NSArray::from_retained_slice(&of_site);
                 store
                     .removeDataOfTypes_forDataRecords_completionHandler(&kinds, &of_site, &removed);
