@@ -165,8 +165,8 @@ const MAX_SYSTEM_ENGINE_SITES: usize = 100;
 pub struct SystemEngine {
     /// The services of `PROTECTED_VIDEO_SITES` do.
     pub known: bool,
-    /// A site whose page starts protected video in Chromium does from then
-    /// on (`moves`): it joins `sites`.
+    /// A site whose protected video fails in Chromium does from then on
+    /// (`moves`): it joins `sites`.
     pub auto: bool,
     /// Sites the user named, or that moved by themselves, by host in lower
     /// case without `www.`.
@@ -217,8 +217,8 @@ impl SystemEngine {
         self
     }
 
-    /// Whether the site of `host` moves to the system's engine when a page
-    /// of it starts protected video: not one that is there already, and
+    /// Whether the site of `host` moves to the system's engine when
+    /// protected video fails in a page of it: not one that is there already, and
     /// not one the user took back to Chromium.
     pub fn moves(&self, host: &str) -> bool {
         self.auto
@@ -238,7 +238,7 @@ impl SystemEngine {
     }
 
     /// Name `site` for the system's engine (the site panel's switch, a page
-    /// that started protected video), or take every own site that covers
+    /// whose protected video failed), or take every own site that covers
     /// `host` out again: `site` then stays in Chromium, whatever it plays.
     /// An error if the list is full: the next check of the settings would
     /// drop the site again without a word.

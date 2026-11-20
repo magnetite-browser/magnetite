@@ -111,7 +111,7 @@ wrap_client! {
                 Engine::global().on_share_report(browser.as_deref(), frame, &text(0), &text(1));
                 return 1;
             }
-            // A page's main frame says that it starts protected playback.
+            // A page's main frame says that its protected playback failed.
             if self.kind == Kind::Content
                 && let (Some(frame), Some(msg)) = (frame.as_deref(), message.as_ref())
                 && frame.is_main() != 0

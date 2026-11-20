@@ -1,11 +1,13 @@
-//! Noticing that a Chromium page starts protected playback.
+//! Noticing that protected playback fails in a Chromium page.
 //!
 //! Magnetite's Chromium plays Widevine video, but not for the services that
-//! ask for a browser build Google has verified (`system.rs`), and nothing
-//! tells the two kinds apart from outside. So a page that asks Widevine for
-//! a licence request says so (`protected_hook.js`), and the app decides
-//! whether its site moves to the system's engine
-//! (`EngineEvent::ProtectedPlayback`).
+//! ask for a browser build Google has verified (`system.rs`): their licence
+//! servers refuse it, each with an error page of its own. What they share
+//! is that the page asks Widevine for a licence request and never gets a
+//! usable key. A page says so when that happens (`protected_hook.js`), and
+//! the app decides whether its site moves to the system's engine
+//! (`EngineEvent::ProtectedPlaybackFailed`). A service that plays here gets
+//! its key and is left alone.
 //!
 //! The report is untrusted, since a renderer sends it: it carries nothing,
 //! and the page's address is the one the browser knows. Any page can make
@@ -25,8 +27,8 @@ const HOOK_JS: &str = include_str!("protected_hook.js");
 const WATCHED: bool = cfg!(any(target_os = "macos", target_os = "windows"));
 
 impl Engine {
-    /// The page in `browser` started protected playback in its main frame
-    /// `frame`. A mini window stays Chromium's, so it does not tell.
+    /// Protected playback failed in the main frame `frame` of the page in
+    /// `browser`. A mini window stays Chromium's, so it does not tell.
     pub(crate) fn on_protected_report(&self, browser: Option<&Browser>, frame: &Frame) {
         if !Self::system_engine_available() {
             return;
@@ -39,7 +41,7 @@ impl Engine {
         }
         let url = CefString::from(&frame.url()).to_string();
         let context = self.content_context(id);
-        self.emit(EngineEvent::ProtectedPlayback { id, url, context });
+        self.emit(EngineEvent::ProtectedPlaybackFailed { id, url, context });
     }
 }
 

@@ -55,8 +55,8 @@ export function ProtectedVideoSection({ info, update }: { info: Info; update: (p
           onChange={(on) => update({ system_engine: { ...engine, known: on } })}
         />
         <Toggle
-          label={`Move sites that play protected video to ${name}`}
-          hint={`When a page starts protected video in Chromium, its site opens in ${name} from then on and the page loads again there. Magnetite cannot tell beforehand which services refuse its Chromium. Turn the switch in the site panel off again to keep a site in Chromium.`}
+          label={`Move sites whose protected video fails to ${name}`}
+          hint={`When a service refuses to play protected video in Chromium, its site opens in ${name} from then on and the page loads again there. Services that play in Chromium stay where they are. Turn the switch in the site panel off again to keep a site in Chromium.`}
           checked={engine.auto}
           onChange={(on) => update({ system_engine: { ...engine, auto: on } })}
         />

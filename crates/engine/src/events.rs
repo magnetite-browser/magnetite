@@ -329,10 +329,10 @@ pub enum EngineEvent {
         id: ContentId,
         shared: bool,
     },
-    /// Chromium page `id`, at `url`, starts protected playback
+    /// Protected playback failed in Chromium page `id`, at `url`
     /// (`protected.rs`), where the system has an engine of its own to play
     /// it in. `context`: the profile of the page.
-    ProtectedPlayback {
+    ProtectedPlaybackFailed {
         id: ContentId,
         url: String,
         context: Option<String>,
@@ -433,7 +433,7 @@ impl EngineEvent {
             Self::ContentFocused { .. } => "ContentFocused",
             Self::MediaChanged { .. } => "MediaChanged",
             Self::ShareChanged { .. } => "ShareChanged",
-            Self::ProtectedPlayback { .. } => "ProtectedPlayback",
+            Self::ProtectedPlaybackFailed { .. } => "ProtectedPlaybackFailed",
             Self::ExtensionMenu(..) => "ExtensionMenu",
             Self::ExtensionPinsChanged => "ExtensionPinsChanged",
             Self::AutofillChanged(_) => "AutofillChanged",

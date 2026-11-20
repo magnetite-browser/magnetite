@@ -19,14 +19,13 @@ impl MagnetiteApp {
         sites
     }
 
-    /// Chromium page `id` at `url`, of profile `context`, starts protected
-    /// video. Unless the user decided otherwise for its site, the site
-    /// opens in the system's engine from now on, and the page loads again
-    /// there: Magnetite's Chromium plays protected video only for services
-    /// that do not ask for a verified browser, and cannot tell which do.
+    /// Protected video did not play in Chromium page `id` at `url`, of
+    /// profile `context`: its service refuses Magnetite's Chromium. Unless
+    /// the user decided otherwise for its site, the site opens in the
+    /// system's engine from now on, and the page loads again there.
     /// From a private space the site moves for this run only, and nothing
     /// is kept of it.
-    pub(super) fn protected_playback(
+    pub(super) fn protected_playback_failed(
         &self,
         engine: &Engine,
         id: ContentId,
@@ -52,7 +51,8 @@ impl MagnetiteApp {
         engine.set_system_engine_sites(self.system_engine_sites());
         engine.content_load_url(id, url);
         let name = Engine::system_engine_name().0;
-        let text = format!("{site} plays protected video and opens in {name} from now on.");
+        let text =
+            format!("Protected video did not play on {site}: it opens in {name} from now on.");
         Self::ui_call(engine, "notice", &json!({ "text": text }));
     }
 

@@ -70,7 +70,7 @@ Magnetite started as a new home for the workflow of the Arc browser and has grow
 - **Chromium's own tools.** Find in page, the PDF viewer, and DevTools docked beside or below the page.
 - **Passwords and autofill.** Saved passwords, addresses and cards, filled in for you and kept on your computer.
 - **Media controls** in the sidebar for whatever plays in another tab, and picture-in-picture with its own controls.
-- **Protected video.** Netflix, Disney+ and a few other streaming services ask for a browser verified by Google, which Magnetite is not yet. They open in the system's own engine in a normal tab: WebKit on macOS 14 or newer, WebView2 on Windows. So does any other site, from the moment a page of it starts protected video.
+- **Protected video.** Netflix, Disney+ and a few other streaming services ask for a browser verified by Google, which Magnetite is not yet. They open in the system's own engine in a normal tab: WebKit on macOS 14 or newer, WebView2 on Windows. So does any other site whose protected video is refused in Magnetite's own engine.
 - **Capture.** A screenshot of an element, a region, the visible part or the whole page.
 - **Smart folders.** Your review requests and issues from GitHub, GitLab, Jira or YouTrack as tabs that keep themselves current.
 

@@ -152,8 +152,8 @@ impl EngineDelegate for MagnetiteApp {
                 });
                 self.push_state(engine);
             }
-            EngineEvent::ProtectedPlayback { id, url, context } => {
-                self.protected_playback(engine, id, &url, context.as_deref());
+            EngineEvent::ProtectedPlaybackFailed { id, url, context } => {
+                self.protected_playback_failed(engine, id, &url, context.as_deref());
             }
             EngineEvent::Download(report) => {
                 let changed = self.with_state(|s| {
