@@ -39,11 +39,13 @@ function BlockAds({ url }: { url: string }) {
 }
 
 /** Who gets the keys of Magnetite's shortcuts first on this site: a web app with shortcuts of its own can have them all (Settings → Shortcuts). */
-function SiteShortcuts({ url }: { url: string }) {
+function SiteShortcuts({ url, saved }: { url: string; saved: string[] }) {
   const [keys, setKeys] = useState<Reply<"site_shortcuts"> | null>(null);
+  // Asked again when the saved sites change (Settings, sync) while the panel is open.
+  const savedSites = saved.join(" ");
   useEffect(() => {
     void send({ cmd: "site_shortcuts", url }).then(setKeys);
-  }, [url]);
+  }, [url, savedSites]);
   if (!keys?.site) return null;
   const set = (page_first: boolean) => {
     setKeys({ ...keys, page_first });
@@ -334,7 +336,7 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
                 {rt?.muted ? <SpeakerOff width={15} height={15} /> : <Speaker width={15} height={15} />}
               </button>
             )}
-            {!system && <SiteShortcuts key={`${item.id} ${host} keys`} url={item.url} />}
+            {!system && <SiteShortcuts key={`${item.id} ${host} keys`} url={item.url} saved={state.settings.shortcut_sites} />}
             <SystemEngine key={`${item.id} ${host} engine`} url={item.url} />
             {!system && <DevSwitch state={state} url={item.url} own={rt?.dev.clears ?? false} />}
             {/* Per tab: a confirmation or a report is not the next tab's. */}

@@ -280,21 +280,31 @@ impl AdblockSettings {
 /// The site (registrable domain) a user means by `typed`: a name, or a
 /// whole address, of which the host counts. `None` for what names no host.
 pub fn typed_site(typed: &str) -> Option<String> {
-    let typed = typed.trim().to_lowercase();
-    // An IP address counts as it is; one of version 6 has colons of its
-    // own, which an address without brackets would lose.
-    let bare = typed.trim_matches(['[', ']']);
-    if bare.parse::<std::net::IpAddr>().is_ok() {
-        return Some(bare.to_string());
+    let typed = typed.trim();
+    // An IP address of version 6 has colons of its own, which an address
+    // without brackets would lose.
+    if let Ok(ip) = typed.parse::<std::net::IpAddr>() {
+        return Some(ip.to_string());
     }
-    let host = if typed.contains("://") {
-        magnetite_engine::host_of(&typed)?
+    let address = if typed.contains("://") {
+        typed.to_string()
     } else {
-        magnetite_engine::host_of(&format!("https://{typed}"))?
+        format!("https://{typed}")
     };
-    let named = !host.is_empty()
-        && (host.chars()).all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | ':'));
-    named.then(|| magnetite_engine::registrable_domain(&host))
+    // Parsed as an address: an international name becomes punycode, as a
+    // page's host is.
+    let url = url::Url::parse(&address).ok()?;
+    if !matches!(url.scheme(), "http" | "https") {
+        return None;
+    }
+    match url.host()? {
+        url::Host::Domain(name) => {
+            let name = name.trim_start_matches("www.");
+            (!name.is_empty()).then(|| magnetite_engine::registrable_domain(name))
+        }
+        url::Host::Ipv4(ip) => Some(ip.to_string()),
+        url::Host::Ipv6(ip) => Some(ip.to_string()),
+    }
 }
 
 /// `sites` as lower-case names, sorted, each once.
@@ -856,6 +866,8 @@ mod tests {
         );
         assert_eq!(site(" app.example.org ").as_deref(), Some("example.org"));
         assert_eq!(site("localhost:3000").as_deref(), Some("localhost"));
+        assert_eq!(site("bücher.de").as_deref(), Some("xn--bcher-kva.de"));
+        assert_eq!(site("magnetite://ui/settings"), None);
         assert_eq!(site("not a site"), None);
         assert_eq!(site(" "), None);
         // An IP address stays whole, typed again too.
