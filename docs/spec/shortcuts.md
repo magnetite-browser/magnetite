@@ -93,8 +93,9 @@ first" (`site-controls.md`).
   switches: `www.example.org` and `app.example.org` are `example.org`. It
   is the site of the page a tab shows, also for keys pressed in a frame of
   another site inside it.
-- Settings → Shortcuts lists these sites, each with "Remove". "Reset all"
-  empties the list.
+- Settings → Shortcuts lists these sites, each with "Remove", and has a
+  field that adds one by its name; of a whole address typed there, the
+  site is kept. "Reset all" empties the list.
 
 With the sidebar (docked or floating) or the top bar in focus, a shortcut
 runs as in a page.

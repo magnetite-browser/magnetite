@@ -21,6 +21,14 @@ type Recording = { target: Target; taken?: { keys: string; by: Target } };
 
 export function ShortcutsSection({ info, update, reload }: { info: Info; update: (patch: SettingsPatch) => void; reload: () => void }) {
   const sites = info.settings.shortcut_sites;
+  // A site typed to be added to them. The app keeps its name (`example.org`
+  // of a whole address) or nothing, so the list is read again from the app.
+  const [newSite, setNewSite] = useState("");
+  const addSite = () => {
+    if (!newSite.trim()) return;
+    void send({ cmd: "set_settings", settings: { shortcut_sites: [...sites, newSite] } }).then(reload);
+    setNewSite("");
+  };
   const [recording, setRecording] = useState<Recording | null>(null);
   // Why the last keys were refused, shown in that target's row.
   const [problem, setProblem] = useState<{ target: Target; text: string } | null>(null);
@@ -170,10 +178,12 @@ export function ShortcutsSection({ info, update, reload }: { info: Info; update:
       <Group>
         <Field label="When a page uses the same keys" hint="Each shortcut says who gets its keys first while a page is in focus. “Magnetite first”: the page never sees them. “Page first”: a web app may use them itself, and the shortcut runs only if it does not." />
       </Group>
-      <Group title="Sites that get every shortcut's keys first" hint="Turned on in the site panel (the button left of the address) for a web app with many shortcuts of its own, such as an editor. Each shortcut's own choice does not count there.">
-        {sites.length === 0 ? (
-          <p className="set-row set-hint" style={{ marginTop: 0 }}>None.</p>
-        ) : (
+      <Group title="Sites that get every shortcut's keys first" hint="For a web app with many shortcuts of its own, such as an editor: each shortcut's own choice does not count there. Add a site here, or turn it on in the site panel (the button left of the address) for the page in front.">
+        <form className="set-row flex items-center gap-3" data-search-row onSubmit={(e) => { e.preventDefault(); addSite(); }}>
+          <input className="field flex-1" aria-label="Site to add" placeholder="example.org" spellCheck={false} autoCapitalize="off" value={newSite} onChange={(e) => setNewSite(e.target.value)} />
+          <button className="btn sm" type="submit" disabled={!newSite.trim()}>Add site</button>
+        </form>
+        {sites.length > 0 && (
           <ul>
             {sites.map((site) => (
               <li key={site} className="set-row flex items-center gap-3" data-search-row>

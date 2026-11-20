@@ -277,6 +277,20 @@ impl AdblockSettings {
     }
 }
 
+/// The site (registrable domain) a user means by `typed`: a name, or a
+/// whole address, of which the host counts. `None` for what names no host.
+fn typed_site(typed: &str) -> Option<String> {
+    let typed = typed.trim().to_lowercase();
+    let host = if typed.contains("://") {
+        magnetite_engine::host_of(&typed)?
+    } else {
+        magnetite_engine::host_of(&format!("https://{typed}"))?
+    };
+    let named = !host.is_empty()
+        && (host.chars()).all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | ':'));
+    named.then(|| magnetite_engine::registrable_domain(&host))
+}
+
 /// `sites` as lower-case names, sorted, each once.
 fn site_names(sites: &[String]) -> Vec<String> {
     let mut sites: Vec<String> = (sites.iter())
@@ -641,7 +655,10 @@ impl Settings {
         self.history_days = self.history_days.min(MAX_ARCHIVE_DAYS);
         self.appearance = self.appearance.clamped();
         self.adblock = self.adblock.sanitised();
-        self.shortcut_sites = site_names(&self.shortcut_sites);
+        let typed: Vec<String> = (self.shortcut_sites.iter())
+            .filter_map(|s| typed_site(s))
+            .collect();
+        self.shortcut_sites = site_names(&typed);
         self.developer = self.developer.sanitised();
         self.system_engine = self.system_engine.sanitised();
         if !usable_search(&self.search_template) {
@@ -824,6 +841,22 @@ mod tests {
             site: site.into(),
             space: space.into(),
         }
+    }
+
+    #[test]
+    fn a_typed_shortcut_site_is_kept_by_its_name() {
+        let kept = Settings {
+            shortcut_sites: vec![
+                "https://www.Figma.com/design/1".into(),
+                "app.example.org".into(),
+                "example.org".into(),
+                "not a site".into(),
+                " ".into(),
+            ],
+            ..Settings::default()
+        }
+        .sanitised();
+        assert_eq!(kept.shortcut_sites, ["example.org", "figma.com"]);
     }
 
     #[test]
