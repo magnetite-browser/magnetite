@@ -366,6 +366,14 @@ impl Engine {
                 return;
             }
         }
+        // Extensions ask Chromium for the tab in front as the active tab of
+        // the window focused last. Every page is a window of its own to
+        // Chromium, and one becomes the last focused when it is activated: by
+        // a click into it, not by being shown. So the page is activated now.
+        let window = (self.lock().contents.get(&id)).and_then(|c| c.window.clone());
+        if let Some(window) = window {
+            window.activate();
+        }
         let extension = extension.to_string();
         let asked = std::time::Instant::now();
         self.with_tab_target(id, move |tab| {
