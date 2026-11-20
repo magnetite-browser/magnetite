@@ -93,7 +93,7 @@ WEBVIEW2_RS = ("Copyright (c) 2021 Bill Avery", MIT_TEXT)  # wravery/webview2-rs
 # (WebView2LoaderStatic.lib), which Magnetite links in.
 WEBVIEW2_SDK = (
     "Copyright (C) Microsoft Corporation. All rights reserved.",
-    (Path(__file__).parent / "licences" / "WebView2-SDK-LICENSE").read_text().strip(),
+    (Path(__file__).parent / "licences" / "WebView2-SDK-LICENSE").read_text(encoding="utf-8").strip(),
 )
 # Shipped crates published without a licence file: (copyright line, text) taken
 # from their repositories. A new crate without a file stops the script.
@@ -116,7 +116,7 @@ NO_LICENCE_FILE = {
     # google/flatbuffers, LICENSE (Apache-2.0); the copyright from its sources.
     "flatbuffers": (
         "Copyright 2018 Google Inc. All rights reserved.",
-        (Path(__file__).parent / "licences" / "flatbuffers-LICENSE").read_text().strip(),
+        (Path(__file__).parent / "licences" / "flatbuffers-LICENSE").read_text(encoding="utf-8").strip(),
     ),
 }
 # Opening words of common licence texts, only to title the groups of texts.
@@ -193,7 +193,7 @@ def licence_files(key: Key, package: Package) -> list[tuple[str, str]]:
         return known if isinstance(known, list) else [known]
     texts = []
     for file in files:
-        content = file.read_text(errors="replace").split(BUNDLED_TAIL)[0].strip()
+        content = file.read_text(encoding="utf-8", errors="replace").split(BUNDLED_TAIL)[0].strip()
         if LINK.match(content):
             sys.exit(f"{key[0]} {key[1]}: {file.name} only links to {content}: take the text from where it points")
         lines = content.splitlines()
@@ -256,7 +256,7 @@ def render() -> str:
 
 
 def main() -> int:
-    text = NOTICES.read_text()
+    text = NOTICES.read_text(encoding="utf-8")
     start, end = text.index(BEGIN), text.index(END) + len(END)
     updated = text[:start] + render() + text[end:]
     if "--check" in sys.argv[1:]:
@@ -264,7 +264,9 @@ def main() -> int:
             print(f"{NOTICES.name} is out of date: run python3 tools/third-party-notices.py")
             return 1
         return 0
-    NOTICES.write_text(updated)
+    # UTF-8 and LF on every system: on Windows Python would write the ANSI
+    # code page and CRLF, and the check on macOS and Linux would fail.
+    NOTICES.write_text(updated, encoding="utf-8", newline="\n")
     return 0
 
 
