@@ -175,6 +175,7 @@ impl Engine {
                 shadow: shadow.clone().map(|view| crate::shadow::Shadow {
                     view,
                     browser: None,
+                    asked: None,
                 }),
                 profile: profile_id,
                 ephemeral,

@@ -26,6 +26,9 @@ pub(crate) const HOSTED: bool = cfg!(target_os = "macos");
 pub(crate) struct Shadow {
     pub view: BrowserView,
     pub browser: Option<Browser>,
+    /// The extension asked for before the browser was there
+    /// (`Engine::open_extension`): opened as soon as it is.
+    pub asked: Option<String>,
 }
 
 impl Shadow {
@@ -131,14 +134,16 @@ wrap_life_span_handler! {
                 return;
             };
             let engine = Engine::global();
-            let id = (engine.lock().contents.iter_mut()).find_map(|(id, c)| {
+            let found = (engine.lock().contents.iter_mut()).find_map(|(id, c)| {
                 let shadow = c.shadow.as_mut().filter(|s| s.is(&mut view))?;
                 shadow.browser = Some(browser.clone());
-                Some(*id)
+                Some((*id, shadow.asked.take()))
             });
+            let Some((id, asked)) = found else { return };
             // The page may have moved on while Chromium made the browser.
-            if let Some(id) = id {
-                engine.sync_shadow(id);
+            engine.sync_shadow(id);
+            if let Some(extension) = asked {
+                engine.open_extension(id, &extension);
             }
         }
 

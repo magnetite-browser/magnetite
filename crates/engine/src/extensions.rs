@@ -356,6 +356,16 @@ impl Engine {
         if !is_extension_id(extension) || !crate::devpipe::is_open() {
             return;
         }
+        // A system page made a moment ago, whose shadow Chromium is still
+        // making: the action runs once the shadow is there (`shadow.rs`).
+        {
+            let mut inner = self.lock();
+            let shadow = inner.contents.get_mut(&id).and_then(|c| c.shadow.as_mut());
+            if let Some(shadow) = shadow.filter(|s| s.browser.is_none()) {
+                shadow.asked = Some(extension.to_string());
+                return;
+            }
+        }
         let extension = extension.to_string();
         let asked = std::time::Instant::now();
         self.with_tab_target(id, move |tab| {
@@ -376,8 +386,8 @@ impl Engine {
     }
 
     /// Call `f` with page `id`'s tab target (the `DevTools` id of the tab that
-    /// holds the page, or a system page's shadow), found once and remembered. Every page window is a
-    /// browser window of its own, so the tab is the one in the page's window:
+    /// holds the page, or a system page's shadow), found once and
+    /// remembered. Every page window is a browser window of its own, so the tab is the one in the page's window:
     /// the page names its own target, the browser-wide session gives that
     /// target's window and the tabs, and the tab with the same window wins
     /// (tabs showing the page's address are asked first).
