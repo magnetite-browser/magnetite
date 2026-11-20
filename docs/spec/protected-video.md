@@ -58,7 +58,8 @@ zoom (Settings' default zoom does not apply: it starts at 100 percent) and
 the page's own full screen.
 
 - **Links.** A link that asks for a new tab or window opens one, in the
-  engine its address belongs in. `Cmd`+click opens a tab behind,
+  engine its address belongs in, if the address is an `http://` or
+  `https://` one. `Cmd`+click opens a tab behind,
   `Shift+Cmd`+click one in front, `Shift`+click a peek, as in a Chromium
   page. A link out of a tab locked to its site (a pinned tab, a favorite)
   opens elsewhere.

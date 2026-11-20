@@ -272,8 +272,11 @@ define_class!(
 
     unsafe impl WKUIDelegate for PageDelegate {
         /// A link or script asks for a new window: the app opens a tab (or
-        /// a peek) for it. The page gets no window object back, so a
-        /// sign-in window that reports to its opener cannot.
+        /// a peek) for it, if it is the web's (`is_web_address`). A window
+        /// for anything else (`about:blank` to write into, a `blob:` of
+        /// this page that no other page could read) opens nothing. The
+        /// page gets no window object back, so a sign-in window that
+        /// reports to its opener cannot.
         #[unsafe(method_id(webView:createWebViewWithConfiguration:forNavigationAction:windowFeatures:))]
         fn new_window(
             &self,
@@ -284,7 +287,7 @@ define_class!(
         ) -> Option<Retained<WKWebView>> {
             // SAFETY: live objects WebKit passes for the call.
             let (url, sized) = unsafe { (request_address(&action.request()), features.width().is_some()) };
-            if let Some(url) = url {
+            if let Some(url) = url.filter(|url| is_web_address(url)) {
                 Engine::global().system_open(self.ivars().id, url, false, sized);
             }
             None
