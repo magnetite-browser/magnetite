@@ -53,14 +53,14 @@ A row above the page holds, from left to right:
 | ← → | back and forward in the page's history (dimmed when there is none) |
 | ↻ | reload |
 | The address field | shows the site's host (the address for a page that is no web page); with the keyboard in it, the whole address, selected. Enter goes there in this window |
-| 🔗 | copies the page's link, as Copy Link does; shows a tick for a moment |
+| 🔗, at the field's right end | copies the page's link, as Copy Link does; shows a tick for a moment |
 | "Open in <space>" | keeps the page as a tab of the space in front of the main window (`Cmd+O`) |
 | ▾ | a menu of all spaces: "Open in <space>" for each |
 | ✕ | close |
 
 - The window has rounded corners and a shadow, no traffic lights, and is
-  moved by the free stretch of the row between the address field and the
-  copy button. It takes the page's title as its own.
+  moved by the gap in the row between the address field and "Open in
+  <space>". It takes the page's title as its own.
 - A click into the address field or `Cmd+L` puts the keyboard there. What
   is typed is read like the command bar's input: an address, a web search
   or a site search (`gh rust`). An address Magnetite does not open

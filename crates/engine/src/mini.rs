@@ -1,7 +1,7 @@
 //! Mini windows: one page in a small window of its own, outside the frame,
 //! with a slim row above it: back, forward, reload, the address (the site's
-//! host until it has the keyboard), a free stretch the window is dragged by,
-//! copy link, "Open in <space>", a menu of all spaces, and close.
+//! host until it has the keyboard) with copy link over its right end, a gap
+//! the window is dragged by, "Open in <space>", a menu of all spaces, and close.
 //!
 //! A mini window is a content window (`content.rs`) that starts top-level
 //! instead of as a child of the frame, with the row as Views widgets above
@@ -30,6 +30,10 @@ pub(crate) struct MiniChrome {
 
 /// Height of the row (DIP).
 const ROW_HEIGHT: i32 = 34;
+/// Width of the gap the window is dragged by (DIP).
+const GRIP_WIDTH: i32 = 28;
+/// Width of the copy button, which lies over the field's right end (DIP).
+const COPY_WIDTH: i32 = 30;
 /// Text on the row, and text of a button that cannot be used (ARGB).
 const TEXT: u32 = 0xFFE4_E4E7;
 const DIM: u32 = 0xFF6E_6E76;
@@ -67,7 +71,8 @@ fn field_fill(background: u32) -> u32 {
 }
 
 /// Give mini window `window` the address field's colours: the row's text
-/// colour on the field's fill, and no outline. A theme change resets them,
+/// colour on the field's fill, and neither outline nor focus ring: the
+/// selected address shows where the keyboard is. A theme change resets them,
 /// so the window's delegate calls this again then.
 pub(crate) fn colour_window(window: &Window) {
     use cef::sys::cef_color_id_t as Id;
@@ -77,6 +82,7 @@ pub(crate) fn colour_window(window: &Window) {
         (Id::CEF_ColorTextfieldForeground, TEXT),
         (Id::CEF_ColorTextfieldForegroundPlaceholder, DIM),
         (Id::CEF_ColorTextfieldOutline, fill),
+        (Id::CEF_ColorFocusableBorderFocused, fill),
     ] {
         window.set_theme_color(id as ::std::os::raw::c_int, colour);
     }
@@ -90,6 +96,14 @@ fn host_text(url: &str) -> String {
         .chars()
         .take(HOST_CHARS)
         .collect()
+}
+
+/// Make `button` an icon button showing `glyph`: in the text's colour,
+/// dimmed while the button cannot be used or its window is not in front.
+fn iconed(button: &LabelButton, glyph: Glyph) {
+    for (state, colour) in [(ButtonState::NORMAL, TEXT), (ButtonState::DISABLED, DIM)] {
+        button.set_image(state, glyph.image(ICON, colour).as_mut());
+    }
 }
 
 /// "Open in <space>" for the space shown first.
@@ -118,7 +132,7 @@ impl MiniChrome {
             between_child_spacing: 2,
             ..Default::default()
         }))?;
-        let add = |action: Action, text: &str, tip: &str| {
+        let add = |parent: &Panel, action: Action, text: &str, tip: &str| {
             let button = label_button_create(
                 Some(&mut MiniButton::new(id, action)),
                 Some(&CefString::from(text)),
@@ -129,36 +143,49 @@ impl MiniChrome {
             if !tip.is_empty() {
                 button.set_tooltip_text(Some(&CefString::from(tip)));
             }
-            row.add_child_view(Some(&mut View::from(&button)));
+            parent.add_child_view(Some(&mut View::from(&button)));
             Some(button)
         };
-        // An icon button: the icon in the text's colour, dimmed while the
-        // button cannot be used.
-        let iconed = |button: &LabelButton, glyph: Glyph| {
-            for (state, colour) in [(ButtonState::NORMAL, TEXT), (ButtonState::DISABLED, DIM)] {
-                button.set_image(state, glyph.image(ICON, colour).as_mut());
-            }
-        };
-        let icon = |action: Action, glyph: Glyph, tip: &str| {
-            let button = add(action, "", tip)?;
+        let icon = |parent: &Panel, action: Action, glyph: Glyph, tip: &str| {
+            let button = add(parent, action, "", tip)?;
             iconed(&button, glyph);
             Some(button)
         };
-        let back = icon(Action::Back, Glyph::Back, "Back")?;
-        let forward = icon(Action::Forward, Glyph::Forward, "Forward")?;
-        icon(Action::Reload, Glyph::Reload, "Reload")?;
+        let back = icon(&row, Action::Back, Glyph::Back, "Back")?;
+        let forward = icon(&row, Action::Forward, Glyph::Forward, "Forward")?;
+        icon(&row, Action::Reload, Glyph::Reload, "Reload")?;
         let address = textfield_create(Some(&mut AddressField::new(id)))?;
         address.set_accessible_name(Some(&CefString::from("Address")));
         address.set_placeholder_text(Some(&CefString::from("Search or enter URL")));
-        address.set_background_color(field_fill(background));
-        row.add_child_view(Some(&mut View::from(&address)));
-        layout.set_flex_for_view(Some(&mut View::from(&address)), 3);
-        // The free stretch beside the field: the window is dragged by it.
+        // The address bar: the field and, laid over its right end, the
+        // copy button, as in the main window's address row. The field keeps
+        // its text clear of the button.
+        let insets = View::from(&address).insets();
+        View::from(&address).set_insets(Some(&Insets {
+            right: insets.right + COPY_WIDTH,
+            ..insets
+        }));
+        let bar = panel_create(Some(&mut Bar::new()))?;
+        let bar_layout = bar.set_to_box_layout(Some(&BoxLayoutSettings {
+            horizontal: 1,
+            cross_axis_alignment: AxisAlignment::STRETCH,
+            between_child_spacing: -COPY_WIDTH,
+            ..Default::default()
+        }))?;
+        bar.add_child_view(Some(&mut View::from(&address)));
+        bar_layout.set_flex_for_view(Some(&mut View::from(&address)), 1);
+        let copy = icon(&bar, Action::Copy, Glyph::Link, "Copy link")?;
+        row.add_child_view(Some(&mut View::from(&bar)));
+        layout.set_flex_for_view(Some(&mut View::from(&bar)), 1);
+        // The gap after the bar: the window is dragged by it.
         let grip = panel_create(Some(&mut Grip::new()))?;
         row.add_child_view(Some(&mut View::from(&grip)));
-        layout.set_flex_for_view(Some(&mut View::from(&grip)), 1);
-        let copy = icon(Action::Copy, Glyph::Link, "Copy link")?;
-        let open = add(Action::Open, &open_label(spaces), "Open as a tab (⌘O)")?;
+        let open = add(
+            &row,
+            Action::Open,
+            &open_label(spaces),
+            "Open as a tab (⌘O)",
+        )?;
         let menu = menu_button_create(
             Some(&mut SpaceMenuButton::new(id)),
             Some(&CefString::from("")),
@@ -166,7 +193,7 @@ impl MiniChrome {
         iconed(&LabelButton::from(&menu), Glyph::Down);
         menu.set_tooltip_text(Some(&CefString::from("Open in another space")));
         row.add_child_view(Some(&mut View::from(&menu)));
-        icon(Action::Close, Glyph::Close, "Close (⌘W)")?;
+        icon(&row, Action::Close, Glyph::Close, "Close (⌘W)")?;
         back.set_enabled(0);
         forward.set_enabled(0);
         Some(Self {
@@ -328,7 +355,7 @@ impl Engine {
         let copy =
             (self.lock().contents.get(&id)).and_then(|c| Some(c.mini.as_ref()?.copy.clone()));
         if let Some(copy) = copy {
-            copy.set_image(ButtonState::NORMAL, glyph.image(ICON, TEXT).as_mut());
+            iconed(&copy, glyph);
         }
     }
 
@@ -452,11 +479,21 @@ wrap_panel_delegate! {
     impl PanelDelegate {}
 }
 
-// The free stretch of the row: the window's draggable region (the field
-// and the buttons beside it stay clickable).
+// The address bar's panel: nothing of its own.
+wrap_panel_delegate! {
+    struct Bar {}
+    impl ViewDelegate {}
+    impl PanelDelegate {}
+}
+
+// The gap in the row: the window's draggable region (the bar and the
+// buttons beside it stay clickable).
 wrap_panel_delegate! {
     struct Grip {}
     impl ViewDelegate {
+        fn preferred_size(&self, _view: Option<&mut View>) -> Size {
+            Size { width: GRIP_WIDTH, height: ROW_HEIGHT }
+        }
         fn on_layout_changed(&self, view: Option<&mut View>, new_bounds: Option<&Rect>) {
             let (Some(view), Some(bounds)) = (view, new_bounds) else { return };
             let mut origin = Point { x: 0, y: 0 };
@@ -538,7 +575,15 @@ wrap_button_delegate! {
         id: ContentId,
         action: Action,
     }
-    impl ViewDelegate {}
+    impl ViewDelegate {
+        // The copy button lies over the address field: it is see-through
+        // (a view's background is reset with the theme).
+        fn on_theme_changed(&self, view: Option<&mut View>) {
+            if let (Action::Copy, Some(view)) = (self.action, view) {
+                view.set_background_color(0);
+            }
+        }
+    }
     impl ButtonDelegate {
         fn on_button_pressed(&self, _button: Option<&mut Button>) {
             let engine = Engine::global();
