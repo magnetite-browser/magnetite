@@ -107,6 +107,21 @@ impl Engine {
         backend::available()
     }
 
+    /// The system's engine as the user reads of it: its name, and what it
+    /// is. Empty where there is none.
+    pub fn system_engine_name() -> (&'static str, &'static str) {
+        if cfg!(target_os = "macos") {
+            ("WebKit", "the Mac's own web engine")
+        } else if cfg!(target_os = "windows") {
+            (
+                "WebView2",
+                "Microsoft Edge's engine, which comes with Windows",
+            )
+        } else {
+            ("", "")
+        }
+    }
+
     /// The sites whose pages the system's engine shows from now on: hosts,
     /// each standing for its subdomains too. None: every page is
     /// Chromium's. Pages that are open keep their engine until they load

@@ -5,14 +5,17 @@ Google's Widevine programme has verified. Magnetite's Chromium is not such a
 build yet, so those services refuse it (Netflix shows error M7701-1003).
 Until it is, their pages are shown by the system's own web engine, which
 plays protected video by its own means: WebKit on macOS, with Apple's
-FairPlay.
+FairPlay; WebView2 on Windows, Microsoft Edge's engine, with PlayReady and
+Edge's Widevine.
 
 Such a page is called a system page below. Why it is built this way:
 [ADR-0015](../adr/0015-system-engine-pages.md).
 
 ## Where it works
 
-- macOS 14 or newer. On macOS 13, on Windows and on Linux every page is
+- macOS 14 or newer, and Windows with WebView2 120 or newer, which comes
+  with Windows 11 and is kept up to date by Windows. On macOS 13, on a
+  Windows without WebView2 or with an older one, and on Linux every page is
   Chromium's, and the services that ask for a verified browser do not play.
 - Nothing is shipped for it: the engine is the one that comes with the
   system, in the version the system has.
@@ -24,10 +27,10 @@ Such a page is called a system page below. Why it is built this way:
   `hbomax.com`), Prime Video (`primevideo.com`) and Hulu (`hulu.com`).
   The list ships with the app and is never fetched.
 - Sites the user names: in Settings → Protected video ("Other sites", one
-  host per line, each with its subdomains), or with "Open in WebKit" in
-  the site panel, which names the site of the page in front and loads the
+  host per line, each with its subdomains), or with "Open in WebKit"
+  ("Open in WebView2" on Windows) in the site panel, which names the site of the page in front and loads the
   page again. At most 100 sites; the panel says so when the list is full.
-- "Open streaming services in WebKit" in Settings turns the known services
+- "Open streaming services in WebKit" (in WebView2) in Settings turns the known services
   off as a whole. On by default. A known service shows "Always, for its
   video" in the site panel in place of a switch.
 - The choice is this device's own and is not synced.
@@ -63,21 +66,28 @@ the page's own full screen.
   `Shift+Cmd`+click one in front, `Shift`+click a peek, as in a Chromium
   page. A link out of a tab locked to its site (a pinned tab, a favorite)
   opens elsewhere.
-- **Pointer.** Hover effects and the page's own cursors show while the
-  page has the keyboard, which it gets when it is shown and with a click
-  into it. After a click into the sidebar they rest until the next click
-  into the page; that click already counts as one.
+- **Pointer.** On macOS hover effects and the page's own cursors show
+  while the page has the keyboard, which it gets when it is shown and with
+  a click into it. After a click into the sidebar they rest until the next
+  click into the page; that click already counts as one. On Windows they
+  show as in any other page, also before the first click.
 - **Shortcuts.** The reserved shortcuts (`shortcuts.md`) run before the
-  page sees the key, the peek's keys in a peek. The others run from the
-  menu bar after the page left the key unused.
+  page sees the key, the peek's keys in a peek. On macOS the others run
+  from the menu bar after the page left the key unused. On Windows the
+  others do not run in a system page: a key the page leaves unused goes to
+  WebView2's own keys (its find bar, its zoom, printing).
 - **Profiles.** Each profile has a data store of its own in the system's
-  engine; a private space's is in memory only and gone with the space.
+  engine; a private space's is in memory only and gone with the space
+  (`InPrivate` on Windows).
   They are apart from Chromium's: a site the user is signed in to in
   Chromium asks again here, and the other way round.
-- **The site panel** says "WebKit" beside the connection, and shows
+- **The site panel** names the engine (WebKit, WebView2) beside the connection, and shows
   zoom, the engine switch and "Clear cookies and site storage", which
-  deletes the site's data in the system's engine.
-- **Settings → Protected video → "WebKit's website data"** deletes the
+  deletes the site's data in the system's engine. On Windows that is the
+  cookies of the site and its subdomains and the storage at the site's own
+  addresses and at those of its pages that are open: WebView2 lists no data
+  by site, so storage of another subdomain stays until all is deleted.
+- **Settings → Protected video → "WebKit's website data"** ("WebView2's") deletes the
   cookies, site storage and cache of every profile there. Chromium's own
   dialog (Data & privacy) does not reach them.
 - **A page that cannot be loaded** shows a note with the reason and the
@@ -97,10 +107,12 @@ What a system page does not have, because it hooks into Chromium:
 
 ## Data
 
-The engine keeps a profile's data in its own place,
+On macOS the engine keeps a profile's data in its own place,
 `~/Library/WebKit/org.magnetitebrowser.magnetite/WebsiteDataStore/<id>`,
-not in Magnetite's data folder. Which store belongs to which profile is in
-`<data-dir>/system-engine-stores.json`. A profile that is deleted loses
+not in Magnetite's data folder. On Windows it is in the data folder:
+`<data-dir>/system-engine`, one WebView2 folder with a WebView2 profile per
+Magnetite profile (`EBWebView/WV2Profile_<name>`). Which store belongs to
+which profile is in `<data-dir>/system-engine-stores.json`. A profile that is deleted loses
 its store at the next start, and stays in that file until the engine has
 removed it. Where the file cannot be written, a profile's store is in
 memory for that run. Icons of system pages are fetched without cookies,
@@ -108,11 +120,12 @@ over `https://` only, and kept with the others in `<data-dir>/favicons`;
 a private page keeps none.
 
 The engine's check of addresses against a list of fraudulent sites is off,
-as Chromium's Safe Browsing is (`docs/design/security.md`).
+as Chromium's Safe Browsing is (`docs/design/security.md`); on Windows
+WebView2's developer tools are off too.
 
 ## Not built yet
 
-- Windows (WebView2) and anything for Linux, which has no such engine.
+- Anything for Linux, which has no such engine.
 - Everything in the list above of what a system page does not have.
 - A window a page opens for a sign-in gets no way to answer its opener:
   it opens as a tab or a peek of its own.
@@ -123,6 +136,7 @@ as Chromium's Safe Browsing is (`docs/design/security.md`).
 
 Code: `crates/engine/src/system.rs` (which engine, changing it, a system
 page's events), `mac/webkit.rs` (the WebKit view, its data stores),
+`win/webview2.rs` (the WebView2 view, its profiles), `win/icon_fetch.rs`,
 `mac/mod.rs` (`set_focus_ring`), `content.rs` (`PageView`, `make_page`),
 `client.rs` (`on_before_browse`), `favicon.rs`, `sitedata.rs`,
 `crates/app/src/state/settings.rs` (`SystemEngine`,

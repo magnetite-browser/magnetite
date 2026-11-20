@@ -14,15 +14,22 @@ impl MagnetiteApp {
     /// at `url`, and whether that is one of the known services (`known`),
     /// which the panel cannot turn off one by one.
     pub(super) fn site_engine(&self, url: &str) -> Value {
+        let (name, about) = Engine::system_engine_name();
         let host = host_of(url).filter(|_| Engine::system_engine_available());
         let Some(host) = host else {
-            return json!({ "site": null, "system": false, "known": false });
+            return json!({ "site": null, "system": false, "known": false, "name": name, "about": about });
         };
         let (known, named) = self.with_state(|s| {
             let engine = &s.settings.system_engine;
             (engine.knows(&host), engine.names(&host))
         });
-        json!({ "site": registrable_domain(&host), "system": known || named, "known": known })
+        json!({
+            "site": registrable_domain(&host),
+            "system": known || named,
+            "known": known,
+            "name": name,
+            "about": about,
+        })
     }
 
     /// Show the site of the page at `url` in the system's engine from now

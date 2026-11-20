@@ -8,7 +8,7 @@ import { Favicon } from "./Favicon";
 import { BracesIcon, CaptureIcon, CodeIcon, Minus, Plus, ShareIcon, Speaker, SpeakerOff } from "./Icons";
 import { Switch } from "./settings/fields";
 import { keysHint, keysLabel } from "./settings/shortcutKeys";
-import { findTabInSpace, hostOf, IS_MAC, onSiteDataCleared, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { findTabInSpace, hostOf, IS_MAC, onSiteDataCleared, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type Reply, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
 const PERMISSION_LABEL: Record<PermissionKind, string> = {
   camera: "Camera",
@@ -38,14 +38,18 @@ function BlockAds({ url }: { url: string }) {
   );
 }
 
+/** What the app says of the site's engine (`site_engine`). */
+type SiteEngine = Reply<"site_engine">;
+
 /**
  * Which engine shows this site: Chromium, or the system's own (WebKit on
- * macOS), which plays the protected video Chromium is refused. Not there
+ * macOS, WebView2 on Windows), which plays the protected video Chromium is
+ * refused. Not there
  * where the system has no engine to use. A service that always opens in the
  * system's engine (Settings → Protected video) has no switch of its own.
  */
 function SystemEngine({ url }: { url: string }) {
-  const [engine, setEngine] = useState<{ site: string | null; system: boolean; known: boolean } | null>(null);
+  const [engine, setEngine] = useState<SiteEngine | null>(null);
   // Why the app did not take the choice (the list of sites is full).
   const [refused, setRefused] = useState<string | null>(null);
   useEffect(() => {
@@ -62,9 +66,9 @@ function SystemEngine({ url }: { url: string }) {
   };
   return (
     <>
-      <label className="panel-row" title={`For all of ${engine.site}: its pages open in WebKit, the Mac's own web engine, which plays protected video. No extensions or ad blocking there, and the site asks you to sign in again. The page loads again.`}>
-        <span className="flex-1">Open in WebKit</span>
-        {engine.known ? <span className="text-[12px] text-[var(--muted)]">Always, for its video</span> : <Switch label="Open this site in WebKit" checked={engine.system} onChange={set} />}
+      <label className="panel-row" title={`For all of ${engine.site}: its pages open in ${engine.name}, ${engine.about}, which plays protected video. No extensions or ad blocking there, and the site asks you to sign in again. The page loads again.`}>
+        <span className="flex-1">Open in {engine.name}</span>
+        {engine.known ? <span className="text-[12px] text-[var(--muted)]">Always, for its video</span> : <Switch label={`Open this site in ${engine.name}`} checked={engine.system} onChange={set} />}
       </label>
       {refused && <div className="panel-note" role="alert">{refused}</div>}
     </>
@@ -219,6 +223,11 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
   // The system's engine shows the page: what hooks into Chromium (capture,
   // developer tools, own CSS, permissions, ad blocking, mute) is not there.
   const system = rt?.site?.system_engine ?? false;
+  // Its name, for a page it shows.
+  const [engine, setEngine] = useState<SiteEngine | null>(null);
+  useEffect(() => {
+    if (system) void send({ cmd: "site_engine", url: item.url }).then(setEngine);
+  }, [system, item.url]);
   const conn = connection(item, rt);
   const zoom = rt?.site?.zoom ?? 100;
   // The zoom the site has without one of its own (Settings → Appearance).
@@ -245,7 +254,7 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
           <div className="min-w-0">
             <div className="truncate font-semibold">{host}</div>
             <div className="truncate text-[12px]" style={{ color: conn.tone === "bad" ? "var(--danger)" : conn.tone === "warn" ? "var(--warn)" : "var(--muted)" }}>
-              {conn.text}{system ? " · WebKit" : ""}{profile && !profile.is_default ? ` · Profile: ${profile.name}` : ""}
+              {conn.text}{system && engine ? ` · ${engine.name}` : ""}{profile && !profile.is_default ? ` · Profile: ${profile.name}` : ""}
             </div>
           </div>
         </div>
@@ -285,7 +294,7 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
         {!internal && !system && <Permissions key={`${item.id} ${host}`} pageHost={host} />}
         {system && (
           <div className="panel-group">
-            <div className="panel-note">WebKit, the Mac's own web engine, shows this page. Extensions, ad blocking, Global Privacy Control and developer tools do not work here, and the site signs in apart from your other pages.</div>
+            <div className="panel-note">{engine ? `${engine.name}, ${engine.about},` : "The system's own web engine"} shows this page. Extensions, ad blocking, Global Privacy Control and developer tools do not work here, and the site signs in apart from your other pages.</div>
           </div>
         )}
 

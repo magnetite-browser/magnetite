@@ -200,7 +200,7 @@ export interface SiteState {
   zoom: number;
   /** The zoom, in percent, the site has without one of its own. */
   base_zoom?: number;
-  /** The system's own web engine shows the page (WebKit on macOS), not Chromium. */
+  /** The system's own web engine shows the page (WebKit on macOS, WebView2 on Windows), not Chromium. */
   system_engine?: boolean;
 }
 
@@ -841,12 +841,13 @@ interface Replies {
   /** `site`: the registrable domain of the page asked about; null for no web page. */
   site_ads: { site: string | null; enabled: boolean; blocking: boolean };
   /** `site`: as for `site_ads`, and null also where the system has no engine to use. `known`: one of the services that always open there (Settings → Protected video). */
-  site_engine: { site: string | null; system: boolean; known: boolean };
+  /** `name` and `about`: the system's engine as the user reads of it ("WebView2", "Microsoft Edge's engine, …"). */
+  site_engine: { site: string | null; system: boolean; known: boolean; name: string; about: string };
   site_data_scope: { domain: string; origins: string[] } | { domain?: undefined };
 }
 
 /** What command `K` resolves with: its entry in `Replies`, else `unknown`. */
-type Reply<K extends Command["cmd"]> = K extends keyof Replies ? Replies[K] : unknown;
+export type Reply<K extends Command["cmd"]> = K extends keyof Replies ? Replies[K] : unknown;
 
 type QueryFn = (q: { request: string; persistent?: boolean; onSuccess: (r: string) => void; onFailure: (code: number, msg: string) => void }) => void;
 

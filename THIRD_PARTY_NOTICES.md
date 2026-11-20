@@ -290,9 +290,19 @@ carries its own notices there.
 | utf8parse | Apache-2.0 OR MIT | magnetite |
 | utf_types | Apache-2.0 OR MIT | magnetite |
 | webpki-roots | CDLA-Permissive-2.0 | magnetite |
+| webview2-com | MIT | magnetite |
+| webview2-com-sys | MIT | magnetite |
+| windows | MIT OR Apache-2.0 | magnetite |
+| windows-collections | MIT OR Apache-2.0 | magnetite |
+| windows-core | MIT OR Apache-2.0 | magnetite |
+| windows-future | MIT OR Apache-2.0 | magnetite |
 | windows-link | MIT OR Apache-2.0 | magnetite |
+| windows-numerics | MIT OR Apache-2.0 | magnetite |
+| windows-result | MIT OR Apache-2.0 | magnetite |
+| windows-strings | MIT OR Apache-2.0 | magnetite |
 | windows-sys | MIT OR Apache-2.0 | magnetite |
 | windows-targets | MIT OR Apache-2.0 | magnetite |
+| windows-threading | MIT OR Apache-2.0 | magnetite |
 | windows_aarch64_msvc | MIT OR Apache-2.0 | magnetite |
 | writeable | Unicode-3.0 | magnetite |
 | yoke | Unicode-3.0 | magnetite |
@@ -322,7 +332,7 @@ text share one copy, preceded by all of their copyright lines.
 
 #### 1. MIT
 
-Used by: adler2, aead, anstream, anstyle, anstyle-parse, anstyle-query, anstyle-wincon, anyhow, arrayvec, bitflags, block-buffer, block2, bytes, cef, cef-dll-sys, cfg-if, chacha20, chacha20poly1305, cipher, clap, clap_builder, clap_lex, cmov, colorchoice, const-oid, cpufeatures, crypto-common, csstype, ctutils, digest, ed25519, either, flate2, form_urlencoded, getrandom, hkdf, hmac, http, httparse, hybrid-array, idna, idna_adapter, inout, is_terminal_polyfill, itertools, itoa, libc, log, objc2, objc2-app-kit, objc2-core-foundation, objc2-core-graphics, objc2-encode, objc2-foundation, objc2-web-kit, once_cell, once_cell_polyfill, percent-encoding, png, poly1305, qrcode, rand, rand_core, regex, regex-automata, regex-syntax, rustc-hash, rustls, rustls-pki-types, seahash, semver, serde, serde_core, serde_json, sha2, signature, smallvec, stable_deref_trait, thiserror, tinyvec, unicode-normalization, universal-hash, ureq-proto, url, utf8-zero, utf8_iter, utf8parse, utf_types, zeroize, zmij.
+Used by: adler2, aead, anstream, anstyle, anstyle-parse, anstyle-query, anstyle-wincon, anyhow, arrayvec, bitflags, block-buffer, block2, bytes, cef, cef-dll-sys, cfg-if, chacha20, chacha20poly1305, cipher, clap, clap_builder, clap_lex, cmov, colorchoice, const-oid, cpufeatures, crypto-common, csstype, ctutils, digest, ed25519, either, flate2, form_urlencoded, getrandom, hkdf, hmac, http, httparse, hybrid-array, idna, idna_adapter, inout, is_terminal_polyfill, itertools, itoa, libc, log, objc2, objc2-app-kit, objc2-core-foundation, objc2-core-graphics, objc2-encode, objc2-foundation, objc2-web-kit, once_cell, once_cell_polyfill, percent-encoding, png, poly1305, qrcode, rand, rand_core, regex, regex-automata, regex-syntax, rustc-hash, rustls, rustls-pki-types, seahash, semver, serde, serde_core, serde_json, sha2, signature, smallvec, stable_deref_trait, thiserror, tinyvec, unicode-normalization, universal-hash, ureq-proto, url, utf8-zero, utf8_iter, utf8parse, utf_types, webview2-com, webview2-com-sys, zeroize, zmij.
 
 ```
 Copyright (c) 2006-2009 Graydon Hoare
@@ -362,6 +372,7 @@ Copyright (c) 2019 MobileCoin, LLC
 Copyright (c) 2019-2025 RustCrypto Developers
 Copyright (c) 2019-2026 The RustCrypto Project Developers
 Copyright (c) 2020-2026 The RustCrypto Project Developers
+Copyright (c) 2021 Bill Avery
 Copyright (c) 2021-2026 RustCrypto Developers
 Copyright (c) 2022 Artyom Pavlov
 Copyright (c) 2022-2025 The RustCrypto Project Developers
@@ -408,12 +419,11 @@ DEALINGS IN THE SOFTWARE.
 Used by: icu_collections, icu_locale_core, icu_normalizer, icu_normalizer_data, icu_properties, icu_properties_data, icu_provider, litemap, potential_utf, tinystr, writeable, yoke, zerofrom, zerotrie, zerovec.
 
 ```
-Copyright © 2020-2024 Unicode, Inc.
-
 UNICODE LICENSE V3
 
 COPYRIGHT AND PERMISSION NOTICE
 
+Copyright © 2020-2024 Unicode, Inc.
 
 NOTICE TO USER: Carefully read the following legal agreement. BY
 DOWNLOADING, INSTALLING, COPYING OR OTHERWISE USING DATA FILES, AND/OR
@@ -459,6 +469,35 @@ ICU 1.8.1 to ICU 57.1 © 1995-2016 International Business Machines Corporation a
 
 #### 3. MIT
 
+Used by: @types/react, windows, windows-collections, windows-core, windows-future, windows-link, windows-numerics, windows-result, windows-strings, windows-sys, windows-targets, windows-threading, windows_aarch64_msvc.
+
+```
+Copyright (c) Microsoft Corporation.
+
+MIT License
+
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE
+```
+
+#### 4. MIT
+
 Used by: addr, crc32fast, fdeflate, miniz_oxide, psl, psl-types, react, react-dom, scheduler, simd-adler32, sys-locale, tailwindcss, ureq.
 
 ```
@@ -497,7 +536,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-#### 4. MIT
+#### 5. MIT
 
 Used by: aho-corasick, base64, lz4_flex, memchr, strsim, typenum.
 
@@ -530,35 +569,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
-
-#### 5. MIT
-
-Used by: @types/react, windows-link, windows-sys, windows-targets, windows_aarch64_msvc.
-
-```
-Copyright (c) Microsoft Corporation.
-
-MIT License
-
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
 ```
 
 #### 6. Apache-2.0
@@ -938,27 +948,7 @@ express Statement of Purpose.
     this CC0 or use of the Work.
 ```
 
-#### 9. ISC
-
-Used by: libloading, ring.
-
-```
-Copyright 2015-2025 Brian Smith.
-Copyright © 2015, Simonas Kazlauskas
-
-Permission to use, copy, modify, and/or distribute this software for any purpose with or without
-fee is hereby granted, provided that the above copyright notice and this permission notice appear
-in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
-SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
-NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
-THIS SOFTWARE.
-```
-
-#### 10. CDLA-Permissive-2.0
+#### 9. CDLA-Permissive-2.0
 
 Used by: webpki-roots.
 
@@ -1026,7 +1016,7 @@ of Data, including for example machine learning models and models'
 insights.
 ```
 
-#### 11. MIT
+#### 10. MIT
 
 Used by: vite.
 
@@ -1058,7 +1048,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-#### 12. Other
+#### 11. Other
 
 Used by: ring.
 
@@ -1074,7 +1064,7 @@ See src/polyfill/once_cell/LICENSE-APACHE and src/polyfill/once_cell/LICENSE-MIT
 for the license to code that was sourced from the once_cell project.
 ```
 
-#### 13. ISC
+#### 12. ISC
 
 Used by: untrusted.
 
@@ -1095,7 +1085,7 @@ Used by: untrusted.
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ```
 
-#### 14. Apache-2.0, BSD-3-Clause
+#### 13. Apache-2.0, BSD-3-Clause
 
 Used by: ring.
 
@@ -1372,6 +1362,25 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+#### 14. ISC
+
+Used by: libloading.
+
+```
+Copyright © 2015, Simonas Kazlauskas
+
+Permission to use, copy, modify, and/or distribute this software for any purpose with or without
+fee is hereby granted, provided that the above copyright notice and this permission notice appear
+in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+THIS SOFTWARE.
 ```
 
 #### 15. CC0-1.0
@@ -1841,17 +1850,70 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
   defined by the Mozilla Public License, v. 2.0.
 ```
 
-#### 19. Unicode-3.0
+#### 19. ISC
+
+Used by: ring.
+
+```
+Copyright 2015-2025 Brian Smith.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+```
+
+#### 20. Other
+
+Used by: webview2-com-sys.
+
+```
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+   * Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+   * Redistributions in binary form must reproduce the above
+copyright notice, this list of conditions and the following disclaimer
+in the documentation and/or other materials provided with the
+distribution.
+   * The name of Microsoft Corporation, or the names of its contributors
+may not be used to endorse or promote products derived from this
+software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+
+#### 21. Unicode-3.0
 
 Used by: unicode-normalization.
 
 ```
-Copyright © 1991-2023 Unicode, Inc.
-
 UNICODE LICENSE V3
 
 COPYRIGHT AND PERMISSION NOTICE
 
+Copyright © 1991-2023 Unicode, Inc.
 
 NOTICE TO USER: Carefully read the following legal agreement. BY
 DOWNLOADING, INSTALLING, COPYING OR OTHERWISE USING DATA FILES, AND/OR

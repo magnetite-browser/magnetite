@@ -1966,6 +1966,8 @@ impl MagnetiteApp {
                         "system_engine": {
                             "available": magnetite_engine::Engine::system_engine_available(),
                             "known_sites": crate::state::PROTECTED_VIDEO_SITES,
+                            "name": magnetite_engine::Engine::system_engine_name().0,
+                            "about": magnetite_engine::Engine::system_engine_name().1,
                         },
                         "shortcuts": magnetite_engine::Action::ALL.iter().map(|action| json!({
                             "action": action,

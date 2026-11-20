@@ -174,7 +174,8 @@ from a context Magnetite did not make is not opened.
 ## Pages in the system's engine
 
 Pages of some sites are shown by the system's own web engine instead of
-Chromium (WebKit on macOS; `docs/spec/protected-video.md`, ADR-0015). What
+Chromium (WebKit on macOS, WebView2 on Windows;
+`docs/spec/protected-video.md`, ADR-0015). What
 holds for them:
 
 - Only the sites of a list the user sees and can change get such a page,
@@ -186,9 +187,11 @@ holds for them:
   page does (`OpenUrlRequested`, source "page"), with the page's profile,
   and goes through the same checks.
 - A profile's data in that engine is apart from every other profile's, and
-  a private profile's is in memory only (`mac/webkit.rs`, `store`). It
-  lies outside the data folder, where the system's engine keeps it; the
-  file that names the stores is written for the user alone (0600).
+  a private profile's is in memory only (`mac/webkit.rs` and
+  `win/webview2.rs`, `store`). On macOS it lies outside the data folder,
+  where the system's engine keeps it, and the file that names the stores
+  is written for the user alone (0600). On Windows it lies in the data
+  folder, as the file does.
 - The icon of such a page is fetched by a request of its own, in a session
   without a place for cookies, so it cannot tie two profiles together. It
   goes over `https://` only, also after a redirect, to an address without
@@ -199,7 +202,8 @@ holds for them:
   find again to delete. If that file cannot be read, no store is opened
   on disk and deleting the engine's data reports the failure.
 - The engine's check of addresses against a list of fraudulent sites is
-  off, as Chromium's Safe Browsing is: it would ask a service.
+  off, as Chromium's Safe Browsing is: it would ask a service. WebView2's
+  developer tools are off.
 - What Magnetite adds to Chromium pages is absent there: ad blocking,
   Global Privacy Control, the permission prompts. Settings and the site
   panel say so for the first two, and the site panel has no permission
@@ -207,8 +211,10 @@ holds for them:
   prompt of its own, each time.
 - The engine is the system's and is updated with it, not with Magnetite.
 - The page's view lives in a window of AppKit's attached to the page's own
-  window. It is made by Magnetite, shows only that view and is closed with
-  the page.
+  window (macOS), or in a child window of the page's own (Windows). It is
+  made by Magnetite, shows only that view and is closed with the page.
+- WebView2's loader is linked into Magnetite, not loaded from a file
+  beside it.
 
 ## Network
 

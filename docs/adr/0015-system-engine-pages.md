@@ -1,7 +1,7 @@
 # ADR-0015: Protected video plays in the system's own web engine
 
-- Status: accepted (2026-11-20). Built for macOS; what was checked in a
-  running build is listed under "Decision".
+- Status: accepted (2026-11-20). Built for macOS and Windows; what was
+  checked in a running build is listed under "Decision".
 
 ## Context
 
@@ -37,7 +37,7 @@ PlayReady. Linux has none.
 
 ## Decision
 
-Option 4 until option 3 is there, for macOS first.
+Option 4 until option 3 is there, on macOS and Windows.
 
 - **A system page is a page like any other** to the app and to the rest of
   the engine: the same id, events and calls, and the same frameless child
@@ -85,6 +85,21 @@ Option 4 until option 3 is there, for macOS first.
     Chromium.
   - WebKit's check of addresses against a list of fraudulent sites is off,
     as Chromium's Safe Browsing is: both ask a service.
+- **On Windows** the view is a WebView2 controller (`win/webview2.rs`):
+  - It lives in a plain child window of Magnetite's inside the page's own
+    window. A child moves, hides and is cut round with its parent, and
+    Windows hands it the mouse where it lies: the trouble AppKit had does
+    not arise. Measured: of 60 pointer moves posted where the page lies,
+    the page saw 60, and clicks focus it.
+  - WebView2's loader is linked statically, so Magnetite starts where
+    WebView2 is missing and keeps every page in Chromium there. WebView2
+    120 or newer is needed: profiles by name in one data folder.
+  - Its data is in Magnetite's data folder: one WebView2 folder, with a
+    WebView2 profile per Magnetite profile under a name kept in the data
+    folder, as on macOS; a private profile's pages are `InPrivate`.
+  - WebView2 says when a page wants full screen; the page's own window is
+    made full screen, and the view fills it.
+  - WebView2's user agent is Edge's and is left as it is.
 - **Only the official engine of the system is used**, through its public
   interface. Nothing of it is shipped, and no protection is worked around:
   the service sees the system's engine, which is what it is.
@@ -104,6 +119,22 @@ Checked in a running build (macOS 27.2, CEF 156):
   and cursors, by hand.
 - WebKit offers FairPlay for H.264 and HEVC in a process that is not Safari.
 
+Checked in a running build (Windows 11, WebView2 157, CEF 156):
+
+- WebView2 offers PlayReady (also at security level 3000) and Widevine at
+  software robustness, and plays Google's Widevine test stream and
+  Microsoft's PlayReady test stream (licence fetched, frames decoded).
+- A tab for a listed site is made in WebView2 and reports its title,
+  address, loading state and icon; it follows the frame's size, hides and
+  shows with its tab, shares a split with a Chromium page with the outline
+  above it, opens as a peek, and leaves no window when it closes.
+- 60 of 60 pointer moves and the clicks posted to it reach the page.
+- A profile's pages get a WebView2 profile of its own, a private
+  profile's keep nothing on disk, and a deleted profile's folder goes at
+  the next start. Deleting one site's data and all of it works.
+- A load that fails shows the note at the address that failed; a page
+  element's full screen fills the screen and comes back.
+
 ## Consequences
 
 - Magnetite shows pages in two engines. A system page has none of what
@@ -117,11 +148,11 @@ Checked in a running build (macOS 27.2, CEF 156):
   again in the system's engine.
 - WebKit keeps its data outside Magnetite's data folder, under
   `~/Library/WebKit/<bundle id>`. Deleting a profile removes its store
-  there; deleting the data folder by hand does not.
+  there; deleting the data folder by hand does not. WebView2's is inside
+  the data folder.
 - The engine's version is the system's, not the project's: it is updated
   with macOS, and a page may behave differently from one Mac to the next.
-- Windows can follow the same shape with WebView2 behind the same interface
-  (`system.rs`). On Linux the services stay unsupported until Chromium
-  itself may play them.
+- On Linux the services stay unsupported until Chromium itself may play
+  them.
 - Certification stays possible. With it the list of sites becomes empty and
   this code is no longer on any page's path.

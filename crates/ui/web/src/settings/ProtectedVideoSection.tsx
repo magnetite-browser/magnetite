@@ -1,6 +1,6 @@
 // Settings → Protected video: which sites open in the system's own web
-// engine (WebKit on macOS), where protected video plays that Magnetite's
-// Chromium is refused.
+// engine (WebKit on macOS, WebView2 on Windows), where protected video plays
+// that Magnetite's Chromium is refused.
 import { useEffect, useState } from "react";
 import { send } from "../bridge";
 import { Field, Group, Toggle } from "./fields";
@@ -33,34 +33,35 @@ export function ProtectedVideoSection({ info, update }: { info: Info; update: (p
     return (
       <Group>
         <p className="set-row set-hint" style={{ marginTop: 0 }}>
-          Magnetite can use a system's own web engine only on macOS 14 or newer so far. On this computer every page is shown by Chromium, and services that ask for a verified browser do not play.
+          Magnetite can use a system's own web engine only on macOS 14 or newer and on Windows with a current WebView2 so far. On this computer every page is shown by Chromium, and services that ask for a verified browser do not play.
         </p>
       </Group>
     );
   }
   const known = info.system_engine.known_sites.map((site) => NAMES[site] ?? site);
+  const { name, about } = info.system_engine;
   const save = () => update({ system_engine: { ...engine, sites: sites.split(/[\s,]+/).filter(Boolean) } });
   return (
     <>
       <Group>
         <Toggle
-          label="Open streaming services in WebKit"
-          hint={`${known.join(", ")}. They play protected video only in a browser that Google has verified. Magnetite's Chromium is not verified yet; talks to get it there are under way. Until then WebKit, the Mac's own web engine, plays it.`}
+          label={`Open streaming services in ${name}`}
+          hint={`${known.join(", ")}. They play protected video only in a browser that Google has verified. Magnetite's Chromium is not verified yet; talks to get it there are under way. Until then ${name}, ${about}, plays it.`}
           checked={engine.known}
           onChange={(on) => update({ system_engine: { ...engine, known: on } })}
         />
-        <Field label="Other sites" hint="Sites that open in WebKit too, one per line: a site's name stands for its subdomains. The site panel (the button left of the address) has the same switch for the page in front.">
+        <Field label="Other sites" hint={`Sites that open in ${name} too, one per line: a site's name stands for its subdomains. The site panel (the button left of the address) has the same switch for the page in front.`}>
           <textarea className="field mono" rows={3} spellCheck={false} placeholder={"tv.example.org"} value={sites} onChange={(e) => setSites(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
         </Field>
       </Group>
-      <Group title="What is different in a WebKit page" hint="It is a tab like any other: in the sidebar, in its space, in a split or a peek. It runs no extensions, ad blocking or developer tools, sends no Global Privacy Control signal, and signs in on its own: a site you are signed in to in Chromium asks again. Open pages keep their engine until they load another address.">
+      <Group title={`What is different in a ${name} page`} hint="It is a tab like any other: in the sidebar, in its space, in a split or a peek. It runs no extensions, ad blocking or developer tools, sends no Global Privacy Control signal, and signs in on its own: a site you are signed in to in Chromium asks again. Open pages keep their engine until they load another address.">
         <div className="set-row flex items-center gap-3" data-search-row>
           <span className="min-w-0 flex-1" data-search-name>
-            <span className="set-label block">WebKit's website data</span>
+            <span className="set-label block">{name}'s website data</span>
             {cleared === "failed" ? (
               <span className="set-hint block" role="alert" style={{ color: "var(--danger)" }}>It could not be deleted. Try again.</span>
             ) : (
-              <span className="set-hint block">{cleared === "done" ? "Deleted. The sites there ask you to sign in again." : cleared === "working" ? "Deleting…" : "The cookies, site storage and cache of the pages WebKit showed, in every profile. Chromium's are deleted under Data & privacy."}</span>
+              <span className="set-hint block">{cleared === "done" ? "Deleted. The sites there ask you to sign in again." : cleared === "working" ? "Deleting…" : `The cookies, site storage and cache of the pages ${name} showed, in every profile. Chromium's are deleted under Data & privacy.`}</span>
             )}
           </span>
           {cleared === "confirm" ? (

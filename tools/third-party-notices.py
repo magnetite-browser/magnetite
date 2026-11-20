@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import subprocess
 import sys
 from collections import defaultdict
@@ -87,6 +88,13 @@ Dedicated to the public domain under CC0 1.0 Universal
 (https://creativecommons.org/publicdomain/zero/1.0/legalcode). No notice is required."""
 CEF_RS = ("Copyright (c) 2023 Wu Yuwei", MIT_TEXT)  # tauri-apps/cef-rs, LICENSE-MIT
 OBJC2 = ("Copyright 2026 Mads Marquart", MIT_TEXT)  # madsmtm/objc2, LICENSE-MIT.txt
+WEBVIEW2_RS = ("Copyright (c) 2021 Bill Avery", MIT_TEXT)  # wravery/webview2-rs, LICENSE
+# Microsoft.Web.WebView2 (NuGet), LICENSE.txt: the loader webview2-com-sys carries
+# (WebView2LoaderStatic.lib), which Magnetite links in.
+WEBVIEW2_SDK = (
+    "Copyright (C) Microsoft Corporation. All rights reserved.",
+    (Path(__file__).parent / "licences" / "WebView2-SDK-LICENSE").read_text().strip(),
+)
 # Shipped crates published without a licence file: (copyright line, text) taken
 # from their repositories. A new crate without a file stops the script.
 NO_LICENCE_FILE = {
@@ -100,6 +108,8 @@ NO_LICENCE_FILE = {
     "objc2-encode": OBJC2,
     "objc2-foundation": OBJC2,
     "objc2-web-kit": OBJC2,
+    "webview2-com": WEBVIEW2_RS,
+    "webview2-com-sys": [WEBVIEW2_RS, WEBVIEW2_SDK],
     "bitcoin_hashes": ("", CC0_TEXT),
     # redox-os/seahash, LICENSE: the MIT text without a copyright line.
     "seahash": ("", MIT_TEXT),
@@ -129,7 +139,9 @@ Package = tuple[str, Path]  # (licence expression, directory with its files)
 
 
 def run(*cmd: str, cwd: Path = ROOT) -> str:
-    return subprocess.run(cmd, cwd=cwd, check=True, capture_output=True, text=True).stdout
+    # By its full path: on Windows `pnpm` is `pnpm.cmd`, which is found only so.
+    program = shutil.which(cmd[0]) or cmd[0]
+    return subprocess.run((program, *cmd[1:]), cwd=cwd, check=True, capture_output=True, text=True).stdout
 
 
 def rust_crates() -> dict[Key, Package]:
@@ -176,7 +188,9 @@ def licence_files(key: Key, package: Package) -> list[tuple[str, str]]:
     if not files:
         if key[0] not in NO_LICENCE_FILE:
             sys.exit(f"{key[0]} {key[1]} ships no licence file: add it to NO_LICENCE_FILE")
-        return [NO_LICENCE_FILE[key[0]]]
+        # One text, or several where a crate carries code under another licence.
+        known = NO_LICENCE_FILE[key[0]]
+        return known if isinstance(known, list) else [known]
     texts = []
     for file in files:
         content = file.read_text(errors="replace").split(BUNDLED_TAIL)[0].strip()

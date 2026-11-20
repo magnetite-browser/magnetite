@@ -50,7 +50,7 @@ use webview2_com::{
     DownloadStartingEventHandler, FaviconChangedEventHandler, FocusChangedEventHandler,
     GetCookiesCompletedHandler, HistoryChangedEventHandler, NavigationCompletedEventHandler,
     NavigationStartingEventHandler, NewWindowRequestedEventHandler, ProcessFailedEventHandler,
-    SourceChangedEventHandler, WindowCloseRequestedEventHandler,
+    SourceChangedEventHandler, WindowCloseRequestedEventHandler, ZoomFactorChangedEventHandler,
 };
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM};
 use windows::Win32::System::Com::{CoCreateGuid, CoTaskMemFree};
@@ -1254,6 +1254,15 @@ fn listen(id: ContentId, controller: &ICoreWebView2Controller, view: &ICoreWebVi
                 &raw mut token,
             );
         }
+        // WebView2's own keys (Ctrl and plus, minus, 0) zoom too: the site
+        // panel hears of it as of any zoom.
+        let _ = controller.add_ZoomFactorChanged(
+            &ZoomFactorChangedEventHandler::create(Box::new(move |_, _| {
+                Engine::post(Box::new(move || Engine::global().emit_site_state(id)));
+                Ok(())
+            })),
+            &raw mut token,
+        );
         let _ = controller.add_GotFocus(
             &FocusChangedEventHandler::create(Box::new(move |_, _| {
                 Engine::post(Box::new(move || Engine::global().system_focused(id)));
