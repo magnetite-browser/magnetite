@@ -17,6 +17,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::ptr::NonNull;
+use std::rc::Rc;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -779,36 +780,75 @@ pub(crate) fn clear_data(
     domain: Option<&str>,
     done: Box<dyn FnOnce(Result<Option<usize>, String>)>,
 ) {
+    let nothing = domain.map(|_| 0);
     let Some(mtm) = MainThreadMarker::new().filter(|_| available()) else {
-        done(Ok(domain.map(|_| 0)));
-        return;
+        return done(Ok(nothing));
     };
+    // The stores that hold the profile's data: the one its pages use this
+    // run, and the one on disk under its identifier where that is another.
+    // A run that began while the file could not be read uses a store in
+    // memory, and the one on disk must not pass for cleared with it.
+    let in_use = STORES.with_borrow(|s| s.get(profile).cloned());
+    let mut stores: Vec<Retained<WKWebsiteDataStore>> = in_use.iter().cloned().collect();
+    if !ephemeral {
+        let Ok(ids) = read_store_ids(data_dir) else {
+            return done(Err(STORES_UNREADABLE.to_string()));
+        };
+        // SAFETY: on the main thread, where the stores live.
+        let on_disk = in_use.is_some_and(|store| unsafe { store.isPersistent() });
+        let recorded = (ids.get(profile))
+            .and_then(|id| NSUUID::initWithUUIDString(NSUUID::alloc(), &NSString::from_str(id)));
+        if let Some(recorded) = recorded.filter(|_| !on_disk) {
+            // SAFETY: on the main thread; `available` holds.
+            stores.push(unsafe { WKWebsiteDataStore::dataStoreForIdentifier(&recorded, mtm) });
+        }
+    }
     // A profile that never used WebKit has nothing to delete, and gets no
     // store made for the question.
-    let used = if ephemeral {
-        Ok(true)
-    } else {
-        read_store_ids(data_dir)
-            .map(|ids| ids.contains_key(profile) || STORES.with_borrow(|s| s.contains_key(profile)))
-    };
-    match used {
-        Ok(true) => {}
-        Ok(false) => return done(Ok(domain.map(|_| 0))),
-        Err(_) => return done(Err(STORES_UNREADABLE.to_string())),
+    if stores.is_empty() {
+        return done(Ok(nothing));
     }
-    let store = store(mtm, data_dir, profile, ephemeral);
-    // WebKit's blocks may be called again in principle; `done` runs once.
-    let done = std::rc::Rc::new(Cell::new(Some(done)));
-    let finish = move |cookies: Option<usize>| {
-        if let Some(done) = done.take() {
-            done(Ok(cookies));
-        }
-    };
+    let left = Rc::new(Cell::new(stores.len()));
+    let cookies = Rc::new(Cell::new(0));
+    let done = Rc::new(Cell::new(Some(done)));
+    let site = domain.is_some();
+    for store in stores {
+        let (left, cookies, done) = (left.clone(), cookies.clone(), done.clone());
+        let cleared = move |count: usize| {
+            cookies.set(cookies.get() + count);
+            left.set(left.get() - 1);
+            // `done` is taken by the last store alone.
+            if left.get() == 0
+                && let Some(done) = done.take()
+            {
+                done(Ok(site.then(|| cookies.get())));
+            }
+        };
+        clear_store(mtm, &store, domain, Rc::new(cleared));
+    }
+}
+
+/// Delete everything in `store`, or what belongs to the site `domain`.
+/// `done` hears how many of the site's cookies went (0 when everything
+/// goes: they are not counted then).
+fn clear_store(
+    mtm: MainThreadMarker,
+    store: &Retained<WKWebsiteDataStore>,
+    domain: Option<&str>,
+    done: Rc<dyn Fn(usize)>,
+) {
     // SAFETY: on the main thread; WebKit copies the blocks.
     unsafe {
         let types = WKWebsiteDataStore::allWebsiteDataTypes(mtm);
         let Some(domain) = domain.map(str::to_string) else {
-            let removed = RcBlock::new(move || finish(None));
+            // The block keeps the store: one that nothing else holds (the
+            // one on disk beside a store in use) would be gone before it
+            // is done, and `done` would never be called.
+            let kept = store.clone();
+            let removed = RcBlock::new(move || {
+                let _ = &kept;
+                done(0);
+            });
             let ever = NSDate::distantPast();
             store.removeDataOfTypes_modifiedSince_completionHandler(&types, &ever, &removed);
             return;
@@ -816,25 +856,22 @@ pub(crate) fn clear_data(
         // First the count of the site's cookies, then everything of the
         // site, cookies included.
         let from = store.clone();
-        let counted = RcBlock::new(move |cookies: std::ptr::NonNull<NSArray<NSHTTPCookie>>| {
+        let counted = RcBlock::new(move |cookies: NonNull<NSArray<NSHTTPCookie>>| {
             let count = (cookies.as_ref().iter())
                 .filter(|c| crate::sitedata::in_domain(&c.domain().to_string(), &domain))
                 .count();
-            let (site, store, kinds, finish) =
-                (domain.clone(), from.clone(), types.clone(), finish.clone());
-            let found = RcBlock::new(
-                move |records: std::ptr::NonNull<NSArray<WKWebsiteDataRecord>>| {
-                    let of_site: Vec<Retained<WKWebsiteDataRecord>> = (records.as_ref().iter())
-                        .filter(|r| crate::sitedata::in_domain(&r.displayName().to_string(), &site))
-                        .collect();
-                    let finish = finish.clone();
-                    let removed = RcBlock::new(move || finish(Some(count)));
-                    let of_site = NSArray::from_retained_slice(&of_site);
-                    store.removeDataOfTypes_forDataRecords_completionHandler(
-                        &kinds, &of_site, &removed,
-                    );
-                },
-            );
+            let (site, store, kinds, done) =
+                (domain.clone(), from.clone(), types.clone(), done.clone());
+            let found = RcBlock::new(move |records: NonNull<NSArray<WKWebsiteDataRecord>>| {
+                let of_site: Vec<Retained<WKWebsiteDataRecord>> = (records.as_ref().iter())
+                    .filter(|r| crate::sitedata::in_domain(&r.displayName().to_string(), &site))
+                    .collect();
+                let done = done.clone();
+                let removed = RcBlock::new(move || done(count));
+                let of_site = NSArray::from_retained_slice(&of_site);
+                store
+                    .removeDataOfTypes_forDataRecords_completionHandler(&kinds, &of_site, &removed);
+            });
             from.fetchDataRecordsOfTypes_completionHandler(&types, &found);
         });
         store.httpCookieStore().getAllCookies(&counted);
