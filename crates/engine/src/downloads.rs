@@ -219,10 +219,18 @@ fn is_extension_install(url: &str) -> bool {
         .is_some_and(|rest| rest.is_empty() || rest.starts_with('?'))
 }
 
-/// Whether a download from `url` can be asked for again: a web address. A
-/// `blob:` or `data:` one belongs to the page that made it.
+/// Whether a download from `url` can be asked for again: a web address
+/// without a user name or password in it, which are not kept. A `blob:` or
+/// `data:` one belongs to the page that made it.
 fn retryable(url: &str) -> bool {
-    url.starts_with("https://") || url.starts_with("http://")
+    let Some(rest) = url
+        .strip_prefix("https://")
+        .or_else(|| url.strip_prefix("http://"))
+    else {
+        return false;
+    };
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    !authority.contains('@')
 }
 
 /// The name to show for a download at `full` (Chromium's current path):
@@ -298,7 +306,7 @@ fn percent_decode(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{display_name, disposition_name, is_extension_install, url_name};
+    use super::{display_name, disposition_name, is_extension_install, retryable, url_name};
 
     #[test]
     fn web_store_installs_are_no_downloads() {
@@ -312,6 +320,15 @@ mod tests {
             "https://example.org/service/update2/crx?x=1"
         ));
         assert!(!is_extension_install("https://example.org/tool.crx"));
+    }
+
+    #[test]
+    fn only_web_addresses_without_credentials_can_be_retried() {
+        assert!(retryable("https://example.org/a.zip?mail=a@b.org"));
+        assert!(retryable("http://example.org:8080/a.zip"));
+        assert!(!retryable("https://user:secret@example.org/a.zip"));
+        assert!(!retryable("blob:https://example.org/1b2c"));
+        assert!(!retryable("data:text/plain,hello"));
     }
 
     #[test]
