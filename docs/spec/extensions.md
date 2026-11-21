@@ -129,8 +129,9 @@ Settings.
   the page. Every page window is a browser window of its own, so the tab is
   the one in the page's window (`Browser.getWindowForTarget`). It is looked
   up once per page. `Target.activateTarget` on that tab goes first: it
-  activates the page through Chromium's own window code, which makes it
-  the window focused last at once. Chromium learns that from the system's
+  activates the page through Chromium's own window code
+  (`BrowserView::Activate`), which moves it to the front of Chromium's
+  order of activation at once. Chromium learns that from the system's
   window activation otherwise, which never reaches a page window on Linux.
 - **Anchor:** every page window carries Chromium's toolbar in its own
   views, out of sight: a row one point tall above the page holds a 400 pt
@@ -188,6 +189,13 @@ Settings.
   Magnetite's layout. On Linux an extension's own page in a normal window
   stays a window too: an options page meant to open in a tab,
   `chrome.windows.create({type: "normal"})`.
+- Chromium moves a browser to the front of its order of activation only
+  as it turns active, and a page counts as active for as long as the
+  window it is in does. So the page is made the window focused last for
+  its first action only, until Magnetite's CEF carries
+  `extension-last-active.patch` (magnetite-cef), which moves it on every
+  activation; after that an extension is given the page of an earlier
+  action, or an internal page, which Dark Reader shows as `about:`.
 - With the official CEF (macOS on Intel, Linux on arm64) Chromium calls
   every page's window a pop-up window, so an extension that looks for the
   tab in front among normal windows (Dark Reader) finds none and takes the
