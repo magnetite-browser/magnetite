@@ -207,6 +207,16 @@ mod tests {
     }
 
     #[test]
+    fn pages_on_screen_in_a_background_window_stay_in_use() {
+        let mut s = state();
+        assert!(s.split_insert(None, "c", Side::Right));
+        let shown = s.visible_panes();
+        s.open_window(2);
+        let in_use = s.pages_in_use();
+        assert!(shown.iter().all(|tab| in_use.contains(tab)));
+    }
+
+    #[test]
     fn windows_showing_different_tabs_keep_them() {
         let mut s = state();
         let first = s.visible_panes();

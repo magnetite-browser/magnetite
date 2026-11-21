@@ -498,12 +498,21 @@ impl AppState {
             .collect()
     }
 
-    /// The pages never archived or unloaded by themselves: those on screen
-    /// (all of a split's) and the tab each other space returns to.
+    /// The pages never archived or unloaded by themselves, in every window:
+    /// those on screen (all of a split's) and the tab each other space
+    /// returns to.
     pub fn pages_in_use(&self) -> HashSet<Id> {
         let mut active: HashSet<Id> = self.active_tab.values().cloned().collect();
         active.extend(self.visible_panes());
         active.extend(self.web_panel.clone());
+        for view in self.views.values() {
+            active.extend(view.active_tab.values().cloned());
+            active.extend(view.web_panel.clone());
+            if let Some(front) = view.active_tab.get(&view.active_space) {
+                let split = self.live_splits().find(|t| t.contains(front));
+                active.extend(split.into_iter().flat_map(|t| t.ids()));
+            }
+        }
         active
     }
 
