@@ -374,14 +374,27 @@ impl Engine {
         self.focus_content(id);
         // Extensions ask Chromium for the tab in front as the active tab of
         // the window focused last. Every page is a window of its own to
-        // Chromium, and one becomes the last focused when it is activated: by
-        // a click into it, not by being shown. So the page is activated as
-        // its action is sent, once its tab is known.
+        // Chromium, and its list of windows by activation follows the
+        // system's window activation, which on Linux never reaches a page
+        // window, not even with a click into it. `Target.activateTarget`
+        // activates the page through Chromium's own window code, which puts
+        // the page's window first in that list at once, on every system; the
+        // action is sent after it on the same pipe.
         let extension = extension.to_string();
         let asked = std::time::Instant::now();
         self.with_tab_target(id, move |tab| {
-            let window = (Engine::global().lock().contents.get(&id)).and_then(|c| c.window.clone());
-            if let Some(window) = window {
+            let (chromium, window) = (Engine::global().lock().contents.get(&id))
+                .map(|c| (c.browser.is_some(), c.window.clone()))
+                .unwrap_or_default();
+            if chromium {
+                crate::devpipe::call("Target.activateTarget", &json!({ "targetId": tab }), |r| {
+                    if let Err(e) = r {
+                        crate::trace(&format!("extension action: cannot activate the page: {e}"));
+                    }
+                });
+            } else if let Some(window) = window {
+                // A system page's tab is its shadow, whose window stays
+                // hidden: only the page's own window is activated.
                 window.activate();
             }
             crate::devpipe::call(
