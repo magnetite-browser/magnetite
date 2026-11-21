@@ -71,6 +71,30 @@ const WAYLAND_PATCH: &str = "wayland-child-windows.patch";
 #[cfg(target_os = "linux")]
 const REPARENT_PATCH: &str = "window-reparent.patch";
 
+/// The patch to CEF that rounds a window's corners (magnetite-cef,
+/// `patches/`).
+#[cfg(target_os = "linux")]
+const CORNERS_PATCH: &str = "rounded-corners.patch";
+
+/// The colour id that a CEF with `CORNERS_PATCH` takes a window's corner
+/// radius under, in place of a colour.
+#[cfg(target_os = "linux")]
+const CORNER_RADIUS_ID: i32 = -1;
+
+/// Give page window `window` corners of `radius` DIP, 0 for square ones
+/// (the counterpart of `mac::set_corner_radius`). Chromium cuts the window
+/// and shows the frame outside the corners. Needs `CORNERS_PATCH` in the
+/// CEF in use; without it the corners stay square.
+#[cfg(target_os = "linux")]
+pub(crate) fn set_corner_radius(window: &Window, radius: i32) {
+    static PATCHED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    let patched = PATCHED
+        .get_or_init(|| cef_patches().is_some_and(|patches| lists_patch(&patches, CORNERS_PATCH)));
+    if *patched {
+        window.set_theme_color(CORNER_RADIUS_ID, u32::try_from(radius).unwrap_or(0));
+    }
+}
+
 /// The list of Magnetite's patches in the CEF in use, one file name a line.
 /// Magnetite's CEF build carries it, and packaging puts it next to the
 /// executable; the official CEF has none.

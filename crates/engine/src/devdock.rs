@@ -405,7 +405,9 @@ impl Engine {
             // The rounded cut does not follow the new size.
             #[cfg(target_os = "windows")]
             crate::win::clip_page(w.window_handle(), radius);
-            #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+            #[cfg(target_os = "linux")]
+            crate::cef_app::set_corner_radius(w, radius);
+            #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
             let _ = radius;
         };
         if let Some(w) = window {
