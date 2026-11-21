@@ -666,6 +666,8 @@ export type Command =
   | { cmd: "open_download"; id: Id; reveal?: boolean }
   /** Put a finished download's file, or its path as text, on the clipboard. */
   | { cmd: "copy_download"; id: Id; what: "file" | "path" }
+  /** Fetch a failed download again (`retryable`); it comes back as a new entry. */
+  | { cmd: "retry_download"; id: Id }
   | { cmd: "clear_downloads" }
   | { cmd: "show_downloads" }
   /** One of Chromium's own pages (saved passwords, addresses, cards) as a peek, in the logins of `profile`. */
@@ -932,6 +934,8 @@ export interface DownloadEntry {
   missing: boolean;
   /** Runs code or hands off when opened: only ever shown in the file manager. */
   risky: boolean;
+  /** Failed, and the app can fetch it again: in the run it failed in. */
+  retryable: boolean;
 }
 
 /** What a permission prompt asks for (`PromptKind` in the engine). */

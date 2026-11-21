@@ -299,6 +299,11 @@ function DownloadCard({ d, layout, onClose }: { d: DownloadEntry; layout: string
             <button className="btn sm ghost" onClick={() => send({ cmd: "open_download", id: d.id, reveal: true })}>{REVEAL}</button>
           </div>
         )}
+        {d.retryable && (
+          <div className="note-actions">
+            <button className="btn sm" onClick={() => send({ cmd: "retry_download", id: d.id })}>Try again</button>
+          </div>
+        )}
       </div>
       <button className="ib sm note-close" aria-label={`Dismiss ${d.name}`} onClick={onClose}><Close width={14} height={14} /></button>
     </div>

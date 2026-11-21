@@ -887,6 +887,10 @@ pub(super) enum UiCommand {
         id: String,
         what: DownloadCopy,
     },
+    /// Fetch failed download `id` again, as a new download.
+    RetryDownload {
+        id: String,
+    },
     ClearDownloads,
     /// "Downloads" from the palette: show the list in the sidebar.
     ShowDownloads,
@@ -2331,6 +2335,25 @@ impl MagnetiteApp {
                     (Some(_), _) => "Could not copy",
                 };
                 Self::ui_call(engine, "notice", &json!({ "text": text }));
+            }
+            UiCommand::RetryDownload { id } => {
+                let source = self.with_state(|s| {
+                    let (context, url) = s.downloads.retry(&id)?;
+                    Some((context.to_string(), url.to_string()))
+                });
+                let started =
+                    source.is_some_and(|(context, url)| engine.start_download(&context, &url));
+                if started {
+                    // The new download takes its place in the list.
+                    self.with_state(|s| {
+                        s.downloads.remove(&id);
+                        s.persist();
+                    });
+                } else {
+                    let text = "Could not start that download again.";
+                    Self::ui_call(engine, "notice", &json!({ "text": text }));
+                }
+                self.show_downloads(engine);
             }
             UiCommand::ClearDownloads => {
                 self.with_state(|s| {

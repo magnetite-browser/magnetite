@@ -109,6 +109,23 @@ impl Engine {
     }
 }
 
+impl Engine {
+    /// Download `url` in the profile with context id `context` (`""`: the
+    /// default one), as a new download. False when no page of that profile
+    /// is open: a download needs one to start from.
+    pub fn start_download(&self, context: &str, url: &str) -> bool {
+        let host = self
+            .lock()
+            .contents
+            .values()
+            .filter(|c| c.profile == context)
+            .find_map(|c| c.browser.as_ref()?.host());
+        let Some(host) = host else { return false };
+        host.start_download(Some(&CefString::from(url)));
+        true
+    }
+}
+
 /// A download: its profile's context and Chromium's id.
 type Key = (Option<String>, u32);
 
@@ -166,6 +183,8 @@ wrap_download_handler! {
                 return;
             }
             let full = CefString::from(&item.full_path()).to_string();
+            // Before redirects: where they led may be good for one use only.
+            let asked = CefString::from(&item.original_url()).to_string();
             // Until Chromium has picked the file, the server's name stands in.
             let suggested = [
                 CefString::from(&item.suggested_file_name()).to_string(),
@@ -183,6 +202,7 @@ wrap_download_handler! {
                 received,
                 total,
                 state,
+                url: retryable(&asked).then_some(asked),
             }));
         }
     }
@@ -197,6 +217,12 @@ const WEBSTORE_PACKAGES: &str = "https://clients2.google.com/service/update2/crx
 fn is_extension_install(url: &str) -> bool {
     url.strip_prefix(WEBSTORE_PACKAGES)
         .is_some_and(|rest| rest.is_empty() || rest.starts_with('?'))
+}
+
+/// Whether a download from `url` can be asked for again: a web address. A
+/// `blob:` or `data:` one belongs to the page that made it.
+fn retryable(url: &str) -> bool {
+    url.starts_with("https://") || url.starts_with("http://")
 }
 
 /// The name to show for a download at `full` (Chromium's current path):

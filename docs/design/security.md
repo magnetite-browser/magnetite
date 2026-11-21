@@ -320,6 +320,8 @@ panel instead of Chromium's bubble at the page's top left (`prompts.rs`).
 
 - The list (`crates/app/src/downloads.rs`) keeps at most 100 entries in
   `state.json`: file name, place, size, status and start time, no addresses.
+  A failed download's address stays in memory, so it can be tried again
+  until Magnetite quits; the UI does not get it.
   Private profiles' downloads are listed while Magnetite runs, never saved.
 - The UI names a list entry, never a path: Magnetite opens or reveals only
   files Chromium reported as downloaded, through the system's own opener.

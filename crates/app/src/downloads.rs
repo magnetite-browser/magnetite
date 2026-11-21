@@ -6,6 +6,9 @@
 //! Saved in `state.json`: at most `KEEP` entries, with file name, place,
 //! size, status and start time (no addresses). Downloads of private profiles
 //! are listed while Magnetite runs and never saved.
+//!
+//! A failed download can be tried again while Magnetite still runs: its
+//! address is kept in memory for that, and is gone with the next start.
 
 use std::path::{Path, PathBuf};
 
@@ -112,6 +115,9 @@ pub struct Download {
     /// Chromium's context and download id, while this run knows it.
     #[serde(skip)]
     key: Option<(Option<String>, u32)>,
+    /// Where it was asked from, for `retry`: this run only, never saved.
+    #[serde(skip)]
+    url: Option<String>,
     /// From a private profile: listed, not saved.
     #[serde(skip)]
     private: bool,
@@ -159,6 +165,9 @@ impl Downloads {
             d.status = status;
             d.received = r.received;
             d.total = r.total;
+            if r.url.is_some() {
+                d.url.clone_from(&r.url);
+            }
             return Some(before);
         }
         self.items.insert(
@@ -172,6 +181,7 @@ impl Downloads {
                 total: r.total,
                 at: now,
                 key,
+                url: r.url.clone(),
                 private,
                 changed_at: now,
             },
@@ -197,6 +207,21 @@ impl Downloads {
         self.items.retain(|d| d.status == Status::InProgress);
     }
 
+    /// The profile context and address to fetch failed entry `id` from
+    /// again, if this run knows them.
+    pub fn retry(&self, id: &str) -> Option<(&str, &str)> {
+        let d = self
+            .items
+            .iter()
+            .find(|d| d.id == id && d.status == Status::Failed)?;
+        Some((d.key.as_ref()?.0.as_deref()?, d.url.as_deref()?))
+    }
+
+    /// Take entry `id` off the list: its retry is a download of its own.
+    pub fn remove(&mut self, id: &str) {
+        self.items.retain(|d| d.id != id);
+    }
+
     /// Entry `id`'s file, if it finished.
     pub fn file(&self, id: &str) -> Option<&Path> {
         self.items
@@ -206,8 +231,9 @@ impl Downloads {
             .as_deref()
     }
 
-    /// The list as the sidebar shows it (no paths; `missing`: the file was
-    /// moved or deleted since; `risky`: it is only ever revealed).
+    /// The list as the sidebar shows it (no paths or addresses; `missing`:
+    /// the file was moved or deleted since; `risky`: it is only ever
+    /// revealed; `retryable`: it failed and `retry` can fetch it again).
     pub fn for_ui(&self) -> Value {
         let items: Vec<Value> = self
             .items
@@ -225,6 +251,7 @@ impl Downloads {
                     "changed_at": d.changed_at,
                     "missing": missing,
                     "risky": risky(&d.name),
+                    "retryable": self.retry(&d.id).is_some(),
                 })
             })
             .collect();
@@ -298,6 +325,7 @@ mod tests {
             received: 5,
             total: Some(10),
             state,
+            url: Some("https://example.org/a.pdf".into()),
         }
     }
 
@@ -362,6 +390,21 @@ mod tests {
         // A file opens only once finished, and only through the list.
         assert_eq!(restored.file(&restored.items[0].id), None);
         assert_eq!(restored.file("/etc/passwd"), None);
+    }
+
+    #[test]
+    fn only_a_download_that_failed_in_this_run_can_be_retried() {
+        let mut list = Downloads::default();
+        list.report(&report(1, DownloadState::InProgress, None), false, 1);
+        let id = list.items[0].id.clone();
+        assert_eq!(list.retry(&id), None);
+        list.report(&report(1, DownloadState::Failed, None), false, 2);
+        assert_eq!(list.retry(&id), Some(("", "https://example.org/a.pdf")));
+        // The address is not saved, so after a restart there is none.
+        let saved = serde_json::to_string(&list.lasting()).unwrap();
+        assert!(!saved.contains("example.org"));
+        let restored = Downloads::restore(serde_json::from_str(&saved).unwrap());
+        assert_eq!(restored.retry(&id), None);
     }
 
     #[test]

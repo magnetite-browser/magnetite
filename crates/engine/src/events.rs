@@ -152,6 +152,9 @@ pub struct DownloadReport {
     /// Size, when the server said.
     pub total: Option<i64>,
     pub state: DownloadState,
+    /// The web address it was asked from, when a retry can fetch it again
+    /// (`Engine::start_download`).
+    pub url: Option<String>,
 }
 
 /// Who asked for a URL (`EngineEvent::OpenUrlRequested`); the app decides by

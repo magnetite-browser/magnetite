@@ -513,7 +513,7 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 /* Downloads: progress under a running row, a ring on the footer button. */
 .row.download[data-dim] .title { color: var(--muted); }
 .row.download button:disabled { cursor: default; }
-/* "Show in Finder" takes the size's place on hover. */
+/* "Show in Finder", or "Try again" on a failed one, takes the size's place on hover. */
 .row.download .reveal { position: absolute; right: 6px; }
 .row.download:has(.reveal):hover .meta, .row.download:has(.reveal):focus-within .meta { visibility: hidden; }
 .download-bar { position: absolute; left: 8px; bottom: 3px; height: 2px; max-width: calc(100% - 16px); border-radius: 1px; background: var(--space, var(--accent)); transition: width 200ms; }

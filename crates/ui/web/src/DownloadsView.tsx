@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ContextMenu, type MenuItem } from "./ContextMenu";
-import { Back, DownloadIcon, FileIcon, Reveal } from "./Icons";
+import { Back, DownloadIcon, FileIcon, Reload, Reveal } from "./Icons";
 import { IS_MAC, onDownloads, send, type DownloadEntry } from "./bridge";
 import { groupByDay } from "./groupByDay";
 
@@ -65,7 +65,8 @@ function menuOf(d: DownloadEntry): MenuItem[] {
 
 /**
  * Downloads as rows, grouped by day like the archive: a click opens the
- * file, a right click offers copying and the file manager. `time` adds when
+ * file, a right click offers copying and the file manager. A failed one
+ * offers to try again while the app still knows where it came from. `time` adds when
  * each one started; `inSidebar` says the list is in the sidebar and not on a
  * page (see `ContextMenu`).
  */
@@ -101,6 +102,11 @@ export function DownloadList({ items, time, inSidebar }: { items: DownloadEntry[
                 {finished && (
                   <button className="slot ghost reveal" title={REVEAL} aria-label={`${REVEAL}: ${d.name}`} onClick={() => send({ cmd: "open_download", id: d.id, reveal: true })}>
                     <Reveal width={14} height={14} />
+                  </button>
+                )}
+                {d.retryable && (
+                  <button className="slot ghost reveal" title="Try again" aria-label={`Try again: ${d.name}`} onClick={() => send({ cmd: "retry_download", id: d.id })}>
+                    <Reload width={14} height={14} />
                   </button>
                 )}
                 {share !== null && <span className="download-bar" style={{ width: `${share * 100}%` }} />}
