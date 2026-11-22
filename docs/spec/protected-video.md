@@ -14,9 +14,14 @@ Such a page is called a system page below. Why it is built this way:
 ## Where it works
 
 - macOS 14 or newer, and Windows with WebView2 120 or newer, which comes
-  with Windows 11 and is kept up to date by Windows. On macOS 13, on a
-  Windows without WebView2 or with an older one, and on Linux every page is
-  Chromium's, and the services that ask for a verified browser do not play.
+  with Windows 11 and is kept up to date by Windows. On macOS 13 and on a
+  Windows without WebView2 or with an older one every page is Chromium's,
+  and the services that ask for a verified browser do not play.
+- Linux has no such engine, and needs none for most services: there,
+  Chromium's own Widevine plays them at the resolution they allow a browser
+  without hardware protection, as in other Chromium browsers on Linux
+  (Disney+ plays at up to 720p). Chromium fetches the Widevine module from
+  Google's component server in the first minutes after the first start.
 - Nothing is shipped for it: the engine is the one that comes with the
   system, in the version the system has.
 
@@ -35,11 +40,13 @@ Such a page is called a system page below. Why it is built this way:
   domain would take in a site kept in Chromium; not at all where that
   site lies under the page's own host) and the page loads again in the system's engine, with a
   note in the sidebar. It counts as failed when the page itself asks
-  Widevine for a licence request and none of its keys is usable ten
-  seconds later, which is how a service that refuses an unverified
-  browser looks from inside, whatever error it shows. A service that plays
-  in Chromium has its key within a second or two as a rule, and stays
-  there. A player in a frame
+  Widevine for a licence request and none of its keys becomes usable: as
+  soon as the page closes the key session after passing it an answer from
+  its licence server, else four seconds after the request. That is how a
+  service that refuses an unverified browser looks from inside, whatever
+  error it shows: its licence server answers with an error, and its player
+  gives up at once. A service that plays in Chromium has its key within a
+  second or two as a rule, and stays there. A player in a frame
   from another site does not move the page around it. "Move sites whose
   protected video fails to WebKit" (to WebView2) in Settings turns this
   off. On by default.
@@ -154,7 +161,8 @@ WebView2's developer tools are off too.
 
 ## Not built yet
 
-- Anything for Linux, which has no such engine.
+- A system engine on Linux, which has none: services that refuse
+  Chromium there do not play.
 - Everything in the list above of what a system page does not have.
 - A window a page opens for a sign-in gets no way to answer its opener:
   it opens as a tab or a peek of its own.
@@ -162,9 +170,13 @@ WebView2's developer tools are off too.
 - A service on a path of a larger site (Prime Video under `amazon.com`):
   only whole hosts can be named.
 - A service that refuses before it asks for a licence is not noticed: it
-  stays in Chromium unless it is on the list or named.
-- A service whose licence arrives after more than ten seconds moves,
-  although it would have played in Chromium.
+  stays in Chromium unless it is on the list or named. So is a player
+  whose page never asks for Widevine through the page's own
+  `requestMediaKeySystemAccess`, only through a copy from another frame:
+  the key sessions are watched from the first time it does.
+- A service whose licence arrives after more than four seconds, and
+  that keeps its key session open meanwhile, moves, although it would
+  have played in Chromium.
 - A site that moved from a player in one of its frames, and asking before
   a page with unsaved input loads again.
 

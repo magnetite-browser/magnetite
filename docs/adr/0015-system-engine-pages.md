@@ -62,9 +62,12 @@ Option 4 until option 3 is there, on macOS and Windows.
   differs per device.
 - **A site whose protected video fails in Chromium joins the list by
   itself** (`protected.rs`). A script in the page's main frame watches its
-  Widevine key sessions: a licence request without a usable key ten
-  seconds later is reported, and the app names the site and loads the page
-  again. A refusal is decided on the service's licence server and shows as
+  Widevine key sessions: a licence request without a usable key is
+  reported once the page closes the session after its licence server
+  answered, or four seconds after the request, and the app names the site
+  and loads the page again. A session counts as Widevine by its key
+  system, since a player may ask for access through a copy of the browser's
+  function taken from another frame. A refusal is decided on the service's licence server and shows as
   an error page of the service's own, so the missing key is the one sign
   they share. Moving every page that uses Widevine was rejected: Chromium
   plays for the services that ask for no verified build, and they would
@@ -178,7 +181,9 @@ Checked in a running build (Windows 11, WebView2 157, CEF 156):
   the data folder.
 - The engine's version is the system's, not the project's: it is updated
   with macOS, and a page may behave differently from one Mac to the next.
-- On Linux the services stay unsupported until Chromium itself may play
-  them.
+- Linux has no system engine. Chromium's own Widevine plays most services
+  there at the resolution they allow without hardware protection; one that
+  refuses an unverified build stays unsupported until Chromium itself may
+  play it.
 - Certification stays possible. With it the list of sites becomes empty and
   this code is no longer on any page's path.

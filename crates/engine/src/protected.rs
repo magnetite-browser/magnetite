@@ -3,8 +3,9 @@
 //! Magnetite's Chromium plays Widevine video, but not for the services that
 //! ask for a browser build Google has verified (`system.rs`): their licence
 //! servers refuse it, each with an error page of its own. What they share
-//! is that the page asks Widevine for a licence request and never gets a
-//! usable key. A page says so when that happens (`protected_hook.js`), and
+//! is that the page asks Widevine for a licence request and gets no usable
+//! key: its player closes the key session after the refusal, or no key
+//! arrives in time. A page says so when that happens (`protected_hook.js`), and
 //! the app decides whether its site moves to the system's engine
 //! (`EngineEvent::ProtectedPlaybackFailed`). A service that plays here gets
 //! its key and is left alone.
