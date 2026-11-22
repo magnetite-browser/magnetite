@@ -141,7 +141,12 @@ Settings.
 - **Stray windows:** windows Chromium opens by itself get Magnetite's
   default client (`stray.rs`). The window is hidden at once, its first
   address opens as a tab, and the window closes. A new-tab page opens
-  nothing. DevTools that Chromium opens itself (Inspect on a popup) keep
+  nothing, and neither does the page an extension shows in its place
+  (Chromium's `extensions.chrome_url_overrides` preference names it):
+  after an install from the Chrome Web Store Chromium opens a window with
+  a new tab by itself, to show its "added to Chromium" notice at, and that
+  window closes unseen. DevTools that Chromium opens itself (Inspect on a
+  popup) keep
   their window, and so does an extension's pop-up window
   (`chrome.windows.create({type: "popup"})`, such as Bitwarden's passkey
   window): it is shown with the keyboard, as in other browsers, because

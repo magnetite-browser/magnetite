@@ -321,7 +321,7 @@ impl Engine {
         let ours = self
             .content_id_for(opener)
             .or_else(|| self.shadow_owner(opener));
-        if crate::stray::is_blank(&url) || ours.is_none() {
+        if crate::stray::opens_nothing(opener, &url) || ours.is_none() {
             return false;
         }
         self.lock().pending_tab = Some(PendingTab { url, background });

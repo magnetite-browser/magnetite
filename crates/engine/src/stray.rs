@@ -44,7 +44,7 @@ fn popup_may_show(url: &str) -> bool {
 
 /// Whether `url` is an empty page or Chromium's new tab page: a tab asked
 /// for without an address, which means nothing to open here.
-pub(crate) fn is_blank(url: &str) -> bool {
+fn is_blank(url: &str) -> bool {
     url.is_empty()
         || url == "about:blank"
         || [
@@ -56,12 +56,32 @@ pub(crate) fn is_blank(url: &str) -> bool {
         .any(|p| url.starts_with(p))
 }
 
+/// Whether `url` is one of `pages`, the pages extensions show as the new
+/// tab page: Chromium loads such a page with nothing added to its address.
+fn is_new_tab_page(url: &str, pages: &[String]) -> bool {
+    let page = url.split(['?', '#']).next().unwrap_or(url);
+    pages.iter().any(|p| p == page)
+}
+
+/// Whether a tab `browser` is to show `url` in is a new tab without an
+/// address, which opens nothing here: an empty page, Chromium's new tab
+/// page, or the page an extension of `browser`'s profile shows in its
+/// place. Chromium opens a window with such a tab by itself after an
+/// install from the Chrome Web Store, to show "added to Chromium" at.
+pub(crate) fn opens_nothing(browser: Option<&Browser>, url: &str) -> bool {
+    is_blank(url)
+        || browser
+            .and_then(ImplBrowser::host)
+            .and_then(|h| h.request_context())
+            .is_some_and(|c| is_new_tab_page(url, &crate::extensions::new_tab_pages(&c)))
+}
+
 impl Engine {
     /// A stray browser starts loading `url`: open that as our tab and close
-    /// the browser (a new tab page means nothing to open). `DevTools` that
-    /// Chromium opens itself (Inspect on an extension popup) keep their
-    /// window, and so does an extension's pop-up window. Returns whether
-    /// the load is cancelled.
+    /// the browser (a new tab page, Chromium's or an extension's, means
+    /// nothing to open). `DevTools` that Chromium opens itself (Inspect on
+    /// an extension popup) keep their window, and so does an extension's
+    /// pop-up window. Returns whether the load is cancelled.
     pub(crate) fn adopt_stray(&self, browser: Option<&mut Browser>, url: &str) -> bool {
         if url.starts_with("devtools://") {
             if let Some(browser) = browser {
@@ -82,11 +102,12 @@ impl Engine {
             crate::mac::focus_window_of(host.window_handle());
             return false;
         }
+        let blank = opens_nothing(browser.as_deref(), url);
         // Linux has no tab strip to look for: an extension's own page keeps
         // the window it was given (Chromium shows it focused). Its options
         // page, when set to open in a tab, then opens as a window too.
         #[cfg(target_os = "linux")]
-        if url.starts_with("chrome-extension://") {
+        if url.starts_with("chrome-extension://") && !blank {
             return false;
         }
         let mut context = None;
@@ -104,7 +125,7 @@ impl Engine {
             crate::trace("stray window from an unknown context: not opened");
             return true;
         }
-        if !is_blank(url) {
+        if !blank {
             self.emit(EngineEvent::OpenUrlRequested {
                 from: None,
                 url: url.to_string(),
@@ -122,7 +143,25 @@ impl Engine {
 
 #[cfg(test)]
 mod tests {
-    use super::popup_may_show;
+    use super::{is_new_tab_page, popup_may_show};
+
+    #[test]
+    fn an_extensions_new_tab_page_is_told_from_its_other_pages() {
+        let pages = ["chrome-extension://abc/newtab.html".to_string()];
+        assert!(is_new_tab_page(
+            "chrome-extension://abc/newtab.html",
+            &pages
+        ));
+        assert!(is_new_tab_page(
+            "chrome-extension://abc/newtab.html#top",
+            &pages
+        ));
+        assert!(!is_new_tab_page(
+            "chrome-extension://abc/options.html",
+            &pages
+        ));
+        assert!(!is_new_tab_page("chrome-extension://abc/newtab.html", &[]));
+    }
 
     #[test]
     fn a_popup_window_shows_extension_and_web_pages_only() {

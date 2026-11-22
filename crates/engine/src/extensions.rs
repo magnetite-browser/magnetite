@@ -81,6 +81,29 @@ fn live_pins(ctx: &RequestContext) -> Option<Vec<String>> {
     )
 }
 
+/// The pages extensions of `ctx` show in place of Chromium's new tab page
+/// (`chrome_url_overrides.newtab` in their manifests), as Chromium keeps
+/// them: a new tab loads the active one under its `chrome-extension://`
+/// address.
+pub(crate) fn new_tab_pages(ctx: &RequestContext) -> Vec<String> {
+    // Each value is held while its parts are read: CEF empties a list or
+    // dictionary taken out of a value that has gone.
+    let Some(pages) = ctx
+        .preference(Some(&CefString::from("extensions.chrome_url_overrides")))
+        .and_then(|v| v.dictionary())
+    else {
+        return Vec::new();
+    };
+    let Some(entries) = pages.list(Some(&CefString::from("newtab"))) else {
+        return Vec::new();
+    };
+    let entry = CefString::from("entry");
+    (0..entries.size())
+        .filter_map(|i| entries.dictionary(i))
+        .map(|e| CefString::from(&e.string(Some(&entry))).to_string())
+        .collect()
+}
+
 /// Whether extension `id` is installed and switched on in `ctx` as it is
 /// now: Chromium writes its settings to disk some seconds after a change,
 /// so the file still lists what was just removed or turned off. `None`
