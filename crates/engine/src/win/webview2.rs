@@ -1679,6 +1679,12 @@ pub(crate) fn reload(id: ContentId) {
     }
 }
 
+/// `reload`: the menu bar item that asks for a load past the cache is
+/// macOS's, and here WebView2 takes `Ctrl+Shift+R` itself.
+pub(crate) fn hard_reload(id: ContentId) {
+    reload(id);
+}
+
 pub(crate) fn stop(id: ContentId) {
     if let Some(view) = view_of(id) {
         // SAFETY: a live view.

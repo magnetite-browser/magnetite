@@ -72,6 +72,9 @@ pub enum Shortcut {
     Downloads,
     /// Menu bar: reload the page in front (Chromium takes `Cmd+R` itself).
     Reload,
+    /// Menu bar, `Cmd+Shift+R`: reload the page in front past the cache.
+    /// Chromium had the key in its own main menu, which ours replaces.
+    HardReload,
     /// Menu bar, `Cmd+[` / `Cmd+]`: go back or forward in the page in front.
     Back,
     Forward,

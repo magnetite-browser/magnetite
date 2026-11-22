@@ -95,6 +95,7 @@ impl MagnetiteApp {
             Shortcut::PeekToTab => self.mini_to_tab(engine, id, None),
             Shortcut::FocusAddress => engine.focus_mini_address(id),
             Shortcut::Reload
+            | Shortcut::HardReload
             | Shortcut::Back
             | Shortcut::Forward
             | Shortcut::ZoomIn

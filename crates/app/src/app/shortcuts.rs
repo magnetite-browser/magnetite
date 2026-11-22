@@ -157,6 +157,7 @@ impl MagnetiteApp {
         let zoom = || engine.content_site_state(c).map_or(100, |s| s.zoom);
         match shortcut {
             Shortcut::Reload => engine.content_reload(c),
+            Shortcut::HardReload => engine.content_hard_reload(c),
             Shortcut::Back => engine.content_go_back(c),
             Shortcut::Forward => engine.content_go_forward(c),
             Shortcut::ZoomIn | Shortcut::ZoomOut => {
@@ -195,6 +196,7 @@ impl MagnetiteApp {
                 }
             }
             Shortcut::Reload
+            | Shortcut::HardReload
             | Shortcut::Back
             | Shortcut::Forward
             | Shortcut::ZoomIn

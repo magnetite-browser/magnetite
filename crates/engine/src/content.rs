@@ -998,6 +998,16 @@ impl Engine {
             b.reload();
         }
     }
+    /// Load page `id` again past the cache: the page and what it loads are
+    /// fetched anew, and the fresh files take the cached ones' place.
+    /// Cookies, storage and other pages' files stay.
+    pub fn content_hard_reload(&self, id: ContentId) {
+        if self.is_system_page(id) {
+            crate::system::backend::hard_reload(id);
+        } else if let Some(b) = self.content_browser(id) {
+            b.reload_ignore_cache();
+        }
+    }
     /// Print page `id`: Chromium's print preview over the page.
     pub fn content_print(&self, id: ContentId) {
         if let Some(host) = self.content_browser_host(id) {

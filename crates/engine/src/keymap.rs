@@ -426,7 +426,7 @@ fn taken() -> impl Iterator<Item = (Combo, &'static str)> {
         ("primary+Z", "Undo"),
         ("primary+shift+Z", "Redo"),
         ("primary+R", "Reload Page"),
-        ("primary+shift+R", "Reload Page"),
+        ("primary+shift+R", "Reload Without Cache"),
         ("primary+=", "Zoom In"),
         ("primary+-", "Zoom Out"),
         ("primary+0", "Actual Size"),

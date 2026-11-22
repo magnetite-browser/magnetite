@@ -54,6 +54,7 @@ pub(crate) mod backend {
     pub(crate) fn go_back(_: ContentId) {}
     pub(crate) fn go_forward(_: ContentId) {}
     pub(crate) fn reload(_: ContentId) {}
+    pub(crate) fn hard_reload(_: ContentId) {}
     pub(crate) fn stop(_: ContentId) {}
     pub(crate) fn focus(_: ContentId) {}
     pub(crate) fn zoom(_: ContentId) -> Option<u32> {

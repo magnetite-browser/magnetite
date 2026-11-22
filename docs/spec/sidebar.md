@@ -279,12 +279,13 @@ without a restart, and is the same in every window.
 | Pin or unpin the active tab | Cmd+D |
 | Show or hide the sidebar | Cmd+S |
 | Back / forward / reload | Cmd+[ / Cmd+] / Cmd+R |
+| Reload without the cache: the page and its files are fetched anew; cookies and storage stay | Cmd+Shift+R |
 | History | Cmd+Y |
 | Print the page | Cmd+P |
 | Find in the page / next / previous match | Cmd+F / Cmd+G / Cmd+Shift+G |
 
 These are the keys until the user changes them (`shortcuts.md`); the digits,
-back, forward and reload are fixed. "Show or hide the sidebar", "Pin or
+back, forward and both reloads are fixed. "Show or hide the sidebar", "Pin or
 unpin the active tab", print and find go to the page first, which may use
 the key itself. The six shortcuts above "Pin or unpin" are taken before the
 page sees the key.

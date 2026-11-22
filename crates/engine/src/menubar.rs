@@ -373,6 +373,7 @@ pub fn install(mtm: MainThreadMarker) {
     b.command("Toggle Sidebar", "s", CMD, S::ToggleSidebar);
     b.command("Toggle Web Panel", "p", OPT_CMD, S::WebPanel);
     b.command("Reload Page", "r", CMD, S::Reload);
+    b.command("Reload Without Cache", "r", SHIFT_CMD, S::HardReload);
     b.separator();
     b.command("Zoom In", "+", CMD, S::ZoomIn);
     b.command("Zoom Out", "-", CMD, S::ZoomOut);

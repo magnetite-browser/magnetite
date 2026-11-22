@@ -1241,11 +1241,24 @@ pub(crate) fn go_forward(id: ContentId) {
 /// Load page `id` again: the address that failed, where it shows the note
 /// about a failed load.
 pub(crate) fn reload(id: ContentId) {
+    reload_page(id, false);
+}
+
+/// `reload`, past the cache.
+pub(crate) fn hard_reload(id: ContentId) {
+    reload_page(id, true);
+}
+
+fn reload_page(id: ContentId, past_cache: bool) {
     let failed = PAGES.with_borrow(|p| {
         (p.get(&id)).and_then(|page| page.delegate.ivars().failed.borrow().clone())
     });
     match (failed, view_of(id)) {
         (Some(url), _) => load(id, &url),
+        (None, Some(view)) if past_cache => {
+            // SAFETY: as above.
+            unsafe { view.reloadFromOrigin() };
+        }
         (None, Some(view)) => {
             // SAFETY: as above.
             unsafe { view.reload() };
