@@ -17,13 +17,21 @@ Such a page is called a system page below. Why it is built this way:
   with Windows 11 and is kept up to date by Windows. On macOS 13 and on a
   Windows without WebView2 or with an older one every page is Chromium's,
   and the services that ask for a verified browser do not play.
-- Linux has no such engine, and needs none for most services: there,
-  Chromium's own Widevine plays them at the resolution they allow a browser
-  without hardware protection, as in other Chromium browsers on Linux
-  (Disney+ plays at up to 720p). Chromium fetches the Widevine module from
-  Google's component server in the first minutes after the first start.
+- Linux has no such engine: pages are Chromium's, with Chromium's own
+  Widevine, which Chromium fetches from Google's component server after
+  the first start.
 - Nothing is shipped for it: the engine is the one that comes with the
   system, in the version the system has.
+
+## Checked services
+
+Played with a real account:
+
+| Service | macOS | Windows | Linux |
+|---|---|---|---|
+| Netflix | WebKit | WebView2 | not checked |
+| Disney+ | WebKit | WebView2 | Chromium, up to 720p |
+| RTL+ | WebKit, moved there by itself | not checked | not checked |
 
 ## Which pages
 

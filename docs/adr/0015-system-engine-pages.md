@@ -181,9 +181,7 @@ Checked in a running build (Windows 11, WebView2 157, CEF 156):
   the data folder.
 - The engine's version is the system's, not the project's: it is updated
   with macOS, and a page may behave differently from one Mac to the next.
-- Linux has no system engine. Chromium's own Widevine plays most services
-  there at the resolution they allow without hardware protection; one that
-  refuses an unverified build stays unsupported until Chromium itself may
-  play it.
+- Linux has no system engine: a service that refuses Chromium there stays
+  unsupported until Chromium itself may play it.
 - Certification stays possible. With it the list of sites becomes empty and
   this code is no longer on any page's path.
