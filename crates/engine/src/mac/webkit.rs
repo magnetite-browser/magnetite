@@ -35,9 +35,10 @@ use objc2_app_kit::{
 use objc2_foundation::{
     NSArray, NSBundle, NSData, NSDate, NSDictionary, NSError, NSHTTPCookie, NSHTTPURLResponse,
     NSKeyValueObservingOptions, NSNotification, NSNotificationCenter,
-    NSObjectNSKeyValueObserverRegistration, NSRect, NSString, NSURL, NSURLRequest, NSURLSession,
-    NSURLSessionConfiguration, NSURLSessionDataDelegate, NSURLSessionDataTask,
-    NSURLSessionDelegate, NSURLSessionTask, NSURLSessionTaskDelegate, NSUUID, ns_string,
+    NSObjectNSKeyValueObserverRegistration, NSRect, NSString, NSURL, NSURLRequest,
+    NSURLRequestCachePolicy, NSURLSession, NSURLSessionConfiguration, NSURLSessionDataDelegate,
+    NSURLSessionDataTask, NSURLSessionDelegate, NSURLSessionTask, NSURLSessionTaskDelegate, NSUUID,
+    ns_string,
 };
 use objc2_web_kit::{
     WKNavigation, WKNavigationAction, WKNavigationActionPolicy, WKNavigationDelegate,
@@ -1213,6 +1214,9 @@ pub(crate) fn address_of(id: ContentId) -> Option<String> {
         .filter(|url| !url.is_empty())
 }
 
+/// Seconds a load past the cache may wait: `NSURLRequest`'s default.
+const LOAD_TIMEOUT: f64 = 60.0;
+
 /// Load `url` in page `id`.
 pub(crate) fn load(id: ContentId, url: &str) {
     let Some(view) = view_of(id) else { return };
@@ -1222,6 +1226,22 @@ pub(crate) fn load(id: ContentId, url: &str) {
     };
     // SAFETY: a live view, on the main thread.
     unsafe { view.loadRequest(&NSURLRequest::requestWithURL(&url)) };
+}
+
+/// `load`, with nothing taken from the cache.
+fn load_past_cache(id: ContentId, url: &str) {
+    let Some(view) = view_of(id) else { return };
+    let Some(url) = NSURL::URLWithString(&NSString::from_str(url)) else {
+        crate::trace(&format!("system page #{id}: not an address, not loaded"));
+        return;
+    };
+    let request = NSURLRequest::requestWithURL_cachePolicy_timeoutInterval(
+        &url,
+        NSURLRequestCachePolicy::ReloadIgnoringLocalCacheData,
+        LOAD_TIMEOUT,
+    );
+    // SAFETY: a live view, on the main thread.
+    unsafe { view.loadRequest(&request) };
 }
 
 pub(crate) fn go_back(id: ContentId) {
@@ -1254,6 +1274,7 @@ fn reload_page(id: ContentId, past_cache: bool) {
         (p.get(&id)).and_then(|page| page.delegate.ivars().failed.borrow().clone())
     });
     match (failed, view_of(id)) {
+        (Some(url), _) if past_cache => load_past_cache(id, &url),
         (Some(url), _) => load(id, &url),
         (None, Some(view)) if past_cache => {
             // SAFETY: as above.
