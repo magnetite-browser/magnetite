@@ -30,6 +30,9 @@ from inside the process.
   inherit them. Chromium starts its helpers with an explicit descriptor list.
 - If fds 3 or 4 are taken at start, the pipe stays off and features that need
   it do nothing.
+- On Windows the pipes are two anonymous pipes whose handles Chromium takes
+  from `--remote-debugging-io-pipes`. Chromium runs in our process, so the
+  handles stay valid without being inheritable, and no child gets them.
 - The pipe carries only commands we send: no port, no listening socket, no
   file on disk.
 

@@ -201,9 +201,17 @@ wrap_app! {
             enable_feature(cmd, PIP_WITHOUT_ADDRESS);
             #[cfg(target_os = "linux")]
             choose_platform(cmd);
-            // Our private DevTools session (`devpipe.rs`): fds 3 and 4.
+            // Our private DevTools session (`devpipe.rs`): fds 3 and 4, on
+            // Windows the two handles named here.
             if crate::devpipe::is_open() {
                 cmd.append_switch(Some(&CefString::from("remote-debugging-pipe")));
+                #[cfg(windows)]
+                if let Some(handles) = crate::devpipe::chrome_handles() {
+                    cmd.append_switch_with_value(
+                        Some(&CefString::from("remote-debugging-io-pipes")),
+                        Some(&CefString::from(handles)),
+                    );
+                }
             }
             for feature in NO_CALLS_HOME {
                 add_to_list(cmd, "disable-features", feature);

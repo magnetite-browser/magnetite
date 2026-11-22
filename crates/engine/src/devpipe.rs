@@ -3,22 +3,20 @@
 //! Some Chromium features have no CEF API, only a `DevTools` command that needs
 //! a trusted, browser-wide session (opening an extension's popup:
 //! `Extensions.triggerAction`). Chromium serves such a session on a pipe
-//! (`--remote-debugging-pipe`): it reads commands from fd 3 and writes
-//! replies to fd 4. Both pipes are made inside our process before CEF
-//! starts, so nothing outside it can connect: there is no port. All their
-//! descriptors are close-on-exec, so programs we start do not inherit them.
-//! Messages are JSON, each ended by a NUL byte.
-//!
-//! Windows hands Chromium such pipes as inherited handles instead; that is
-//! not done yet, so there `open` makes nothing and extension popups do not
-//! open from the sidebar.
-#![cfg_attr(not(unix), allow(dead_code))]
+//! (`--remote-debugging-pipe`): on Unix it reads commands from fd 3 and
+//! writes replies to fd 4; on Windows it takes the two pipe handles from
+//! `--remote-debugging-io-pipes`. Both pipes are made inside our process
+//! before CEF starts, so nothing outside it can connect: there is no port.
+//! Programs we start do not inherit them (descriptors are close-on-exec,
+//! handles are not inheritable). Messages are JSON, each ended by a NUL byte.
 
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
 #[cfg(unix)]
 use std::os::fd::{FromRawFd, RawFd};
+#[cfg(windows)]
+use std::os::windows::io::{FromRawHandle, IntoRawHandle, OwnedHandle};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 
@@ -42,10 +40,61 @@ const CHROME_READS: RawFd = 3;
 #[cfg(unix)]
 const CHROME_WRITES: RawFd = 4;
 
-/// No pipe on Windows yet (see above).
-#[cfg(not(unix))]
+/// Chromium's ends of the pipe, as `--remote-debugging-io-pipes` names them:
+/// its read handle, then its write handle. Chromium owns them once it runs.
+#[cfg(windows)]
+static CHROME_HANDLES: OnceLock<String> = OnceLock::new();
+
+/// The value of `--remote-debugging-io-pipes`, once the pipe is made.
+#[cfg(windows)]
+pub(crate) fn chrome_handles() -> Option<&'static str> {
+    CHROME_HANDLES.get().map(String::as_str)
+}
+
+/// Make the pipe; call in the browser process before CEF starts. A second
+/// call finds it made. Returns false (and the features needing it stay off)
+/// when the system gives no pipe.
+#[cfg(windows)]
 pub(crate) fn open() -> bool {
-    false
+    use windows::Win32::Foundation::HANDLE;
+    use windows::Win32::System::Pipes::CreatePipe;
+
+    if PIPE.get().is_some() {
+        return true;
+    }
+    // An anonymous pipe, as (read end, write end). Not inheritable, as no
+    // security attributes ask for it: Chromium runs in this process.
+    let pipe = || {
+        let (mut read, mut write) = (HANDLE::default(), HANDLE::default());
+        // SAFETY: both out-pointers are valid; on success the handles are
+        // new and owned by nothing else.
+        unsafe {
+            CreatePipe(&raw mut read, &raw mut write, None, 0).ok()?;
+            Some((
+                OwnedHandle::from_raw_handle(read.0),
+                OwnedHandle::from_raw_handle(write.0),
+            ))
+        }
+    };
+    let (Some((chrome_reads, ours_write)), Some((ours_read, chrome_writes))) = (pipe(), pipe())
+    else {
+        return false;
+    };
+    // Handles fit 32 bits, also in a 64-bit process; Chromium parses them so.
+    let number = |h: &OwnedHandle| {
+        use std::os::windows::io::AsRawHandle;
+        u32::try_from(h.as_raw_handle() as usize).ok()
+    };
+    let (Some(reads), Some(writes)) = (number(&chrome_reads), number(&chrome_writes)) else {
+        return false;
+    };
+    if !start(File::from(ours_write), File::from(ours_read)) {
+        return false;
+    }
+    // From here on they are Chromium's, which closes them.
+    let _ = chrome_reads.into_raw_handle();
+    let _ = chrome_writes.into_raw_handle();
+    CHROME_HANDLES.set(format!("{reads},{writes}")).is_ok()
 }
 
 /// Make the pipe; call in the browser process before CEF starts, and before
@@ -92,6 +141,11 @@ pub(crate) fn open() -> bool {
     };
     // SAFETY: both fds were just created and are owned by nothing else.
     let (to_chrome, from_chrome) = unsafe { (File::from_raw_fd(fds.0), File::from_raw_fd(fds.1)) };
+    start(to_chrome, from_chrome)
+}
+
+/// Start reading replies and keep our two ends.
+fn start(to_chrome: File, from_chrome: File) -> bool {
     let started = std::thread::Builder::new()
         .name("devtools-pipe".into())
         .spawn(move || read_replies(from_chrome))

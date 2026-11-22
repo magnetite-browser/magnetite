@@ -200,8 +200,10 @@ Settings.
   every page's window a pop-up window, so an extension that looks for the
   tab in front among normal windows (Dark Reader) finds none and takes the
   page for `about:blank`.
-- Without the DevTools pipe (file descriptors 3 and 4 taken at start, or on
-  Windows) the buttons and menu entries open nothing.
+- Without the DevTools pipe (on Linux and macOS, file descriptors 3 and 4
+  taken at start) the buttons and menu entries open nothing.
+- On a page WebView2 shows on Windows the buttons open nothing: it has no
+  Chromium tab for the extension to act on (`protected-video.md`).
 
 ## Not built yet
 

@@ -74,7 +74,7 @@ pub fn run(config: EngineConfig, delegate: Arc<dyn EngineDelegate>) -> i32 {
     // Before CEF starts: Chromium picks up the pipe's fds during start-up.
     // Made already where the application asked first (`reserve_devtools_pipe`).
     if !crate::devpipe::open() {
-        crate::trace("no DevTools pipe: fds 3 and 4 are taken");
+        crate::trace("no DevTools pipe: extension buttons stay without a popup");
     }
     let root_cache = config.cef_root();
     let default_cache = config.default_profile_dir();
