@@ -19,7 +19,7 @@ use std::time::{Duration, Instant};
 
 use block2::RcBlock;
 use objc2::rc::{Retained, Weak};
-use objc2::runtime::{AnyObject, NSObject, NSObjectProtocol, ProtocolObject, Sel};
+use objc2::runtime::{AnyObject, Bool, NSObject, NSObjectProtocol, ProtocolObject, Sel};
 use objc2::{
     ClassType, MainThreadMarker, MainThreadOnly, Message, class, define_class, msg_send, sel,
 };
@@ -156,9 +156,11 @@ fn layout(w: f64, h: f64, labelled: [f64; 3], live: bool) -> (bool, Vec<(Button,
     };
     let close_x = w - MARGIN - width(2);
     let minimize_x = close_x - PILL_GAP - width(1);
+    // On whole points: a circle half a pixel off the grid has its icon
+    // rounded one way and its edge drawn the other.
     let round = |cx: f64, size: f64| Area {
-        x: cx - size / 2.0,
-        y: h / 2.0 - size / 2.0,
+        x: (cx - size / 2.0).round(),
+        y: (h / 2.0 - size / 2.0).round(),
         w: size,
         h: size,
     };
@@ -966,11 +968,37 @@ fn symbol(button: Button, playing: bool) -> Option<Retained<NSImage>> {
     };
     let config = NSImageSymbolConfiguration::configurationWithPointSize_weight(size, weight);
     let label = NSString::from_str(button.label(playing));
-    NSImage::imageWithSystemSymbolName_accessibilityDescription(
+    let image = NSImage::imageWithSystemSymbolName_accessibilityDescription(
         &NSString::from_str(button.symbol(playing)),
         Some(&label),
     )
-    .and_then(|i| i.imageWithSymbolConfiguration(&config))
+    .and_then(|i| i.imageWithSymbolConfiguration(&config))?;
+    if !matches!(button, Button::Back | Button::Forward) {
+        return Some(image);
+    }
+    // The arrow's head sits above its ring and AppKit centres both
+    // together, which leaves the ring a point low in its circle.
+    let raised = raised(image, 1.0);
+    raised.setAccessibilityDescription(Some(&label));
+    Some(raised)
+}
+
+/// `image` drawn `up` points higher, in a canvas that much taller at top
+/// and bottom. Still a template, so the button tints it. Whole points only:
+/// half a point blurs the symbol. The width stays, so the image is rounded
+/// to the pixel grid as before.
+fn raised(image: Retained<NSImage>, up: f64) -> Retained<NSImage> {
+    let size = image.size();
+    let canvas = NSSize::new(size.width, size.height + 2.0 * up);
+    // Not flipped: y grows upwards.
+    let at = NSRect::new(NSPoint::new(0.0, 2.0 * up), size);
+    let draw = RcBlock::new(move |_: NSRect| {
+        image.drawInRect(at);
+        Bool::YES
+    });
+    let raised = NSImage::imageWithSize_flipped_drawingHandler(canvas, false, &draw);
+    raised.setTemplate(true);
+    raised
 }
 
 fn create_panel(mtm: MainThreadMarker) -> Panel {
@@ -1111,6 +1139,16 @@ mod tests {
         let (_, places) = layout(120.0, 213.0, LABELLED, false);
         assert!(place(&places, Button::Back).is_none());
         assert!(place(&places, Button::PlayPause).is_some());
+    }
+
+    #[test]
+    fn round_buttons_sit_on_whole_points() {
+        // An odd size puts the middle on half a point.
+        let (_, places) = layout(501.0, 283.0, LABELLED, false);
+        for b in [Button::Back, Button::PlayPause, Button::Forward] {
+            let a = place(&places, b).unwrap();
+            assert!(a.x.fract() == 0.0 && a.y.fract() == 0.0, "{b:?} at {a:?}");
+        }
     }
 
     #[test]
