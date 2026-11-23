@@ -151,15 +151,27 @@ export function useSorting(landing: (dragged: string, target: string, below: boo
       // Until the press is a drag the handle does not keep the pointer, so
       // its moves and its release are heard on the window: a quick drag
       // leaves a small handle before its first move, and a release
-      // elsewhere (the pointer left it sideways) ends the press.
+      // elsewhere (the pointer left it sideways) ends the press. Only the
+      // press's own pointer counts: a second finger lifting ends nothing.
       const pressed = drag.current;
-      const moved = (e: PointerEvent) => drag.current === pressed && follow(e);
-      const over = () => {
+      const end = () => {
         window.removeEventListener("pointermove", moved, true);
         window.removeEventListener("pointerup", over, true);
         window.removeEventListener("pointercancel", over, true);
         if (drag.current === pressed && !pressed.active) drag.current = null;
       };
+      const moved = (e: PointerEvent) => {
+        if (e.pointerId !== pressed.pointer || drag.current !== pressed) return;
+        // No button down any more: its release went elsewhere (a menu took
+        // it). The press is over, and a drag it began is given up.
+        if (!(e.buttons & 1)) {
+          end();
+          if (pressed.active) finish();
+          return;
+        }
+        follow(e);
+      };
+      const over = (e: PointerEvent) => e.pointerId === pressed.pointer && end();
       window.addEventListener("pointermove", moved, true);
       window.addEventListener("pointerup", over, true);
       window.addEventListener("pointercancel", over, true);
