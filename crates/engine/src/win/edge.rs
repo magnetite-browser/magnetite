@@ -19,7 +19,8 @@ type TimerProc = unsafe extern "system" fn(hwnd: Hwnd, message: u32, id: usize, 
 unsafe extern "system" {
     fn SetTimer(hwnd: Hwnd, id: usize, milliseconds: u32, callback: TimerProc) -> usize;
     fn GetCursorPos(point: *mut [i32; 2]) -> i32;
-    fn GetWindowRect(hwnd: Hwnd, rect: *mut [i32; 4]) -> i32;
+    fn GetClientRect(hwnd: Hwnd, rect: *mut [i32; 4]) -> i32;
+    fn ClientToScreen(hwnd: Hwnd, point: *mut [i32; 2]) -> i32;
     fn GetDpiForWindow(hwnd: Hwnd) -> u32;
     fn IsWindowVisible(hwnd: Hwnd) -> i32;
     fn IsIconic(hwnd: Hwnd) -> i32;
@@ -88,15 +89,19 @@ unsafe extern "system" fn look(_hwnd: Hwnd, _message: u32, _id: usize, _time: u3
 
 /// Whether the pointer is in `zone` of a frame that is on screen and whose
 /// program is the one in front (another program's window may cover it).
+/// Measured from the frame's client area, the part that shows: the window
+/// rectangle of a maximized frame reaches past the screen's edges by the
+/// width of the border Windows adds to it, where the pointer cannot go.
 fn pointer_in(zone: Zone) -> bool {
     let frame = zone.frame as Hwnd;
-    let (mut at, mut rect, mut process) = ([0i32; 2], [0i32; 4], 0u32);
-    // SAFETY: plain queries; `at` is a POINT, `rect` a RECT.
+    let (mut at, mut client, mut origin, mut process) = ([0i32; 2], [0i32; 4], [0i32; 2], 0u32);
+    // SAFETY: plain queries; `at` and `origin` are POINTs, `client` a RECT.
     let dpi = unsafe {
         if IsWindowVisible(frame) == 0
             || IsIconic(frame) != 0
             || GetCursorPos(&raw mut at) == 0
-            || GetWindowRect(frame, &raw mut rect) == 0
+            || GetClientRect(frame, &raw mut client) == 0
+            || ClientToScreen(frame, &raw mut origin) == 0
         {
             return false;
         }
@@ -106,6 +111,12 @@ fn pointer_in(zone: Zone) -> bool {
         }
         i32::try_from(GetDpiForWindow(frame)).unwrap_or(96).max(96)
     };
+    let rect = [
+        origin[0],
+        origin[1],
+        origin[0] + client[2],
+        origin[1] + client[3],
+    ];
     in_zone(
         at,
         rect,
