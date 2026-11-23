@@ -73,6 +73,10 @@ Settings.
   "Load unpacked" on Manage extensions, or `--load-extension`. Both of
   Manifest V2's toolbar actions, `browser_action` and `page_action`, put
   it in the lists.
+- An unpacked extension stays on when "Developer mode" is turned off
+  again; Chromium would switch it off (the same patch). Chromium still
+  lists a note that Manifest V2 is deprecated under the extension's
+  errors.
 - "Show the Chrome toolbar inside pages" (off by default) adds Chromium's
   own toolbar row, with its extension buttons, above every page. It applies
   to tabs loaded from then on. `--chrome-toolbar` turns it on for one run.
@@ -129,9 +133,12 @@ Settings.
   `Preferences` and `Secure Preferences` for each extension's location and
   state, then its `manifest.json` for the name (localised through
   `_locales`), icon and options page. It reads again when Chromium rewrites
-  either file. The sidebar gets the list with every state update and checks
-  once a minute; the menu reads it each time it opens. Icons are served as
-  `magnetite://ui/ext-icons/<id>`.
+  either file. An extension loaded with `--load-extension` is listed only
+  in a run whose command line names its folder: Chromium keeps its entry
+  afterwards but does not load it, and opening an extension Chromium has
+  not loaded would end the whole program. The sidebar gets the list with
+  every state update and checks once a minute; the menu reads it each time
+  it opens. Icons are served as `magnetite://ui/ext-icons/<id>`.
 - **Opening:** `Extensions.triggerAction` on the private DevTools pipe
   ([ADR-0007](../adr/0007-private-devtools-pipe.md)), for the tab target of
   the page. Every page window is a browser window of its own, so the tab is

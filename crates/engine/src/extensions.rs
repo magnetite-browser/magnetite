@@ -126,12 +126,19 @@ fn live_on(ctx: &RequestContext, id: &str) -> Option<bool> {
 /// Locations Chromium uses for its own built-in extensions (PDF viewer, …).
 const COMPONENT: u64 = 5;
 const EXTERNAL_COMPONENT: u64 = 10;
+/// Location of an extension loaded with `--load-extension`. Chromium keeps
+/// its entry after a run without the switch but does not load it, and
+/// opening an extension it has not loaded ends the whole program
+/// (`Extensions.triggerAction` does not check the id).
+const COMMAND_LINE: u64 = 8;
 /// Icon size we look for (the sidebar shows them at 16 pt, 2× on Retina).
 const ICON_SIZE: u64 = 32;
 
 /// Enabled extensions with a toolbar action in the Chromium profile at
-/// `profile_dir`, sorted by name. Unreadable entries are skipped.
-pub fn installed(profile_dir: &Path) -> Vec<ExtensionInfo> {
+/// `profile_dir`, sorted by name. Unreadable entries are skipped, and so are
+/// those loaded with `--load-extension` from a folder that is not in
+/// `command_line`, this run's list of such folders.
+pub fn installed(profile_dir: &Path, command_line: &[PathBuf]) -> Vec<ExtensionInfo> {
     let mut settings = serde_json::Map::new();
     let mut pinned = Vec::new();
     // Older or unsigned builds keep some entries in plain Preferences, which
@@ -152,7 +159,7 @@ pub fn installed(profile_dir: &Path) -> Vec<ExtensionInfo> {
     }
     let mut list: Vec<ExtensionInfo> = settings
         .iter()
-        .filter_map(|(id, entry)| extension(profile_dir, id, entry))
+        .filter_map(|(id, entry)| extension(profile_dir, command_line, id, entry))
         .map(|e| ExtensionInfo {
             chromium_pinned: pinned.contains(&e.id),
             ..e
@@ -162,7 +169,12 @@ pub fn installed(profile_dir: &Path) -> Vec<ExtensionInfo> {
     list
 }
 
-fn extension(profile_dir: &Path, id: &str, entry: &Value) -> Option<ExtensionInfo> {
+fn extension(
+    profile_dir: &Path,
+    command_line: &[PathBuf],
+    id: &str,
+    entry: &Value,
+) -> Option<ExtensionInfo> {
     if !is_extension_id(id) {
         return None;
     }
@@ -185,6 +197,13 @@ fn extension(profile_dir: &Path, id: &str, entry: &Value) -> Option<ExtensionInf
     };
     // Everything below is read through the real folder: no file outside it.
     let dir = dir.canonicalize().ok()?;
+    if location == COMMAND_LINE
+        && !command_line
+            .iter()
+            .any(|p| p.canonicalize().is_ok_and(|p| p == dir))
+    {
+        return None;
+    }
     let manifest: Value =
         serde_json::from_slice(&read_small(&inside(&dir, "manifest.json")?, MAX_FILE)?).ok()?;
     let action = manifest
@@ -334,7 +353,7 @@ impl Engine {
             .filter(|(seen, _)| *seen == stamp)
             .map(|(_, list)| list.clone());
         let mut list = cached.unwrap_or_else(|| {
-            let list = installed(&dir);
+            let list = installed(&dir, &self.config.load_extensions);
             (self.lock().extensions.by_profile).insert(dir, (stamp, list.clone()));
             list
         });
@@ -608,7 +627,7 @@ mod tests {
         let pins = json!({ "extensions": { "pinned_extensions": [store] } });
         write(&tmp.join("Preferences"), &pins.to_string());
 
-        let list = installed(&tmp);
+        let list = installed(&tmp, &[]);
         let names: Vec<&str> = list.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(names, ["Ad Blocker", "Feeds", "Vault"]);
         let vault = &list[2];
@@ -629,6 +648,32 @@ mod tests {
                 tmp.join(format!("Extensions/{page_action}/1.0/feed.png"))
             ))
         );
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn command_line_extensions_are_listed_only_while_loaded() {
+        let tmp = std::env::temp_dir().join(format!("magnetite-ext-cli-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let given = "gggggggggggggggggggggggggggggggg";
+        let earlier = "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh";
+        for (dir, name) in [("given", "Given"), ("earlier", "Earlier")] {
+            write(
+                &tmp.join(dir).join("manifest.json"),
+                &format!(r#"{{"name":"{name}","browser_action":{{}}}}"#),
+            );
+        }
+        let prefs = json!({ "extensions": { "settings": {
+            given: { "location": 8, "path": tmp.join("given").to_string_lossy() },
+            earlier: { "location": 8, "path": tmp.join("earlier").to_string_lossy() },
+        }}});
+        write(&tmp.join("Secure Preferences"), &prefs.to_string());
+
+        // The folder as the command line gave it, not as Chromium wrote it.
+        let list = installed(&tmp, &[tmp.join("given").join(".")]);
+        let names: Vec<&str> = list.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(names, ["Given"]);
+        assert_eq!(installed(&tmp, &[]), []);
         let _ = std::fs::remove_dir_all(&tmp);
     }
 
