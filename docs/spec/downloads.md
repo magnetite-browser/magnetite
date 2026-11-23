@@ -63,8 +63,7 @@ A right click offers what fits the download as it is:
 - Open is left out for a file that runs code when opened (`security.md`).
   A file moved or deleted since keeps Show in Finder (its folder), the link
   and Remove from list.
-- Copy file is built for macOS; Copy file path and Copy download link for
-  macOS and Windows.
+- Copy file is built for macOS.
 - The link and Try again are there while Magnetite runs: the address a
   download came from is not saved.
 - Remove from list takes the entry off and leaves the file. Move to Trash
@@ -107,7 +106,7 @@ Nothing about downloads is synced.
 
 ## Not built yet
 
-- Copy file on Windows and Linux; copying a path or link on Linux.
+- Copy file on Windows and Linux.
 
 Code: `crates/engine/src/downloads.rs`, `mac/drag.rs`, `trash.rs`;
 `crates/app/src/downloads.rs`; `crates/ui/web/src/DownloadsView.tsx`,

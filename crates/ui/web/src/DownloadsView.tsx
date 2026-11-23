@@ -64,14 +64,13 @@ function grouped(...groups: MenuItem[][]): MenuItem[] {
 /**
  * The right-click menu of a download, by where it is: running, finished or
  * failed. The app copies: this page never learns a path or a link. Copying
- * text is built for macOS and Windows, a file for macOS only.
+ * a file is built for macOS only.
  */
 function menuOf(d: DownloadEntry): MenuItem[] {
   const id = d.id;
   const copy = (what: "file" | "path" | "link") => () => void send({ cmd: "copy_download", id, what });
   const control = (what: "pause" | "resume" | "cancel") => () => void send({ cmd: "control_download", id, what });
-  const copiesText = IS_MAC || IS_WINDOWS;
-  const link: MenuItem[] = d.link && copiesText ? [{ label: "Copy download link", onClick: copy("link") }] : [];
+  const link: MenuItem[] = d.link ? [{ label: "Copy download link", onClick: copy("link") }] : [];
   const remove: MenuItem = { label: "Remove from list", onClick: () => void send({ cmd: "remove_download", id }) };
   if (d.status === "in_progress") {
     return grouped([d.paused ? { label: "Resume", onClick: control("resume") } : { label: "Pause", onClick: control("pause") }, { label: "Cancel", onClick: control("cancel") }], link);
@@ -86,7 +85,7 @@ function menuOf(d: DownloadEntry): MenuItem[] {
       ...(there && !d.risky ? [{ label: "Open", onClick: () => void send({ cmd: "open_download", id }) }] : []),
       { label: REVEAL, onClick: () => void send({ cmd: "open_download", id, reveal: true }) },
     ],
-    [...(IS_MAC && there ? [{ label: "Copy file", onClick: copy("file") }] : []), ...(copiesText && there ? [{ label: "Copy file path", onClick: copy("path") }] : []), ...link],
+    [...(IS_MAC && there ? [{ label: "Copy file", onClick: copy("file") }] : []), ...(there ? [{ label: "Copy file path", onClick: copy("path") }] : []), ...link],
     [remove, ...(there ? [{ label: TRASH, danger: true, onClick: () => void send({ cmd: "trash_download", id }) }] : [])],
   );
 }
