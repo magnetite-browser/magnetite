@@ -55,8 +55,8 @@ pub struct Settings {
     /// Which space a link from another app opens in, by its site
     /// (`LinkRule`). This device's own, never synced.
     pub link_rules: Vec<LinkRule>,
-    /// The user's own CSS and JavaScript per site (Settings → Custom CSS &
-    /// JS). This device's own, never synced.
+    /// The user's own CSS and JavaScript per site (Settings → User scripts
+    /// and styles). This device's own, never synced.
     pub site_code: Vec<magnetite_engine::SiteCode>,
     /// The shortcuts the user gave other keys, or none (Settings →
     /// Shortcuts); the rest have their default keys. Synced.

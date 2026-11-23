@@ -718,7 +718,7 @@ export type Command =
   | { cmd: "import_from"; key: string }
   /** The text of a bookmarks file (the HTML browsers export): its bookmarks join the current space's. */
   | { cmd: "import_bookmarks"; html: string; space?: Id }
-  /** The bookmarks of space `space`, or of every space, as the text of a file. */
+  /** The bookmarks of the spaces `spaces`, or of every space when none is named, as the text of a file. */
   | { cmd: "export_bookmarks"; format: BookmarkFormat; spaces?: Id[] }
   | { cmd: "shortcut"; shortcut: string | { select_tab: number } | { select_space: number } }
   | { cmd: "set_shortcut"; action: ShortcutAction; keys: string | null }

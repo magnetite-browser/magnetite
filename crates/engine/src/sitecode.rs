@@ -1,5 +1,5 @@
-//! The user's own CSS and JavaScript for a site (Settings → Custom CSS &
-//! JS): put into every page of that site as it loads, in tabs, peeks and
+//! The user's own CSS and JavaScript for a site (Settings → User scripts
+//! and styles): put into every page of that site as it loads, in tabs, peeks and
 //! mini windows. The CSS goes in when the document begins, as a style sheet
 //! made in script, which a page's content security policy does not stop;
 //! the JavaScript runs once the page has loaded. Both run as part of the

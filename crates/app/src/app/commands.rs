@@ -778,8 +778,8 @@ pub(super) enum UiCommand {
         id: String,
         profile: String,
     },
-    /// Favorite `id` to place `index` of its list (Settings → Spaces sorts
-    /// a whole list, whatever the space in front shows of it).
+    /// Favorite `id` to place `index` of its list (Settings → Favorites
+    /// sorts a whole list, whatever the space in front shows of it).
     MoveFavorite {
         id: String,
         index: usize,

@@ -115,7 +115,7 @@ space's on its page, a new space's): the lasting profiles, each with the
 spaces that use it, then "A new profile" and "Private". The space whose
 bookmarks show is chosen so too, as a tag, and so is every other space
 in Settings: the one a site's links open in (Links), the one a bookmarks
-file goes into and the one to export. The arrow keys go through such a
+file goes into and the ones to export. The arrow keys go through such a
 list, Esc closes it.
 
 ## How a section looks
