@@ -796,16 +796,19 @@ impl Engine {
         {
             // `KWin` ignores the size of a window it is still mapping, which
             // leaves a new panel as wide as the page it was made for.
+            let win = self.current_window();
             Engine::post_delayed(
                 Box::new(move || {
                     let engine = Engine::global();
-                    let width = {
-                        let inner = engine.lock();
-                        (inner.win.web_panel == Some(id)).then_some(inner.win.web_panel_width)
-                    };
-                    if let Some(width) = width {
-                        engine.place(id, &web_panel_rect(&engine.page_area(), width));
-                    }
+                    engine.in_window(win, || {
+                        let width = {
+                            let inner = engine.lock();
+                            (inner.win.web_panel == Some(id)).then_some(inner.win.web_panel_width)
+                        };
+                        if let Some(width) = width {
+                            engine.place(id, &web_panel_rect(&engine.page_area(), width));
+                        }
+                    });
                 }),
                 250,
             );
@@ -857,8 +860,11 @@ impl Engine {
         match inner.win.split.as_ref().filter(|t| t.pane_count() > 1) {
             Some(tree) => {
                 let panes = tree.ids();
+                // The panel itself may have the keyboard: then the pane
+                // that had it last, or the first.
                 (inner.win.last_focused)
                     .filter(|id| panes.contains(id))
+                    .or(inner.win.focused_pane.filter(|id| panes.contains(id)))
                     .or_else(|| panes.first().copied())
             }
             None => inner.win.shown,
@@ -916,42 +922,49 @@ impl Engine {
     /// panel for its new parent: the panel is raised once more when that is
     /// done, with what lies above the pages.
     #[cfg(target_os = "linux")]
-    #[allow(clippy::unused_self)] // an Engine method like its siblings
     fn raise_web_panel_after_map(&self) {
         if !crate::cef_app::runs_on_x11() {
             return;
         }
+        // In the window it was asked for, which may no longer be current.
+        let win = self.current_window();
         Engine::post_delayed(
-            Box::new(|| {
+            Box::new(move || {
                 let engine = Engine::global();
-                let panel = {
-                    let inner = engine.lock();
-                    inner.win.web_panel.filter(|_| inner.win.peek.is_none())
-                };
-                if let Some((panel, window)) = panel.and_then(|p| Some((p, engine.page_window(p)?)))
-                {
-                    // The other panes first: the one the panel is tied to
-                    // ends up above them, and the panel above it.
-                    let split = {
-                        let inner = engine.lock();
-                        (inner.win.split.as_ref())
-                            .filter(|t| t.pane_count() > 1)
-                            .map_or_else(Vec::new, SplitNode::ids)
-                    };
-                    for pane in split.into_iter().filter_map(|id| engine.page_window(id)) {
-                        pane.bring_to_top();
-                    }
-                    crate::panel_stack::settle_above(&window, engine.top_page().as_ref());
-                    for docked in engine.docked_windows(panel) {
-                        docked.bring_to_top();
-                    }
-                    engine.raise_panel_grip(false);
-                    // Raised over by the page: the notifications.
-                    engine.place_notifications();
-                }
+                engine.in_window(win, || engine.settle_web_panel());
             }),
             400,
         );
+    }
+
+    /// The raise of `raise_web_panel_after_map`, once the page is mapped.
+    #[cfg(target_os = "linux")]
+    fn settle_web_panel(&self) {
+        let panel = {
+            let inner = self.lock();
+            inner.win.web_panel.filter(|_| inner.win.peek.is_none())
+        };
+        let Some((panel, window)) = panel.and_then(|p| Some((p, self.page_window(p)?))) else {
+            return;
+        };
+        // The other panes first: the one the panel is tied to ends up above
+        // them, and the panel above it.
+        let split = {
+            let inner = self.lock();
+            (inner.win.split.as_ref())
+                .filter(|t| t.pane_count() > 1)
+                .map_or_else(Vec::new, SplitNode::ids)
+        };
+        for pane in split.into_iter().filter_map(|id| self.page_window(id)) {
+            pane.bring_to_top();
+        }
+        crate::panel_stack::settle_above(&window, self.top_page().as_ref());
+        for docked in self.docked_windows(panel) {
+            docked.bring_to_top();
+        }
+        self.raise_panel_grip(false);
+        // Raised over by the page: the notifications.
+        self.place_notifications();
     }
 
     /// The dividers were put above everything (`show_dividers`): the web

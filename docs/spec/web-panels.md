@@ -27,7 +27,8 @@ behind it stays as it is, and a second click puts the panel away again.
 - A round button with a cross beside the panel's top corner, on the
   side of the pages, closes it, whether or not panels close by
   themselves, and always in the same place. Outside macOS it is part of
-  the page next to or under the panel (the first of a split).
+  the page next to or under the panel: of a split, the first, or under a
+  floating panel the pane under the button's place.
 - "Open or close the web panel" (`Cmd+Option+P`, `Ctrl+Alt+P` outside
   macOS; Settings → Shortcuts, the View menu and the command bar) closes
   the open panel, or opens the one used last: of the favorites and the
@@ -37,7 +38,9 @@ behind it stays as it is, and a second click puts the panel away again.
   the page area. On macOS and Linux it lies over the pages, which keep
   their size under it. On Linux it is kept above them by
   `panel_stack.rs`: under X11 it is transient for the page in front,
-  under Wayland it is shown again after a page was. On Windows it sits
+  under Wayland it is shown again after a page was. How well that holds
+  under X11 depends on the window manager: under `KWin` the panel can end
+  up behind a pane of a split or behind the page after a tab switch. On Windows it sits
   beside the pages, which take the room that is left, with a gap between.
 - Dragging the panel's far edge (on Linux a small handle in the middle of
   that edge, on Windows the gap beside it) changes its width, between 280 points and all but 80 points of the page area. In a
