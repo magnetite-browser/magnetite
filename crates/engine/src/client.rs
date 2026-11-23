@@ -375,6 +375,8 @@ wrap_focus_handler! {
                 engine.enter(home);
                 // The outline follows the keyboard at once, before the app hears of it.
                 engine.update_focus_ring(Some(id));
+                #[cfg(target_os = "linux")]
+                engine.keep_web_panel_above(id);
                 engine.emit(EngineEvent::ContentFocused { id });
             }
         }

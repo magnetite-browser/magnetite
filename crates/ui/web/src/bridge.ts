@@ -691,6 +691,7 @@ export type Command =
   | { cmd: "answer_permission"; id: string; answer: PromptAnswer }
   | { cmd: "sidebar_width"; width: number; done?: boolean }
   | { cmd: "web_panel_width"; width: number | null; done?: boolean }
+  | { cmd: "web_panel_grip"; x: number; done?: boolean }
   | { cmd: "update_status" }
   | { cmd: "check_updates" }
   | { cmd: "install_update" }

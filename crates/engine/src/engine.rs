@@ -57,6 +57,13 @@ pub(crate) struct WindowState {
     /// The peek's buttons on Linux, and the page whose window they are
     /// overlays of (`peek_buttons.rs`).
     pub peek_buttons: Option<(ContentId, Vec<OverlayController>)>,
+    /// The grip at a floating web panel's edge on Linux (`panel_close.rs`).
+    pub panel_grip: Option<Window>,
+    /// The grip is being dragged: its window stays put until the release.
+    pub panel_grip_dragged: bool,
+    /// The page or panel that had the keyboard last, on Linux.
+    #[cfg(target_os = "linux")]
+    pub last_focused: Option<ContentId>,
     /// The page last shown alone (`show_content`) and not hidden since.
     pub shown: Option<ContentId>,
     /// Last draggable regions reported by the sidebar page (its own
@@ -93,6 +100,10 @@ impl WindowState {
             web_panel_width: None,
             panel_close: None,
             peek_buttons: None,
+            panel_grip: None,
+            panel_grip_dragged: false,
+            #[cfg(target_os = "linux")]
+            last_focused: None,
             shown: None,
             sidebar_drag: Vec::new(),
             top_bar_drag: Vec::new(),

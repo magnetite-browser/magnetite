@@ -65,8 +65,8 @@ impl Engine {
     /// panel, whose size goes along: the page can then hold on to the
     /// panel's edges while the window is resized. A peek and a web panel
     /// over the pages are left out: they lie on pages, not on the frame. A
-    /// docked web panel lies on the frame beside the pages and has a shadow
-    /// like them.
+    /// docked web panel, or a floating one with no page under it, lies on
+    /// the frame and has a shadow like them.
     pub(crate) fn update_page_shadows(&self) {
         let Some(frame) = self.empty_browser().and_then(|b| b.main_frame()) else {
             return;
@@ -80,7 +80,7 @@ impl Engine {
                 Some(t) if t.pane_count() > 1 => t.ids(),
                 _ => win.shown.into_iter().collect(),
             };
-            if crate::content::WEB_PANEL_DOCKED {
+            if crate::content::WEB_PANEL_DOCKED || (!cfg!(target_os = "macos") && ids.is_empty()) {
                 ids.extend(win.web_panel);
             }
             ids.iter()

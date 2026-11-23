@@ -958,12 +958,19 @@ pub(super) enum UiCommand {
         #[serde(default)]
         done: bool,
     },
-    /// Dragging the grip beside a docked web panel: `width` follows the
+    /// Dragging the grip on the page behind the tabs: `width` follows the
     /// pointer (none: the usual width); `done` (on release) keeps it for
     /// that panel.
     WebPanelWidth {
         #[serde(default)]
         width: Option<u32>,
+        #[serde(default)]
+        done: bool,
+    },
+    /// Dragging the grip over the page at a floating web panel's edge: `x`
+    /// is the pointer on the screen; `done` (on release) keeps the width.
+    WebPanelGrip {
+        x: i32,
         #[serde(default)]
         done: bool,
     },
@@ -2468,6 +2475,7 @@ impl MagnetiteApp {
             }
             // Kept through `EngineEvent::WebPanelResized`.
             UiCommand::WebPanelWidth { width, done } => engine.resize_web_panel(width, done),
+            UiCommand::WebPanelGrip { x, done } => engine.drag_web_panel_grip(x, done),
             UiCommand::UpdateStatus => return Ok(self.update_json()),
             UiCommand::CheckUpdates => {
                 if let Some(ticket) = engine.defer_reply() {

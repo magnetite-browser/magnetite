@@ -10,6 +10,7 @@ import { DownloadsPage } from "./DownloadsPage";
 import { Empty } from "./Empty";
 import { Licenses } from "./Licenses";
 import { Notifications } from "./Notifications";
+import { PanelGrip } from "./PanelGrip";
 import { SplitDrop } from "./SplitDrop";
 import { SettingsPage } from "./SettingsPage";
 import { Shared } from "./Shared";
@@ -31,6 +32,7 @@ function Route() {
   if (path.startsWith("/capture")) return <CaptureOverlay />;
   if (path.startsWith("/command")) return <CommandPalette />;
   if (path.startsWith("/notifications")) return <Notifications />;
+  if (path.startsWith("/panel-grip")) return <PanelGrip />;
   if (path.startsWith("/splitdrop")) return <SplitDrop />;
   if (path.startsWith("/switcher")) return <Switcher />;
   if (path.startsWith("/devbar")) return <DevBar />;

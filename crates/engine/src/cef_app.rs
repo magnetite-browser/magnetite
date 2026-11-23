@@ -150,6 +150,18 @@ fn choose_platform(cmd: &mut CommandLine) {
     }
 }
 
+/// Whether Chromium runs as an X11 client here, not as a Wayland one.
+#[cfg(target_os = "linux")]
+pub(crate) fn runs_on_x11() -> bool {
+    static X11: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *X11.get_or_init(|| {
+        command_line_get_global().is_some_and(|cmd| {
+            let name = CefString::from("ozone-platform");
+            CefString::from(&cmd.switch_value(Some(&name))).to_string() == "x11"
+        })
+    })
+}
+
 /// Whether a page window can get another window's frame as its parent
 /// (`Engine::can_move_pages`). macOS does it natively (`mac::attach_child`);
 /// Linux needs `REPARENT_PATCH` in the CEF in use; Windows is not built yet.

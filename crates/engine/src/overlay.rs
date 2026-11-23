@@ -239,6 +239,8 @@ pub(crate) enum Slot {
     Overlay,
     /// The notification panel: never takes the keyboard.
     Notifications,
+    /// The grip at a floating web panel's edge (`panel_close.rs`).
+    PanelGrip,
 }
 
 impl Slot {
@@ -246,6 +248,7 @@ impl Slot {
         match self {
             Self::Overlay => &mut inner.overlay,
             Self::Notifications => &mut inner.notifications,
+            Self::PanelGrip => &mut inner.win.panel_grip,
         }
     }
 }
@@ -278,6 +281,14 @@ wrap_window_delegate! {
             *self.slot.get(&mut Engine::global().lock()) = Some(window.clone());
             if self.slot == Slot::Notifications {
                 crate::floatbar::show_quietly(window);
+                return;
+            }
+            if self.slot == Slot::PanelGrip {
+                #[cfg(target_os = "linux")]
+                crate::cef_app::set_corner_radius(window, 6);
+                window.show();
+                // It goes above the panel, and the keyboard back to the page.
+                Engine::post(Box::new(|| Engine::global().panel_grip_shown()));
                 return;
             }
             // The quick search shows over other apps' windows too.
@@ -336,8 +347,10 @@ wrap_window_delegate! {
         // as its largest: the command bar could shrink to fit its content but
         // never grow, and showed one row of results. macOS sizes it anyway,
         // and there it would also become resizable at its edges.
+        // Not the grip either: its whole width would count as the resize
+        // border of a frameless window and never reach its page.
         fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int {
-            i32::from(!cfg!(target_os = "macos"))
+            i32::from(!cfg!(target_os = "macos") && self.slot != Slot::PanelGrip)
         }
         // Not key, yet clickable at once: the first press is a real click
         // (macOS would otherwise spend it on activating the window).

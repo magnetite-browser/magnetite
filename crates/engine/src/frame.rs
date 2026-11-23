@@ -323,10 +323,7 @@ impl Engine {
     fn docked_controls_in_window(&self) -> Option<[Rect; 2]> {
         let width = {
             let inner = self.lock();
-            inner
-                .win
-                .web_panel
-                .filter(|_| crate::content::WEB_PANEL_DOCKED)?;
+            inner.win.web_panel.filter(|_| !cfg!(target_os = "macos"))?;
             inner.win.web_panel_width
         };
         let area = self.inset(&self.content_panel_in_window());

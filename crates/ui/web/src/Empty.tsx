@@ -28,7 +28,7 @@ export function Empty() {
   const look = lookOf(appearance, state.active_space);
   const space = state.sidebar.spaces.find((s) => s.id === state.active_space);
   const frame = windowBackground("frame", state.chrome, state.active_space, look, space?.accent);
-  // Outside macOS a web panel sits beside the pages: the gap after it is this page's, and the button to close it while no page is there.
+  // Outside macOS this page draws a web panel's grip and close button while no page is there (and on Windows the gap beside a docked panel).
   const panel = !IS_MAC && state.web_panel ? findTab(state, state.web_panel) : null;
   const zoom = appearance.text_scale / 100;
   const grip = panel && (
@@ -107,7 +107,7 @@ const CLOSE = { size: 32, margin: 8 };
 const PANEL = { usual: 420, min: 280, rest: 80 };
 
 /**
- * The gap between a docked web panel, `width` points wide (the usual width
+ * The gap beyond a web panel outside macOS, `width` points wide (the usual width
  * without one), and the pages: drag to change the panel's width (the pages
  * follow live), release to keep it, double-click for the usual width. The gap
  * is laid out in window points; lengths on this page grow by `zoom`, its text

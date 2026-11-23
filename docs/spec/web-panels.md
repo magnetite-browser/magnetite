@@ -26,24 +26,21 @@ behind it stays as it is, and a second click puts the panel away again.
   bar for one, opens the panel too.
 - A round button with a cross beside the panel's top corner, on the
   side of the pages, closes it, whether or not panels close by
-  themselves, and always in the same place. On Linux it is part of the
-  page beside the panel (the first of a split), since a window of its
-  own would end up behind that page.
+  themselves, and always in the same place. Outside macOS it is part of
+  the page next to or under the panel (the first of a split).
 - "Open or close the web panel" (`Cmd+Option+P`, `Ctrl+Alt+P` outside
   macOS; Settings → Shortcuts, the View menu and the command bar) closes
   the open panel, or opens the one used last: of the favorites and the
   pinned tabs of the space in front. The page may claim the key
   (`shortcuts.md`).
 - The panel is 420 points wide, less in a narrow window, and as high as
-  the page area. On macOS it lies over the pages with a shadow, and they
-  keep their size under it, as does the close button. On Linux it sits
-  beside them: the pages (a split too) take the room that is left, with
-  a gap between. There every
-  page is a window of its own to the window manager, which puts a page
-  that is shown or clicked on top, so a panel over a page would end up
-  behind it.
-- Dragging the panel's far edge (on Linux the gap beside it) changes its
-  width, between 280 points and all but 80 points of the page area. In a
+  the page area. On macOS and Linux it lies over the pages, which keep
+  their size under it. On Linux it is kept above them by
+  `panel_stack.rs`: under X11 it is transient for the page in front,
+  under Wayland it is shown again after a page was. On Windows it sits
+  beside the pages, which take the room that is left, with a gap between.
+- Dragging the panel's far edge (on Linux a small handle in the middle of
+  that edge, on Windows the gap beside it) changes its width, between 280 points and all but 80 points of the page area. In a
   window too narrow for both, the room left
   for the pages counts and the panel is narrower than 280 points. Each
   panel keeps its own width; a double click there gives it the usual one
@@ -99,9 +96,10 @@ Code: `crates/app/src/app/panels.rs` (`open_web_panel`, `settle_web_panel`),
 `crates/app/src/state/panels.rs` (`settle_panels`, `latest_web_panel`),
 `tabs.rs` (`activate_tab`), `crates/engine/src/content.rs`
 (`show_web_panel`, `web_panel_rect`, `WEB_PANEL_DOCKED`,
-`resize_web_panel`), `mac/chrome.rs` (`set_panel_close`, the close button
-on macOS), `panel_close.rs` (the close button elsewhere),
+`resize_web_panel`), `panel_stack.rs` (the panel above the pages on
+Linux), `mac/chrome.rs` (`set_panel_close`, the close button on macOS),
+`panel_close.rs` (the close button elsewhere, the handle on Linux),
 `device.rs` (`set_mobile_view`),
 `crates/ui/web/src/Rows.tsx` (the favorite's click and menu entry),
-`Empty.tsx` (`PanelResizer`, the grip on Linux, and the close button
-while no page is beside the panel).
+`PanelGrip.tsx` (the handle on Linux), `Empty.tsx` (`PanelResizer`, the
+grip and close button while no page is there, and on Windows the grip).
