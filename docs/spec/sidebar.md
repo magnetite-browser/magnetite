@@ -85,14 +85,20 @@ the row turns the icon into a back arrow that takes the page back.
   until then.
 - A pinned tab without a loaded page has nothing to close: on hover its row
   shows a minus in place of the close button, which removes the tab from the
-  space. It goes to the archive at its pinned page, without the title of
-  another page it was left on, and comes back from there as a Today tab
-  (`archive.md`); one of Magnetite's own pages or of a private profile just
-  closes. A row whose page was just closed with its button or a middle click
-  keeps the close button until the pointer leaves. The second click of a
-  double click on a minus or on "Clear" does nothing, so it cannot remove
-  the next pinned tab or archive all of Today once the rows have moved up.
-  Quick clicks on a close button in one place close one tab after another.
+  space. It goes to the archive at its pinned page, under that page's title
+  from the history (not the title of another page it was left on), and
+  comes back from there as a Today tab (`archive.md`); one of Magnetite's
+  own pages or of a private profile just closes. A row whose page was just
+  closed with its button or a middle click keeps the close button until
+  the pointer leaves.
+- After a click that takes a row away, the rows below move up under the
+  pointer. The second click of a double click that lands on another
+  element than the first does nothing on a pinned tab or favorite (close,
+  minus, middle click), on "Clear", on a folder row and on a split row's
+  cell, so a double click removes one pinned tab and never unloads the
+  next one, archives all of Today, opens a folder for renaming or breaks
+  up a split. A double click on one element works as before, and quick
+  clicks in one place on Today tabs close one tab after another.
 - **Keep active** in the menu of a Today tab spares that tab: its page is
   never unloaded for being off screen, and it is not auto-archived. A check mark shows it in the menu and a small flash on the
   row; the same entry lets the tab sleep again. Closing the tab ends it.
@@ -100,7 +106,8 @@ the row turns the icon into a back arrow that takes the page back.
   it. A favorite is renamed from its context menu, in a row under the
   tiles of its list. Middle-click does what the row's close button or
   minus does; on an item a smart folder got from its source it closes.
-  It does nothing in the rename field.
+  It does nothing on a row while it is being renamed or a snooze time is
+  being picked.
 - The context menu has the actions that fit the tab, among them Reload,
   Share…, Copy link, Pin tab, Unpin tab, Add to favorites, Remove from
   favorites, Open in split view, Duplicate tab, Rename, Move to another

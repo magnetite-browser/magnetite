@@ -6,6 +6,7 @@ use std::collections::HashSet;
 use magnetite_core::{Color, Id, SidebarNode, Space, TabItem, UnixSeconds};
 use magnetite_engine::{ContentId, MemoryPressure};
 
+use super::history::page_of;
 use super::settings::{MAX_ARCHIVE_DAYS, NEVER_ARCHIVE};
 use super::{AppState, ArchivedTab, Peek, TabRuntime, new_id, now};
 
@@ -555,16 +556,27 @@ impl AppState {
     }
 
     /// Archive pinned tab `id` (`remove_pinned`) at the page it was pinned
-    /// for, not at the one it was left on. That page's title would then name
-    /// another page: it goes, unless the user gave the tab its own.
+    /// for, not at the one it was left on, with that page's title from the
+    /// history. The tab's own title may be another page's: closing a pinned
+    /// tab takes it home and keeps the last title. Without a title in the
+    /// history, one from another page goes. A title the user gave stays.
     pub fn archive_pinned(&mut self, id: &str) -> Option<ContentId> {
-        if let Some(t) = self.find_tab_mut(id)
-            && let Some(home) = t.home_url.clone()
-            && t.url != home
-        {
-            t.url = home;
-            if !t.custom_title {
-                t.title.clear();
+        let home = self.find_tab(id).and_then(|(_, t)| t.home_url.clone());
+        if let Some(home) = home {
+            let page = page_of(&home);
+            let known = (self.history.newest())
+                .find(|v| page_of(&v.url) == page && !v.title.is_empty())
+                .map(|v| v.title.clone());
+            if let Some(t) = self.find_tab_mut(id) {
+                let away = page_of(&t.url) != page;
+                t.url = home;
+                if !t.custom_title {
+                    match known {
+                        Some(title) => t.title = title,
+                        None if away => t.title.clear(),
+                        None => {}
+                    }
+                }
             }
         }
         self.archive_tab(id)
@@ -1066,25 +1078,34 @@ mod tests {
     }
 
     #[test]
-    fn a_removed_pinned_tab_is_archived_at_its_pinned_page_without_the_other_pages_title() {
-        let mut s = state();
-        let p = s.find_tab_mut("p").unwrap();
-        p.url = "https://example.org/p/issues/42".into();
-        p.title = "Bug #42".into();
-        s.archive_pinned("p");
-        let record = &s.archive.last().unwrap().tab;
-        assert_eq!(record.url, "https://example.org/p");
-        assert_eq!(record.title, "");
-        assert!(s.find_tab("p").is_none());
-
-        // A title the user gave is the tab's own and stays.
-        let mut s = state();
-        let p = s.find_tab_mut("p").unwrap();
-        p.url = "https://example.org/p/issues/42".into();
-        p.title = "Work tracker".into();
-        p.custom_title = true;
-        s.archive_pinned("p");
-        assert_eq!(s.archive.last().unwrap().tab.title, "Work tracker");
+    fn a_removed_pinned_tab_is_archived_at_its_pinned_page_with_that_pages_title() {
+        /// `p` of a fresh state, archived with `url`, `title` and
+        /// `custom_title` set, after a visit of its pinned page titled `visit`.
+        fn archived(url: &str, title: &str, visit: Option<&str>, custom: bool) -> TabItem {
+            let mut s = state();
+            if let Some(title) = visit {
+                s.history.record("https://example.org/p", title, now());
+            }
+            let p = s.find_tab_mut("p").unwrap();
+            (p.url, p.title, p.custom_title) = (url.into(), title.into(), custom);
+            s.archive_pinned("p");
+            assert!(s.find_tab("p").is_none());
+            s.archive.pop().unwrap().tab
+        }
+        let issue = "https://example.org/p/issues/42";
+        // Left on another page: archived at home, without that page's title.
+        let t = archived(issue, "Bug #42", None, false);
+        assert_eq!(t.url, "https://example.org/p");
+        assert_eq!(t.title, "");
+        // Closed first (home again, the last title kept): the history knows better.
+        let t = archived("https://example.org/p", "Bug #42", Some("Project P"), false);
+        assert_eq!(t.title, "Project P");
+        // Still on its page, only the place in it changed: the title is right.
+        let t = archived("https://example.org/p#inbox", "Inbox", None, false);
+        assert_eq!(t.title, "Inbox");
+        // A title the user gave is the tab's own.
+        let t = archived(issue, "Work tracker", Some("Project P"), true);
+        assert_eq!(t.title, "Work tracker");
     }
 
     #[test]

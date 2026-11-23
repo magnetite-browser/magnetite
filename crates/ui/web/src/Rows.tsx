@@ -29,15 +29,26 @@ export interface RowContext {
 /** Most pages one split holds (as `magnetite_core::split::MAX_PANES`). */
 const MAX_PANES = 4;
 
+// Where the current run of clicks began (`detail` 1), for `movedUnder`.
+let firstClicked: EventTarget | null = null;
+const noteFirstClick = (e: MouseEvent) => {
+  if (e.detail === 1) firstClicked = e.target;
+};
+document.addEventListener("click", noteFirstClick, true);
+document.addEventListener("auxclick", noteFirstClick, true);
+
 /**
- * The second click of a double click. The system counts clicks by place
- * and time, not by element, so after a click that took a row away it lands
- * on whatever moved up under the pointer. Removing a pinned tab and "Clear"
- * ignore it, so a double click removes one pinned tab and never archives
- * all of Today; closing does not, so quick clicks in one place close tab
- * after tab.
+ * A later click of a double click that began on another element. The
+ * system counts clicks by place and time, not by element, so after a click
+ * that took a row away the next one lands on whatever moved up under the
+ * pointer. Closing a pinned tab or favorite, removing one, "Clear", a
+ * folder row and a split cell ignore such a click; a real double click on
+ * them works as before. Closing a Today tab does not, so quick clicks in
+ * one place close tab after tab.
  */
-export const secondClick = (e: React.MouseEvent) => e.detail > 1;
+export function movedUnder(e: React.MouseEvent): boolean {
+  return e.detail > 1 && !(firstClicked instanceof Node && e.currentTarget.contains(firstClicked));
+}
 
 /** Is `tab` an item its smart folder `folderId` got from its source (not a tab put there by hand)? */
 function isSmartItem(state: UiState, tab: TabItem, folderId?: string): boolean {
@@ -442,8 +453,11 @@ const TabRowInner = memo(
     // The row's close (its button, a middle click): unloads a page, archives
     // a Today tab, or removes a pinned tab without a page.
     const close = (e: React.MouseEvent) => {
+      // Only a Today row goes away when closed, so only there is a quick
+      // second click meant for the next tab.
+      if (section !== "today" && movedUnder(e)) return;
       if (removable) {
-        if (!secondClick(e)) send({ cmd: "remove_pinned", id: tab.id });
+        send({ cmd: "remove_pinned", id: tab.id });
         return;
       }
       // A key press (`detail` 0) leaves no pointer on the row to wait for.
@@ -824,10 +838,10 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
           else onDropAt(zone === "before" ? index : index + 1);
           endDrag();
         }}
-        onClick={() => {
-          if (!renaming) toggle();
+        onClick={(e) => {
+          if (!renaming && !movedUnder(e)) toggle();
         }}
-        onDoubleClick={() => ctx.setRenaming(folder.id)}
+        onDoubleClick={(e) => !movedUnder(e) && ctx.setRenaming(folder.id)}
         onContextMenu={(e) => {
           e.preventDefault();
           menuAt.current = { x: e.clientX, y: e.clientY };
@@ -1024,7 +1038,7 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
             rt={ctx.state.runtime[id]}
             active={onScreen && id === ctx.state.active_tab}
             onClick={() => send({ cmd: "activate_tab", id })}
-            onAuxClick={(e) => e.button === 1 && send({ cmd: "remove_split", id })}
+            onAuxClick={(e) => e.button === 1 && !movedUnder(e) && send({ cmd: "remove_split", id })}
             onContextMenu={(e) => menu(e, id)}
             onRemove={() => send({ cmd: "remove_split", id })}
           />
@@ -1058,7 +1072,7 @@ function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
         </span>
       )}
       {onRemove && (
-        <button className="close" title="Remove from split view" aria-label="Remove from split view" onClick={(e) => { e.stopPropagation(); onRemove(); }}>
+        <button className="close" title="Remove from split view" aria-label="Remove from split view" onClick={(e) => { e.stopPropagation(); if (!movedUnder(e)) onRemove(); }}>
           <Close width={12} height={12} />
         </button>
       )}
