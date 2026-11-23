@@ -115,6 +115,29 @@ export function useSorting(landing: (dragged: string, target: string, below: boo
     };
   }, []);
 
+  /** The pointer moved while pressed: past `SLACK` the press becomes a drag, which then follows it. */
+  const follow = (e: PointerEvent) => {
+    const d = drag.current;
+    if (!d || d.pointer !== e.pointerId) return;
+    d.y = e.clientY;
+    if (!d.active) {
+      if (Math.abs(e.clientY - d.startY) < SLACK) return;
+      d.active = true;
+      const scrolled = d.scroller?.scrollTop ?? 0;
+      d.slots = [...(d.row.parentElement?.querySelectorAll<HTMLElement>("[data-sort-row]") ?? [])].map((r) => {
+        const box = r.getBoundingClientRect();
+        return { id: r.dataset.sortRow!, top: box.top + scrolled, height: box.height };
+      });
+      setLay({ order: d.slots.map((r) => r.id), height: d.row.getBoundingClientRect().height });
+      d.handle.setPointerCapture(d.pointer);
+      document.documentElement.dataset.sorting = "";
+      getSelection()?.removeAllRanges();
+      setDragged(d.id);
+      d.frame = requestAnimationFrame(scroll);
+    }
+    track();
+  };
+
   const handle = (id: string, enabled: boolean) => ({
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
       // A press that never became a drag is over, wherever it was let go.
@@ -126,36 +149,20 @@ export function useSorting(landing: (dragged: string, target: string, below: boo
       const scroller = row.closest<HTMLElement>("main");
       drag.current = { id, pointer: e.pointerId, handle: e.currentTarget, row, scroller, startY: e.clientY, startScroll: scroller?.scrollTop ?? 0, y: e.clientY, active: false, frame: 0, slots: [] };
       // Until the press is a drag the handle does not keep the pointer, so
-      // a release elsewhere (the pointer left it sideways) is heard here.
+      // its moves and its release are heard on the window: a quick drag
+      // leaves a small handle before its first move, and a release
+      // elsewhere (the pointer left it sideways) ends the press.
       const pressed = drag.current;
+      const moved = (e: PointerEvent) => drag.current === pressed && follow(e);
       const over = () => {
+        window.removeEventListener("pointermove", moved, true);
         window.removeEventListener("pointerup", over, true);
         window.removeEventListener("pointercancel", over, true);
         if (drag.current === pressed && !pressed.active) drag.current = null;
       };
+      window.addEventListener("pointermove", moved, true);
       window.addEventListener("pointerup", over, true);
       window.addEventListener("pointercancel", over, true);
-    },
-    onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
-      const d = drag.current;
-      if (!d || d.pointer !== e.pointerId) return;
-      d.y = e.clientY;
-      if (!d.active) {
-        if (Math.abs(e.clientY - d.startY) < SLACK) return;
-        d.active = true;
-        const scrolled = d.scroller?.scrollTop ?? 0;
-        d.slots = [...(d.row.parentElement?.querySelectorAll<HTMLElement>("[data-sort-row]") ?? [])].map((r) => {
-          const box = r.getBoundingClientRect();
-          return { id: r.dataset.sortRow!, top: box.top + scrolled, height: box.height };
-        });
-        setLay({ order: d.slots.map((r) => r.id), height: d.row.getBoundingClientRect().height });
-        d.handle.setPointerCapture(d.pointer);
-        document.documentElement.dataset.sorting = "";
-        getSelection()?.removeAllRanges();
-        setDragged(d.id);
-        d.frame = requestAnimationFrame(scroll);
-      }
-      track();
     },
     onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
       const d = drag.current;
