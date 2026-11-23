@@ -100,7 +100,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 - **Our own CEF build.** On macOS with Apple silicon and on Linux and Windows
   on x86_64, the CEF library is one we build ourselves from those sources, in
   [magnetite-cef](https://github.com/magnetite-browser/magnetite-cef)
-  (release `156.0.31-4`). It differs from CEF's official build in two ways:
+  (release `156.0.31-5`). It differs from CEF's official build in two ways:
   the H.264, AAC and HEVC decoders and the H.264 encoder are on
   (`proprietary_codecs`, `ffmpeg_branding=Chrome`), and CEF carries the
   patches in that repository's `patches/` folder. On the other systems it is
