@@ -551,8 +551,12 @@ export type Command =
   | { cmd: "set_web_panel"; id: Id; panel: boolean }
   | { cmd: "set_panel_mobile"; id: Id; mobile: boolean }
   | { cmd: "toggle_web_panel"; id: Id }
-  /** A new space; it becomes the current one unless `stay` is set. */
-  | { cmd: "new_space"; title: string; icon?: string; stay?: boolean }
+  /**
+   * A new space; it becomes the current one unless `stay` is set. It runs in
+   * `profile`: one there is, a new one by this name, or a private one of its
+   * own; without it, in the main profile.
+   */
+  | { cmd: "new_space"; title: string; icon?: string; stay?: boolean; profile?: { id: Id } | { new: string } | "private" }
   | { cmd: "rename_space"; id: Id; title?: string; icon?: string }
   | { cmd: "delete_space"; id: Id }
   | { cmd: "move_space"; id: Id; index: number }

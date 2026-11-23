@@ -37,7 +37,7 @@ pub use settings::{
     SyncSettings, SystemEngine, TabOrder, typed_site,
 };
 pub use share::read_link as read_shared;
-pub use tabs::TabSwitch;
+pub use tabs::{SpaceProfile, TabSwitch};
 
 /// What the sidebar UI receives on every change.
 #[derive(Serialize)]

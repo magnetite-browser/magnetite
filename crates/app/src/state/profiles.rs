@@ -3,7 +3,7 @@
 
 use magnetite_core::Id;
 
-use super::AppState;
+use super::{AppState, new_id};
 
 /// How many deleted profiles a device remembers.
 const MAX_DELETED_PROFILES: usize = 256;
@@ -127,6 +127,23 @@ impl AppState {
                 }
             })
             .map(|p| p.id.clone())
+    }
+
+    /// Add a profile by `name` ("New profile" when blank); `ephemeral`: in
+    /// memory only. Returns its id.
+    pub fn add_profile(&mut self, name: &str, ephemeral: bool) -> Id {
+        let id = new_id();
+        let name = match name.trim() {
+            "" => "New profile",
+            name => name,
+        };
+        self.sidebar.profiles.push(magnetite_core::Profile {
+            id: id.clone(),
+            name: name.into(),
+            is_default: false,
+            ephemeral,
+        });
+        id
     }
 
     /// Id of the default profile.

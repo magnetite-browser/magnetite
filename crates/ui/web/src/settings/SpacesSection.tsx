@@ -27,18 +27,39 @@ const PRIVATE = "\u0000private";
 const SOME = "\u0000some";
 
 /**
+ * The name a new profile for `name` gets: a new profile is named after
+ * what it is for, with a number when that name is taken, so choosing
+ * "A new profile" twice makes two to tell apart.
+ */
+function freshProfileName(info: Info, name: string) {
+  const taken = new Set(info.profiles.filter((p) => !p.ephemeral).map((p) => profileName(p)));
+  let fresh = name;
+  for (let n = 2; taken.has(fresh); n++) fresh = `${name} ${n}`;
+  return fresh;
+}
+
+/**
+ * The choices of a profile list: the lasting profiles by id, then `NEW`
+ * (one named `fresh`, else after the space) and `PRIVATE`.
+ */
+function ProfileOptions({ info, fresh }: { info: Info; fresh?: string }) {
+  return (
+    <>
+      {info.profiles.filter((p) => !p.ephemeral).map((p) => <option key={p.id} value={p.id}>{profileName(p)}</option>)}
+      <option value={NEW}>{fresh ? `A new profile, named “${fresh}”` : "A new profile, named after the space"}</option>
+      <option value={PRIVATE}>Private: forgotten when Magnetite quits</option>
+    </>
+  );
+}
+
+/**
  * The profile something runs in, to change: the main one, a profile of its
  * own or one shared with others, or a private one that is forgotten when
  * Magnetite quits. `assign` gets the id of the profile chosen.
  */
 function ProfileChoice({ info, current, name, assign, label }: { info: Info; current: string; name: string; assign: (profile: string) => Promise<unknown>; label: string }) {
-  const kept = info.profiles.filter((p) => !p.ephemeral);
   const now = info.profiles.find((p) => p.id === current);
-  // A new profile is named after what it is for, with a number when that
-  // name is taken: choosing "A new profile" twice makes two to tell apart.
-  const taken = new Set(kept.map((p) => profileName(p)));
-  let fresh = name;
-  for (let n = 2; taken.has(fresh); n++) fresh = `${name} ${n}`;
+  const fresh = freshProfileName(info, name);
   // A new profile is being made and given: no other choice until then,
   // which the new one would otherwise replace when it arrives.
   const [creating, setCreating] = useState(false);
@@ -64,9 +85,7 @@ function ProfileChoice({ info, current, name, assign, label }: { info: Info; cur
         else void assign(to);
       }}
     >
-      {kept.map((p) => <option key={p.id} value={p.id}>{profileName(p)}</option>)}
-      <option value={NEW}>A new profile, named “{fresh}”</option>
-      <option value={PRIVATE}>Private: forgotten when Magnetite quits</option>
+      <ProfileOptions info={info} fresh={fresh} />
     </select>
   );
 }
@@ -179,11 +198,18 @@ function SpacePage({ info, space, update, reload, open }: { info: Info; space: S
 function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<unknown>; open: (section: string, item?: string) => void }) {
   const [name, setName] = useState("");
   const { armed, arm } = useArmed();
+  const kept = info.profiles.filter((p) => !p.ephemeral);
+  // The profile the new space gets; it stays chosen for the next one. One
+  // that is gone since falls back to the main profile.
+  const [spaceProfile, setSpaceProfile] = useState<string>();
+  const known = (to: string) => to === NEW || to === PRIVATE || kept.some((p) => p.id === to);
+  const chosen = spaceProfile && known(spaceProfile) ? spaceProfile : (kept.find((p) => p.is_default)?.id ?? "");
   const add = () => {
     const title = name.trim();
     if (!title) return;
     setName("");
-    void send({ cmd: "new_space", title, stay: true }).then(reload);
+    const profile = chosen === PRIVATE ? "private" : chosen === NEW ? { new: freshProfileName(info, title) } : { id: chosen };
+    void send({ cmd: "new_space", title, stay: true, profile }).then(reload);
   };
   const move = (id: string, index: number) => void send({ cmd: "move_space", id, index }).then(reload);
   const [profile, setProfile] = useState("");
@@ -215,7 +241,6 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
     if (from < to) to -= 1;
     return to === from ? null : to;
   };
-  const kept = info.profiles.filter((p) => !p.ephemeral);
   const usedBy = (id: string) => [
     ...info.spaces.filter((s) => s.profile_id === id).map((s) => s.title),
     ...info.favorites.filter((f) => f.profile_id === id).map((f) => f.title || hostOf(f.url)),
@@ -290,9 +315,13 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
             </button>
           </div>
         ))}
-        <Field label="A new space" hint="It comes last in the sidebar, in the main profile.">
-          <div className="flex gap-2">
-            <input className="field" style={{ maxWidth: 280 }} value={name} placeholder="Name" maxLength={80} aria-label="Name of the new space" onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} />
+        <Field label="A new space" hint="It comes last in the sidebar. Its profile decides which logins its pages use.">
+          <div className="flex flex-wrap gap-2">
+            {/* The name gives way to the profile, which shows its choice whole. */}
+            <input className="field" style={{ flex: "1 1 160px", maxWidth: 280 }} value={name} placeholder="Name" maxLength={80} aria-label="Name of the new space" onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} />
+            <select className="field" style={{ width: "auto", flex: "none", maxWidth: 360 }} aria-label="Profile of the new space" value={chosen} onChange={(e) => setSpaceProfile(e.target.value)}>
+              <ProfileOptions info={info} />
+            </select>
             <button className="btn" disabled={!name.trim()} onClick={add}>Add space</button>
           </div>
         </Field>

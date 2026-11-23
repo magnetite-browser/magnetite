@@ -13,7 +13,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 
 use crate::state::import::{SpaceChoice, choose_spaces, preview};
-use crate::state::{AppState, ArcImport, SidebarEffect, icon_image_ok, new_id, now};
+use crate::state::{AppState, ArcImport, SidebarEffect, SpaceProfile, icon_image_ok, new_id, now};
 use crate::sync::{self, Job};
 use crate::{capture, downloads, lock, url_policy};
 
@@ -232,13 +232,16 @@ pub(super) enum UiCommand {
         title: String,
     },
     /// A new space. It becomes the current one, unless `stay` is set
-    /// (Settings → Spaces, whose page would go out of sight with it).
+    /// (Settings → Spaces, whose page would go out of sight with it). It
+    /// runs in `profile`, else in the default profile.
     NewSpace {
         title: String,
         #[serde(default)]
         icon: Option<String>,
         #[serde(default)]
         stay: bool,
+        #[serde(default)]
+        profile: Option<SpaceProfile>,
     },
     /// Give space `id` another name (an empty one keeps its name), another
     /// glyph, or both. A glyph takes the place of the space's own picture
@@ -1190,32 +1193,13 @@ impl MagnetiteApp {
                 });
                 self.push_state(engine);
             }
-            UiCommand::NewSpace { title, icon, stay } => {
-                let id = self.with_state(|s| {
-                    let id = new_id();
-                    let profile = s.default_profile_id();
-                    s.sidebar.spaces.push(Space {
-                        id: id.clone(),
-                        title: if title.trim().is_empty() {
-                            "New space".into()
-                        } else {
-                            title.trim().into()
-                        },
-                        icon: icon.or_else(|| Some("✦".into())),
-                        icon_image: None,
-                        accent: Some(Color {
-                            red: 0.55,
-                            green: 0.5,
-                            blue: 1.0,
-                        }),
-                        profile_id: profile,
-                        shortcut: None,
-                        pinned: vec![],
-                        today: vec![],
-                        bookmarks: Vec::new(),
-                    });
-                    id
-                });
+            UiCommand::NewSpace {
+                title,
+                icon,
+                stay,
+                profile,
+            } => {
+                let id = self.with_state(|s| s.new_space(&title, icon, profile))?;
                 if stay {
                     self.push_state(engine);
                     self.tell_settings_pages(engine);
@@ -1688,20 +1672,7 @@ impl MagnetiteApp {
                 self.smart_fetch(engine, &id);
             }
             UiCommand::NewProfile { name, ephemeral } => {
-                let id = self.with_state(|s| {
-                    let id = new_id();
-                    s.sidebar.profiles.push(magnetite_core::Profile {
-                        id: id.clone(),
-                        name: if name.trim().is_empty() {
-                            "New profile".into()
-                        } else {
-                            name.trim().into()
-                        },
-                        is_default: false,
-                        ephemeral,
-                    });
-                    id
-                });
+                let id = self.with_state(|s| s.add_profile(&name, ephemeral));
                 self.push_state(engine);
                 return Ok(json!({"id": id}));
             }

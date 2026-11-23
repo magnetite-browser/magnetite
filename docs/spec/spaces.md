@@ -22,7 +22,9 @@ by all spaces unless it is for some only (`sidebar.md`). The profile decides whi
   the space. It is added after the other spaces with the star icon, a violet
   colour and the default profile, and becomes the current space. The first
   start creates one space, "Personal", unless the import fills the sidebar
-  (`import.md`).
+  (`import.md`). "A new space" in Settings → Spaces creates one too, in
+  the profile chosen beside its name (Main profile, one by its name, a new
+  one or Private, as in "Choosing a profile"), and stays in Settings.
 - **Space menu**: right-click the space title, the empty part of the tab
   list or a space icon in the footer, or use the "…" button on the title.
   It has Space settings…, New folder, the profile choice and Delete
@@ -151,8 +153,9 @@ share one. The default profile always exists.
 
 ### Choosing a profile
 
-Settings → Spaces names profiles as such. A space (on its page) and a
-favorite (in the list of favorites) choose one of:
+Settings → Spaces names profiles as such. A space (on its page, or
+when it is added there) and a favorite (in the list of favorites) choose
+one of:
 
 | Choice | Profile | Logins |
 |---|---|---|
@@ -282,7 +285,8 @@ in front, the space beside it comes to the front for the link.
 
 ## Not built yet
 
-- Choosing icon, colour and profile while creating a space.
+- Choosing icon and colour while creating a space, and a profile when
+  it is created from the sidebar.
 - A light appearance.
 - Syncing a space's look.
 

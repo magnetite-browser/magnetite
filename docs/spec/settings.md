@@ -56,7 +56,9 @@ The section starts with three groups:
   click on a space opens its page. A space is moved by dragging it (its
   handle on the left, or the row): a line shows where it lands. With the
   handle focused, the up and down arrow keys move it. "A new space" adds
-  one by name, after the others, without leaving Settings.
+  one by name, after the others, without leaving Settings, in the profile
+  chosen beside the name (the choices of "Choosing a profile" in
+  `spaces.md`); the choice stays for the next space.
 - **Profiles**: every lasting profile with what uses it (spaces and
   favorites), to rename, and to delete once nothing uses it
   (`spaces.md`). "A new profile" adds an empty one by name, to give to

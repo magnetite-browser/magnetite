@@ -3,11 +3,24 @@
 
 use std::collections::HashSet;
 
-use magnetite_core::{Id, SidebarNode, Space, TabItem, UnixSeconds};
+use magnetite_core::{Color, Id, SidebarNode, Space, TabItem, UnixSeconds};
 use magnetite_engine::{ContentId, MemoryPressure};
 
 use super::settings::{MAX_ARCHIVE_DAYS, NEVER_ARCHIVE};
 use super::{AppState, ArchivedTab, Peek, TabRuntime, new_id, now};
+
+/// The profile a new space runs in, when it is not the default one
+/// (`AppState::new_space`): `{"id": …}`, `{"new": name}` or `"private"`.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpaceProfile {
+    /// A profile there is already.
+    Id(Id),
+    /// A new lasting profile by this name.
+    New(String),
+    /// A private profile of its own: in memory, gone when Magnetite quits.
+    Private,
+}
 
 pub(super) fn find_in_tree_mut<'a>(
     nodes: &'a mut [SidebarNode],
@@ -604,6 +617,54 @@ impl AppState {
         content
     }
 
+    /// Add a space after the others, with the star icon (unless `icon`
+    /// names another glyph) and a violet colour, running in `profile`
+    /// (`None`: the default profile). Returns its id, or why it was not
+    /// added: the profile chosen is gone, or is one of the private space's.
+    pub fn new_space(
+        &mut self,
+        title: &str,
+        icon: Option<String>,
+        profile: Option<SpaceProfile>,
+    ) -> Result<Id, &'static str> {
+        let title = match title.trim() {
+            "" => "New space",
+            title => title,
+        };
+        let profile_id = match profile {
+            None => self.default_profile_id(),
+            Some(SpaceProfile::Id(id)) => {
+                let known = self.sidebar.profiles.iter().any(|p| p.id == id);
+                // The private space's profiles are for nothing else.
+                if !known || self.private_profiles.contains(&id) {
+                    return Err("That profile is gone.");
+                }
+                id
+            }
+            Some(SpaceProfile::New(name)) => self.add_profile(&name, false),
+            // Named like the private profile a space's page makes.
+            Some(SpaceProfile::Private) => self.add_profile(&format!("{title} (private)"), true),
+        };
+        let id = new_id();
+        self.sidebar.spaces.push(Space {
+            id: id.clone(),
+            title: title.into(),
+            icon: icon.or_else(|| Some("✦".into())),
+            icon_image: None,
+            accent: Some(Color {
+                red: 0.55,
+                green: 0.5,
+                blue: 1.0,
+            }),
+            profile_id,
+            shortcut: None,
+            pinned: vec![],
+            today: vec![],
+            bookmarks: vec![],
+        });
+        Ok(id)
+    }
+
     /// Delete space `id` (never the last one). Its tabs go to the archive
     /// like closed ones (`archive_tab`, so a private profile's leave nothing
     /// behind). Returns the page windows to close.
@@ -1093,5 +1154,62 @@ mod tests {
         assert_eq!(space.as_deref(), Some(s.active_space.as_str()));
         assert!(s.take_tab("p").is_none());
         assert!(s.take_tab("a").is_some());
+    }
+
+    #[test]
+    fn a_new_space_runs_in_the_profile_chosen_for_it() {
+        let mut s = state();
+        let profile_of = |s: &AppState, id: &str| {
+            let space = s.space(id).unwrap();
+            (s.sidebar.profiles.iter())
+                .find(|p| p.id == space.profile_id)
+                .unwrap()
+                .clone()
+        };
+        let main = s.new_space("  ", None, None).unwrap();
+        assert_eq!(s.space(&main).unwrap().title, "New space");
+        assert!(profile_of(&s, &main).is_default);
+
+        let work = s
+            .new_space("Work", None, Some(SpaceProfile::New("Work".into())))
+            .unwrap();
+        let lasting = profile_of(&s, &work);
+        assert_eq!((lasting.name.as_str(), lasting.ephemeral), ("Work", false));
+        let office = s
+            .new_space("Office", None, Some(SpaceProfile::Id(lasting.id.clone())))
+            .unwrap();
+        assert_eq!(profile_of(&s, &office).id, lasting.id, "shared with Work");
+
+        let secret = s
+            .new_space("Secret", None, Some(SpaceProfile::Private))
+            .unwrap();
+        let private = profile_of(&s, &secret);
+        assert_eq!(
+            (private.name.as_str(), private.ephemeral),
+            ("Secret (private)", true)
+        );
+        // The space's own, not one of the private space's: it stays while used.
+        assert!(!s.private_profiles.contains(&private.id));
+        s.prune_private_profiles();
+        assert!(s.sidebar.profiles.iter().any(|p| p.id == private.id));
+    }
+
+    #[test]
+    fn a_new_space_is_refused_a_profile_that_is_gone_or_the_private_spaces() {
+        let mut s = state();
+        let spaces = s.sidebar.spaces.len();
+        let gone = SpaceProfile::Id("gone".into());
+        assert!(s.new_space("Work", None, Some(gone)).is_err());
+        let private_space = s.open_private_space();
+        let theirs = s.space(&private_space).unwrap().profile_id.clone();
+        assert!(
+            s.new_space("Work", None, Some(SpaceProfile::Id(theirs)))
+                .is_err()
+        );
+        assert_eq!(
+            s.sidebar.spaces.len(),
+            spaces + 1,
+            "only the private space came"
+        );
     }
 }
