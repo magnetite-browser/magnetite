@@ -510,17 +510,21 @@ pub enum TabOrder {
     Sidebar,
 }
 
-/// What a link a page opens in a new tab does (Settings → Links).
+/// What a link a page opens in a new tab does (Settings → Links). A value
+/// this version does not know (a newer one's, after going back) reads as
+/// the default rather than making `state.json` unreadable.
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum NewTabLinks {
-    /// A tab behind the current one, without a page until it is opened.
-    #[default]
-    Inactive,
     /// A tab behind the current one whose page loads at once, out of sight.
     Load,
     /// The new tab comes to the front.
     Switch,
+    /// A tab behind the current one, without a page until it is opened.
+    /// Last: `serde(other)` has to be.
+    #[default]
+    #[serde(other)]
+    Inactive,
 }
 
 /// A view behind the sidebar's archive and downloads button. While something
@@ -1238,6 +1242,14 @@ mod tests {
         }
         .sanitised();
         assert_eq!(fine.search_template, "https://kagi.com/search?q=%s");
+    }
+
+    #[test]
+    fn an_unknown_choice_for_new_tab_links_reads_as_the_default() {
+        let later: Settings = serde_json::from_str(r#"{"new_tab_links":"later"}"#).unwrap();
+        assert_eq!(later.new_tab_links, NewTabLinks::Inactive);
+        let load: Settings = serde_json::from_str(r#"{"new_tab_links":"load"}"#).unwrap();
+        assert_eq!(load.new_tab_links, NewTabLinks::Load);
     }
 
     /// Appearance saved before the top bar existed keeps its values and

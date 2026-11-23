@@ -277,9 +277,15 @@ impl EngineDelegate for MagnetiteApp {
                 });
                 let background = opens != NewTabLinks::Switch;
                 let context = context.as_deref();
-                match target {
-                    Target::Peek => self.open_peek(engine, &url, source, context),
-                    Target::Mini => self.open_mini(engine, &url, source, context),
+                let in_front = match target {
+                    Target::Peek => {
+                        self.open_peek(engine, &url, source, context);
+                        !background
+                    }
+                    Target::Mini => {
+                        self.open_mini(engine, &url, source, context);
+                        false
+                    }
                     Target::Tab => {
                         if let Some(space) = &ruled
                             && self.with_state(|s| s.active_space != *space)
@@ -288,16 +294,20 @@ impl EngineDelegate for MagnetiteApp {
                         }
                         let tab = self.open_url_from(engine, &url, background, source, context);
                         if opens == NewTabLinks::Load
-                            && let Some(tab) = tab
+                            && let Some(tab) = &tab
                         {
-                            self.load_out_of_sight(engine, &tab);
+                            self.load_out_of_sight(engine, tab);
                         }
+                        // Asked for in front is not always shown: a tab of
+                        // the hidden private space stays behind.
+                        tab.is_some_and(|t| self.with_state(|s| s.active_tab_id() == Some(&t)))
                     }
-                }
+                };
                 // A link from another app, or what a mini window's page
-                // opened, is in the main window: it comes to the front.
+                // opened, is in the main window: it comes to the front when
+                // it is shown there.
                 let outside = source == url_policy::Source::OtherApp || from_mini;
-                if outside && target != Target::Mini && !background {
+                if outside && in_front {
                     engine.activate_frame();
                 }
             }

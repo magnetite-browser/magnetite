@@ -692,9 +692,10 @@ impl MagnetiteApp {
         }
     }
 
-    /// Give tab `id`, opened in the background, its page now, out of sight,
-    /// as "Load pinned tabs at start" does (Settings → Links: a page's links
-    /// opened in a new tab load at once). A tab with a page keeps it.
+    /// Give tab `id`, opened in the background, its page now, out of sight
+    /// (Settings → Links: a page's links opened in a new tab load at once).
+    /// Each loads as it is opened, not queued as the loads at start are. A
+    /// tab with a page keeps it.
     pub(super) fn load_out_of_sight(&self, engine: &Engine, id: &str) {
         if self.content_of(id).is_none() {
             self.page_of(engine, id);
