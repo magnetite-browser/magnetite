@@ -117,6 +117,19 @@ Settings.
   pop-up window (Bitwarden's passkey window) opens as a small window of its
   own, as in other browsers.
 
+## Checked extensions
+
+Tried by hand:
+
+| Extension | Its job | macOS (Apple silicon) | Linux (x86_64) | Windows (x86_64) |
+|---|---|---|---|---|
+| Bitwarden | Password manager: its popup fills a saved login | yes | not checked | yes |
+| uBlock Origin Lite | Blocker on `declarativeNetRequest` | blocks (adblock-tester.com: 100 of 100, 46 without it) | not checked | not checked |
+| Dark Reader | Changes pages: its popup acts on the page in front, also after a tab switch | yes | yes | not checked |
+
+On macOS on Intel and Linux on arm64, which use the official CEF, Dark
+Reader is given the wrong page (see Limits).
+
 ## Pinning
 
 - Nothing is pinned until you pin it.
@@ -208,8 +221,7 @@ Settings.
 - With no page open, `chrome.tabs.create` fails ("No current window") and
   opens nothing.
 - `chrome.tabs.create` ignores `index` and `pinned`: the tab goes where
-  Magnetite puts new tabs. With the official CEF (systems Magnetite's own
-  CEF build is not made for) such a tab still loads again under another id.
+  Magnetite puts new tabs.
 - A tab an extension closes with `chrome.tabs.remove` stays in the sidebar
   without its page, as a tab does whose page closed itself; it loads again
   when chosen.
@@ -217,23 +229,23 @@ Settings.
   Magnetite's layout. On Linux an extension's own page in a normal window
   stays a window too: an options page meant to open in a tab,
   `chrome.windows.create({type: "normal"})`.
-- The page in front is the window focused last only with Magnetite's CEF
-  (`extension-last-active.patch` in magnetite-cef). Without it Chromium
-  counts every page as active whenever the main window is: on macOS all
-  pages turn active one after the other as a popup opens, on Linux each
-  page only once, and an extension is given another page than the one in
-  front, or an internal page, which Dark Reader shows as `about:`.
-- With the official CEF (macOS on Intel, Linux on arm64) Chromium refuses
-  Manifest V2 extensions and switches off the ones installed, and "Keep
-  unpacked extensions on when Developer mode is off" has no effect.
+- macOS on Intel and Linux on arm64 use the official CEF, without
+  Magnetite's patches (magnetite-cef). There:
+  - An extension is not told the page in front: Dark Reader shows
+    `about:` or `about:blank` instead. Without
+    `extension-last-active.patch` Chromium counts every page as active
+    whenever the main window is (on macOS all pages turn active one after
+    the other as a popup opens, on Linux each page only once), and it calls
+    every page's window a pop-up window, so an extension that looks for
+    the tab in front among normal windows finds none.
+  - A tab from `chrome.tabs.create` loads again under another id.
+  - Chromium refuses Manifest V2 extensions and switches off the ones
+    installed, and "Keep unpacked extensions on when Developer mode is
+    off" has no effect.
 - Manifest V2 extensions were tried on macOS on Apple silicon only.
 - A `page_action` is off on a page until its extension shows it there.
   Opening such an extension then shows Chromium's menu for it instead of
   a popup, as Chrome does.
-- With the official CEF (macOS on Intel, Linux on arm64) Chromium calls
-  every page's window a pop-up window, so an extension that looks for the
-  tab in front among normal windows (Dark Reader) finds none and takes the
-  page for `about:blank`.
 - Without the DevTools pipe (on Linux and macOS, file descriptors 3 and 4
   taken at start) the buttons and menu entries open nothing.
 - On a page WebView2 shows on Windows the buttons open nothing: it has no
