@@ -364,7 +364,7 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
           );
         })}
         {undeleted && <p className="set-row set-hint" role="alert" style={{ marginTop: 0, color: "var(--danger)" }}>That profile was not deleted: {undeleted}.</p>}
-        <Field label="A new profile" hint="It starts empty: nothing is signed in. Give it to a space on that space's page, or to a favorite below.">
+        <Field label="A new profile" hint="It starts empty: nothing is signed in. Give it to a space when adding the space or on its page, or to a favorite below.">
           <div className="flex gap-2">
             <input className="field" style={{ maxWidth: 280 }} placeholder="Name" aria-label="Name of the new profile" value={profile} onChange={(e) => setProfile(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addProfile()} />
             <button className="btn" disabled={!profile.trim()} onClick={addProfile}>Add profile</button>

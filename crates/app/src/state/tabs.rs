@@ -9,8 +9,8 @@ use magnetite_engine::{ContentId, MemoryPressure};
 use super::settings::{MAX_ARCHIVE_DAYS, NEVER_ARCHIVE};
 use super::{AppState, ArchivedTab, Peek, TabRuntime, new_id, now};
 
-/// The profile a new space runs in, when it is not the default one
-/// (`AppState::new_space`): `{"id": …}`, `{"new": name}` or `"private"`.
+/// The profile a new space runs in (`AppState::new_space`; without one, the
+/// default profile): `{"id": …}`, `{"new": name}` or `"private"`.
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SpaceProfile {
@@ -617,10 +617,11 @@ impl AppState {
         content
     }
 
-    /// Add a space after the others, with the star icon (unless `icon`
-    /// names another glyph) and a violet colour, running in `profile`
-    /// (`None`: the default profile). Returns its id, or why it was not
-    /// added: the profile chosen is gone, or is one of the private space's.
+    /// Add a space after the others (before the private space, which stays
+    /// last while it is open), with the star icon (unless `icon` names
+    /// another glyph) and a violet colour, running in `profile` (`None`: the
+    /// default profile). Returns its id, or why it was not added: the
+    /// profile chosen is gone, or is one of the private space's.
     pub fn new_space(
         &mut self,
         title: &str,
@@ -646,7 +647,7 @@ impl AppState {
             Some(SpaceProfile::Private) => self.add_profile(&format!("{title} (private)"), true),
         };
         let id = new_id();
-        self.sidebar.spaces.push(Space {
+        let space = Space {
             id: id.clone(),
             title: title.into(),
             icon: icon.or_else(|| Some("✦".into())),
@@ -661,7 +662,11 @@ impl AppState {
             pinned: vec![],
             today: vec![],
             bookmarks: vec![],
-        });
+        };
+        let spaces = &self.sidebar.spaces;
+        let at = spaces.iter().position(|sp| self.is_private_space(&sp.id));
+        let at = at.unwrap_or(spaces.len());
+        self.sidebar.spaces.insert(at, space);
         Ok(id)
     }
 
@@ -1210,6 +1215,18 @@ mod tests {
             s.sidebar.spaces.len(),
             spaces + 1,
             "only the private space came"
+        );
+    }
+
+    #[test]
+    fn the_private_space_stays_last_when_a_space_is_added() {
+        let mut s = state();
+        let private_space = s.open_private_space();
+        let work = s.new_space("Work", None, None).unwrap();
+        let order: Vec<&str> = s.sidebar.spaces.iter().map(|sp| sp.id.as_str()).collect();
+        assert_eq!(
+            order[order.len() - 2..],
+            [work.as_str(), private_space.as_str()]
         );
     }
 }
