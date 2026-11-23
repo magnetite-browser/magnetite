@@ -290,6 +290,7 @@ has stored something.
 | Requested permissions | memory | the tab leaves the site or closes |
 | Origins seen | memory | Magnetite quits |
 | Last capture (PNG) | memory | replaced, dismissed, or Magnetite quits |
+| What Magnetite copied last, on Linux (there the program that copied hands it to the one that pastes) | memory | the next copy in any program, or Magnetite quits (a clipboard manager of the desktop may keep it after that) |
 | Tracker removal, DevTools dock and size | `state.json` | changed |
 | Sites that get the shortcuts' keys first (`settings.shortcut_sites`) | `state.json`, and the synced settings | changed |
 | Own CSS and JavaScript per site (`settings.site_code`) | `state.json` | changed |
@@ -313,6 +314,6 @@ has stored something.
 Code: `crates/ui/web/src` (`AddressRow.tsx`, `SitePanel.tsx`,
 `Capture*.tsx`), `crates/core/src/links.rs`, `crates/app/src` (`app/site.rs`,
 `app/screenshots.rs`, `capture.rs`), `crates/engine/src` (`site.rs`, `sitedata.rs`, `capture.rs`,
-`devdock.rs`, `device.rs`, `devtools_menu.js`, `devtools.rs`, `keys.rs`,
+`clipboard.rs` (Linux), `devdock.rs`, `device.rs`, `devtools_menu.js`, `devtools.rs`, `keys.rs`,
 `sitecode.rs`), `crates/ui/web/src/settings/SiteCodeSection.tsx`,
 `crates/ui/web/src/DeviceBar.tsx`.

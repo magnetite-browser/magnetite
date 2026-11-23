@@ -31,6 +31,12 @@ psl = "2"
 # requests on its IO thread while the app compiles lists on another.
 adblock = { version = "0.13", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling"] }
 
+# The system clipboard on Linux, X11 and Wayland (`clipboard.rs`). It takes
+# images as pixels: `image` decodes the PNGs we copy.
+[target.'cfg(target_os = "linux")'.dependencies]
+arboard = { version = "3.7", default-features = false, features = ["image-data", "wayland-data-control"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 block2 = "0.6"

@@ -98,8 +98,8 @@ impl Engine {
         return (self.frame_window()).is_some_and(|frame| {
             crate::win::copy_png(cef::ImplWindow::window_handle(&frame), png)
         });
-        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-        false
+        #[cfg(target_os = "linux")]
+        return crate::clipboard::copy_png(png);
     }
 
     /// System share menu for a PNG at a point of the frame window.

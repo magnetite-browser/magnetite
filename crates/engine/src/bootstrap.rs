@@ -121,6 +121,8 @@ pub fn run(config: EngineConfig, delegate: Arc<dyn EngineDelegate>) -> i32 {
     let _app_delegate = crate::mac::setup_app_delegate();
 
     run_message_loop();
+    #[cfg(target_os = "linux")]
+    crate::clipboard::hand_over();
     shutdown();
     0
 }

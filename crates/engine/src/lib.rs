@@ -26,6 +26,8 @@ mod caption;
 mod capture;
 mod cef_app;
 mod client;
+#[cfg(target_os = "linux")]
+mod clipboard;
 mod config;
 mod content;
 mod default_browser;
