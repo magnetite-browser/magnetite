@@ -26,7 +26,8 @@ and has four named groups after them:
 A section's name has no "&": "Tabs and archive".
 
 - **General** has what belongs to no feature of its own: windows (several
-  windows, web panels, playing videos), where downloads are saved, spell
+  windows, the private space's own window, web panels, playing videos),
+  where downloads are saved, spell
   check and the languages websites are asked for, the quick search from
   anywhere and the welcome page.
 - **Links** has what happens to a link from another app (the default

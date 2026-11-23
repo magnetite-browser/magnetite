@@ -224,6 +224,7 @@ export function SettingsPage() {
         <>
           <Group title="Windows">
           <Toggle label="Several windows" hint="New Window opens another window on the same sidebar; choosing a tab in one window moves it there. Windows open again after a restart. New, and untested on macOS and Windows." checked={settings.several_windows} onChange={(v) => update({ several_windows: v })} />
+          {settings.several_windows && <Toggle label="Private space in its own window" hint="The private space opens in a new window that shows it alone, instead of in the sidebar of the window you open it from. Closing that window closes the private space." checked={settings.private_window} onChange={(v) => update({ private_window: v })} />}
           <Toggle label="Web panels close by themselves" hint="A web panel (a favorite with &quot;Open as panel&quot;) closes when you click into the page behind it. Off: it stays until you close it." checked={settings.panel_autoclose} onChange={(v) => update({ panel_autoclose: v })} />
           <Toggle label="Pop out playing videos" hint="When you leave a tab with a playing video, it continues in a floating picture-in-picture window. Coming back puts it into the page again." checked={settings.auto_pip} onChange={(v) => update({ auto_pip: v })} />
           </Group>

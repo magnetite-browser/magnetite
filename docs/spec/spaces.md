@@ -238,6 +238,23 @@ it is the last of the spaces while it is open.
   space before it takes over.
   Quitting Magnetite closes it too: the next start goes on in the space
   before it.
+- **Several windows** (Settings → General): one window lists the private
+  space, the one it was opened in. The other windows do not show it, its
+  tabs, or its entries in the command bar. Opening it from another window
+  moves it into that window's sidebar, and the window it was in goes on in
+  the space before it. Closing the window it is in closes it, unless that
+  is the last window on macOS, which only goes out of sight. A new window
+  opened from it starts in the space before it.
+- **Its own window**: with Settings → General → "Private space in its own
+  window" (shown while several windows are on), opening the private space
+  opens a new window that lists it alone. Opening it again brings that
+  window to the front. A space chosen in it (a new space, its keys) shows
+  in another window, a new one if there is none, and so does a link from
+  another app. Hiding the space takes the window out of sight, and brings
+  another window to the front, a new one if there is none. Closing the
+  window closes the space, also as the last window, and closing the space
+  closes the window, unless it is the last one. The window does not open
+  again after a restart.
 
 A space can be kept on one device (Settings → Sync, "Only on this
 device"). A separate profile that only such spaces use stays there with

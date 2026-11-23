@@ -73,13 +73,14 @@ impl AppState {
     }
 
     /// A new window `win`, which is the current one from here on: the same
-    /// space in front, no tab yet.
+    /// space in front, no tab yet; the space beside it for the private
+    /// space, which stays in the window it is listed in.
     pub fn open_window(&mut self, win: WindowId) {
         if win == self.window || self.views.contains_key(&win) {
             return;
         }
         let mut view = View {
-            active_space: self.active_space.clone(),
+            active_space: self.lasting_space(&self.active_space),
             active_tab: HashMap::new(),
             peek: None,
             web_panel: None,
@@ -110,17 +111,29 @@ impl AppState {
         ids
     }
 
-    /// The other windows, for saving, with those not opened again yet.
-    pub(super) fn saved_windows(&self) -> Vec<SavedWindow> {
-        let mut ids: Vec<&WindowId> = self.views.keys().collect();
+    /// The windows as `state.json` keeps them: the one the next start
+    /// begins with, which is the current one, and the others, with those
+    /// not opened again yet. The private space's window of its own is not
+    /// among them, as it ends with the run: if it is the current one, the
+    /// first other window begins the next start.
+    pub(super) fn lasting_windows(&self) -> (SavedWindow, Vec<SavedWindow>) {
+        let saved = |active_space: &Id, active_tab: &HashMap<Id, Id>| SavedWindow {
+            active_space: self.lasting_space(active_space),
+            active_tab: active_tab.clone(),
+        };
+        let own = self.private_window();
+        let mut ids: Vec<&WindowId> = (self.views.keys()).filter(|id| Some(**id) != own).collect();
         ids.sort_unstable();
-        (ids.into_iter().map(|id| &self.views[id]))
-            .map(|v| SavedWindow {
-                active_space: self.lasting_space(&v.active_space),
-                active_tab: v.active_tab.clone(),
-            })
-            .chain(self.reopen.iter().cloned())
-            .collect()
+        let mut others: Vec<SavedWindow> = (ids.into_iter().map(|id| &self.views[id]))
+            .map(|v| saved(&v.active_space, &v.active_tab))
+            .collect();
+        let first = if own == Some(self.window) && !others.is_empty() {
+            others.remove(0)
+        } else {
+            saved(&self.active_space, &self.active_tab)
+        };
+        others.extend(self.reopen.iter().cloned());
+        (first, others)
     }
 
     /// Window `win`, just made, shows what `saved` showed. It is the

@@ -87,6 +87,10 @@ pub struct Settings {
     /// Several windows on one sidebar (New Window, ⌘N; `state/windows.rs`).
     /// Off unless turned on: it is new, and untested on macOS and Windows.
     pub several_windows: bool,
+    /// With several windows, the private space opens in a window of its
+    /// own rather than in the sidebar of the window it is opened from
+    /// (`state/private.rs`). This device's own choice, never synced.
+    pub private_window: bool,
     /// Remove tracking parameters (utm_*, fbclid, …) when copying links.
     pub strip_trackers: bool,
     /// A web panel closes by itself when a page behind it is used
@@ -901,6 +905,7 @@ impl Default for Settings {
             appearance: Appearance::default(),
             auto_pip: true,
             several_windows: false,
+            private_window: false,
             strip_trackers: true,
             panel_autoclose: false,
             load_pinned_at_start: false,

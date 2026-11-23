@@ -5,11 +5,26 @@
 //! tab stays in that tab's profile (a sign-in window has to). Closing the
 //! space closes its tabs; a profile goes once nothing runs in it. Hidden,
 //! it stays open but is listed nowhere until it is opened again.
+//!
+//! With several windows, one window lists it, its home: in its sidebar
+//! beside the other spaces, which moves it to whichever window goes to it,
+//! or in a window of its own that lists nothing else (`private_alone`).
 
 use magnetite_core::{Color, Id, Profile, SidebarNode, Space};
-use magnetite_engine::ContentId;
+use magnetite_engine::{ContentId, WindowId};
 
 use super::{AppState, new_id};
+
+/// Where a space is to be shown, as `AppState::window_for_space` finds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShowIn {
+    /// In the current window.
+    Here,
+    /// In this other window.
+    Window(WindowId),
+    /// In a new window: there is no other one that may show it.
+    NewWindow,
+}
 
 impl AppState {
     pub fn is_private_space(&self, id: &str) -> bool {
@@ -34,24 +49,79 @@ impl AppState {
             .filter(|_| !self.private_hidden)
     }
 
-    /// The spaces that are listed and can be gone to: all but a hidden
-    /// private space.
+    /// Whether the current window lists space `id`: the private space only
+    /// in its home window and not while it is hidden, and a home window of
+    /// its own nothing else.
+    pub fn lists_space(&self, id: &str) -> bool {
+        let home = self.private_space.is_some() && self.window == self.private_home;
+        if self.is_private_space(id) {
+            home && !self.private_hidden
+        } else {
+            !(home && self.private_alone)
+        }
+    }
+
+    /// The spaces the current window lists and can go to (`lists_space`).
     pub fn listed_spaces(&self) -> impl Iterator<Item = &Space> {
-        (self.sidebar.spaces.iter()).filter(|sp| !self.is_hidden_space(&sp.id))
+        (self.sidebar.spaces.iter()).filter(|sp| self.lists_space(&sp.id))
+    }
+
+    /// The private space's window of its own, while there is one.
+    pub fn private_window(&self) -> Option<WindowId> {
+        (self.private_space.is_some() && self.private_alone).then_some(self.private_home)
+    }
+
+    /// Whether window `win` is the one the private space is listed in.
+    pub fn is_private_home(&self, win: WindowId) -> bool {
+        self.private_space.is_some() && self.private_home == win
+    }
+
+    /// Where space `id` is to be shown: with the private space in a window
+    /// of its own, that space only there and every other space only in
+    /// another window, the first one; anywhere else in the current window.
+    pub fn window_for_space(&self, id: &str) -> ShowIn {
+        let Some(own) = self.private_window() else {
+            return ShowIn::Here;
+        };
+        match (self.is_private_space(id), self.window == own) {
+            (true, true) | (false, false) => ShowIn::Here,
+            (true, false) => ShowIn::Window(own),
+            (false, true) => {
+                (self.views.keys().min().copied()).map_or(ShowIn::NewWindow, ShowIn::Window)
+            }
+        }
+    }
+
+    /// The current window goes to space `id`. If that is the private space
+    /// in another window's sidebar, it moves to this window's, and that
+    /// window goes on in the space beside it: returns that window if it
+    /// showed the private space. One in a window of its own stays there:
+    /// the caller goes to that window (`window_for_space`).
+    pub fn take_private_space(&mut self, id: &str) -> Option<WindowId> {
+        if !self.is_private_space(id) || self.private_alone || self.private_home == self.window {
+            return None;
+        }
+        let before = self.beside_private(id);
+        let from = std::mem::replace(&mut self.private_home, self.window);
+        let view = self.views.get_mut(&from).filter(|v| v.active_space == id)?;
+        view.active_space = before;
+        Some(from)
     }
 
     /// Hide the private space: it stays open with its pages, but no list
     /// names it or its tabs, and a window that showed it goes on in the
-    /// space before it. Opening the private space shows it again. Returns
-    /// the pages of its tabs, to silence; `None` if there is no private
-    /// space to hide.
+    /// space before it; a window of its own keeps it, and the caller takes
+    /// that window out of sight. Opening the private space shows it again.
+    /// Returns the pages of its tabs, to silence; `None` if there is no
+    /// private space to hide.
     pub fn hide_private_space(&mut self) -> Option<Vec<ContentId>> {
         let id = self.shown_private_space()?.to_string();
         self.private_hidden = true;
         let before = self.beside_private(&id);
-        let shown = std::iter::once(&mut self.active_space)
-            .chain(self.views.values_mut().map(|v| &mut v.active_space));
-        for space in shown.filter(|space| **space == id) {
+        let own = self.private_window();
+        let shown = std::iter::once((self.window, &mut self.active_space))
+            .chain((self.views.iter_mut()).map(|(win, v)| (*win, &mut v.active_space)));
+        for (_, space) in shown.filter(|(win, space)| **space == id && Some(*win) != own) {
             space.clone_from(&before);
         }
         // A playing page is paused by the caller; as paused it is not
@@ -72,8 +142,9 @@ impl AppState {
     }
 
     /// The private space, opened if there is none yet: the last of the
-    /// spaces, empty; shown again if it was hidden. Returns its id.
-    pub fn open_private_space(&mut self) -> Id {
+    /// spaces, empty, listed in the current window, which it has to itself
+    /// if `alone`. Shown again if it was hidden. Returns its id.
+    pub fn open_private_space(&mut self, alone: bool) -> Id {
         self.private_hidden = false;
         if let Some(id) = &self.private_space {
             return id.clone();
@@ -100,6 +171,8 @@ impl AppState {
             bookmarks: vec![],
         });
         self.private_space = Some(id.clone());
+        self.private_home = self.window;
+        self.private_alone = alone;
         id
     }
 
@@ -124,6 +197,7 @@ impl AppState {
             return vec![];
         };
         self.private_hidden = false;
+        self.private_alone = false;
         let before = self.beside_private(&id);
         let spaces = &self.sidebar.spaces;
         let at = spaces.iter().position(|sp| sp.id == id).unwrap_or(0);
@@ -214,15 +288,101 @@ impl AppState {
 
 #[cfg(test)]
 mod tests {
+    use super::ShowIn;
     use crate::state::testing::state;
     use crate::state::{Peek, TabRuntime};
 
     #[test]
+    fn a_private_space_in_a_sidebar_is_listed_in_one_window_and_moves_to_the_one_going_to_it() {
+        let mut s = state();
+        let first = s.active_space.clone();
+        s.open_window(2);
+        let private = s.open_private_space(false);
+        s.new_today_tab(&private, "https://example.org/secret", "secret");
+        s.active_space.clone_from(&private);
+        assert!(s.listed_spaces().any(|sp| sp.id == private));
+        assert_eq!(s.ui_state(&[]).private_space, Some(private.as_str()));
+
+        // The other window does not show that it is there.
+        s.enter(1);
+        assert!(s.listed_spaces().all(|sp| sp.id != private));
+        let ui = serde_json::to_value(s.ui_state(&[])).unwrap();
+        assert!(ui["private_space"].is_null());
+        assert!(!ui["sidebar"].to_string().contains("secret"));
+        assert_eq!(s.search("secret").len(), 0);
+        assert_eq!(s.window_for_space(&private), ShowIn::Here);
+
+        // Going to it there moves it over; the window it was in goes on
+        // in the space beside it.
+        assert_eq!(s.take_private_space(&private), Some(2));
+        assert!(s.listed_spaces().any(|sp| sp.id == private));
+        s.enter(2);
+        assert_eq!(s.active_space, first);
+        assert!(s.listed_spaces().all(|sp| sp.id != private));
+        // A new window from here starts beside it too.
+        s.enter(1);
+        s.active_space.clone_from(&private);
+        s.open_window(3);
+        assert_eq!(s.active_space, first);
+    }
+
+    #[test]
+    fn a_private_space_in_its_own_window_shows_only_there_and_is_not_saved_with_it() {
+        let mut s = state();
+        let first = s.active_space.clone();
+        s.open_window(2);
+        let private = s.open_private_space(true);
+        s.active_space.clone_from(&private);
+        let listed = |s: &super::AppState| {
+            s.listed_spaces()
+                .map(|sp| sp.id.clone())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(listed(&s), std::slice::from_ref(&private));
+        assert_eq!(s.window_for_space(&private), ShowIn::Here);
+        assert_eq!(s.window_for_space(&first), ShowIn::Window(1));
+        // It stays in its window, wherever it is gone to from.
+        s.enter(1);
+        assert!(!listed(&s).contains(&private));
+        assert_eq!(s.window_for_space(&private), ShowIn::Window(2));
+        assert_eq!(s.take_private_space(&private), None);
+
+        // The next start begins with the other window, and has no other.
+        s.enter(2);
+        let saved = serde_json::to_value(s.saved_form()).unwrap();
+        assert_eq!(saved["active_space"], first.as_str());
+        assert_eq!(saved["windows"], serde_json::json!([]));
+
+        // Hidden, it keeps the space in front: the window goes out of sight.
+        assert!(s.hide_private_space().is_some());
+        assert_eq!(s.active_space, private);
+        assert_eq!(listed(&s), [] as [String; 0]);
+
+        // Closed, its window is a window like any other.
+        s.close_private_space();
+        assert_eq!(s.private_window(), None);
+        assert_eq!(s.window_for_space(&first), ShowIn::Here);
+        assert_eq!(listed(&s).len(), s.sidebar.spaces.len());
+    }
+
+    #[test]
+    fn the_private_spaces_own_window_as_the_only_one_asks_for_a_new_window() {
+        let mut s = state();
+        let first = s.active_space.clone();
+        let private = s.open_private_space(true);
+        s.active_space.clone_from(&private);
+        assert_eq!(s.window_for_space(&first), ShowIn::NewWindow);
+        // Saved as the window the next start begins with, beside it.
+        let saved = serde_json::to_value(s.saved_form()).unwrap();
+        assert_eq!(saved["active_space"], first.as_str());
+    }
+
+    #[test]
     fn every_private_tab_runs_in_an_in_memory_profile_of_its_own() {
         let mut s = state();
-        let private = s.open_private_space();
+        let private = s.open_private_space(false);
         assert_eq!(
-            s.open_private_space(),
+            s.open_private_space(false),
             private,
             "there is one private space"
         );
@@ -247,7 +407,7 @@ mod tests {
         let mut s = state();
         let first = s.active_space.clone();
         assert_eq!(s.hide_private_space(), None, "nothing to hide");
-        let private = s.open_private_space();
+        let private = s.open_private_space(false);
         let tab = s.new_today_tab(&private, "https://example.org/secret", "secret");
         let runtime = s.runtime.entry(tab.clone()).or_default();
         runtime.content = Some(7);
@@ -273,7 +433,7 @@ mod tests {
         assert_eq!(s.release_private_profiles(), [] as [String; 0]);
         assert_eq!(s.hide_private_space(), None, "hidden already");
 
-        assert_eq!(s.open_private_space(), private);
+        assert_eq!(s.open_private_space(false), private);
         assert!(s.listed_spaces().any(|sp| sp.id == private));
         assert_eq!(s.ui_state(&[]).private_space, Some(private.as_str()));
         assert_eq!(s.search("secret").len(), 1);
@@ -283,7 +443,7 @@ mod tests {
     fn nothing_of_the_private_space_is_saved_or_synced() {
         let mut s = state();
         let first = s.active_space.clone();
-        let private = s.open_private_space();
+        let private = s.open_private_space(false);
         let tab = s.new_today_tab(&private, "https://example.org/secret", "secret");
         s.active_space.clone_from(&private);
         s.runtime.insert(
@@ -309,7 +469,7 @@ mod tests {
         let mut s = state();
         let first = s.active_space.clone();
         let profiles = s.sidebar.profiles.len();
-        let private = s.open_private_space();
+        let private = s.open_private_space(false);
         let one = s.new_today_tab(&private, "https://example.org/1", "1");
         let two = s.new_today_tab(&private, "https://example.org/2", "2");
         s.active_space.clone_from(&private);
@@ -348,7 +508,7 @@ mod tests {
     #[test]
     fn a_sidebar_from_sync_leaves_the_private_space_as_it_is() {
         let mut s = state();
-        let private = s.open_private_space();
+        let private = s.open_private_space(false);
         let tab = s.new_today_tab(&private, "https://example.org/1", "1");
         let profile = s.profile_for_tab(&tab).unwrap();
         s.prune_private_profiles();
@@ -364,7 +524,7 @@ mod tests {
     #[test]
     fn the_private_space_closes_also_as_the_first_space_and_is_no_reason_to_delete_the_last() {
         let mut s = state();
-        let private = s.open_private_space();
+        let private = s.open_private_space(false);
         // The only other spaces go behind it.
         s.move_space(&private, 0);
         let second = s.sidebar.spaces[1].id.clone();
@@ -379,7 +539,7 @@ mod tests {
             s.delete_space(&last);
         }
         let only = s.sidebar.spaces[0].id.clone();
-        s.open_private_space();
+        s.open_private_space(false);
         s.delete_space(&only);
         assert_eq!(s.sidebar.spaces[0].id, only);
     }
@@ -389,7 +549,7 @@ mod tests {
         let mut s = state();
         let first = s.active_space.clone();
         let plain = s.active_space().profile_id.clone();
-        let private = s.open_private_space();
+        let private = s.open_private_space(false);
         let tab = s.new_today_tab(&private, "https://example.org/1", "1");
         let of_tab = s.profile_for_tab(&tab).unwrap();
         let url = "https://example.org/opened";
@@ -429,7 +589,7 @@ mod tests {
         let mut s = state();
         let first = s.active_space.clone();
         let plain = s.active_space().profile_id.clone();
-        let private = s.open_private_space();
+        let private = s.open_private_space(false);
         let tab = s.new_today_tab(&private, "https://example.org/1", "1");
         let of_tab = s.profile_for_tab(&tab).unwrap();
         let page = |content, profile: &str| Peek {

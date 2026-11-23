@@ -931,7 +931,7 @@ mod tests {
             ..s.sidebar.spaces[0].clone()
         });
         s.set_space_synced(&local, false);
-        let private = s.open_private_space();
+        let private = s.open_private_space(false);
         let gone: Id = "gone".into();
 
         // Named or in front, a space kept here or the private one is passed over.

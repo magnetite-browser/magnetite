@@ -1205,7 +1205,7 @@ mod tests {
         let spaces = s.sidebar.spaces.len();
         let gone = SpaceProfile::Id("gone".into());
         assert!(s.new_space("Work", None, Some(gone)).is_err());
-        let private_space = s.open_private_space();
+        let private_space = s.open_private_space(false);
         let theirs = s.space(&private_space).unwrap().profile_id.clone();
         assert!(
             s.new_space("Work", None, Some(SpaceProfile::Id(theirs)))
@@ -1221,7 +1221,7 @@ mod tests {
     #[test]
     fn the_private_space_stays_last_when_a_space_is_added() {
         let mut s = state();
-        let private_space = s.open_private_space();
+        let private_space = s.open_private_space(false);
         let work = s.new_space("Work", None, None).unwrap();
         let order: Vec<&str> = s.sidebar.spaces.iter().map(|sp| sp.id.as_str()).collect();
         assert_eq!(

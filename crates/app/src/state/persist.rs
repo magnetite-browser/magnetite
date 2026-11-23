@@ -219,6 +219,8 @@ impl AppState {
             deleted_profiles,
             private_space: None,
             private_hidden: false,
+            private_home: 1,
+            private_alone: false,
             private_profiles: BTreeSet::new(),
             unsynced_spaces,
             first_start,
@@ -327,10 +329,11 @@ impl AppState {
             .filter(|(id, _)| saved.contains(id))
             .filter_map(|(id, r)| r.favicon.clone().map(|f| (id.clone(), f)))
             .collect();
+        let (first, windows) = self.lasting_windows();
         Persisted {
             sidebar,
-            active_space: self.lasting_space(&self.active_space),
-            active_tab: self.active_tab.clone(),
+            active_space: first.active_space,
+            active_tab: first.active_tab,
             archive: self.archive.clone(),
             favicons,
             splits: self.splits.clone(),
@@ -338,7 +341,7 @@ impl AppState {
             downloads: self.downloads.lasting(),
             deleted_profiles: self.deleted_profiles.clone(),
             unsynced_spaces: self.unsynced_spaces.clone(),
-            windows: self.saved_windows(),
+            windows,
         }
     }
 }

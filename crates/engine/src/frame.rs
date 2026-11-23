@@ -654,6 +654,15 @@ impl Engine {
         self.lock().frame_hidden
     }
 
+    /// Take the current window out of sight without closing it, with its
+    /// pages, until `show_frame`: the private space's window of its own,
+    /// hidden with the space.
+    pub fn hide_window(&self) {
+        if let Some(w) = self.frame_window() {
+            w.hide();
+        }
+    }
+
     /// Show the frame window, also after its close hid it (`hide_frame`).
     pub fn show_frame(&self) {
         self.lock().frame_hidden = false;

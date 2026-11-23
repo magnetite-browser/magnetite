@@ -8,12 +8,14 @@ use magnetite_engine::{Combo, KeysError};
 use super::AppState;
 
 impl AppState {
-    /// The spaces whose own keys count, each with them. Keys that cannot
-    /// be a shortcut do not count (they may come from another device), nor
-    /// keys an action has, nor those an earlier space has.
+    /// The spaces whose own keys count, each with them, in every window:
+    /// a space another window lists is gone to there (`window_for_space`).
+    /// Keys that cannot be a shortcut do not count (they may come from
+    /// another device), nor keys an action has, nor those an earlier space
+    /// has. The private space has none.
     pub fn space_keys(&self) -> Vec<(&Space, Combo)> {
         let mut found: Vec<(&Space, Combo)> = Vec::new();
-        for space in self.listed_spaces() {
+        for space in (self.sidebar.spaces.iter()).filter(|sp| !self.is_private_space(&sp.id)) {
             let combo = (space.shortcut.as_deref())
                 .and_then(|keys| keys.parse::<Combo>().ok())
                 .map(Combo::here)

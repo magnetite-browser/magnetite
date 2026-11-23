@@ -442,10 +442,17 @@ impl EngineDelegate for MagnetiteApp {
                 engine.quit();
             }
             // Nothing closed, but a quit may never come: save as for one.
-            EngineEvent::FrameHidden => self.with_state(|s| {
-                s.persist();
-                s.history.save();
-            }),
+            // The private space's window of its own was the last one: the
+            // private space ends with it, as with any other close.
+            EngineEvent::FrameHidden => {
+                if self.with_state(|s| s.private_window() == Some(s.window)) {
+                    self.close_private_space(engine);
+                }
+                self.with_state(|s| {
+                    s.persist();
+                    s.history.save();
+                });
+            }
             EngineEvent::MemoryPressure(level) => self.unload_under_pressure(engine, level),
             EngineEvent::Tick => {
                 // Installed or removed extensions show up in the sidebar.

@@ -356,6 +356,8 @@ export interface Settings {
   appearance: Appearance;
   auto_pip: boolean;
   several_windows: boolean;
+  /** With several windows, the private space opens in a window of its own; this device's own choice. */
+  private_window: boolean;
   strip_trackers: boolean;
   /** A web panel closes by itself when a page behind it is used. */
   panel_autoclose: boolean;

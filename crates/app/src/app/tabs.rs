@@ -4,7 +4,7 @@
 use magnetite_core::sidebar::Section;
 use magnetite_engine::{ContentId, Engine, MemoryPressure, host_of};
 
-use crate::state::{AppState, TabOrder, folder_in_tree_mut, now};
+use crate::state::{AppState, ShowIn, TabOrder, folder_in_tree_mut, now};
 use crate::{lock, trace, url_policy};
 
 use super::{DOWNLOADS_URL, MagnetiteApp, WELCOME_URL, global};
@@ -187,6 +187,8 @@ impl MagnetiteApp {
             trace(|| format!("activate_tab {tab_id}: not found"));
             return;
         };
+        self.go_to_window_for(engine, &space_id);
+        let left = self.with_state(|s| s.take_private_space(&space_id));
 
         let switching = self.with_state(|s| {
             // A tab of the hidden private space is gone to only by the
@@ -209,6 +211,36 @@ impl MagnetiteApp {
             engine.close_overlay();
         }
         self.present(engine);
+        self.show_space_again(engine, left);
+    }
+
+    /// Go to the window that may show space `space` (`window_for_space`),
+    /// brought to the front, unless it is the current one: with the private
+    /// space in a window of its own, that space shows only there and every
+    /// other one only in another window, a new one if there is none.
+    fn go_to_window_for(&self, engine: &Engine, space: &str) {
+        match self.with_state(|s| s.window_for_space(space)) {
+            ShowIn::Here => {}
+            ShowIn::Window(win) => {
+                engine.enter(win);
+                // Hidden with the private space (`hide_private_space`).
+                engine.show_frame();
+                engine.activate_frame();
+            }
+            ShowIn::NewWindow => self.new_window(engine),
+        }
+    }
+
+    /// Window `win`, if any, shows the space now in front of it: the
+    /// private space left it, for another window or for good.
+    fn show_space_again(&self, engine: &Engine, win: Option<magnetite_engine::WindowId>) {
+        let show = || {
+            let space = self.with_state(|s| s.active_space.clone());
+            self.activate_space(engine, &space);
+        };
+        if let Some(win) = win {
+            engine.in_window(win, show);
+        }
     }
 
     /// One press of `Ctrl+Tab` or `Ctrl+Shift+Tab` in the order Settings
@@ -462,6 +494,8 @@ impl MagnetiteApp {
     }
 
     pub(super) fn activate_space(&self, engine: &Engine, space_id: &str) {
+        self.go_to_window_for(engine, space_id);
+        let left = self.with_state(|s| s.take_private_space(space_id));
         let switched = self.with_state(|s| {
             // A stale id (a space just deleted or replaced by sync) changes
             // nothing: the active space must always exist.
@@ -486,31 +520,50 @@ impl MagnetiteApp {
             }
             None => {}
         }
+        self.show_space_again(engine, left);
     }
 
-    /// Open the private space, or go to it if it is open.
+    /// Open the private space, or go to it if it is open: in the sidebar
+    /// of the current window, or with several windows and "Private space
+    /// in its own window" (Settings) in a new window of its own.
     pub(super) fn open_private_space(&self, engine: &Engine) {
-        let id = self.with_state(AppState::open_private_space);
+        let (open, alone) = self.with_state(|s| {
+            let alone = s.settings.several_windows && s.settings.private_window;
+            (s.private_space.is_some(), alone)
+        });
+        if !open && alone {
+            self.new_window(engine);
+        }
+        let id = self.with_state(|s| s.open_private_space(alone));
         self.activate_space(engine, &id);
     }
 
     /// A link from another app is not private browsing: with the private
-    /// space in front, the space beside it comes to the front for it.
+    /// space in front, the space beside it comes to the front for it, or
+    /// from the private space's window of its own another window does.
     pub(super) fn leave_private_space(&self, engine: &Engine) {
-        let beside = self.with_state(|s| {
-            (s.is_private_space(&s.active_space)).then(|| s.lasting_space(&s.active_space))
+        let (beside, own) = self.with_state(|s| {
+            let beside =
+                (s.is_private_space(&s.active_space)).then(|| s.lasting_space(&s.active_space));
+            (beside, s.private_window() == Some(s.window))
         });
-        if let Some(space) = beside {
-            self.activate_space(engine, &space);
+        match beside {
+            // That window with whatever it shows.
+            Some(space) if own => self.go_to_window_for(engine, &space),
+            Some(space) => self.activate_space(engine, &space),
+            None => {}
         }
     }
 
     /// Hide the private space: nothing lists it any more, its pages are
     /// paused and taken back from picture-in-picture, and every window
-    /// that showed it shows the space it goes on in. It stays open;
-    /// `open_private_space` shows it again.
+    /// that showed it shows the space it goes on in. Its window of its own
+    /// goes out of sight instead, and another window comes to the front, a
+    /// new one if there is none. It stays open; `open_private_space` shows
+    /// it again.
     pub(super) fn hide_private_space(&self, engine: &Engine) {
         let others = self.with_state(|s| s.other_windows_in_private_space());
+        let own = self.with_state(|s| s.private_window());
         let Some(pages) = self.with_state(AppState::hide_private_space) else {
             return;
         };
@@ -518,31 +571,41 @@ impl MagnetiteApp {
             engine.content_media(c, magnetite_engine::MediaAction::Pause);
             engine.content_picture_in_picture(c, false);
         }
-        let show = || {
-            let space = self.with_state(|s| s.active_space.clone());
-            self.activate_space(engine, &space);
-        };
-        for win in others {
-            engine.in_window(win, show);
+        if let Some(own) = own {
+            if engine.current_window() == own {
+                let beside = self.with_state(|s| s.lasting_space(&s.active_space));
+                self.go_to_window_for(engine, &beside);
+            }
+            engine.in_window(own, || engine.hide_window());
+            return;
         }
-        show();
+        for win in others {
+            self.show_space_again(engine, Some(win));
+        }
+        self.show_space_again(engine, Some(engine.current_window()));
     }
 
     /// Close the private space with everything opened from it. Every
-    /// window that showed it shows the space it goes on in.
+    /// window that showed it shows the space it goes on in. Its window of
+    /// its own closes too, unless it is the last window: that one goes on
+    /// in the space beside it.
     pub(super) fn close_private_space(&self, engine: &Engine) {
         let others = self.with_state(|s| s.other_windows_in_private_space());
+        let own = self.with_state(|s| s.private_window());
         for c in self.with_state(AppState::close_private_space) {
             engine.close_content(c);
         }
-        let show = || {
-            let space = self.with_state(|s| s.active_space.clone());
-            self.activate_space(engine, &space);
-        };
-        for win in others {
-            engine.in_window(win, show);
+        let closing = own.filter(|_| engine.windows().len() > 1);
+        for win in others.into_iter().filter(|win| Some(*win) != closing) {
+            self.show_space_again(engine, Some(win));
         }
-        show();
+        let current = engine.current_window();
+        if Some(current) != closing {
+            self.show_space_again(engine, Some(current));
+        }
+        if let Some(own) = closing {
+            engine.close_window(own);
+        }
     }
 
     /// Open `url` (typed, or from Magnetite's UI) as a new Today tab (see
@@ -1031,12 +1094,16 @@ impl MagnetiteApp {
     }
 
     /// Window `win` closed, one of several: its view goes. Its pages went
-    /// to another window or closed with it (`Engine::close_window`).
+    /// to another window or closed with it (`Engine::close_window`). The
+    /// private space ends with the window it is listed in.
     pub(super) fn window_closed(&self, engine: &Engine, win: magnetite_engine::WindowId) {
         // Quitting closes every window; each one stays in the state, so any
         // save from here on keeps them all for the next start.
         if engine.is_quitting() {
             return;
+        }
+        if self.with_state(|s| s.is_private_home(win)) {
+            self.close_private_space(engine);
         }
         let next = engine.current_window();
         self.with_state(|s| {
@@ -1044,6 +1111,17 @@ impl MagnetiteApp {
             s.persist_later();
         });
         lock(&self.visible).remove(&win);
+        // All that is left is the private space's hidden window: the last
+        // window one could see closed. The private space ends, and its
+        // window closes as the last one does.
+        let windows = engine.windows();
+        let hidden_alone = self.with_state(|s| {
+            s.private_hidden && s.private_window().is_some_and(|own| windows == [own])
+        });
+        if hidden_alone {
+            self.close_private_space(engine);
+            engine.close_frame();
+        }
         self.push_state(engine);
     }
 }

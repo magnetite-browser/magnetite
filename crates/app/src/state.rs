@@ -32,6 +32,7 @@ mod windows;
 pub use adopt::icon_image_ok;
 pub(crate) use folders::folder_in_tree_mut;
 pub use history::{History, Visit};
+pub use private::ShowIn;
 pub use settings::{
     AdblockSettings, Appearance, PROTECTED_VIDEO_SITES, Settings, SidebarEffect, SiteSearch,
     SyncSettings, SystemEngine, TabOrder, typed_site,
@@ -263,6 +264,14 @@ pub struct AppState {
     /// The private space is hidden (`hide_private_space`): open, with its
     /// pages, but listed nowhere and in front in no window. Not saved.
     pub private_hidden: bool,
+    /// The window the private space is listed in while it is open: the one
+    /// that opened it or last went to it. No other window lists it
+    /// (`lists_space`). Not saved.
+    pub private_home: WindowId,
+    /// The private space has its window to itself (Settings → General,
+    /// "Private space in its own window"): that window lists no other
+    /// space, and the private space ends with it. Not saved.
+    pub private_alone: bool,
     /// The in-memory profiles made for the private space: the space's own
     /// and one per tab. Not saved, never synced, and each is dropped once
     /// nothing runs in it (`release_private_profiles`).
@@ -297,7 +306,7 @@ impl AppState {
         UiState {
             sidebar: self.ui_sidebar(),
             active_space: &self.active_space,
-            private_space: self.shown_private_space(),
+            private_space: self.shown_private_space().filter(|id| self.lists_space(id)),
             active_tab: self.active_tab.get(&self.active_space).map(String::as_str),
             runtime: &self.runtime,
             sidebar_visible: self.sidebar_visible,
@@ -323,16 +332,17 @@ impl AppState {
         }
     }
 
-    /// The sidebar as the UI lists it: without the profiles of the private
-    /// space, which are no choice for anything else, and without the space
-    /// itself while it is hidden.
+    /// The sidebar as the current window's UI lists it: without the
+    /// profiles of the private space, which are no choice for anything
+    /// else, and with the spaces this window lists (`lists_space`).
     fn ui_sidebar(&self) -> Cow<'_, SidebarSnapshot> {
+        // An open private space has a profile of its own.
         if self.private_profiles.is_empty() {
             return Cow::Borrowed(&self.sidebar);
         }
         let mut sidebar = self.sidebar.clone();
         (sidebar.profiles).retain(|p| !self.private_profiles.contains(&p.id));
-        (sidebar.spaces).retain(|sp| !self.is_hidden_space(&sp.id));
+        (sidebar.spaces).retain(|sp| self.lists_space(&sp.id));
         Cow::Owned(sidebar)
     }
 
