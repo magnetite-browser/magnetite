@@ -183,7 +183,7 @@ pub(super) enum UiCommand {
         #[serde(default)]
         id: Option<String>,
     },
-    /// System share menu for a tab's page at a point of the sidebar.
+    /// System share menu for a tab's page at (`x`, `y`) on the screen.
     Share {
         id: String,
         x: f64,
@@ -687,6 +687,7 @@ pub(super) enum UiCommand {
         notify: bool,
     },
     CaptureSave,
+    /// System share menu for the last capture at (`x`, `y`) on the screen.
     CaptureShare {
         x: f64,
         y: f64,

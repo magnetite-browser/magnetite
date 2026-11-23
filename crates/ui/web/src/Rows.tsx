@@ -5,7 +5,7 @@ import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./sm
 import { Glyph, glyphFor } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, movedIds, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
 import { errorCount } from "./DevBar";
-import { dockedSide, findTab, hostOf, IS_MAC, send, splitGroup, windowPoint, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { findTab, hostOf, IS_MAC, send, splitGroup, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 
 export type Section = "favorites" | "pinned" | "today";
@@ -76,8 +76,8 @@ function snoozeMenu(tab: TabItem, onCustom: () => void): MenuItem[] {
 const SNOOZE_HOVER_MS = 400;
 
 /**
- * Right-click menu of a tab; `at` is the click point (the share menu opens
- * there). `smart`: an item its smart folder got from its source.
+ * Right-click menu of a tab; `at` is the click point on the screen (the share
+ * menu opens there). `smart`: an item its smart folder got from its source.
  */
 export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x: number; y: number }, smart = false): MenuItem[] {
   const items: MenuItem[] = [];
@@ -87,7 +87,7 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   const loaded = !!ctx.state.runtime[tab.id]?.loaded;
   if (loaded) items.push({ label: "Reload", onClick: () => send({ cmd: "reload", id: tab.id }) });
   // The system's share menu: only macOS has one here.
-  if (IS_MAC) items.push({ label: "Share…", onClick: () => send({ cmd: "share", id: tab.id, ...windowPoint(at.x, at.y, dockedSide(ctx.state.settings.appearance)) }) });
+  if (IS_MAC) items.push({ label: "Share…", onClick: () => send({ cmd: "share", id: tab.id, x: at.x, y: at.y }) });
   items.push({ label: "Copy link", onClick: () => navigator.clipboard?.writeText(tab.url) });
   items.push(SEPARATOR);
   // The private space has only Today tabs, and nothing of it is kept or moves out.
@@ -325,7 +325,7 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
                 "data-unloaded": !rt?.loaded || undefined,
                 "data-shared": rt?.shared || undefined,
                 onClick: () => send(t.panel ? { cmd: "toggle_web_panel", id: t.id } : { cmd: "activate_tab", id: t.id }),
-                onContextMenu: (e: React.MouseEvent) => { e.preventDefault(); ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, t, "favorites", { x: e.clientX, y: e.clientY })); },
+                onContextMenu: (e: React.MouseEvent) => { e.preventDefault(); ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, t, "favorites", { x: e.screenX, y: e.screenY })); },
                 title: [t.title, title, t.panel && "panel", rt?.shared && "being shared"].filter(Boolean).join(" · "),
                 children: <Favicon url={t.url} src={rt?.favicon} loading={rt?.loading} />,
               };
@@ -526,7 +526,7 @@ const TabRowInner = memo(
         onMouseLeave={() => setJustClosed(false)}
         onContextMenu={(e) => {
           e.preventDefault();
-          ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, tab, section, { x: e.clientX, y: e.clientY }, snoozable));
+          ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, tab, section, { x: e.screenX, y: e.screenY }, snoozable));
         }}
         title={tab.url}
         data-folder={folderId}

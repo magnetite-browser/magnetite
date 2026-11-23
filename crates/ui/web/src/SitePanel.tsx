@@ -290,7 +290,7 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
           )}
           {/* The system's share menu: only macOS has one here. */}
           {IS_MAC && (
-            <button title="Share" onClick={(e) => { send({ cmd: "share", id: item.id, x: e.clientX, y: e.clientY }); onClose(); }}>
+            <button title="Share" onClick={(e) => { send({ cmd: "share", id: item.id, x: e.screenX, y: e.screenY }); onClose(); }}>
               <ShareIcon width={16} height={16} />
               <span>Share</span>
             </button>

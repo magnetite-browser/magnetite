@@ -27,8 +27,8 @@ behind it stays as it is, and a second click puts the panel away again.
 - A round button with a cross beside the panel's top corner, on the
   side of the pages, closes it, whether or not panels close by
   themselves, and always in the same place. Outside macOS it is part of
-  the page next to or under the panel: of a split, the first, or under a
-  floating panel the pane under the button's place.
+  the page next to or under the panel: of a split beside a docked panel
+  on the left, the first; otherwise the pane under the button's place.
 - "Open or close the web panel" (`Cmd+Option+P`, `Ctrl+Alt+P` outside
   macOS; Settings → Shortcuts, the View menu and the command bar) closes
   the open panel, or opens the one used last: of the favorites and the

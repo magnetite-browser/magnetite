@@ -4,10 +4,9 @@
 import { useEffect, useState } from "react";
 import { Close } from "./Icons";
 import { REVEAL } from "./DownloadsView";
-import { IS_MAC, onCapture, send, windowPoint, type CaptureEvent, type SidebarSide } from "./bridge";
+import { IS_MAC, onCapture, send, type CaptureEvent } from "./bridge";
 
-/** `side`: the side the sidebar is docked on, where the share menu opens. */
-export function CaptureToast({ side }: { side: SidebarSide }) {
+export function CaptureToast() {
   const [event, setEvent] = useState<CaptureEvent | null>(null);
   const [note, setNote] = useState<string | null>(null);
   useEffect(() => onCapture((e) => { setEvent(e); setNote(e.kind === "ready" && e.info.context ? "Element copied as text, with the picture's file" : null); }), []);
@@ -66,7 +65,7 @@ export function CaptureToast({ side }: { side: SidebarSide }) {
       <div className="flex gap-1.5">
         <button className="btn sm flex-1" onClick={copy}>Copy</button>
         <button className="btn sm flex-1" onClick={save}>Save…</button>
-        {IS_MAC && <button className="btn sm flex-1" onClick={(e) => send({ cmd: "capture_share", ...windowPoint(e.clientX, e.clientY, side) })}>Share…</button>}
+        {IS_MAC && <button className="btn sm flex-1" onClick={(e) => send({ cmd: "capture_share", x: e.screenX, y: e.screenY })}>Share…</button>}
         <button className="btn sm flex-1" onClick={() => send({ cmd: "capture_start" })}>Retake</button>
       </div>
       {note && <div className="text-[12px] text-[var(--muted)]" role="status">{note}</div>}

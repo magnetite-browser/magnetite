@@ -271,7 +271,7 @@ export function App() {
         </div>
       </div>
 
-      <CaptureToast side={side} />
+      <CaptureToast />
       {noticeBox}
 
       {/* Footer: archive and downloads left (one button), spaces centred, new right */}

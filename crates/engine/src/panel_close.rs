@@ -118,10 +118,14 @@ impl Engine {
         let place = panel.as_ref().map(|p| {
             let edge = crate::content::web_panel_grip(&p.bounds(), side);
             Rect {
+                // Wider than the strip, beside the panel all the same.
+                x: match side {
+                    SidebarSide::Left => edge.x,
+                    SidebarSide::Right => edge.x + edge.width - GRIP_WIDTH,
+                },
                 y: edge.y + (edge.height - GRIP_HEIGHT) / 2,
-                height: GRIP_HEIGHT,
                 width: GRIP_WIDTH,
-                ..edge
+                height: GRIP_HEIGHT,
             }
         });
         match (grip, place) {

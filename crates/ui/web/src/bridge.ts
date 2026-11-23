@@ -534,6 +534,7 @@ export type Command =
   | { cmd: "extension_options"; id: string }
   | { cmd: "go_forward" }
   | { cmd: "reload"; id?: Id }
+  /** The system's share menu at (`x`, `y`) on the screen (`screenX`, `screenY`). */
   | { cmd: "share"; id: Id; x: number; y: number }
   /** `notify`: the sidebar shows the result too (for a sender that closes at once). */
   | { cmd: "copy_link"; variant: LinkVariant; notify?: boolean }
@@ -546,6 +547,7 @@ export type Command =
   | { cmd: "capture_cancel" }
   | { cmd: "capture_copy"; notify?: boolean }
   | { cmd: "capture_save" }
+  /** As `share`, for the last capture. */
   | { cmd: "capture_share"; x: number; y: number }
   | { cmd: "capture_dismiss" }
   | { cmd: "site_permissions" }
@@ -1105,25 +1107,12 @@ const swipes = signal();
 const records = signal();
 const pageCards = cached<PageCards>();
 
-/** The window's width in points, as the app last reported it (`windowSize`). */
-let windowWidth = window.outerWidth;
-
-/**
- * Point (`x`, `y`) of the docked sidebar's page, docked at `side`, in the
- * frame window's points, where the share menu opens (`share`,
- * `capture_share`): on the right the sidebar begins where the pages end.
- */
-export function windowPoint(x: number, y: number, side: SidebarSide) {
-  return { x: side === "right" ? x + windowWidth - window.innerWidth : x, y };
-}
-
 /**
  * Keep the window's size where the styles read it (`--win-w`, `--win-h`):
  * a background across the whole window is cut to this page with it
  * (`windowBackground`).
  */
 function windowSize(width: number, height: number) {
-  windowWidth = width;
   const root = document.documentElement;
   root.style.setProperty("--win-w", `${width}px`);
   root.style.setProperty("--win-h", `${height}px`);

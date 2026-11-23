@@ -102,12 +102,15 @@ impl Engine {
         return crate::clipboard::copy_png(png);
     }
 
-    /// System share menu for a PNG at a point of the frame window.
+    /// System share menu for a PNG at (`x`, `y`) on the screen (DIP), over
+    /// the frame window (as `share_url`).
     pub fn share_png(&self, png: &[u8], x: f64, y: f64) {
         let window = self.frame_window();
         #[cfg(target_os = "macos")]
         if let Some(w) = window {
-            use cef::ImplWindow;
+            use cef::{ImplView, ImplWindow};
+            let b = w.bounds();
+            let (x, y) = (x - f64::from(b.x), y - f64::from(b.y));
             crate::mac::share_png(w.window_handle(), png, x, y);
         }
         #[cfg(not(target_os = "macos"))]

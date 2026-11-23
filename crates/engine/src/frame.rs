@@ -269,7 +269,7 @@ impl Engine {
     }
 
     /// The gap around the current window's pages: none without the frame.
-    fn content_inset(&self) -> i32 {
+    pub(crate) fn content_inset(&self) -> i32 {
         if Self::page_frame_shows(&self.lock()) {
             Self::CONTENT_INSET
         } else {
@@ -750,13 +750,15 @@ impl Engine {
         self.open_overlay_with(bounds, url, 12.0, true, true)
     }
 
-    /// Open the system share menu for `url` at a point of the frame window
-    /// (DIP from its top-left; the sidebar page turns its own points into
-    /// these, `windowPoint` in bridge.ts).
+    /// Open the system share menu for `url` at (`x`, `y`) on the screen
+    /// (DIP), over the frame window: where the pointer was, whichever of our
+    /// pages it was over (the sidebar, the floating one, a bar's pop-up).
     pub fn share_url(&self, url: &str, x: f64, y: f64) {
         let window = self.frame_window();
         #[cfg(target_os = "macos")]
         if let Some(w) = window {
+            let b = w.bounds();
+            let (x, y) = (x - f64::from(b.x), y - f64::from(b.y));
             crate::mac::show_share_picker(w.window_handle(), url, x, y);
         }
         #[cfg(not(target_os = "macos"))]

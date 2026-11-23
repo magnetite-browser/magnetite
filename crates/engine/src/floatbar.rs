@@ -12,8 +12,12 @@ use crate::engine::Engine;
 
 /// Gap between the panel and the window edges.
 const MARGIN: i32 = 6;
-/// Width of the hover zone along the window's edge (the page gap).
+/// Width of the hover zone along the window's edge: the gap beside the
+/// pages while the frame around them shows.
 const EDGE: i32 = 8;
+/// Its width where a page reaches the window's edge (no frame): a thin
+/// strip, so the page's own edge, its scrollbar on the right, stays in reach.
+const EDGE_OVER_PAGE: i32 = 3;
 
 /// The floating sidebar's window and page.
 pub(crate) struct FloatBar {
@@ -109,15 +113,20 @@ impl Engine {
         let Some(frame) = frame else { return };
         let side = self.sidebar_side();
         let b = frame.bounds();
+        let width = if self.content_inset() > 0 {
+            EDGE
+        } else {
+            EDGE_OVER_PAGE
+        };
         // Not beside the top bar: its ends hold the window's buttons.
         let top = self.top_bar_offset();
         let zone = Rect {
             x: match side {
                 SidebarSide::Left => b.x,
-                SidebarSide::Right => b.x + b.width - EDGE,
+                SidebarSide::Right => b.x + b.width - width,
             },
             y: b.y + top,
-            width: EDGE,
+            width,
             height: (b.height - top).max(1),
         };
         #[cfg(target_os = "macos")]
@@ -125,7 +134,7 @@ impl Engine {
         #[cfg(target_os = "windows")]
         {
             let _ = zone;
-            let at = hidden.then_some((EDGE, top, side));
+            let at = hidden.then_some((width, top, side));
             crate::win::set_edge_zone(frame.window_handle(), at);
         }
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]

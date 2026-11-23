@@ -42,7 +42,7 @@ default):
 
 ## The developer bar
 
-A bar 36 points high across the top of the page area, right of the sidebar
+A bar 36 points high across the top of the page area, beside the sidebar
 and below the top bar if that is on. It shows while the page in front has
 developer tools and is gone otherwise, so the pages of other tabs keep
 their full height. Its left end names the page, the tools are at its right;
