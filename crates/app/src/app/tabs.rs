@@ -692,6 +692,16 @@ impl MagnetiteApp {
         }
     }
 
+    /// Give tab `id`, opened in the background, its page now, out of sight,
+    /// as "Load pinned tabs at start" does (Settings → Links: a page's links
+    /// opened in a new tab load at once). A tab with a page keeps it.
+    pub(super) fn load_out_of_sight(&self, engine: &Engine, id: &str) {
+        if self.content_of(id).is_none() {
+            self.page_of(engine, id);
+            self.push_state(engine);
+        }
+    }
+
     /// Open `url`, a link from another app, as a background Today tab of
     /// space `space` (the one a link rule names), which stays where it is:
     /// the tab is marked unread and runs in that space's profile.

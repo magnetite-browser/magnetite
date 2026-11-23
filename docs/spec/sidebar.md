@@ -68,6 +68,13 @@ the row turns the icon into a back arrow that takes the page back.
   for the space's empty window (`spaces.md`, "Look").
 - **Favorites and pinned tabs stay loaded** once opened, until they are
   closed, also when the system runs short of memory.
+- **Links opened in a new tab** (Open Link in New Tab, `Cmd`+click,
+  middle click on a page's link) become Today tabs behind the current
+  one, without a page until they are opened. Settings → Links → "Links
+  opened in a new tab" can instead load them in the background, or switch
+  to the new tab. The choice is this device's own, `settings.new_tab_links`
+  (`"inactive"`, `"load"` or `"switch"`) in `state.json`; it is not
+  synced. A tab of the hidden private space stays behind in every case.
 - **Load pinned tabs at start** (Settings → Tabs and archive, off by
   default): the favorites and pinned tabs of every space load their pages
   in the background when Magnetite starts, three at a time, so none waits

@@ -18,8 +18,10 @@ it as a tab, or put it beside the current tab in split view.
   (the same registrable domain), so the tab itself stays where it is. Only
   clicks count: redirects, such as a sign-in flow, stay in the tab. The
   lock follows the pin state within a minute.
-- Links opened in the background (`Cmd`+click, middle click) become
-  background Today tabs, never a peek.
+- Links opened in a new tab (`Cmd`+click, middle click, Open Link in New
+  Tab) become Today tabs, never a peek; Settings → Links decides whether
+  they wait, load in the background or come to the front (`sidebar.md`,
+  "Tab rows").
 - Settings → Links → "Open links from other apps in" offers "a mini
   window" (the default, `mini-window.md`), "a new tab in the current space"
   and "a peek window".

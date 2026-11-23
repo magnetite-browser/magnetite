@@ -33,8 +33,8 @@ pub use adopt::icon_image_ok;
 pub(crate) use folders::folder_in_tree_mut;
 pub use history::{History, Visit};
 pub use settings::{
-    AdblockSettings, Appearance, PROTECTED_VIDEO_SITES, Settings, SidebarEffect, SiteSearch,
-    SyncSettings, SystemEngine, TabOrder, typed_site,
+    AdblockSettings, Appearance, NewTabLinks, PROTECTED_VIDEO_SITES, Settings, SidebarEffect,
+    SiteSearch, SyncSettings, SystemEngine, TabOrder, typed_site,
 };
 pub use share::read_link as read_shared;
 pub use tabs::{SpaceProfile, TabSwitch};

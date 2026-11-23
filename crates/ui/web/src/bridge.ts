@@ -343,6 +343,8 @@ export interface Settings {
   search_template: string;
   /** Keywords that search one site from the command bar (`gh rust`). */
   site_searches: SiteSearch[];
+  /** What a link a page opens in a new tab does: waits without a page until opened, loads out of sight, or comes to the front. This device's own. */
+  new_tab_links: "inactive" | "load" | "switch";
   external_links: "tab" | "peek" | "mini";
   /** Which space a link from another app opens in, by its site. */
   link_rules: LinkRule[];

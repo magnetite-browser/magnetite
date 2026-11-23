@@ -44,7 +44,7 @@ const GROUPS: { label: string; sections: Section[] }[] = [
     label: "Browsing",
     sections: [
       { id: "tabs", label: "Tabs and archive", Icon: Archive, title: "Tabs and archive", intro: "A closed tab goes to the archive, and Today tabs you stop using move there on their own. It can be opened again for as long as the archive keeps it." },
-      { id: "links", label: "Links", Icon: LinkIcon, title: "Links", intro: "What happens to a link you click in another app, and to a link you copy." },
+      { id: "links", label: "Links", Icon: LinkIcon, title: "Links", intro: "What happens to a link you click in another app, to a link a page opens in a new tab, and to a link you copy." },
       { id: "search", label: "Search", Icon: Search, title: "Search", intro: "Used when what you type in the command bar is not a web address. A keyword and a space search one site instead." },
       { id: "adblock", label: "Content blocking", Icon: AdblockIcon, title: "Content blocking", intro: "Magnetite can stop ads and trackers before they load, with filter lists you choose. Off until you turn it on." },
       { id: "video", label: "Protected video", Icon: VideoIcon, title: "Protected video", intro: "Some streaming services do not play in Magnetite's Chromium engine yet. Their pages open in your system's own web engine instead." },
@@ -256,6 +256,15 @@ export function SettingsPage() {
             </select>
           </Field>
           <LinkRules saved={settings.link_rules} spaces={info.spaces} save={(rules) => update({ link_rules: rules })} />
+          </Group>
+          <Group title="From pages">
+          <Field side label="Links opened in a new tab" hint={`Open Link in New Tab, ${keyLabel("⌘")}-click and middle click. Waiting keeps the memory free until you open the tab.`}>
+            <select className="field" value={settings.new_tab_links} onChange={(e) => update({ new_tab_links: e.target.value as Settings["new_tab_links"] })}>
+              <option value="inactive">wait until opened</option>
+              <option value="load">load in the background</option>
+              <option value="switch">switch to the new tab</option>
+            </select>
+          </Field>
           </Group>
           <Group title="Copied links">
           <Toggle label="Remove trackers from copied links" hint="Copy Link drops tracking parameters such as utm_source and fbclid." checked={settings.strip_trackers} onChange={(v) => update({ strip_trackers: v })} />

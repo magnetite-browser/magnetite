@@ -48,6 +48,9 @@ pub struct Settings {
     pub search_template: String,
     /// Keywords that search one site from the command bar (`gh rust`).
     pub site_searches: Vec<SiteSearch>,
+    /// What a link a page opens in a new tab (Open Link in New Tab,
+    /// ⌘-click, middle click) does. This device's own choice, never synced.
+    pub new_tab_links: NewTabLinks,
     /// Links from other apps: "mini" (a mini window, the default), "tab" or
     /// "peek". Synced: a version that does not know a value takes the
     /// default (`sanitised`).
@@ -507,6 +510,19 @@ pub enum TabOrder {
     Sidebar,
 }
 
+/// What a link a page opens in a new tab does (Settings → Links).
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum NewTabLinks {
+    /// A tab behind the current one, without a page until it is opened.
+    #[default]
+    Inactive,
+    /// A tab behind the current one whose page loads at once, out of sight.
+    Load,
+    /// The new tab comes to the front.
+    Switch,
+}
+
 /// A view behind the sidebar's archive and downloads button. While something
 /// downloads, a click opens Downloads whatever the setting says.
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -889,6 +905,7 @@ impl Default for Settings {
             defaults: DEFAULTS,
             search_template: "https://duckduckgo.com/?q=%s".into(),
             site_searches: builtin_site_searches(),
+            new_tab_links: NewTabLinks::Inactive,
             external_links: "mini".into(),
             link_rules: Vec::new(),
             site_code: Vec::new(),

@@ -31,7 +31,9 @@ A section's name has no "&": "Tabs and archive".
   anywhere and the welcome page.
 - **Links** has what happens to a link from another app (the default
   browser, where such a link opens, the sites whose links open in a space
-  of their own) and to a link that is copied (trackers removed).
+  of their own), to a link a page opens in a new tab (wait, load in the
+  background, or switch to it) and to a link that is copied (trackers
+  removed).
 - **Tabs and archive** has when tabs are archived and suspended, how long the
   archive keeps them, the order of Ctrl+Tab and what the archive button
   opens.

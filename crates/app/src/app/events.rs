@@ -7,7 +7,7 @@ use magnetite_engine::{
 };
 use serde_json::Value;
 
-use crate::state::{ArcImport, now};
+use crate::state::{ArcImport, NewTabLinks, now};
 use crate::{lock, trace, url_policy};
 
 use super::commands::UiCommand;
@@ -256,7 +256,7 @@ impl EngineDelegate for MagnetiteApp {
                 let ruled = (source == url_policy::Source::OtherApp)
                     .then(|| self.link_rule_space(&url))
                     .flatten();
-                let (target, from_mini) = self.with_state(|s| {
+                let (target, opens, from_mini) = self.with_state(|s| {
                     // A web panel counts as the peek does: narrow, and over
                     // the page, it is no place for a second page.
                     let from_peek = from.is_some()
@@ -272,8 +272,10 @@ impl EngineDelegate for MagnetiteApp {
                         ruled: ruled.is_some(),
                     };
                     let from_mini = from.is_some_and(|c| s.minis.iter().any(|m| m.content == c));
-                    (ask.target(&s.settings.external_links), from_mini)
+                    let target = ask.target(&s.settings.external_links);
+                    (target, ask.opens(s.settings.new_tab_links), from_mini)
                 });
+                let background = opens != NewTabLinks::Switch;
                 let context = context.as_deref();
                 match target {
                     Target::Peek => self.open_peek(engine, &url, source, context),
@@ -284,7 +286,12 @@ impl EngineDelegate for MagnetiteApp {
                         {
                             self.activate_space(engine, space);
                         }
-                        self.open_url_from(engine, &url, background, source, context);
+                        let tab = self.open_url_from(engine, &url, background, source, context);
+                        if opens == NewTabLinks::Load
+                            && let Some(tab) = tab
+                        {
+                            self.load_out_of_sight(engine, &tab);
+                        }
                     }
                 }
                 // A link from another app, or what a mini window's page
@@ -657,11 +664,26 @@ impl Ask {
             Target::Tab
         }
     }
+
+    /// How a tab for this link opens: `Switch` in front, else behind the
+    /// current tab, its page loading at once with `Load`. A page's link
+    /// opened in a new tab (Open Link in New Tab, ⌘-click, middle click)
+    /// does what Settings → Links say (`new_tab_links`); any other link
+    /// keeps what it asked for. Only the tab's opening: such a link from a
+    /// pinned tab is still no peek (`target`).
+    fn opens(&self, new_tab_links: NewTabLinks) -> NewTabLinks {
+        match (self.background, self.source) {
+            (false, _) => NewTabLinks::Switch,
+            (true, url_policy::Source::Page) => new_tab_links,
+            (true, _) => NewTabLinks::Inactive,
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{Ask, Target};
+    use crate::state::NewTabLinks;
     use crate::url_policy::Source;
 
     fn ask(source: Source) -> Ask {
@@ -726,6 +748,32 @@ mod tests {
             ..ask(Source::Page)
         };
         assert_eq!(locked_background.target("tab"), Target::Tab);
+    }
+
+    #[test]
+    fn a_pages_links_opened_in_a_new_tab_open_as_the_setting_says() {
+        let link = Ask {
+            background: true,
+            ..ask(Source::Page)
+        };
+        for setting in [
+            NewTabLinks::Inactive,
+            NewTabLinks::Load,
+            NewTabLinks::Switch,
+        ] {
+            assert_eq!(link.opens(setting), setting);
+        }
+        // What Magnetite's own UI opens in the background stays there, and a
+        // link that asks for the front gets it.
+        let from_ui = Ask {
+            background: true,
+            ..ask(Source::User)
+        };
+        assert_eq!(from_ui.opens(NewTabLinks::Switch), NewTabLinks::Inactive);
+        assert_eq!(
+            ask(Source::Page).opens(NewTabLinks::Inactive),
+            NewTabLinks::Switch
+        );
     }
 
     /// A file handed over by another app or typed in a terminal opens as its
