@@ -673,7 +673,10 @@ wrap_window_delegate! {
             let mut v = View::from(&self.view);
             window.add_child_view(Some(&mut v));
             #[cfg(target_os = "macos")]
-            crate::mac::pin_window(window.window_handle());
+            {
+                crate::mac::pin_window(window.window_handle());
+                crate::mac::no_key_loop_focus(window.window_handle());
+            }
             // A plain bar: Windows neither rounds it nor draws a line
             // around it.
             #[cfg(target_os = "windows")]

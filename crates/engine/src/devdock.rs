@@ -587,6 +587,8 @@ wrap_window_delegate! {
                 }
                 visible
             };
+            #[cfg(target_os = "macos")]
+            crate::mac::no_key_loop_focus(window.window_handle());
             if self.separate {
                 window.set_title(Some(&CefString::from("DevTools")));
                 window.center_window(Some(&Size { width: 960, height: 680 }));

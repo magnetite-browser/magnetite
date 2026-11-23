@@ -950,14 +950,15 @@ pub fn close_key_window_outside(frame: cef::sys::cef_window_handle_t) -> bool {
     true
 }
 
-/// Keep AppKit from choosing the page's focus when the window holding the
-/// view `handle` is shown. A window shown without a first responder (its
-/// page view went away with a navigation, or it never had the keyboard)
-/// gets one from its key view loop, "as if by Tab", and Chromium answers by
-/// focusing the page's first element: most sites then show their "Skip to
-/// content" link. An initial first responder stops that walk. The content
-/// view (the Views root) declines the role, so the window has none until
-/// Views focuses the page directly (`request_focus`).
+/// Keep AppKit from choosing the focus inside the window holding the web
+/// view `handle` when it is shown (pages, overlays, `DevTools`, our bars). A
+/// window shown without a first responder (its web view went away with a
+/// navigation, or it never had the keyboard) gets one from its key view
+/// loop, "as if by Tab", and Chromium answers by focusing the first element
+/// in it: most sites then show their "Skip to content" link. An initial
+/// first responder stops that walk. The content view (the Views root)
+/// declines the role, so the window has none until Views focuses the web
+/// view directly (`request_focus`, or the window becoming key again).
 pub fn no_key_loop_focus(handle: cef::sys::cef_window_handle_t) {
     use objc2_app_kit::NSView;
     if handle.is_null() || MainThreadMarker::new().is_none() {
