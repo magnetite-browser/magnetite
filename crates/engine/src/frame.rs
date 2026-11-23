@@ -317,9 +317,10 @@ impl Engine {
         }
     }
 
-    /// What the page behind the tabs shows beside a docked web panel, in
+    /// What the page behind the tabs shows by a web panel outside macOS, in
     /// the window (`Empty.tsx`): the gap beyond it, the grip to resize it,
-    /// and the button to close it, in reach while no page lies over it.
+    /// and the button to close it, in reach while no page lies over it
+    /// (beside a docked panel, or under a floating one with no page shown).
     fn docked_controls_in_window(&self) -> Option<[Rect; 2]> {
         let width = {
             let inner = self.lock();

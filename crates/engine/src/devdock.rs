@@ -444,6 +444,19 @@ impl Engine {
         }
     }
 
+    /// Page `id`'s docked `DevTools` and device bar windows while they are
+    /// shown: kept above a floating web panel along with it.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn docked_windows(&self, id: ContentId) -> Vec<Window> {
+        let inner = self.lock();
+        let Some(d) = inner.docked.get(&id).filter(|d| d.shown) else {
+            return Vec::new();
+        };
+        let tools = d.window.as_ref().filter(|_| !d.separate);
+        let bar = d.device.as_ref().and_then(|m| m.bar_window.as_ref());
+        tools.into_iter().chain(bar).cloned().collect()
+    }
+
     pub(crate) fn close_docked(&self, id: ContentId) {
         let entry = self.lock().docked.remove(&id);
         self.show_dividers();

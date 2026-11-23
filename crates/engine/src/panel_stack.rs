@@ -13,17 +13,22 @@ use std::sync::OnceLock;
 
 use cef::*;
 
-/// The three Xlib calls needed. Loaded at run time: under Wayland there may
-/// be no libX11 to load, and the build needs no X11 headers.
+/// The Xlib calls needed, and our own connection to the X server. Loaded at
+/// run time: under Wayland there may be no libX11 to load, and the build
+/// needs no X11 headers. Used on the UI thread only.
 struct Xlib {
-    open: OpenDisplay,
+    /// The `Display`, as an address so that the static may hold it.
+    display: usize,
     set_transient: SetTransient,
-    close: CloseDisplay,
+    set_error_handler: SetErrorHandler,
+    sync: SyncDisplay,
 }
 
 type OpenDisplay = unsafe extern "C" fn(*const c_char) -> *mut c_void;
 type SetTransient = unsafe extern "C" fn(*mut c_void, c_ulong, c_ulong) -> c_int;
-type CloseDisplay = unsafe extern "C" fn(*mut c_void) -> c_int;
+type ErrorHandler = unsafe extern "C" fn(*mut c_void, *mut c_void) -> c_int;
+type SetErrorHandler = unsafe extern "C" fn(Option<ErrorHandler>) -> Option<ErrorHandler>;
+type SyncDisplay = unsafe extern "C" fn(*mut c_void, c_int) -> c_int;
 
 fn xlib() -> Option<&'static Xlib> {
     static XLIB: OnceLock<Option<Xlib>> = OnceLock::new();
@@ -39,31 +44,44 @@ fn xlib() -> Option<&'static Xlib> {
                 let found = libc::dlsym(lib, name.as_ptr());
                 (!found.is_null()).then_some(found)
             };
+            let open = std::mem::transmute::<*mut c_void, OpenDisplay>(symbol(c"XOpenDisplay")?);
+            let display = open(std::ptr::null());
+            if display.is_null() {
+                return None;
+            }
             Some(Xlib {
-                open: std::mem::transmute::<*mut c_void, OpenDisplay>(symbol(c"XOpenDisplay")?),
+                display: display as usize,
                 set_transient: std::mem::transmute::<*mut c_void, SetTransient>(symbol(
                     c"XSetTransientForHint",
                 )?),
-                close: std::mem::transmute::<*mut c_void, CloseDisplay>(symbol(c"XCloseDisplay")?),
+                set_error_handler: std::mem::transmute::<*mut c_void, SetErrorHandler>(symbol(
+                    c"XSetErrorHandler",
+                )?),
+                sync: std::mem::transmute::<*mut c_void, SyncDisplay>(symbol(c"XSync")?),
             })
         }
     })
     .as_ref()
 }
 
-/// Make X11 window `window` transient for `parent`. Its own short connection:
-/// this runs on a tab switch, and closing it sends the request.
+/// Takes an X error on our connection (a window that just went) instead
+/// of Xlib's own handler, which ends the process.
+unsafe extern "C" fn ignore_error(_display: *mut c_void, _event: *mut c_void) -> c_int {
+    0
+}
+
+/// Make X11 window `window` transient for `parent`.
 fn set_transient(window: &Window, parent: &Window) {
     let Some(x) = xlib() else { return };
-    // SAFETY: the display is checked and closed here, and an X error for a
-    // window that just went is handled by Chromium's error handler.
+    let display = x.display as *mut c_void;
+    // SAFETY: the display is open for the life of the process and used on
+    // this thread only. The handler is ours only until the request was
+    // answered (`XSync`), then the one before is back.
     unsafe {
-        let display = (x.open)(std::ptr::null());
-        if display.is_null() {
-            return;
-        }
+        let before = (x.set_error_handler)(Some(ignore_error));
         (x.set_transient)(display, window.window_handle(), parent.window_handle());
-        (x.close)(display);
+        (x.sync)(display, 0);
+        (x.set_error_handler)(before);
     }
 }
 

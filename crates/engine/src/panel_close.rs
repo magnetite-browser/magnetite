@@ -46,16 +46,17 @@ impl Engine {
         if cfg!(target_os = "macos") {
             return;
         }
-        let host = self.panel_close_host();
+        let place = self.panel_close_place();
         #[cfg(target_os = "linux")]
-        self.sync_panel_grip(host.is_some());
-        let insets = self.panel_close_insets();
+        self.sync_panel_grip(place.is_some());
         let old = {
             let mut inner = self.lock();
-            if inner.win.panel_close.as_ref().map(|(id, _)| *id) == host {
+            if inner.win.panel_close.as_ref().map(|(id, _)| *id)
+                == place.as_ref().map(|(id, _)| *id)
+            {
                 // The panel may have a new width.
-                if let Some((_, overlay)) = &inner.win.panel_close {
-                    overlay.set_insets(Some(&insets));
+                if let (Some((_, overlay)), Some((_, insets))) = (&inner.win.panel_close, &place) {
+                    overlay.set_insets(Some(insets));
                 }
                 return;
             }
@@ -66,7 +67,9 @@ impl Engine {
         {
             overlay.destroy();
         }
-        let Some((id, window)) = host.and_then(|id| Some((id, self.page_window(id)?))) else {
+        let Some((id, insets, window)) =
+            place.and_then(|(id, insets)| Some((id, insets, self.page_window(id)?)))
+        else {
             return;
         };
         let Some(button) = label_button_create(
@@ -97,23 +100,6 @@ impl Engine {
         overlay.size_to_preferred_size();
         overlay.set_visible(1);
         self.lock().win.panel_close = Some((id, overlay));
-    }
-
-    /// Where the button is in the page it lies over: by the page's corner
-    /// beside a docked panel, past the panel's width under a floating one,
-    /// which puts it in the same place.
-    fn panel_close_insets(&self) -> Insets {
-        let beyond = if WEB_PANEL_DOCKED {
-            0
-        } else {
-            let width = self.lock().win.web_panel_width;
-            web_panel_rect(&self.page_area(), width).width + SPLIT_GAP
-        };
-        Insets {
-            top: MARGIN - PAD,
-            left: beyond + MARGIN - PAD,
-            ..Default::default()
-        }
     }
 
     /// The grip in the middle of the floating panel's far edge, while a page lies under
@@ -149,7 +135,11 @@ impl Engine {
                     self.panel_grip_shown();
                 }
             }
-            (Some(grip), None) => grip.hide(),
+            (Some(grip), None) => {
+                grip.hide();
+                // A drag cut off by the panel going: no release comes.
+                self.lock().win.panel_grip_dragged = false;
+            }
             (None, Some(place)) => {
                 self.create_overlay(
                     place,
@@ -174,8 +164,18 @@ impl Engine {
     #[cfg(target_os = "linux")]
     pub(crate) fn panel_grip_shown(&self) {
         self.raise_panel_grip(false);
+        self.grip_returns_keyboard();
+    }
+
+    /// The grip does not keep the keyboard (shown, or used under a window
+    /// manager that activates what is clicked): it goes back to the page
+    /// that had it, if that is still on screen.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn grip_returns_keyboard(&self) {
         let focused = self.lock().win.last_focused;
-        if let Some(view) = focused.and_then(|id| self.content_view(id)) {
+        if let Some((window, view)) = focused.and_then(|id| self.content_handles(id))
+            && window.is_visible() != 0
+        {
             view.request_focus();
         }
     }
@@ -209,17 +209,49 @@ impl Engine {
         self.resize_web_panel(u32::try_from(wanted.max(0)).ok(), done);
     }
 
-    /// The page the button lies over: the one alone on screen, or the first
-    /// of a split, which is at its top left. None without a panel.
-    fn panel_close_host(&self) -> Option<ContentId> {
-        let inner = self.lock();
-        let panel = inner.win.web_panel?;
-        let split = inner.win.split.as_ref().filter(|t| t.pane_count() > 1);
-        let host = match split {
-            Some(tree) => tree.ids().into_iter().next(),
-            None => inner.win.shown,
+    /// The page the button lies over, and where in it. Beside a docked
+    /// panel: by the top left corner of the page alone on screen or of the
+    /// first of a split. Beyond a floating one, which puts it in the same
+    /// place: in the page under that place, which in a split of narrow
+    /// panes is not the first. None without a panel.
+    fn panel_close_place(&self) -> Option<(ContentId, Insets)> {
+        let (panel, width, pages) = {
+            let inner = self.lock();
+            let panel = inner.win.web_panel?;
+            let pages = match inner.win.split.as_ref().filter(|t| t.pane_count() > 1) {
+                Some(tree) => tree.ids(),
+                None => inner.win.shown.into_iter().collect(),
+            };
+            (panel, inner.win.web_panel_width, pages)
         };
-        host.filter(|id| *id != panel)
+        let pages: Vec<_> = pages.into_iter().filter(|id| *id != panel).collect();
+        let first = *pages.first()?;
+        let corner = Insets {
+            top: MARGIN - PAD,
+            left: MARGIN - PAD,
+            ..Default::default()
+        };
+        if WEB_PANEL_DOCKED {
+            return Some((first, corner));
+        }
+        // The disc's top left, on the screen.
+        let area = self.page_area();
+        let x = area.x + web_panel_rect(&area, width).width + SPLIT_GAP + MARGIN;
+        let y = area.y + MARGIN;
+        let side = i32::from(SIZE);
+        let (host, page) = pages
+            .iter()
+            .filter_map(|id| Some((*id, self.page_window(*id)?.bounds())))
+            .find(|(_, b)| b.x <= x && x + side <= b.x + b.width && b.y <= y && y < b.y + b.height)
+            .or_else(|| Some((first, self.page_window(first)?.bounds())))?;
+        Some((
+            host,
+            Insets {
+                top: y - page.y - PAD,
+                left: x - page.x - PAD,
+                ..Default::default()
+            },
+        ))
     }
 }
 

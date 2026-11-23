@@ -498,6 +498,11 @@ impl Engine {
             let mut inner = self.lock();
             inner.win.split = None;
             inner.win.shown = Some(id);
+            // It gets the keyboard (below), back from the grip too.
+            #[cfg(target_os = "linux")]
+            {
+                inner.win.last_focused = Some(id);
+            }
         }
         self.update_focus_ring(None);
         self.update_dividers(None);
@@ -536,6 +541,10 @@ impl Engine {
             let mut inner = self.lock();
             inner.win.split = Some(tree.clone());
             inner.win.shown = None;
+            #[cfg(target_os = "linux")]
+            if focus.is_some() {
+                inner.win.last_focused = focus;
+            }
         }
         self.layout_split(tree);
         let mut reshown = false;
@@ -584,6 +593,10 @@ impl Engine {
         self.update_peek_backdrop();
         // The backdrop went above the peek's docked DevTools too.
         self.show_docked(id, true);
+        #[cfg(target_os = "linux")]
+        {
+            self.lock().win.last_focused = Some(id);
+        }
         view.request_focus();
     }
 
@@ -670,12 +683,20 @@ impl Engine {
     fn end_peek_if(&self, ends: impl FnOnce(ContentId) -> bool) {
         let ended = {
             let mut inner = self.lock();
-            let ended = inner.win.peek.is_some_and(ends);
-            if ended {
+            let peek = inner.win.peek.filter(|p| ends(*p));
+            if peek.is_some() {
                 inner.win.peek = None;
             }
-            ended
+            peek
         };
+        // The keyboard, back from the grip, goes to the page under it, not
+        // to the peek that goes away (`panel_grip_shown`).
+        #[cfg(target_os = "linux")]
+        if ended.is_some() && self.lock().win.last_focused == ended {
+            let under = self.top_page_id();
+            self.lock().win.last_focused = under;
+        }
+        let ended = ended.is_some();
         #[cfg(target_os = "macos")]
         if ended {
             crate::mac::hide_peek_backdrop();
@@ -726,6 +747,12 @@ impl Engine {
             let mut inner = self.lock();
             let before = inner.win.web_panel.replace(id);
             inner.win.web_panel_width = width;
+            // It gets the keyboard (below), and keeps it when the grip
+            // is shown (`panel_grip_shown`).
+            #[cfg(target_os = "linux")]
+            {
+                inner.win.last_focused = Some(id);
+            }
             before.filter(|b| *b != id)
         };
         // The panel shown until now goes once this one is over it (at the
@@ -737,6 +764,12 @@ impl Engine {
             #[cfg(target_os = "macos")]
             if let Some((window, _)) = self.content_handles(before) {
                 crate::mac::round_window_corners(window.window_handle(), 10.0, false);
+            }
+            // No longer tied to the page it lay over (`end_web_panel_if`
+            // no longer sees it as the panel).
+            #[cfg(target_os = "linux")]
+            if let (Some(window), Some(frame)) = (self.page_window(before), self.frame_window()) {
+                crate::panel_stack::release(&window, &frame);
             }
             self.hide_here(before);
         };
@@ -794,8 +827,7 @@ impl Engine {
         if let Some((window, _)) = self.content_handles(id) {
             #[cfg(target_os = "linux")]
             {
-                crate::panel_stack::keep_above(&window, self.top_page().as_ref(), reshown);
-                self.raise_panel_grip(reshown);
+                self.lift_web_panel(id, &window, reshown);
                 if reshown {
                     self.raise_web_panel_after_map();
                 }
@@ -816,19 +848,33 @@ impl Engine {
     /// raises (the first pane, under the panel, until one has it).
     #[cfg(target_os = "linux")]
     fn top_page(&self) -> Option<Window> {
-        let id = {
-            let inner = self.lock();
-            match inner.win.split.as_ref().filter(|t| t.pane_count() > 1) {
-                Some(tree) => {
-                    let panes = tree.ids();
-                    (inner.win.last_focused)
-                        .filter(|id| panes.contains(id))
-                        .or_else(|| panes.first().copied())
-                }
-                None => inner.win.shown,
+        self.page_window(self.top_page_id()?)
+    }
+
+    #[cfg(target_os = "linux")]
+    fn top_page_id(&self) -> Option<ContentId> {
+        let inner = self.lock();
+        match inner.win.split.as_ref().filter(|t| t.pane_count() > 1) {
+            Some(tree) => {
+                let panes = tree.ids();
+                (inner.win.last_focused)
+                    .filter(|id| panes.contains(id))
+                    .or_else(|| panes.first().copied())
             }
-        }?;
-        self.page_window(id)
+            None => inner.win.shown,
+        }
+    }
+
+    /// The web panel `window` (page `id`) above the pages, its docked
+    /// `DevTools` and device bar above it, and the grip above it too.
+    /// `reshown`: as for `panel_stack::keep_above`.
+    #[cfg(target_os = "linux")]
+    fn lift_web_panel(&self, id: ContentId, window: &Window, reshown: bool) {
+        crate::panel_stack::keep_above(window, self.top_page().as_ref(), reshown);
+        for docked in self.docked_windows(id) {
+            crate::panel_stack::keep_above(&docked, Some(window), reshown);
+        }
+        self.raise_panel_grip(reshown);
     }
 
     /// Page `id` got the keyboard: remembered for when the grip's window
@@ -849,9 +895,8 @@ impl Engine {
                 .web_panel
                 .filter(|p| *p != id && inner.win.peek.is_none())
         };
-        if let Some(window) = panel.and_then(|p| self.page_window(p)) {
-            crate::panel_stack::keep_above(&window, self.top_page().as_ref(), false);
-            self.raise_panel_grip(false);
+        if let Some((panel, window)) = panel.and_then(|p| Some((p, self.page_window(p)?))) {
+            self.lift_web_panel(panel, &window, false);
             // Tied to this pane now, the panel may lie under the other one.
             if self
                 .lock()
@@ -865,9 +910,11 @@ impl Engine {
         }
     }
 
-    /// A page was newly shown under X11. `KWin` finishes mapping it after
-    /// the panel was raised and then has it on top, so the panel is
-    /// raised once more when that is done.
+    /// Under X11, after a page was newly shown, a peek ended, or a pane of
+    /// a split got the keyboard. `KWin` finishes mapping a page after the
+    /// panel was raised and then has it on top, and does not restack the
+    /// panel for its new parent: the panel is raised once more when that is
+    /// done, with what lies above the pages.
     #[cfg(target_os = "linux")]
     #[allow(clippy::unused_self)] // an Engine method like its siblings
     fn raise_web_panel_after_map(&self) {
@@ -881,7 +928,8 @@ impl Engine {
                     let inner = engine.lock();
                     inner.win.web_panel.filter(|_| inner.win.peek.is_none())
                 };
-                if let Some(window) = panel.and_then(|p| engine.page_window(p)) {
+                if let Some((panel, window)) = panel.and_then(|p| Some((p, engine.page_window(p)?)))
+                {
                     // The other panes first: the one the panel is tied to
                     // ends up above them, and the panel above it.
                     let split = {
@@ -894,7 +942,12 @@ impl Engine {
                         pane.bring_to_top();
                     }
                     crate::panel_stack::settle_above(&window, engine.top_page().as_ref());
+                    for docked in engine.docked_windows(panel) {
+                        docked.bring_to_top();
+                    }
                     engine.raise_panel_grip(false);
+                    // Raised over by the page: the notifications.
+                    engine.place_notifications();
                 }
             }),
             400,
@@ -973,6 +1026,10 @@ impl Engine {
         }
         if done {
             self.emit(EngineEvent::WebPanelResized { id, width });
+            // A drag or double click on the grip, which a window manager
+            // may have given the keyboard.
+            #[cfg(target_os = "linux")]
+            self.grip_returns_keyboard();
         }
     }
 
@@ -1087,6 +1144,8 @@ impl Engine {
                 if w.focused_pane == Some(id) {
                     w.focused_pane = None;
                 }
+                #[cfg(target_os = "linux")]
+                w.last_focused.take_if(|f| *f == id);
                 if w.shown == Some(id) {
                     w.shown = None;
                 }
@@ -1297,13 +1356,7 @@ impl Engine {
         self.lock().contents.get(&id)?.window.clone()
     }
 
-    /// The view of page `id`, to give it the keyboard.
-    #[cfg(target_os = "linux")]
-    pub(crate) fn content_view(&self, id: ContentId) -> Option<PageView> {
-        Some(self.content_handles(id)?.1)
-    }
-
-    fn content_handles(&self, id: ContentId) -> Option<(Window, PageView)> {
+    pub(crate) fn content_handles(&self, id: ContentId) -> Option<(Window, PageView)> {
         let inner = self.lock();
         let c = inner.contents.get(&id)?;
         Some((c.window.clone()?, c.view.clone()))
