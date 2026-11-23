@@ -29,6 +29,14 @@ export interface RowContext {
 /** Most pages one split holds (as `magnetite_core::split::MAX_PANES`). */
 const MAX_PANES = 4;
 
+/**
+ * The second click of a double click. A button that takes its row away has
+ * by then something else under the pointer (the next row's close button,
+ * "Clear" above Today), which must not act on it: the system counts clicks
+ * by place and time, not by element.
+ */
+export const secondClick = (e: React.MouseEvent) => e.detail > 1;
+
 /** Is `tab` an item its smart folder `folderId` got from its source (not a tab put there by hand)? */
 function isSmartItem(state: UiState, tab: TabItem, folderId?: string): boolean {
   const smart = folderId ? findFolder(state, folderId)?.folder.smart : undefined;
@@ -562,20 +570,28 @@ const TabRowInner = memo(
               </button>
             )
           ) : removable ? (
+            // Its own key: a focused × must not turn into this button in place.
             <button
+              key="remove"
               className="close"
               title="Remove from pinned tabs"
               aria-label="Remove from pinned tabs"
-              onClick={(e) => { e.stopPropagation(); send({ cmd: "remove_pinned", id: tab.id }); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!secondClick(e)) send({ cmd: "remove_pinned", id: tab.id });
+              }}
             >
               <Minus width={14} height={14} />
             </button>
           ) : (
             <button
+              key="close"
               className="close"
               onClick={(e) => {
                 e.stopPropagation();
-                if (section === "pinned") setJustClosed(true);
+                if (secondClick(e)) return;
+                // A key press (`detail` 0) leaves no pointer on the row to wait for.
+                if (section === "pinned" && e.detail > 0) setJustClosed(true);
                 send({ cmd: "close_tab", id: tab.id });
               }}
               title={section === "today" ? "Archive" : "Close"}

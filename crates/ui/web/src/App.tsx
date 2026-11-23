@@ -13,7 +13,7 @@ import { record } from "./recorder";
 import { MediaBar, type MediaEntry } from "./MediaBar";
 import { NewMenu } from "./NewMenu";
 import { ExtensionBar, PinnedExtensions } from "./PinnedExtensions";
-import { DeviceTabRow, FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, type RowContext } from "./Rows";
+import { DeviceTabRow, FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, secondClick, type RowContext } from "./Rows";
 import { windowBackground } from "./backgrounds";
 import { IS_MAC, accentCss, applyAppearance, favoriteShows, keyLabel, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, onRecord, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
 import { IconPicker, SpaceIcon } from "./Glyphs";
@@ -250,7 +250,7 @@ export function App() {
 
         <div className="divider">
           <hr />
-          {space.today.length > 0 && <button title={isPrivate ? "Close all private tabs" : "Archive all Today tabs"} onClick={() => send({ cmd: "archive_today" })}>Clear</button>}
+          {space.today.length > 0 && <button title={isPrivate ? "Close all private tabs" : "Archive all Today tabs"} onClick={(e) => !secondClick(e) && send({ cmd: "archive_today" })}>Clear</button>}
         </div>
 
         <div

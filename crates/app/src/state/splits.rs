@@ -17,6 +17,11 @@ enum Home<'a> {
 }
 
 impl AppState {
+    /// Whether `id` is a pinned tab of a space, in a folder or not.
+    pub fn is_pinned_tab(&self, id: &str) -> bool {
+        matches!(self.home_of(id), Some(Home::Pinned(_)))
+    }
+
     fn home_of(&self, id: &str) -> Option<Home<'_>> {
         let favorites = &self.sidebar.favorites;
         if let Some(list) = (favorites.iter()).find(|f| f.items.iter().any(|t| t.id == id)) {
