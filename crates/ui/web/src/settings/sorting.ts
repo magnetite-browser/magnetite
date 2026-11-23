@@ -32,14 +32,16 @@ const EDGE = 48;
 /**
  * A list whose rows are sorted by dragging. `landing` says where row
  * `dragged` ends up when dropped on the upper or lower half of row
- * `target` (null: nowhere new, or not allowed there), `move` does it.
+ * `target` (null: nowhere new, or not allowed there), `move` does it and
+ * settles once the list has its new order: until then the rows stay where
+ * the drag left them, or the old order would show for a moment.
  *
  * `row(id)` goes on every row, `handle(id, enabled)` on what a row is
  * dragged by: the row itself or a part of it. The dragged row follows the
  * pointer, the other rows make room where it would land, the page scrolls
  * when the pointer nears its edge, and Esc gives up.
  */
-export function useSorting(landing: (dragged: string, target: string, below: boolean) => number | null, move: (id: string, index: number) => void) {
+export function useSorting(landing: (dragged: string, target: string, below: boolean) => number | null, move: (id: string, index: number) => Promise<unknown>) {
   const [dragged, setDragged] = useState<string | null>(null);
   const [over, setOver] = useState<Over | null>(null);
   const [shift, setShift] = useState(0);
@@ -52,7 +54,15 @@ export function useSorting(landing: (dragged: string, target: string, below: boo
   const latest = useRef({ landing, move });
   latest.current = { landing, move };
 
-  const finish = () => {
+  /** The rows back where the list puts them. */
+  const settle = () => {
+    setDragged(null);
+    setOver(null);
+    setShift(0);
+    setLay(null);
+  };
+  /** Lets go of the pointer; `keep` leaves the rows where they are for now. */
+  const finish = (keep = false) => {
     const d = drag.current;
     if (!d) return;
     drag.current = null;
@@ -60,10 +70,7 @@ export function useSorting(landing: (dragged: string, target: string, below: boo
     if (d.handle.hasPointerCapture(d.pointer)) d.handle.releasePointerCapture(d.pointer);
     delete document.documentElement.dataset.sorting;
     overNow.current = null;
-    setDragged(null);
-    setOver(null);
-    setShift(0);
-    setLay(null);
+    if (!keep) settle();
   };
   const finishNow = useRef(finish);
   finishNow.current = finish;
@@ -163,16 +170,17 @@ export function useSorting(landing: (dragged: string, target: string, below: boo
       if (d.active) {
         const to = overNow.current;
         const index = to ? latest.current.landing(d.id, to.id, to.below) : null;
-        if (index !== null) latest.current.move(d.id, index);
         dropped.current = true;
         window.setTimeout(() => (dropped.current = false), 0);
-        finish();
+        finish(index !== null);
+        // The rows settle with the new order, unless another drag began meanwhile.
+        if (index !== null) void latest.current.move(d.id, index).finally(() => drag.current?.active || settle());
       } else {
         drag.current = null;
       }
     },
-    onPointerCancel: finish,
-    onLostPointerCapture: finish,
+    onPointerCancel: () => finish(),
+    onLostPointerCapture: () => finish(),
     onClickCapture: (e: React.MouseEvent) => {
       if (!dropped.current) return;
       e.preventDefault();

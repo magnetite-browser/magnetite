@@ -215,7 +215,7 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
     const profile = chosen === PRIVATE ? "private" : chosen === NEW ? { new: freshProfileName(info, title) } : { id: chosen };
     void send({ cmd: "new_space", title, stay: true, profile }).then(reload);
   };
-  const move = (id: string, index: number) => void send({ cmd: "move_space", id, index }).then(reload);
+  const move = (id: string, index: number) => send({ cmd: "move_space", id, index }).then(reload);
   // Dragging a row sorts as well: the line shows where it would land.
   /** Where the dragged space ends up when dropped on the row of `target`, or null when it would not move. */
   const landing = (dragged: string, target: string, below: boolean) => {
@@ -250,7 +250,7 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
                 const to = e.key === "ArrowUp" ? i - 1 : e.key === "ArrowDown" ? i + 1 : -1;
                 if (to < 0 || to >= info.spaces.length) return;
                 e.preventDefault();
-                move(sp.id, to);
+                void move(sp.id, to);
               }}
             >
               <Grip />
@@ -408,7 +408,7 @@ export function FavoritesSection({ info, reload }: { info: Info; reload: () => P
   // which takes no tab of another profile.
   const leaveTo = (info.spaces.find((sp) => sp.id === info.active_space) ?? info.spaces[0])?.id ?? info.active_space;
   const listOf = (f: Favorite) => info.favorites.filter((x) => profileOf(x) === profileOf(f));
-  const move = (id: string, index: number) => void send({ cmd: "move_favorite", id, index }).then(reload);
+  const move = (id: string, index: number) => send({ cmd: "move_favorite", id, index }).then(reload);
   // Dragging by the handle sorts: the line shows where the favorite would land.
   /** Where the dragged favorite ends up in its list when dropped on `target`; null: nowhere new, or another profile's list. */
   const landing = (dragged: string, targetId: string, below: boolean) => {
@@ -480,7 +480,7 @@ export function FavoritesSection({ info, reload }: { info: Info; reload: () => P
                 const to = e.key === "ArrowUp" ? place - 1 : e.key === "ArrowDown" ? place + 1 : -1;
                 if (to < 0 || to >= list.length) return;
                 e.preventDefault();
-                move(f.id, to);
+                void move(f.id, to);
               }}
             >
               <Grip />
