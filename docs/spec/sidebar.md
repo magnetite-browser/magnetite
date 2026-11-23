@@ -25,7 +25,7 @@ From top to bottom:
 6. A divider with **Clear**, which archives all Today tabs of the space.
 7. The **New Tab** row, then the **Today** tabs. New tabs appear at the top.
 8. **Footer**: the button for bookmarks, the history, downloads and the
-   archive (`bookmarks.md`, `history.md`, `archive.md`; its menu also opens
+   archive (`bookmarks.md`, `history.md`, `downloads.md`, `archive.md`; its menu also opens
    Settings), one icon
    per space, and
    "+" (New Space, Private Space, New Folder, New Smart Folder, New Split,

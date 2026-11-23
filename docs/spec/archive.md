@@ -65,70 +65,7 @@ downloads. A click opens the view chosen in Settings → Tabs and archive (the
 archive by default), or the downloads while a download runs; resting on the
 button offers all four and, below a line, Settings.
 
-The downloads list every file a page downloads, except the package of an
-extension being installed from the Chrome Web Store: that is part of the
-install, as in Chrome, and Chromium deletes it once the extension is in.
-
-A download also shows as a card in the notification panel at the top right
-of the page: while it runs, and for six seconds after it ended or failed. At
-most three show, the newest first. The pointer on the panel holds the cards
-that are there, and they stay two more seconds after it has left. A card
-that is gone does not come back: when the panel opens for something else (a
-new version, a permission a page asks for), the pointer on it brings no
-earlier download with it. The download list keeps them all.
-
-A click on a finished download opens the file, and the icon at the end of
-the row shows it in the file manager. Dragging the row takes the file
-along, as dragging it from the file manager would: onto a web page to
-upload it, into another app or into a folder, as a copy. "All downloads…"
-stays above the list and opens the same entries as a page
-(`magnetite://ui/downloads`) with a search by file name; its rows do the
-same.
-
-A right click offers what fits the download as it is:
-
-| Download | Menu |
-|---|---|
-| Running | Pause or Resume, Cancel, Copy download link |
-| Finished | Open, Show in Finder (Show in folder), Copy file, Copy file path, Copy download link, Remove from list, Move to Trash (Move to Recycle Bin on Windows) |
-| Failed or cancelled | Try again, Copy download link, Remove from list |
-
-- Open is left out for a file that runs code when opened (`security.md`).
-  A file moved or deleted since keeps Show in Finder (its folder), the link
-  and Remove from list.
-- Copy file is built for macOS; Copy file path and Copy download link for
-  macOS and Windows.
-- The link and Try again are there while Magnetite runs: the address a
-  download came from is not saved.
-- Remove from list takes the entry off and leaves the file. Move to Trash
-  leaves the entry, which then says "Deleted"; the file can be put back
-  from the trash.
-- A paused download says "Paused" before its progress, a cancelled one
-  "Canceled".
-
-### Where downloads are saved
-
-| Setting | Values | Default |
-|---|---|---|
-| Settings → General → "Save downloads to" | the Downloads folder of the system, or a folder chosen in the system's dialog | the system's |
-| Settings → General → "Ask where to save each file" | off, on | off |
-
-- "Choose…" opens the system's dialog for a folder. Only a folder chosen
-  there is used: the page cannot name one, it can only take the choice
-  away ("Reset", back to the system's folder).
-- With "Ask where to save each file" every download opens a dialog for the
-  file's name and folder.
-- Both hold for every profile and take effect at once. "Save as" for a
-  page keeps starting in the folder it was last used with: that is another
-  preference of Chromium's, which Magnetite leaves alone.
-- A chosen folder that is not there is said so in Settings.
-- Neither is synced: a folder is this computer's.
-
-Chromium saves the files; the settings are its preferences
-(`download.default_directory`, `download.prompt_for_download`).
-
-A folder chosen in the dialog that is gone, or no folder, by the time the
-app looks is refused, and Settings says that it did not work.
+The downloads have their own spec: [downloads.md](downloads.md).
 
 ## Data
 

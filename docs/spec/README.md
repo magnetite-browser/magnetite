@@ -17,6 +17,7 @@ labels say so.
 | [spaces.md](spaces.md) | spaces, profiles and how sites are kept apart |
 | [command-bar.md](command-bar.md) | addresses, search, site search, open tabs, bookmarks, history, the archive and commands in one input |
 | [archive.md](archive.md) | closing a tab, auto-archive, restoring |
+| [downloads.md](downloads.md) | the download list, dragging a download out, its menu, where files are saved |
 | [history.md](history.md) | the pages visited on this device: what is kept, for how long, the history view |
 | [bookmarks.md](bookmarks.md) | saved addresses per space, in folders, in one view for all spaces |
 | [split-view.md](split-view.md) | several pages side by side |
