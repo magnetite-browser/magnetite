@@ -227,13 +227,10 @@ wrap_dialog_handler! {
             callback: Option<&mut FileDialogCallback>,
         ) -> ::std::os::raw::c_int {
             let (Some(browser), Some(callback)) = (browser, callback) else { return 0 };
+            // Every other dialog is Chromium's, untouched; a web page asking
+            // for that type gets the dialog like any other.
             let asks_for_drag = accept_filters.is_some_and(|f| crate::client::strings(f).iter().any(|t| t == DRAG_PICKER));
-            // Our own pages only: a web page asking for that type gets the
-            // dialog like any other.
-            let ours = Engine::global()
-                .loaded_url(browser.identifier())
-                .is_some_and(|url| crate::router::is_ui_url(&url));
-            if !asks_for_drag || !ours {
+            if !asks_for_drag || !Engine::global().loaded_url(browser.identifier()).is_some_and(|url| crate::router::is_ui_url(&url)) {
                 return 0;
             }
             // With no file offered the chooser takes nothing: a dialog would

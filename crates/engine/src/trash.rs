@@ -27,9 +27,10 @@ mod freedesktop {
     use std::path::{Path, PathBuf};
 
     pub(super) fn trash(path: &Path) -> io::Result<()> {
+        // A relative one is invalid by the XDG specification.
         let data = std::env::var_os("XDG_DATA_HOME")
-            .filter(|d| !d.is_empty())
             .map(PathBuf::from)
+            .filter(|d| d.is_absolute())
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/share")))
             .ok_or(io::ErrorKind::NotFound)?;
         trash_into(&data.join("Trash"), path, &deletion_date())

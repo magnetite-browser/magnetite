@@ -206,17 +206,20 @@ pub fn save_png(owner: cef::sys::cef_window_handle_t, png: &[u8], name: &str) ->
     Some(path)
 }
 
-/// Move the file at `path` to the Recycle Bin, without asking and without
-/// a progress window: the list asked already.
+/// Move the file at `path` to the Recycle Bin, without a question or a
+/// progress window: the list asked already. A file the Recycle Bin cannot
+/// take (another drive, a share, too large) would be deleted for good, so
+/// Windows asks first then; a "No" fails the move.
 pub fn trash(path: &std::path::Path) -> std::io::Result<()> {
     use std::os::windows::ffi::OsStrExt;
     use windows::Win32::UI::Shell::{
-        FO_DELETE, FOF_ALLOWUNDO, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT, SHFILEOPSTRUCTW,
-        SHFileOperationW,
+        FO_DELETE, FOF_ALLOWUNDO, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT,
+        FOF_WANTNUKEWARNING, SHFILEOPSTRUCTW, SHFileOperationW,
     };
     // A list of paths: each ends with a nul, the list with one more.
     let from: Vec<u16> = path.as_os_str().encode_wide().chain([0, 0]).collect();
-    let flags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT;
+    let flags =
+        FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_WANTNUKEWARNING | FOF_NOERRORUI | FOF_SILENT;
     let mut operation = SHFILEOPSTRUCTW {
         wFunc: FO_DELETE,
         pFrom: windows::core::PCWSTR(from.as_ptr()),

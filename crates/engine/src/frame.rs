@@ -127,7 +127,9 @@ impl Engine {
         self.find_browser(id).map(|(win, _)| win)
     }
 
-    /// Browser `id`, if it is one of those `window_of_browser` knows.
+    /// Browser `id`, if it is one of those `window_of_browser` knows (the
+    /// page a file is dragged from, `Engine::drag_file`).
+    #[cfg(target_os = "macos")]
     pub(crate) fn browser_by_id(&self, id: i32) -> Option<Browser> {
         self.find_browser(id).map(|(_, browser)| browser)
     }

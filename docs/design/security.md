@@ -297,7 +297,8 @@ Chromium's own bubble, which lives in the hidden toolbar, is turned off
   only ever shown in the file manager; Magnetite does not open them.
 - Open on a card counts only for a deliberate click, as Allow does below.
 - The list (`crates/app/src/downloads.rs`) keeps at most 100 entries in
-  `state.json`: file name, place, size, status and start time, no addresses.
+  `state.json`: file name, place, size, status, start time and whether it
+  was cancelled, no addresses.
   A download's address stays in memory, so a failed one can be tried again
   and its link copied until Magnetite quits; the UI does not get it.
   Private profiles' downloads are listed while Magnetite runs, never saved.

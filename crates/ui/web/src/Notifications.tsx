@@ -274,9 +274,7 @@ function DownloadCard({ d, layout, onClose }: { d: DownloadEntry; layout: string
         ? "Download canceled"
         : "Download failed"
       : d.status === "in_progress"
-        ? d.total
-          ? `${size(d.received)} of ${size(d.total)}`
-          : `${size(d.received)} so far`
+        ? `${d.paused ? "Paused · " : ""}${d.total ? `${size(d.received)} of ${size(d.total)}` : `${size(d.received)} so far`}`
         : d.missing
           ? "Moved or deleted"
           : `Downloaded · ${size(d.total ?? d.received)}`;
@@ -288,7 +286,7 @@ function DownloadCard({ d, layout, onClose }: { d: DownloadEntry; layout: string
         <div className="note-title"><FileName name={d.name} /></div>
         <div className="note-detail">{detail}</div>
         {d.status === "in_progress" && (
-          <div className="note-bar" data-unknown={share === null || undefined}>
+          <div className="note-bar" data-unknown={(share === null && !d.paused) || undefined}>
             <span style={{ width: share === null ? undefined : `${share * 100}%` }} />
           </div>
         )}
