@@ -554,6 +554,22 @@ impl AppState {
         self.forget_tab(id)
     }
 
+    /// Archive pinned tab `id` (`remove_pinned`) at the page it was pinned
+    /// for, not at the one it was left on. That page's title would then name
+    /// another page: it goes, unless the user gave the tab its own.
+    pub fn archive_pinned(&mut self, id: &str) -> Option<ContentId> {
+        if let Some(t) = self.find_tab_mut(id)
+            && let Some(home) = t.home_url.clone()
+            && t.url != home
+        {
+            t.url = home;
+            if !t.custom_title {
+                t.title.clear();
+            }
+        }
+        self.archive_tab(id)
+    }
+
     /// Take the archive record at `pos` back into Today of its space (the
     /// active space if that one is gone, the space beside the private one if
     /// that is the active one). Returns the tab's id. A tab that
@@ -1047,6 +1063,28 @@ mod tests {
         assert!(s.find_tab("b").is_none());
         assert!(s.active_tab_id().is_none());
         assert_eq!(s.visible_tab_ids(), vec!["p", "a", "c"]);
+    }
+
+    #[test]
+    fn a_removed_pinned_tab_is_archived_at_its_pinned_page_without_the_other_pages_title() {
+        let mut s = state();
+        let p = s.find_tab_mut("p").unwrap();
+        p.url = "https://example.org/p/issues/42".into();
+        p.title = "Bug #42".into();
+        s.archive_pinned("p");
+        let record = &s.archive.last().unwrap().tab;
+        assert_eq!(record.url, "https://example.org/p");
+        assert_eq!(record.title, "");
+        assert!(s.find_tab("p").is_none());
+
+        // A title the user gave is the tab's own and stays.
+        let mut s = state();
+        let p = s.find_tab_mut("p").unwrap();
+        p.url = "https://example.org/p/issues/42".into();
+        p.title = "Work tracker".into();
+        p.custom_title = true;
+        s.archive_pinned("p");
+        assert_eq!(s.archive.last().unwrap().tab.title, "Work tracker");
     }
 
     #[test]

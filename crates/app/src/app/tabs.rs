@@ -880,9 +880,10 @@ impl MagnetiteApp {
         self.end_tab(engine, tab_id, false);
     }
 
-    /// Remove pinned tab `tab_id` from its space: it goes to the archive as a
-    /// closed Today tab does, and comes back from there as one. The close
-    /// button of a pinned row does this once its page is unloaded.
+    /// Remove pinned tab `tab_id` from its space: it goes to the archive at
+    /// its pinned page (`archive_pinned`) and comes back from there as a
+    /// Today tab. The row's minus and a middle click do this once its page
+    /// is unloaded; the context menu also while it is loaded.
     pub(super) fn remove_pinned(&self, engine: &Engine, tab_id: &str) {
         // The row may be out of date: a sync can have made it a favorite.
         if self.with_state(|s| s.is_pinned_tab(tab_id)) {
@@ -943,15 +944,9 @@ impl MagnetiteApp {
                     s.detach_content(id)
                 };
                 closing.iter().filter_map(|id| unload(s, id)).collect()
+            } else if remove {
+                s.archive_pinned(tab_id).into_iter().collect()
             } else {
-                // A removed pinned tab is archived at the page it was pinned
-                // for, not at the one it was left on.
-                if remove
-                    && let Some(t) = s.find_tab_mut(tab_id)
-                    && let Some(home) = t.home_url.clone()
-                {
-                    t.url = home;
-                }
                 s.archive_tab(tab_id).into_iter().collect()
             };
             // Nothing to move on to: no tab is in front (an unloaded pinned

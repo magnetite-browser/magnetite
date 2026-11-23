@@ -85,27 +85,30 @@ the row turns the icon into a back arrow that takes the page back.
   until then.
 - A pinned tab without a loaded page has nothing to close: on hover its row
   shows a minus in place of the close button, which removes the tab from the
-  space. It goes to the archive at its pinned page and comes back from there
-  as a Today tab (`archive.md`); one of Magnetite's own pages or of a private
-  profile just closes. A row whose page was just closed with its button
+  space. It goes to the archive at its pinned page, without the title of
+  another page it was left on, and comes back from there as a Today tab
+  (`archive.md`); one of Magnetite's own pages or of a private profile just
+  closes. A row whose page was just closed with its button or a middle click
   keeps the close button until the pointer leaves. The second click of a
-  double click on a close button, a minus or "Clear" does nothing, so it
-  cannot hit what moved under the pointer.
+  double click on a minus or on "Clear" does nothing, so it cannot remove
+  the next pinned tab or archive all of Today once the rows have moved up.
+  Quick clicks on a close button in one place close one tab after another.
 - **Keep active** in the menu of a Today tab spares that tab: its page is
   never unloaded for being off screen, and it is not auto-archived. A check mark shows it in the menu and a small flash on the
   row; the same entry lets the tab sleep again. Closing the tab ends it.
 - Double-click renames a tab; "Use page title" in the context menu undoes
   it. A favorite is renamed from its context menu, in a row under the
-  tiles of its list. Middle-click closes a tab, and removes a pinned tab
-  without a loaded page as the minus does.
+  tiles of its list. Middle-click does what the row's close button or
+  minus does; on an item a smart folder got from its source it closes.
+  It does nothing in the rename field.
 - The context menu has the actions that fit the tab, among them Reload,
   Share…, Copy link, Pin tab, Unpin tab, Add to favorites, Remove from
   favorites, Open in split view, Duplicate tab, Rename, Move to another
   space, and Archive (Today) or Close. Close is there only while a
   favorite's or pinned tab's page is loaded, since without one it would do
-  nothing; a pinned tab also has "Remove from pinned tabs", as the minus on
-  its row, except an item a smart folder got from its source, which the
-  next refresh would bring back. "Duplicate tab" opens the tab's
+  nothing; a pinned tab also has "Remove from pinned tabs", loaded or not,
+  except an item a smart folder got from its source, which the next
+  refresh would bring back. "Duplicate tab" opens the tab's
   address as a new Today tab; a favorite has "Duplicate favorite" instead.
 
 ## Shared tabs

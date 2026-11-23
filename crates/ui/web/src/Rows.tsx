@@ -30,10 +30,12 @@ export interface RowContext {
 const MAX_PANES = 4;
 
 /**
- * The second click of a double click. A button that takes its row away has
- * by then something else under the pointer (the next row's close button,
- * "Clear" above Today), which must not act on it: the system counts clicks
- * by place and time, not by element.
+ * The second click of a double click. The system counts clicks by place
+ * and time, not by element, so after a click that took a row away it lands
+ * on whatever moved up under the pointer. Removing a pinned tab and "Clear"
+ * ignore it, so a double click removes one pinned tab and never archives
+ * all of Today; closing does not, so quick clicks in one place close tab
+ * after tab.
  */
 export const secondClick = (e: React.MouseEvent) => e.detail > 1;
 
@@ -138,13 +140,14 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
       items.push({ label: `Move to ${sp.title}`, onClick: () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 }) });
     }
   }
-  items.push(SEPARATOR);
+  const last: MenuItem[] = [];
   // Closing a favorite or a pinned tab unloads its page: without one it
   // would do nothing. A smart folder's own item has snooze on its row, so
   // Close is here for it.
-  if (section === "today" || loaded) items.push({ label: section === "today" && !inPrivate ? "Archive" : "Close", danger: section === "today", onClick: () => send({ cmd: "close_tab", id: tab.id }) });
+  if (section === "today" || loaded) last.push({ label: section === "today" && !inPrivate ? "Archive" : "Close", danger: section === "today", onClick: () => send({ cmd: "close_tab", id: tab.id }) });
   // Not a smart item: its source would bring it back at the next refresh.
-  if (section === "pinned" && !smart) items.push({ label: "Remove from pinned tabs", danger: true, onClick: () => send({ cmd: "remove_pinned", id: tab.id }) });
+  if (section === "pinned" && !smart) last.push({ label: "Remove from pinned tabs", danger: true, onClick: () => send({ cmd: "remove_pinned", id: tab.id }) });
+  if (last.length > 0) items.push(SEPARATOR, ...last);
   return items;
 }
 
@@ -420,8 +423,9 @@ const TabRowInner = memo(
     const [over, setOver] = useState<"before" | "after" | Side | null>(null);
     // The user picks a time of their own to snooze until, in the title's place.
     const [pickingTime, setPickingTime] = useState(false);
-    // Closed with the row's button: it stays "close" until the pointer has
-    // left, so a double click neither removes nor reopens the tab.
+    // Closed with the row's button or a middle click: it stays "close" until
+    // the pointer has left, so a double click neither removes nor reopens
+    // the tab.
     const [justClosed, setJustClosed] = useState(false);
     const hover = useRef<number | undefined>(undefined);
     // A row that goes away while the pointer rests on its button opens no menu.
@@ -438,9 +442,8 @@ const TabRowInner = memo(
     // The row's close (its button, a middle click): unloads a page, archives
     // a Today tab, or removes a pinned tab without a page.
     const close = (e: React.MouseEvent) => {
-      if (secondClick(e)) return;
       if (removable) {
-        send({ cmd: "remove_pinned", id: tab.id });
+        if (!secondClick(e)) send({ cmd: "remove_pinned", id: tab.id });
         return;
       }
       // A key press (`detail` 0) leaves no pointer on the row to wait for.
@@ -499,7 +502,8 @@ const TabRowInner = memo(
           // Two quick clicks on mute, close or back are not a rename.
           if (!(e.target instanceof Element && e.target.closest("button"))) ctx.setRenaming(tab.id);
         }}
-        onAuxClick={(e) => e.button === 1 && close(e)}
+        // Not from the rename or time field (a middle click pastes there on Linux).
+        onAuxClick={(e) => e.button === 1 && !renaming && !pickingTime && close(e)}
         onMouseLeave={() => setJustClosed(false)}
         onContextMenu={(e) => {
           e.preventDefault();
