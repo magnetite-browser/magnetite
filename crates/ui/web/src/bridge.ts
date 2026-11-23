@@ -716,7 +716,7 @@ export type Command =
   /** Read browser `key` and say what an import would add; nothing is added. */
   | { cmd: "import_preview"; key: string }
   | { cmd: "import_from"; key: string }
-  /** The text of a bookmarks file (the HTML browsers export): its bookmarks join the current space's. */
+  /** The text of a bookmarks file (the HTML browsers export): its bookmarks join those of space `space`, or of the current space. */
   | { cmd: "import_bookmarks"; html: string; space?: Id }
   /** The bookmarks of the spaces `spaces`, or of every space when none is named, as the text of a file. */
   | { cmd: "export_bookmarks"; format: BookmarkFormat; spaces?: Id[] }
