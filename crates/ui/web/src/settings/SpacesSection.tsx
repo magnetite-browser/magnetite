@@ -421,12 +421,8 @@ export function FavoritesSection({ info, reload }: { info: Info; reload: () => P
     return to === list.indexOf(from) ? null : to;
   };
   const sorting = useSorting(landing, move);
-  // As in the sidebar: one list per profile, in the order of the profiles.
-  const rank = (f: Favorite) => {
-    const at = info.profiles.findIndex((p) => p.id === profileOf(f));
-    return at < 0 ? info.profiles.length : at;
-  };
-  const byProfile = info.favorites.map((f, i) => ({ f, i })).sort((a, b) => rank(a.f) - rank(b.f) || a.i - b.i).map((x) => x.f);
+  // As in the sidebar: one list per profile, in the order of the profiles,
+  // which is how the app keeps them (`normalise_favorites`).
   const lists = new Set(info.favorites.map(profileOf)).size;
   // The spaces just chosen for a favorite, until its save is done and the
   // page has read the answer: two quick clicks both count, the second on
@@ -453,13 +449,13 @@ export function FavoritesSection({ info, reload }: { info: Info; reload: () => P
   };
   return (
     <Group title="Favorites" hint="The sites at the top of the sidebar. A favorite shows in every space, or only in the spaces you choose. Each runs in a profile; a copy in another profile (right-click → Duplicate favorite) is a second account of the same site. As in the sidebar, every profile has a list of its own, and a favorite is sorted inside its list.">
-      {byProfile.map((f, i) => {
+      {info.favorites.map((f, i) => {
         const name = f.title || hostOf(f.url);
         const list = listOf(f);
         const place = list.indexOf(f);
         const shows = picked[f.id]?.spaces ?? f.only_in;
         // The first of a profile's list is headed by the profile, once there is more than one list.
-        const heads = lists > 1 && (i === 0 || profileOf(byProfile[i - 1]!) !== profileOf(f));
+        const heads = lists > 1 && (i === 0 || profileOf(info.favorites[i - 1]!) !== profileOf(f));
         return (
           <Fragment key={f.id}>
           {heads && <div className="set-row set-fav-head">{profileName(info.profiles.find((p) => p.id === profileOf(f)))}</div>}
