@@ -96,11 +96,16 @@ the row turns the icon into a back arrow that takes the page back.
   row; the same entry lets the tab sleep again. Closing the tab ends it.
 - Double-click renames a tab; "Use page title" in the context menu undoes
   it. A favorite is renamed from its context menu, in a row under the
-  tiles of its list. Middle-click closes a tab.
+  tiles of its list. Middle-click closes a tab, and removes a pinned tab
+  without a loaded page as the minus does.
 - The context menu has the actions that fit the tab, among them Reload,
   Share…, Copy link, Pin tab, Unpin tab, Add to favorites, Remove from
   favorites, Open in split view, Duplicate tab, Rename, Move to another
-  space, and Archive (Today) or Close. "Duplicate tab" opens the tab's
+  space, and Archive (Today) or Close. Close is there only while a
+  favorite's or pinned tab's page is loaded, since without one it would do
+  nothing; a pinned tab also has "Remove from pinned tabs", as the minus on
+  its row, except an item a smart folder got from its source, which the
+  next refresh would bring back. "Duplicate tab" opens the tab's
   address as a new Today tab; a favorite has "Duplicate favorite" instead.
 
 ## Shared tabs

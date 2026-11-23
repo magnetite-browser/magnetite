@@ -65,10 +65,11 @@ YouTrack lists follow the query. The default queries are
   icon), a spinner while refreshing, a warning sign after a failure, and a
   dot on a collapsed folder with new items.
 - **Snooze:** an item's row has a snooze button where other tabs have
-  close (Close stays in the tab menu). A click, or resting the pointer on
-  it, opens the menu of times. A folder with snoozed items shows an alarm
-  clock on its row: it lists them below the others, dimmed, each with its
-  wake time and a "Wake now" button, and hides them again.
+  close (Close stays in the tab menu while its page is loaded). A click,
+  or resting the pointer on it, opens the menu of times. A folder with
+  snoozed items shows an alarm clock on its row: it lists them below the
+  others, dimmed, each with its wake time and a "Wake now" button, and
+  hides them again.
 - **Settings → Smart folders:** every smart folder with its space, source
   and status, and the connected accounts (connect, disconnect).
 
