@@ -47,11 +47,8 @@ pointer. On Windows and Linux the list's page drags the file with
 Chromium's own drag, on X11 and Wayland alike; the page gets the file, never
 its path (`security.md`).
 
-Tried by hand:
-
-| | macOS (Apple silicon) | Linux | Windows |
-|---|---|---|---|
-| A finished download dragged out of the sidebar list | yes | not checked | not checked |
+Tried by hand on macOS (Apple silicon): a finished download dragged out
+of the sidebar list.
 
 ## The menu
 
