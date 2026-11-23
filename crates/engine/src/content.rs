@@ -1602,6 +1602,10 @@ wrap_window_delegate! {
                     c.mini.as_ref().map(|m| m.row.clone())
                 })
             };
+            // Shown pages get the keyboard from us, never from AppKit's
+            // key view loop (it reads as a Tab press into the page).
+            #[cfg(target_os = "macos")]
+            crate::mac::no_key_loop_focus(window.window_handle());
             // A mini window: its row above the page (added after the page,
             // which must be the window's first Chrome-style view), and it
             // shows itself, in front, with the keyboard in the page.

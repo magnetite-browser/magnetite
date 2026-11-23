@@ -5,7 +5,8 @@
 //! it installs our menu bar, `menubar.rs`), adapted from the cef-rs
 //! `cefsimple` example (Apache-2.0 OR MIT). Next to them: tweaks to CEF's
 //! own windows (pinned, rounded corners, the focus ring of a split page,
-//! hidden or shown, shown without taking focus), the watch on two-finger
+//! hidden or shown, shown without taking focus, focused without AppKit's
+//! key view loop), the watch on two-finger
 //! swipes, stale tooltips, pages wrongly marked covered, the cursor of a
 //! window without the keyboard, and helpers for the
 //! child modules:
@@ -947,6 +948,26 @@ pub fn close_key_window_outside(frame: cef::sys::cef_window_handle_t) -> bool {
     }
     key.performClose(None);
     true
+}
+
+/// Keep AppKit from choosing the page's focus when the window holding the
+/// view `handle` is shown. A window shown without a first responder (its
+/// page view went away with a navigation, or it never had the keyboard)
+/// gets one from its key view loop, "as if by Tab", and Chromium answers by
+/// focusing the page's first element: most sites then show their "Skip to
+/// content" link. An initial first responder stops that walk. The content
+/// view (the Views root) declines the role, so the window has none until
+/// Views focuses the page directly (`request_focus`).
+pub fn no_key_loop_focus(handle: cef::sys::cef_window_handle_t) {
+    use objc2_app_kit::NSView;
+    if handle.is_null() || MainThreadMarker::new().is_none() {
+        return;
+    }
+    // SAFETY: CEF hands us a live NSView; we are on the main thread.
+    let view: &NSView = unsafe { &*handle.cast::<NSView>() };
+    if let Some(window) = view.window() {
+        window.setInitialFirstResponder(window.contentView().as_deref());
+    }
 }
 
 /// Take the window holding the view `handle` off screen, or bring it back.
