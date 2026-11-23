@@ -29,10 +29,12 @@ export interface RowContext {
 /** Most pages one split holds (as `magnetite_core::split::MAX_PANES`). */
 const MAX_PANES = 4;
 
-// Where the current run of clicks began (`detail` 1), for `movedUnder`.
-let firstClicked: EventTarget | null = null;
+// The elements the current run of clicks began on (`detail` 1), for
+// `movedUnder`: the whole path, as the element hit can be gone by the next
+// click (a folder's icon is swapped when it opens).
+let firstPath: EventTarget[] = [];
 const noteFirstClick = (e: MouseEvent) => {
-  if (e.detail === 1) firstClicked = e.target;
+  if (e.detail === 1) firstPath = e.composedPath();
 };
 document.addEventListener("click", noteFirstClick, true);
 document.addEventListener("auxclick", noteFirstClick, true);
@@ -41,13 +43,13 @@ document.addEventListener("auxclick", noteFirstClick, true);
  * A later click of a double click that began on another element. The
  * system counts clicks by place and time, not by element, so after a click
  * that took a row away the next one lands on whatever moved up under the
- * pointer. Closing a pinned tab or favorite, removing one, "Clear", a
- * folder row and a split cell ignore such a click; a real double click on
- * them works as before. Closing a Today tab does not, so quick clicks in
- * one place close tab after tab.
+ * pointer. Pinned rows (close, minus, middle click), "Clear", folder rows
+ * and their buttons, snoozed items, split cells and device tabs ignore such
+ * a click; a real double click on them works as before. Closing a Today
+ * tab does not, so quick clicks in one place close tab after tab.
  */
 export function movedUnder(e: React.MouseEvent): boolean {
-  return e.detail > 1 && !(firstClicked instanceof Node && e.currentTarget.contains(firstClicked));
+  return e.detail > 1 && !firstPath.includes(e.currentTarget);
 }
 
 /** Is `tab` an item its smart folder `folderId` got from its source (not a tab put there by hand)? */
@@ -152,10 +154,12 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
     }
   }
   const last: MenuItem[] = [];
-  // Closing a favorite or a pinned tab unloads its page: without one it
-  // would do nothing. A smart folder's own item has snooze on its row, so
-  // Close is here for it.
-  if (section === "today" || loaded) last.push({ label: section === "today" && !inPrivate ? "Archive" : "Close", danger: section === "today", onClick: () => send({ cmd: "close_tab", id: tab.id }) });
+  // Closing a favorite or a pinned tab unloads its page and takes it back to
+  // its pinned page: without a page, only a favorite away from it has
+  // something to close (a pinned tab has "Back to pinned page" above). A
+  // smart folder's own item has snooze on its row, so Close is here for it.
+  const awayFavorite = section === "favorites" && !!tab.home_url && tab.home_url !== tab.url;
+  if (section === "today" || loaded || awayFavorite) last.push({ label: section === "today" && !inPrivate ? "Archive" : "Close", danger: section === "today", onClick: () => send({ cmd: "close_tab", id: tab.id }) });
   // Not a smart item: its source would bring it back at the next refresh.
   if (section === "pinned" && !smart) last.push({ label: "Remove from pinned tabs", danger: true, onClick: () => send({ cmd: "remove_pinned", id: tab.id }) });
   if (last.length > 0) items.push(SEPARATOR, ...last);
@@ -447,9 +451,10 @@ const TabRowInner = memo(
       ctx.openMenu(r.left, r.bottom + 4, snoozeMenu(tab, () => setPickingTime(true)));
     };
     const awayFromHome = section !== "today" && !!tab.home_url && tab.home_url !== tab.url;
-    // A pinned tab without a page has nothing to close: closing removes it
-    // (not a smart item, which only snoozes).
-    const removable = section === "pinned" && !rt?.loaded && !justClosed && !snoozable;
+    // A pinned tab without a page, at its pinned page, has nothing to close:
+    // closing removes it (not a smart item, which only snoozes). One away
+    // from that page goes back to it first.
+    const removable = section === "pinned" && !rt?.loaded && !awayFromHome && !justClosed && !snoozable;
     // The row's close (its button, a middle click): unloads a page, archives
     // a Today tab, or removes a pinned tab without a page.
     const close = (e: React.MouseEvent) => {
@@ -706,7 +711,7 @@ function SnoozedRow({ folderId, item }: { folderId: string; item: Snoozed }) {
       <Favicon url={item.url} />
       <span className="title">{item.title || hostOf(item.url)}</span>
       <span className="meta">{until}</span>
-      <button className="close" title="Wake now" aria-label="Wake now" onClick={() => send({ cmd: "smart_wake", id: folderId, url: item.url })}>
+      <button className="close" title="Wake now" aria-label="Wake now" onClick={(e) => !movedUnder(e) && send({ cmd: "smart_wake", id: folderId, url: item.url })}>
         <WakeIcon width={14} height={14} />
       </button>
     </div>
@@ -863,7 +868,7 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
         )}
         {status?.fetching && <span className="spinner" title="Refreshing" />}
         {smart && status?.error && !status.fetching && (
-          <button className="slot" title={`${status.error} Click for settings.`} aria-label="Smart folder problem" onClick={(e) => { e.stopPropagation(); settings(); }}>
+          <button className="slot" title={`${status.error} Click for settings.`} aria-label="Smart folder problem" onClick={(e) => { e.stopPropagation(); if (!movedUnder(e)) settings(); }}>
             <WarningIcon width={14} height={14} />
           </button>
         )}
@@ -876,6 +881,7 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
             title={`${showSnoozed ? "Hide" : "Show"} ${snoozed.length} snoozed item${snoozed.length === 1 ? "" : "s"}`}
             onClick={(e) => {
               e.stopPropagation();
+              if (movedUnder(e)) return;
               toggleSnoozed();
               // Showing them in a collapsed folder opens it.
               if (!showSnoozed && !open) toggle();
@@ -1037,7 +1043,7 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
             tab={tab}
             rt={ctx.state.runtime[id]}
             active={onScreen && id === ctx.state.active_tab}
-            onClick={() => send({ cmd: "activate_tab", id })}
+            onClick={(e) => !movedUnder(e) && send({ cmd: "activate_tab", id })}
             onAuxClick={(e) => e.button === 1 && !movedUnder(e) && send({ cmd: "remove_split", id })}
             onContextMenu={(e) => menu(e, id)}
             onRemove={() => send({ cmd: "remove_split", id })}
@@ -1058,7 +1064,7 @@ function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
   /** Being dragged: its place stays, empty. */
   lifted?: boolean;
   onRemove?: () => void;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   onAuxClick?: (e: React.MouseEvent) => void;
   onContextMenu?: (e: React.MouseEvent) => void;
 }) {
@@ -1086,7 +1092,7 @@ function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
 export function DeviceTabRow({ tab }: { tab: DeviceTab }) {
   const hint = `Open on ${tab.device}. Click to continue here.`;
   return (
-    <button className="row device-tab w-full" title={hint} onClick={() => send({ cmd: "take_device_tab", id: tab.id })}>
+    <button className="row device-tab w-full" title={hint} onClick={(e) => !movedUnder(e) && send({ cmd: "take_device_tab", id: tab.id })}>
       <Favicon url={tab.url} />
       <span className="title text-left">{tab.title || hostOf(tab.url)}</span>
       <span className="from-device" aria-label={`Open on ${tab.device}`}>

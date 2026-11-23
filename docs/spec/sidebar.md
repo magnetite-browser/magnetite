@@ -83,36 +83,42 @@ the row turns the icon into a back arrow that takes the page back.
 - Closing a favorite or a pinned tab unloads it and takes it back to its
   pinned page, which it opens at next time. Its title stays the last page's
   until then.
-- A pinned tab without a loaded page has nothing to close: on hover its row
-  shows a minus in place of the close button, which removes the tab from the
-  space. It goes to the archive at its pinned page, under that page's title
-  from the history (not the title of another page it was left on), and
-  comes back from there as a Today tab (`archive.md`); one of Magnetite's
-  own pages or of a private profile just closes. A row whose page was just
-  closed with its button or a middle click keeps the close button until
-  the pointer leaves.
+- A pinned tab without a loaded page, at its pinned page, has nothing to
+  close: on hover its row shows a minus in place of the close button, which
+  removes the tab from the space. (Away from its pinned page, the close
+  button takes it back there first.) It goes to the archive at its pinned
+  page, under its own title if its page is loaded there, else that page's
+  title from the history, never the title of another page it was left on,
+  and comes back from there as a Today tab (`archive.md`). One of
+  Magnetite's own pages or of a private profile just closes, also from the
+  menu, and is gone for good. A row whose page was just closed with its
+  button or a middle click keeps the close button until the pointer leaves.
 - After a click that takes a row away, the rows below move up under the
   pointer. The second click of a double click that lands on another
-  element than the first does nothing on a pinned tab or favorite (close,
-  minus, middle click), on "Clear", on a folder row and on a split row's
-  cell, so a double click removes one pinned tab and never unloads the
-  next one, archives all of Today, opens a folder for renaming or breaks
-  up a split. A double click on one element works as before, and quick
-  clicks in one place on Today tabs close one tab after another.
+  element than the first does nothing on a pinned tab (close, minus,
+  middle click), on "Clear", on a folder row and its buttons, on a snoozed
+  item's "Wake now", on a split row's cell and on a tab of another device.
+  So a double click removes one pinned tab and never unloads the next
+  one, archives all of Today, opens a folder for renaming, breaks up a
+  split or takes over another device's tab. A double click on one element
+  works as before, and quick clicks in one place on Today tabs close one
+  tab after another.
 - **Keep active** in the menu of a Today tab spares that tab: its page is
   never unloaded for being off screen, and it is not auto-archived. A check mark shows it in the menu and a small flash on the
   row; the same entry lets the tab sleep again. Closing the tab ends it.
 - Double-click renames a tab; "Use page title" in the context menu undoes
   it. A favorite is renamed from its context menu, in a row under the
   tiles of its list. Middle-click does what the row's close button or
-  minus does; on an item a smart folder got from its source it closes.
+  minus does; on an item a smart folder got from its source it closes,
+  which does nothing without a loaded page (such an item snoozes instead).
   It does nothing on a row while it is being renamed or a snooze time is
   being picked.
 - The context menu has the actions that fit the tab, among them Reload,
   Share…, Copy link, Pin tab, Unpin tab, Add to favorites, Remove from
   favorites, Open in split view, Duplicate tab, Rename, Move to another
   space, and Archive (Today) or Close. Close is there only while a
-  favorite's or pinned tab's page is loaded, since without one it would do
+  favorite's or pinned tab's page is loaded, or while a favorite is away
+  from its pinned page (Close takes it back), since otherwise it would do
   nothing; a pinned tab also has "Remove from pinned tabs", loaded or not,
   except an item a smart folder got from its source, which the next
   refresh would bring back. "Duplicate tab" opens the tab's

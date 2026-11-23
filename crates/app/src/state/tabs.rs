@@ -556,26 +556,23 @@ impl AppState {
     }
 
     /// Archive pinned tab `id` (`remove_pinned`) at the page it was pinned
-    /// for, not at the one it was left on, with that page's title from the
-    /// history. The tab's own title may be another page's: closing a pinned
-    /// tab takes it home and keeps the last title. Without a title in the
-    /// history, one from another page goes. A title the user gave stays.
+    /// for, not at the one it was left on. Its own title names that page only
+    /// while it is loaded there: closing a pinned tab takes it home and keeps
+    /// the last page's title. Otherwise it takes the page's title from the
+    /// history, or none. A title the user gave stays.
     pub fn archive_pinned(&mut self, id: &str) -> Option<ContentId> {
         let home = self.find_tab(id).and_then(|(_, t)| t.home_url.clone());
         if let Some(home) = home {
             let page = page_of(&home);
+            let loaded = self.runtime.get(id).is_some_and(|r| r.loaded);
             let known = (self.history.newest())
                 .find(|v| page_of(&v.url) == page && !v.title.is_empty())
                 .map(|v| v.title.clone());
             if let Some(t) = self.find_tab_mut(id) {
-                let away = page_of(&t.url) != page;
+                let own = loaded && page_of(&t.url) == page;
                 t.url = home;
-                if !t.custom_title {
-                    match known {
-                        Some(title) => t.title = title,
-                        None if away => t.title.clear(),
-                        None => {}
-                    }
+                if !t.custom_title && !own {
+                    t.title = known.unwrap_or_default();
                 }
             }
         }
@@ -1079,33 +1076,51 @@ mod tests {
 
     #[test]
     fn a_removed_pinned_tab_is_archived_at_its_pinned_page_with_that_pages_title() {
-        /// `p` of a fresh state, archived with `url`, `title` and
-        /// `custom_title` set, after a visit of its pinned page titled `visit`.
-        fn archived(url: &str, title: &str, visit: Option<&str>, custom: bool) -> TabItem {
+        /// `p` of a fresh state at `url` titled `title`, loaded or not,
+        /// archived after a visit of its pinned page titled `visit`.
+        fn archived(url: &str, title: &str, loaded: bool, visit: Option<&str>) -> TabItem {
             let mut s = state();
             if let Some(title) = visit {
                 s.history.record("https://example.org/p", title, now());
             }
+            if loaded {
+                let rt = TabRuntime {
+                    loaded,
+                    ..TabRuntime::default()
+                };
+                s.runtime.insert("p".into(), rt);
+            }
             let p = s.find_tab_mut("p").unwrap();
-            (p.url, p.title, p.custom_title) = (url.into(), title.into(), custom);
+            (p.url, p.title) = (url.into(), title.into());
             s.archive_pinned("p");
             assert!(s.find_tab("p").is_none());
             s.archive.pop().unwrap().tab
         }
-        let issue = "https://example.org/p/issues/42";
-        // Left on another page: archived at home, without that page's title.
-        let t = archived(issue, "Bug #42", None, false);
-        assert_eq!(t.url, "https://example.org/p");
-        assert_eq!(t.title, "");
-        // Closed first (home again, the last title kept): the history knows better.
-        let t = archived("https://example.org/p", "Bug #42", Some("Project P"), false);
-        assert_eq!(t.title, "Project P");
-        // Still on its page, only the place in it changed: the title is right.
-        let t = archived("https://example.org/p#inbox", "Inbox", None, false);
+        let (home, issue) = ("https://example.org/p", "https://example.org/p/issues/42");
+        // Left on another page: archived at home, under the history's title.
+        let t = archived(issue, "Bug #42", true, Some("Project P"));
+        assert_eq!((t.url.as_str(), t.title.as_str()), (home, "Project P"));
+        // Closed first (home again, the last title kept), with or without history.
+        assert_eq!(
+            archived(home, "Bug #42", false, Some("Project P")).title,
+            "Project P"
+        );
+        assert_eq!(archived(home, "Bug #42", false, None).title, "");
+        // Loaded on its page, only the place in it changed: its own title is
+        // right, and better than the history's (another profile's, maybe).
+        let t = archived("https://example.org/p#inbox", "Inbox", true, Some("Old"));
         assert_eq!(t.title, "Inbox");
-        // A title the user gave is the tab's own.
-        let t = archived(issue, "Work tracker", Some("Project P"), true);
-        assert_eq!(t.title, "Work tracker");
+    }
+
+    #[test]
+    fn a_title_the_user_gave_a_removed_pinned_tab_stays() {
+        let mut s = state();
+        s.history
+            .record("https://example.org/p", "Project P", now());
+        let p = s.find_tab_mut("p").unwrap();
+        (p.url, p.title, p.custom_title) = ("https://example.org/p/x".into(), "Work".into(), true);
+        s.archive_pinned("p");
+        assert_eq!(s.archive.pop().unwrap().tab.title, "Work");
     }
 
     #[test]

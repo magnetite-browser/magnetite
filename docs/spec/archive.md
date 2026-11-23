@@ -14,10 +14,10 @@ and is not synced.
 - Auto-archive (below).
 - Deleting a space: its pinned and Today tabs. A pinned one comes back as a
   Today tab.
-- Removing a pinned tab: the minus on its row, a middle click on a row
-  without a loaded page, or "Remove from pinned tabs" in its menu
-  (`sidebar.md`). It is archived at its pinned page and comes back as a
-  Today tab.
+- Removing a pinned tab: the minus on its row or a middle click (a tab
+  without a loaded page, at its pinned page, and not a smart folder's own
+  item), or "Remove from pinned tabs" in its menu (`sidebar.md`). It is
+  archived at its pinned page and comes back as a Today tab.
 
 Not archived:
 
