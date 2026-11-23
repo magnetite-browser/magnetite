@@ -2,7 +2,7 @@
 // it, not the browser's drag and drop: during one of those the cursor is the
 // system's arrow, whatever the page asks for, and it stays that after the
 // drop until the pointer moves.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 type Over = { id: string; below: boolean };
 
@@ -29,12 +29,16 @@ const SLACK = 4;
 /** How near the edge of what scrolls the list a drag scrolls it. */
 const EDGE = 48;
 
+/** The rows of `list` in the order the page has them. */
+const rowOrder = (list: Element) => [...list.querySelectorAll<HTMLElement>("[data-sort-row]")].map((r) => r.dataset.sortRow).join();
+
 /**
  * A list whose rows are sorted by dragging. `landing` says where row
  * `dragged` ends up when dropped on the upper or lower half of row
  * `target` (null: nowhere new, or not allowed there), `move` does it and
- * settles once the list has its new order: until then the rows stay where
- * the drag left them, or the old order would show for a moment.
+ * settles once it is saved. After a drop the rows stay where the drag left
+ * them until the list shows its new order (or the save is over), or the old
+ * order would show for a moment.
  *
  * `row(id)` goes on every row, `handle(id, enabled)` on what a row is
  * dragged by: the row itself or a part of it. The dragged row follows the
@@ -61,6 +65,20 @@ export function useSorting(landing: (dragged: string, target: string, below: boo
     setShift(0);
     setLay(null);
   };
+  // A drop whose rows are held where the drag left them: the list they are
+  // in and their order then, which the list's new order replaces.
+  const held = useRef<{ list: Element; order: string } | null>(null);
+  const release = () => {
+    held.current = null;
+    settle();
+  };
+  // The new order may come with any answer of the app (an open Settings page
+  // also reads the list again when told of the move): the rows let go in the
+  // same render, before it is drawn.
+  useLayoutEffect(() => {
+    const h = held.current;
+    if (h && rowOrder(h.list) !== h.order) release();
+  });
   /** Lets go of the pointer; `keep` leaves the rows where they are for now. */
   const finish = (keep = false) => {
     const d = drag.current;
@@ -124,8 +142,9 @@ export function useSorting(landing: (dragged: string, target: string, below: boo
 
   const handle = (id: string, enabled: boolean) => ({
     onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
-      // A press that never became a drag is over, wherever it was let go.
-      if (!enabled || e.button !== 0 || drag.current?.active) return;
+      // A press that never became a drag is over, wherever it was let go;
+      // none begins while a drop waits for its new order.
+      if (!enabled || e.button !== 0 || drag.current?.active || held.current) return;
       // A field in the row is typed into and chosen from, not dragged by.
       if ((e.target as HTMLElement).closest("input, select, textarea")) return;
       const row = e.currentTarget.closest<HTMLElement>("[data-sort-row]");
@@ -172,9 +191,12 @@ export function useSorting(landing: (dragged: string, target: string, below: boo
         const index = to ? latest.current.landing(d.id, to.id, to.below) : null;
         dropped.current = true;
         window.setTimeout(() => (dropped.current = false), 0);
-        finish(index !== null);
-        // The rows settle with the new order, unless another drag began meanwhile.
-        if (index !== null) void latest.current.move(d.id, index).finally(() => drag.current?.active || settle());
+        if (index === null || !d.row.parentElement) return finish();
+        const hold = { list: d.row.parentElement, order: rowOrder(d.row.parentElement) };
+        held.current = hold;
+        finish(true);
+        // A save that failed or changed nothing puts the rows back.
+        void latest.current.move(d.id, index).finally(() => held.current === hold && release());
       } else {
         drag.current = null;
       }
