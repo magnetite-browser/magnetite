@@ -17,6 +17,12 @@ use crate::{router, scheme};
 #[cfg(target_os = "macos")]
 const PIP_WITHOUT_ADDRESS: &str = "VideoPipForceTrustedForMediaPlaybackForTesting";
 
+/// The switch with which Chromium keeps unpacked extensions on while
+/// Developer mode is off. Only Magnetite's CEF knows it: the name must stay
+/// the one `extension-manifest-v2.patch` in magnetite-cef checks, or the
+/// setting silently does nothing.
+pub(crate) const KEEP_UNPACKED_EXTENSIONS: &str = "magnetite-keep-unpacked-extensions";
+
 /// Add `feature` to `--enable-features`, keeping features already listed.
 #[cfg(target_os = "macos")]
 fn enable_feature(cmd: &mut CommandLine, feature: &str) {
@@ -198,7 +204,7 @@ wrap_app! {
                 cmd.append_switch_with_value(Some(&CefString::from("load-extension")), Some(&CefString::from(list.as_str())));
             }
             if config.keep_unpacked_extensions {
-                cmd.append_switch(Some(&CefString::from("magnetite-keep-unpacked-extensions")));
+                cmd.append_switch(Some(&CefString::from(KEEP_UNPACKED_EXTENSIONS)));
             }
             #[cfg(target_os = "macos")]
             enable_feature(cmd, PIP_WITHOUT_ADDRESS);

@@ -18,11 +18,11 @@ pub struct EngineConfig {
     /// between, the preferred one first (`LanguagePrefs::accept_languages`).
     /// Empty: Chromium's own choice, the system's languages.
     pub accept_languages: String,
-    /// Unpacked extension directories to load (`--load-extension`), as
-    /// absolute paths, one folder each.
+    /// Unpacked extension directories to load (`--load-extension`), one
+    /// folder each, absolute unless the working folder was unknown.
     pub load_extensions: Vec<PathBuf>,
     /// Unpacked extensions stay on while Developer mode is off: Chromium is
-    /// started with `--magnetite-keep-unpacked-extensions`, which only
+    /// started with `cef_app::KEEP_UNPACKED_EXTENSIONS`, which only
     /// Magnetite's CEF knows (`extension-manifest-v2.patch`).
     pub keep_unpacked_extensions: bool,
     /// Show Chrome's toolbar (address bar, extension buttons) at the top of

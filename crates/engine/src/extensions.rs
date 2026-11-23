@@ -127,9 +127,10 @@ fn live_on(ctx: &RequestContext, id: &str) -> Option<bool> {
 const COMPONENT: u64 = 5;
 const EXTERNAL_COMPONENT: u64 = 10;
 /// Location of an extension loaded with `--load-extension`. Chromium keeps
-/// its entry after a run without the switch but does not load it, and
-/// opening an extension it has not loaded ends the whole program
-/// (`Extensions.triggerAction` does not check the id).
+/// its entry after a run without the switch but does not load it. Opening
+/// an extension Chromium has not loaded ends the whole program with the
+/// official CEF (`Extensions.triggerAction` does not check the id);
+/// Magnetite's CEF answers an error (`extension-trigger-action.patch`).
 const COMMAND_LINE: u64 = 8;
 /// Icon size we look for (the sidebar shows them at 16 pt, 2× on Retina).
 const ICON_SIZE: u64 = 32;
@@ -206,21 +207,19 @@ fn extension(
     }
     let manifest: Value =
         serde_json::from_slice(&read_small(&inside(&dir, "manifest.json")?, MAX_FILE)?).ok()?;
-    // Manifest V2's two forms count only below Manifest V3, which ignores
-    // them.
-    let legacy = manifest
+    // Chromium reads `action` from Manifest V3 on, and Manifest V2's two
+    // forms below it; each ignores the other's.
+    let v3 = manifest
         .get("manifest_version")
         .and_then(Value::as_u64)
-        .is_none_or(|v| v < 3);
-    let action = manifest.get("action").or_else(|| {
-        legacy
-            .then(|| {
-                manifest
-                    .get("browser_action")
-                    .or_else(|| manifest.get("page_action"))
-            })
-            .flatten()
-    })?;
+        .is_some_and(|v| v >= 3);
+    let action = if v3 {
+        manifest.get("action")
+    } else {
+        manifest
+            .get("browser_action")
+            .or_else(|| manifest.get("page_action"))
+    }?;
     let name = localised(
         &dir,
         &manifest,
@@ -411,6 +410,20 @@ impl Engine {
         if !is_extension_id(extension) || !crate::devpipe::is_open() {
             return;
         }
+        // Only an extension listed for the page's profile: with the official
+        // CEF, Chromium ends the whole program for one it has not loaded
+        // there (a stale button, a leftover from `--load-extension`).
+        let profile = self.content_profile(id);
+        if !self
+            .extensions(profile.as_ref())
+            .iter()
+            .any(|e| e.id == extension)
+        {
+            crate::trace(&format!(
+                "extension action {extension}: not listed for the page's profile"
+            ));
+            return;
+        }
         // A system page made a moment ago, whose shadow Chromium is still
         // making: the action runs once the shadow is there (`shadow.rs`).
         {
@@ -595,10 +608,11 @@ mod tests {
         let no_action = "dddddddddddddddddddddddddddddddd";
         let component = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
         let page_action = "ffffffffffffffffffffffffffffffff";
+        let leftover = "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii";
         let dev = tmp.join("dev");
         write(
             &tmp.join(format!("Extensions/{store}/1.0/manifest.json")),
-            r#"{"name":"__MSG_extName__","default_locale":"en","action":{"default_icon":{"16":"i16.png","38":"i38.png","19":"i19.png"}},"options_ui":{"page":"options.html"}}"#,
+            r#"{"name":"__MSG_extName__","default_locale":"en","manifest_version":3,"action":{"default_icon":{"16":"i16.png","38":"i38.png","19":"i19.png"}},"options_ui":{"page":"options.html"}}"#,
         );
         write(
             &tmp.join(format!("Extensions/{store}/1.0/_locales/en/messages.json")),
@@ -614,8 +628,12 @@ mod tests {
         );
         write(
             &tmp.join(format!("Extensions/{no_action}/1.0/manifest.json")),
+            r#"{"name":"Background only"}"#,
+        );
+        write(
+            &tmp.join(format!("Extensions/{leftover}/1.0/manifest.json")),
             // Manifest V3 ignores a leftover Manifest V2 action.
-            r#"{"name":"Background only","manifest_version":3,"browser_action":{}}"#,
+            r#"{"name":"Leftover key","manifest_version":3,"browser_action":{}}"#,
         );
         write(
             &tmp.join(format!("Extensions/{page_action}/1.0/manifest.json")),
@@ -628,6 +646,7 @@ mod tests {
             no_action: { "location": 1, "path": format!("{no_action}/1.0") },
             component: { "location": 5, "path": "/somewhere/pdf" },
             page_action: { "location": 1, "path": format!("{page_action}/1.0") },
+            leftover: { "location": 1, "path": format!("{leftover}/1.0") },
         }}});
         write(&tmp.join(format!("Extensions/{store}/1.0/i38.png")), "png");
         write(

@@ -237,11 +237,14 @@ fn keychain_mode(data_dir: &std::path::Path, asked: bool) -> bool {
 
 /// The folders `--load-extension` names, read as Chromium reads them: one
 /// value may hold several with commas between, a leading `~` is the home
-/// folder (not on Windows), and a relative one counts from `cwd`. The same
+/// folder (not on Windows), and a relative one counts from `cwd` (stays
+/// relative when the working folder is unknown). The same
 /// list goes to Chromium and tells which command-line extensions this run
 /// loads (`extensions::installed`).
 fn extension_dirs(args: &[PathBuf], cwd: &std::path::Path) -> Vec<PathBuf> {
-    let home = std::env::var_os("HOME").map(PathBuf::from);
+    let home = std::env::var_os("HOME")
+        .filter(|h| !h.is_empty())
+        .map(PathBuf::from);
     let resolve = |dir: &str| match (dir.strip_prefix('~'), &home) {
         (Some(rest), Some(home)) if cfg!(unix) && (rest.is_empty() || rest.starts_with('/')) => {
             home.join(rest.trim_start_matches('/'))

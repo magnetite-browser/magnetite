@@ -141,8 +141,9 @@ Settings.
   `_locales`), icon and options page. It reads again when Chromium rewrites
   either file. An extension loaded with `--load-extension` is listed only
   in a run whose command line names its folder: Chromium keeps its entry
-  afterwards but does not load it. Opening an extension Chromium has not
-  loaded ends the whole program with the official CEF; Magnetite's CEF
+  afterwards but does not load it. An extension opens only if it is listed
+  for the profile of the page it acts on: with the official CEF, opening
+  one Chromium has not loaded there ends the whole program; Magnetite's CEF
   answers an error instead (`extension-trigger-action.patch`). The sidebar gets the list with
   every state update and checks once a minute; the menu reads it each time
   it opens. Icons are served as `magnetite://ui/ext-icons/<id>`.
