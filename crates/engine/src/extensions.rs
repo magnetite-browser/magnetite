@@ -4,7 +4,8 @@
 //! (`extensions.settings`): where each one lives and whether it is enabled.
 //! Name, icon and options page come from its manifest; names may be
 //! localised through `_locales`. Only extensions with a toolbar action are
-//! listed: the others have nothing to click.
+//! listed (`action`; in Manifest V2 `browser_action` or `page_action`): the
+//! others have nothing to click.
 //!
 //! Opening: an extension's action (its popup, or its click handler) runs
 //! through Chromium's `Extensions.triggerAction` on the private `DevTools` pipe
@@ -188,7 +189,8 @@ fn extension(profile_dir: &Path, id: &str, entry: &Value) -> Option<ExtensionInf
         serde_json::from_slice(&read_small(&inside(&dir, "manifest.json")?, MAX_FILE)?).ok()?;
     let action = manifest
         .get("action")
-        .or_else(|| manifest.get("browser_action"))?;
+        .or_else(|| manifest.get("browser_action"))
+        .or_else(|| manifest.get("page_action"))?;
     let name = localised(
         &dir,
         &manifest,
@@ -562,6 +564,7 @@ mod tests {
         let disabled = "cccccccccccccccccccccccccccccccc";
         let no_action = "dddddddddddddddddddddddddddddddd";
         let component = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+        let page_action = "ffffffffffffffffffffffffffffffff";
         let dev = tmp.join("dev");
         write(
             &tmp.join(format!("Extensions/{store}/1.0/manifest.json")),
@@ -583,14 +586,23 @@ mod tests {
             &tmp.join(format!("Extensions/{no_action}/1.0/manifest.json")),
             r#"{"name":"Background only"}"#,
         );
+        write(
+            &tmp.join(format!("Extensions/{page_action}/1.0/manifest.json")),
+            r#"{"name":"Feeds","manifest_version":2,"page_action":{"default_icon":"feed.png"}}"#,
+        );
         let prefs = json!({ "extensions": { "settings": {
             store: { "location": 1, "path": format!("{store}/1.0"), "disable_reasons": [] },
             unpacked: { "location": 4, "path": dev.to_string_lossy() },
             disabled: { "location": 1, "path": format!("{disabled}/1.0"), "disable_reasons": [1] },
             no_action: { "location": 1, "path": format!("{no_action}/1.0") },
             component: { "location": 5, "path": "/somewhere/pdf" },
+            page_action: { "location": 1, "path": format!("{page_action}/1.0") },
         }}});
         write(&tmp.join(format!("Extensions/{store}/1.0/i38.png")), "png");
+        write(
+            &tmp.join(format!("Extensions/{page_action}/1.0/feed.png")),
+            "png",
+        );
         write(&dev.join("big.png"), "png");
         write(&tmp.join("Secure Preferences"), &prefs.to_string());
         let pins = json!({ "extensions": { "pinned_extensions": [store] } });
@@ -598,8 +610,8 @@ mod tests {
 
         let list = installed(&tmp);
         let names: Vec<&str> = list.iter().map(|e| e.name.as_str()).collect();
-        assert_eq!(names, ["Ad Blocker", "Vault"]);
-        let vault = &list[1];
+        assert_eq!(names, ["Ad Blocker", "Feeds", "Vault"]);
+        let vault = &list[2];
         assert!(vault.chromium_pinned && !list[0].chromium_pinned);
         let real = |p: PathBuf| p.canonicalize().unwrap();
         assert_eq!(
@@ -611,6 +623,12 @@ mod tests {
             Some(format!("chrome-extension://{store}/options.html").as_str())
         );
         assert_eq!(list[0].icon, Some(real(dev.join("big.png"))));
+        assert_eq!(
+            list[1].icon,
+            Some(real(
+                tmp.join(format!("Extensions/{page_action}/1.0/feed.png"))
+            ))
+        );
         let _ = std::fs::remove_dir_all(&tmp);
     }
 

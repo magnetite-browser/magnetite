@@ -66,6 +66,13 @@ Settings.
 - Installing happens on the Chrome Web Store page; removing, turning off
   and site access on Chromium's own page, `chrome://extensions`. Both open
   as tabs. `--load-extension <dir>` (repeatable) loads an unpacked one.
+- Manifest V2 extensions install and run as Manifest V3 ones do. Chromium
+  switches them off; Magnetite's CEF leaves them on
+  (`extension-manifest-v2.patch` in magnetite-cef). The Chrome Web Store
+  no longer offers them, so one is loaded unpacked: "Developer mode" and
+  "Load unpacked" on Manage extensions, or `--load-extension`. Both of
+  Manifest V2's toolbar actions, `browser_action` and `page_action`, put
+  it in the lists.
 - "Show the Chrome toolbar inside pages" (off by default) adds Chromium's
   own toolbar row, with its extension buttons, above every page. It applies
   to tabs loaded from then on. `--chrome-toolbar` turns it on for one run.
@@ -201,6 +208,8 @@ Settings.
   pages turn active one after the other as a popup opens, on Linux each
   page only once, and an extension is given another page than the one in
   front, or an internal page, which Dark Reader shows as `about:`.
+- With the official CEF (macOS on Intel, Linux on arm64) Chromium refuses
+  Manifest V2 extensions and switches off the ones installed.
 - With the official CEF (macOS on Intel, Linux on arm64) Chromium calls
   every page's window a pop-up window, so an extension that looks for the
   tab in front among normal windows (Dark Reader) finds none and takes the
