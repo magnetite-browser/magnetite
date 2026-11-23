@@ -32,6 +32,8 @@ const MAX_BOOKMARKS_FILE: usize = 16 << 20;
 pub(super) enum DownloadCopy {
     File,
     Path,
+    /// The web address it was downloaded from.
+    Link,
 }
 
 /// The kinds of file bookmarks are exported as.
@@ -890,13 +892,36 @@ pub(super) enum UiCommand {
         #[serde(default)]
         reveal: bool,
     },
-    /// Put download `id`'s file, or its path as text, on the clipboard.
+    /// Put download `id`'s file, its path or its link on the clipboard.
     CopyDownload {
         id: String,
         what: DownloadCopy,
     },
     /// Fetch failed download `id` again, as a new download.
     RetryDownload {
+        id: String,
+    },
+    /// Pause, resume or cancel running download `id`.
+    ControlDownload {
+        id: String,
+        what: magnetite_engine::DownloadControl,
+    },
+    /// Take download `id` off the list; the file stays.
+    RemoveDownload {
+        id: String,
+    },
+    /// Move download `id`'s file to the system's trash; the entry stays.
+    TrashDownload {
+        id: String,
+    },
+    /// Drag download `id`'s file out of the asking page, from the pointer
+    /// (macOS: `Engine::drag_file`).
+    DragDownload {
+        id: String,
+    },
+    /// Let the asking page's hidden file chooser take download `id`'s file,
+    /// so the page can drag it out (Windows, Linux: `Engine::offer_file`).
+    OfferDownload {
         id: String,
     },
     ClearDownloads,
@@ -2314,6 +2339,19 @@ impl MagnetiteApp {
                     self.show_downloads(engine);
                 }
             }
+            UiCommand::CopyDownload {
+                id,
+                what: DownloadCopy::Link,
+            } => {
+                let link = self.with_state(|s| s.downloads.link(&id).map(str::to_string));
+                let copied = link.is_some_and(|link| engine.copy_text(&link));
+                let text = if copied {
+                    "Link copied"
+                } else {
+                    "Could not copy"
+                };
+                Self::ui_call(engine, "notice", &json!({ "text": text }));
+            }
             UiCommand::CopyDownload { id, what } => {
                 let file = self.with_state(|s| s.downloads.file(&id).map(Path::to_path_buf));
                 // The path of a file that is gone is of no use either.
@@ -2329,6 +2367,50 @@ impl MagnetiteApp {
                     (Some(_), _) => "Could not copy",
                 };
                 Self::ui_call(engine, "notice", &json!({ "text": text }));
+            }
+            UiCommand::ControlDownload { id, what } => {
+                let running = self.with_state(|s| {
+                    let (context, chromium_id) = s.downloads.running(&id)?;
+                    Some((context.map(str::to_string), chromium_id))
+                });
+                // Chromium's report of the change updates the list.
+                let done = running.is_some_and(|(context, chromium_id)| {
+                    engine.control_download(context.as_deref(), chromium_id, what)
+                });
+                if !done {
+                    self.show_downloads(engine);
+                }
+            }
+            UiCommand::RemoveDownload { id } => {
+                self.with_state(|s| {
+                    s.downloads.remove(&id);
+                    s.persist();
+                });
+                self.show_downloads(engine);
+            }
+            UiCommand::TrashDownload { id } => {
+                let file = self.with_state(|s| s.downloads.file(&id).map(Path::to_path_buf));
+                let trashed = file.is_some_and(|f| magnetite_engine::move_to_trash(&f).is_ok());
+                if !trashed {
+                    let text = "Could not move that file to the trash.";
+                    Self::ui_call(engine, "notice", &json!({ "text": text }));
+                }
+                // The entry stays and shows the file as deleted.
+                self.show_downloads(engine);
+            }
+            // A drag takes a file that is there; the page hears whether it
+            // started.
+            UiCommand::DragDownload { id } => {
+                let file = self.with_state(|s| s.downloads.file(&id).map(Path::to_path_buf));
+                if !file.is_some_and(|f| f.exists() && engine.drag_file(&f)) {
+                    return Err("nothing to drag".into());
+                }
+            }
+            UiCommand::OfferDownload { id } => {
+                let file = self.with_state(|s| s.downloads.file(&id).map(Path::to_path_buf));
+                if !file.is_some_and(|f| f.exists() && engine.offer_file(&f)) {
+                    return Err("nothing to offer".into());
+                }
             }
             UiCommand::RetryDownload { id } => {
                 let source = self.with_state(|s| {

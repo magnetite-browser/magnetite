@@ -136,8 +136,11 @@ pub enum DevToolsAction {
 pub enum DownloadState {
     InProgress,
     Finished,
-    /// Cancelled or interrupted.
+    /// Interrupted: the network, the disk or the server.
     Failed,
+    /// Cancelled: in the list (`Engine::control_download`) or in the save
+    /// dialog.
+    Canceled,
 }
 
 /// One download as Chromium reports it (`EngineEvent::Download`).
@@ -155,6 +158,8 @@ pub struct DownloadReport {
     /// Size, when the server said.
     pub total: Option<i64>,
     pub state: DownloadState,
+    /// Paused by the user while it runs (`Engine::control_download`).
+    pub paused: bool,
     /// The web address it was asked from, when a retry can fetch it again
     /// (`Engine::start_download`).
     pub url: Option<String>,

@@ -676,10 +676,20 @@ export type Command =
   | { cmd: "show_archive" }
   | { cmd: "downloads" }
   | { cmd: "open_download"; id: Id; reveal?: boolean }
-  /** Put a finished download's file, or its path as text, on the clipboard. */
-  | { cmd: "copy_download"; id: Id; what: "file" | "path" }
+  /** Put a finished download's file or its path, or a download's link (`link`), on the clipboard. */
+  | { cmd: "copy_download"; id: Id; what: "file" | "path" | "link" }
   /** Fetch a failed download again (`retryable`); it comes back as a new entry. */
   | { cmd: "retry_download"; id: Id }
+  /** Pause, resume or cancel a running download. */
+  | { cmd: "control_download"; id: Id; what: "pause" | "resume" | "cancel" }
+  /** Off the list; the file stays. */
+  | { cmd: "remove_download"; id: Id }
+  /** The file to the system's trash; the entry stays. */
+  | { cmd: "trash_download"; id: Id }
+  /** macOS: drag the file out from the pointer (fails once the button is up). */
+  | { cmd: "drag_download"; id: Id }
+  /** Elsewhere: the page's next drag picker takes the file (`downloadDrag.ts`). */
+  | { cmd: "offer_download"; id: Id }
   | { cmd: "clear_downloads" }
   | { cmd: "show_downloads" }
   /** One of Chromium's own pages (saved passwords, addresses, cards) as a peek, in the logins of `profile`. */
@@ -949,6 +959,12 @@ export interface DownloadEntry {
   risky: boolean;
   /** Failed, and the app can fetch it again: in the run it failed in. */
   retryable: boolean;
+  /** Failed because it was cancelled. */
+  canceled: boolean;
+  /** Running, but paused. */
+  paused: boolean;
+  /** The app knows the link it came from: in the run it started in. */
+  link: boolean;
 }
 
 /** What a permission prompt asks for (`PromptKind` in the engine). */
@@ -1210,6 +1226,9 @@ export function splitGroup(state: UiState, split: SplitNode, id: Id): Id[] {
 
 /** The app runs on macOS (Finder, ⌘ shortcuts). */
 export const IS_MAC = navigator.userAgent.includes("Mac");
+
+/** The app runs on Windows (Explorer, the Recycle Bin). */
+export const IS_WINDOWS = navigator.userAgent.includes("Windows");
 
 /**
  * A shortcut as this system writes it. On macOS `mac` as it is ("⇧⌘T");

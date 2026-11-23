@@ -124,24 +124,32 @@ impl Engine {
     /// The window whose sidebar, top bar, floating sidebar or empty page is browser
     /// `id`, or whose page it is.
     pub(crate) fn window_of_browser(&self, id: i32) -> Option<WindowId> {
-        let is = |b: Option<&Browser>| b.is_some_and(|b| b.identifier() == id);
+        self.find_browser(id).map(|(win, _)| win)
+    }
+
+    /// Browser `id`, if it is one of those `window_of_browser` knows.
+    pub(crate) fn browser_by_id(&self, id: i32) -> Option<Browser> {
+        self.find_browser(id).map(|(_, browser)| browser)
+    }
+
+    fn find_browser(&self, id: i32) -> Option<(WindowId, Browser)> {
+        let is = |b: Option<&Browser>| b.filter(|b| b.identifier() == id).cloned();
         let mut inner = self.lock();
-        if let Some(home) = (inner.contents.values())
-            .find(|c| is(c.browser.as_ref()))
-            .map(|c| c.home)
+        if let Some(found) =
+            (inner.contents.values()).find_map(|c| Some((c.home, is(c.browser.as_ref())?)))
         {
-            return Some(home);
+            return Some(found);
         }
         inner.windows_mut().find_map(|(win, w)| {
             let frame = w.frame.as_ref();
             let float = w.float_bar.as_ref().and_then(|f| f.view.browser());
             let empty = frame.and_then(|f| f.empty.as_ref()?.browser());
-            (is(frame.and_then(|f| f.sidebar_browser.as_ref()))
-                || is(empty.as_ref())
-                || is(frame.and_then(|f| f.top_bar_browser.as_ref()))
-                || is(frame.and_then(|f| f.dev_bar_browser.as_ref()))
-                || is(float.as_ref()))
-            .then_some(win)
+            let browser = is(frame.and_then(|f| f.sidebar_browser.as_ref()))
+                .or_else(|| is(empty.as_ref()))
+                .or_else(|| is(frame.and_then(|f| f.top_bar_browser.as_ref())))
+                .or_else(|| is(frame.and_then(|f| f.dev_bar_browser.as_ref())))
+                .or_else(|| is(float.as_ref()))?;
+            Some((win, browser))
         })
     }
 

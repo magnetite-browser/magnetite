@@ -7,8 +7,9 @@
 //! size, status and start time (no addresses). Downloads of private profiles
 //! are listed while Magnetite runs and never saved.
 //!
-//! A failed download can be tried again while Magnetite still runs: its
-//! address is kept in memory for that, and is gone with the next start.
+//! A failed download can be tried again, and any download's link copied,
+//! while Magnetite still runs: its address is kept in memory for that, and
+//! is gone with the next start.
 
 use std::path::{Path, PathBuf};
 
@@ -94,7 +95,7 @@ impl From<DownloadState> for Status {
         match s {
             DownloadState::InProgress => Self::InProgress,
             DownloadState::Finished => Self::Finished,
-            DownloadState::Failed => Self::Failed,
+            DownloadState::Failed | DownloadState::Canceled => Self::Failed,
         }
     }
 }
@@ -112,6 +113,12 @@ pub struct Download {
     pub total: Option<i64>,
     /// When it started.
     pub at: UnixSeconds,
+    /// Failed because it was cancelled (in the list or the save dialog).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub canceled: bool,
+    /// Paused while it runs: this run only.
+    #[serde(skip)]
+    paused: bool,
     /// Chromium's context and download id, while this run knows it.
     #[serde(skip)]
     key: Option<(Option<String>, u32)>,
@@ -163,6 +170,8 @@ impl Downloads {
             d.name.clone_from(&r.name);
             d.path.clone_from(&r.path);
             d.status = status;
+            d.canceled = r.state == DownloadState::Canceled;
+            d.paused = r.paused;
             d.received = r.received;
             d.total = r.total;
             if r.url.is_some() {
@@ -180,6 +189,8 @@ impl Downloads {
                 received: r.received,
                 total: r.total,
                 at: now,
+                canceled: r.state == DownloadState::Canceled,
+                paused: r.paused,
                 key,
                 url: r.url.clone(),
                 private,
@@ -217,9 +228,27 @@ impl Downloads {
         Some((d.key.as_ref()?.0.as_deref()?, d.url.as_deref()?))
     }
 
-    /// Take entry `id` off the list: its retry is a download of its own.
+    /// Take entry `id` off the list (the file stays): by hand, or as its
+    /// retry is a download of its own. A running one stays.
     pub fn remove(&mut self, id: &str) {
-        self.items.retain(|d| d.id != id);
+        self.items
+            .retain(|d| d.id != id || d.status == Status::InProgress);
+    }
+
+    /// What the engine needs to pause, resume or cancel entry `id`
+    /// (`Engine::control_download`), while it runs in this run.
+    pub fn running(&self, id: &str) -> Option<(Option<&str>, u32)> {
+        let d = self
+            .items
+            .iter()
+            .find(|d| d.id == id && d.status == Status::InProgress)?;
+        let (context, chromium_id) = d.key.as_ref()?;
+        Some((context.as_deref(), *chromium_id))
+    }
+
+    /// The web address entry `id` was asked from, while this run knows it.
+    pub fn link(&self, id: &str) -> Option<&str> {
+        self.items.iter().find(|d| d.id == id)?.url.as_deref()
     }
 
     /// Entry `id`'s file, if it finished.
@@ -233,7 +262,8 @@ impl Downloads {
 
     /// The list as the sidebar shows it (no paths or addresses; `missing`:
     /// the file was moved or deleted since; `risky`: it is only ever
-    /// revealed; `retryable`: it failed and `retry` can fetch it again).
+    /// revealed; `retryable`: it failed and `retry` can fetch it again;
+    /// `link`: `link` knows its address).
     pub fn for_ui(&self) -> Value {
         let items: Vec<Value> = self
             .items
@@ -252,6 +282,9 @@ impl Downloads {
                     "missing": missing,
                     "risky": risky(&d.name),
                     "retryable": self.retry(&d.id).is_some(),
+                    "canceled": d.canceled,
+                    "paused": d.paused,
+                    "link": d.url.is_some(),
                 })
             })
             .collect();
@@ -325,6 +358,7 @@ mod tests {
             received: 5,
             total: Some(10),
             state,
+            paused: false,
             url: Some("https://example.org/a.pdf".into()),
         }
     }
@@ -405,6 +439,46 @@ mod tests {
         assert!(!saved.contains("example.org"));
         let restored = Downloads::restore(serde_json::from_str(&saved).unwrap());
         assert_eq!(restored.retry(&id), None);
+    }
+
+    #[test]
+    fn only_a_running_download_is_paused_resumed_or_cancelled_and_it_stays_listed() {
+        let mut list = Downloads::default();
+        list.report(&report(1, DownloadState::InProgress, None), false, 1);
+        let id = list.items[0].id.clone();
+        assert_eq!(list.running(&id), Some((Some(""), 1)));
+        let paused = DownloadReport {
+            paused: true,
+            ..report(1, DownloadState::InProgress, None)
+        };
+        list.report(&paused, false, 2);
+        assert_eq!(list.for_ui()["items"][0]["paused"], true);
+        // Running: it stays in the list until it ends.
+        list.remove(&id);
+        assert_eq!(list.items.len(), 1);
+        list.report(&report(1, DownloadState::Canceled, None), false, 3);
+        assert_eq!(list.running(&id), None);
+        assert_eq!(list.for_ui()["items"][0]["canceled"], true);
+        // Cancelled and failed alike: it can be fetched again.
+        assert!(list.retry(&id).is_some());
+        // After a restart it is still cancelled, not just failed.
+        let saved = serde_json::to_string(&list.lasting()).unwrap();
+        assert!(Downloads::restore(serde_json::from_str(&saved).unwrap()).items[0].canceled);
+        list.remove(&id);
+        assert!(list.items.is_empty());
+    }
+
+    #[test]
+    fn a_link_is_known_in_the_run_only() {
+        let mut list = Downloads::default();
+        list.report(&report(1, DownloadState::Finished, Some("/d/a")), false, 1);
+        let id = list.items[0].id.clone();
+        assert_eq!(list.link(&id), Some("https://example.org/a.pdf"));
+        assert_eq!(list.for_ui()["items"][0]["link"], true);
+        let saved = serde_json::to_string(&list.lasting()).unwrap();
+        let restored = Downloads::restore(serde_json::from_str(&saved).unwrap());
+        assert_eq!(restored.link(&id), None);
+        assert_eq!(restored.for_ui()["items"][0]["link"], false);
     }
 
     #[test]

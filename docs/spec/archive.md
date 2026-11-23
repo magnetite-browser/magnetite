@@ -77,11 +77,34 @@ that is gone does not come back: when the panel opens for something else (a
 new version, a permission a page asks for), the pointer on it brings no
 earlier download with it. The download list keeps them all.
 
-A click on a finished download opens the file; a right click offers "Copy
-file", "Copy file path" (both on macOS) and showing it in the file manager,
-which the icon at the end of the row does too. "All downloads…" stays above
-the list and opens the same entries as a page (`magnetite://ui/downloads`)
-with a search by file name.
+A click on a finished download opens the file, and the icon at the end of
+the row shows it in the file manager. Dragging the row takes the file
+along, as dragging it from the file manager would: onto a web page to
+upload it, into another app or into a folder, as a copy. "All downloads…"
+stays above the list and opens the same entries as a page
+(`magnetite://ui/downloads`) with a search by file name; its rows do the
+same.
+
+A right click offers what fits the download as it is:
+
+| Download | Menu |
+|---|---|
+| Running | Pause or Resume, Cancel, Copy download link |
+| Finished | Open, Show in Finder (Show in folder), Copy file, Copy file path, Copy download link, Remove from list, Move to Trash (Move to Recycle Bin on Windows) |
+| Failed or cancelled | Try again, Copy download link, Remove from list |
+
+- Open is left out for a file that runs code when opened (`security.md`).
+  A file moved or deleted since keeps Show in Finder (its folder), the link
+  and Remove from list.
+- Copy file is built for macOS; Copy file path and Copy download link for
+  macOS and Windows.
+- The link and Try again are there while Magnetite runs: the address a
+  download came from is not saved.
+- Remove from list takes the entry off and leaves the file. Move to Trash
+  leaves the entry, which then says "Deleted"; the file can be put back
+  from the trash.
+- A paused download says "Paused" before its progress, a cancelled one
+  "Canceled".
 
 ### Where downloads are saved
 

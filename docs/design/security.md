@@ -296,6 +296,26 @@ Chromium's own bubble, which lives in the hidden toolbar, is turned off
   `downloads.rs`: `.command`, `.pkg`, `.webloc`, scripts, installers) are
   only ever shown in the file manager; Magnetite does not open them.
 - Open on a card counts only for a deliberate click, as Allow does below.
+- The list (`crates/app/src/downloads.rs`) keeps at most 100 entries in
+  `state.json`: file name, place, size, status and start time, no addresses.
+  A download's address stays in memory, so a failed one can be tried again
+  and its link copied until Magnetite quits; the UI does not get it.
+  Private profiles' downloads are listed while Magnetite runs, never saved.
+- The UI names a list entry, never a path: Magnetite opens or reveals only
+  files Chromium reported as downloaded, through the system's own opener.
+  Copying a file, its path or its link and moving it to the trash go the
+  same way: the app does it, the page does not get the path.
+- A finished download drags out as its file, and only from the pages that
+  show the list (the sidebar, "All downloads"; the app checks the origin of
+  `drag_download` and `offer_download`). On macOS the app starts the drag
+  itself from the page's window, and only while the pointer's button is
+  down. On Windows and Linux the page gets the file, not its path: the app
+  offers the entry's file to the page that asks, and that page's next file
+  chooser for the made-up type `.magnetite-drag` takes it within five
+  seconds, without a dialog (`MagnetiteDialogHandler` in the engine).
+  Chromium then lets that page read the file and drag it. A chooser for
+  that type in a web page opens the dialog as any other; one in our pages
+  with no file offered takes nothing.
 
 ## Permission prompts
 
@@ -317,16 +337,6 @@ panel instead of Chromium's bubble at the page's top left (`prompts.rs`).
   before a click it expects, or keeps the user clicking where the card
   appears, cannot have that click grant it a permission.
 - Windows that are not pages (an extension's own) keep Chromium's bubble.
-
-- The list (`crates/app/src/downloads.rs`) keeps at most 100 entries in
-  `state.json`: file name, place, size, status and start time, no addresses.
-  A failed download's address stays in memory, so it can be tried again
-  until Magnetite quits; the UI does not get it.
-  Private profiles' downloads are listed while Magnetite runs, never saved.
-- The UI names a list entry, never a path: Magnetite opens or reveals only
-  files Chromium reported as downloaded, through the system's own opener.
-  Copying a file or its path goes the same way: the app puts it on the
-  clipboard, the page does not get it.
 
 ## Updates
 

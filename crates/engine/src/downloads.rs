@@ -1,11 +1,17 @@
 //! Downloads: Chromium does the work (where files go, the save dialog); we
 //! report each download's progress to the app, which lists them in the
 //! sidebar (Chromium's own download bubble sits in the toolbar we keep out
-//! of sight).
+//! of sight), and pause, resume or cancel one when the list asks.
+//!
+//! A finished download drags out of the list as a file. On macOS the app
+//! starts that drag itself (`Engine::drag_file`); elsewhere the list's page
+//! drags the file as a page drags any file it was given, once it has it
+//! (`Engine::offer_file`, `MagnetiteDialogHandler`).
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use cef::*;
 
@@ -109,6 +115,141 @@ impl Engine {
     }
 }
 
+/// What the list can do with a running download (`Engine::control_download`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DownloadControl {
+    Pause,
+    Resume,
+    Cancel,
+}
+
+impl Engine {
+    /// Pause, resume or cancel download `id` of the profile with context id
+    /// `context`. False when it no longer runs.
+    pub fn control_download(&self, context: Option<&str>, id: u32, what: DownloadControl) -> bool {
+        let key = (context.map(str::to_string), id);
+        let Some(handle) = RUNNING.with(|r| r.borrow().get(&key).cloned()) else {
+            return false;
+        };
+        match what {
+            DownloadControl::Pause => handle.pause(),
+            DownloadControl::Resume => handle.resume(),
+            DownloadControl::Cancel => handle.cancel(),
+        }
+        true
+    }
+
+    /// Drag the file at `path` out of the page whose query is being
+    /// handled, as the file manager drags one: onto a web page, into another
+    /// app or a folder. Only while the pointer's button is still down, and
+    /// only on macOS: elsewhere the page drags the file itself (`offer_file`).
+    pub fn drag_file(&self, path: &Path) -> bool {
+        #[cfg(target_os = "macos")]
+        {
+            let host = crate::router::query_sender()
+                .and_then(|id| self.browser_by_id(id))
+                .and_then(|b| b.host());
+            host.is_some_and(|h| crate::mac::drag_file(h.window_handle(), path))
+        }
+        #[cfg(not(target_os = "macos"))]
+        {
+            let _ = path;
+            false
+        }
+    }
+
+    /// Hand the file at `path` to the page whose query is being handled,
+    /// through its next file chooser for `DRAG_PICKER` within `OFFER_FOR`,
+    /// without a dialog. Chromium then lets that page read the file and drag
+    /// it out with the file in it, which a page can do with no other file.
+    pub fn offer_file(&self, path: &Path) -> bool {
+        let Some(browser) = crate::router::query_sender() else {
+            return false;
+        };
+        let offer = Offer {
+            browser,
+            path: path.to_path_buf(),
+            at: Instant::now(),
+        };
+        OFFER.with(|o| *o.borrow_mut() = Some(offer));
+        true
+    }
+}
+
+/// The file type our pages' hidden file chooser for drags asks for
+/// (`downloadDrag.ts`). Only a chooser asking for it is answered with an
+/// offered file, and it never opens a dialog.
+const DRAG_PICKER: &str = ".magnetite-drag";
+
+/// How long an offered file waits for its page's file chooser.
+const OFFER_FOR: Duration = Duration::from_secs(5);
+
+/// A file `Engine::offer_file` handed to one page.
+struct Offer {
+    /// The page's browser.
+    browser: i32,
+    path: PathBuf,
+    at: Instant,
+}
+
+thread_local! {
+    /// The file offered last, until its page's chooser takes it.
+    static OFFER: RefCell<Option<Offer>> = const { RefCell::new(None) };
+}
+
+/// The file offered to `browser`, if one waits for it: taken, so it answers
+/// one chooser only.
+fn take_offer(browser: i32, now: Instant) -> Option<PathBuf> {
+    OFFER.with(|o| {
+        let mut offer = o.borrow_mut();
+        let fresh = offer
+            .as_ref()
+            .is_some_and(|x| x.browser == browser && now.duration_since(x.at) < OFFER_FOR);
+        fresh.then(|| offer.take().map(|x| x.path)).flatten()
+    })
+}
+
+// The file chooser of a page: Chromium's own dialog, except for the hidden
+// chooser our pages use to take an offered file (`DRAG_PICKER`).
+wrap_dialog_handler! {
+    pub(crate) struct MagnetiteDialogHandler {}
+    impl DialogHandler {
+        fn on_file_dialog(
+            &self,
+            browser: Option<&mut Browser>,
+            mode: FileDialogMode,
+            _title: Option<&CefString>,
+            _default_file_path: Option<&CefString>,
+            accept_filters: Option<&mut CefStringList>,
+            _accept_extensions: Option<&mut CefStringList>,
+            _accept_descriptions: Option<&mut CefStringList>,
+            callback: Option<&mut FileDialogCallback>,
+        ) -> ::std::os::raw::c_int {
+            let (Some(browser), Some(callback)) = (browser, callback) else { return 0 };
+            let asks_for_drag = accept_filters.is_some_and(|f| crate::client::strings(f).iter().any(|t| t == DRAG_PICKER));
+            // Our own pages only: a web page asking for that type gets the
+            // dialog like any other.
+            let ours = Engine::global()
+                .loaded_url(browser.identifier())
+                .is_some_and(|url| crate::router::is_ui_url(&url));
+            if !asks_for_drag || !ours {
+                return 0;
+            }
+            // With no file offered the chooser takes nothing: a dialog would
+            // open out of nowhere.
+            let mut paths = CefStringList::new();
+            if mode == FileDialogMode::OPEN
+                && let Some(path) = take_offer(browser.identifier(), Instant::now())
+            {
+                paths.append(&path.to_string_lossy());
+            }
+            callback.cont(Some(&mut paths));
+            1
+        }
+    }
+}
+
 impl Engine {
     /// Download `url` in the profile with context id `context` (`""`: the
     /// default one), as a new download. False when no page of that profile
@@ -130,9 +271,12 @@ impl Engine {
 type Key = (Option<String>, u32);
 
 thread_local! {
-    /// Last state and step told per download, so the app hears about each
-    /// state change and about every percent, not every received chunk.
-    static TOLD: RefCell<HashMap<Key, (DownloadState, i64)>> = RefCell::new(HashMap::new());
+    /// Last state, step and pause told per download, so the app hears about
+    /// each change of state and about every percent, not every received chunk.
+    static TOLD: RefCell<HashMap<Key, (DownloadState, i64, bool)>> = RefCell::new(HashMap::new());
+    /// Chromium's handles of the downloads that run, to pause, resume or
+    /// cancel them (`Engine::control_download`).
+    static RUNNING: RefCell<HashMap<Key, DownloadItemCallback>> = RefCell::new(HashMap::new());
 }
 
 wrap_download_handler! {
@@ -152,7 +296,7 @@ wrap_download_handler! {
         ) -> ::std::os::raw::c_int {
             0
         }
-        fn on_download_updated(&self, browser: Option<&mut Browser>, item: Option<&mut DownloadItem>, _callback: Option<&mut DownloadItemCallback>) {
+        fn on_download_updated(&self, browser: Option<&mut Browser>, item: Option<&mut DownloadItem>, callback: Option<&mut DownloadItemCallback>) {
             let Some(item) = item else { return };
             // An extension being installed from the Chrome Web Store is no
             // download to the user (Chrome does not list it either).
@@ -161,7 +305,9 @@ wrap_download_handler! {
             }
             let state = if item.is_complete() != 0 {
                 DownloadState::Finished
-            } else if item.is_canceled() != 0 || item.is_interrupted() != 0 {
+            } else if item.is_canceled() != 0 {
+                DownloadState::Canceled
+            } else if item.is_interrupted() != 0 {
                 DownloadState::Failed
             } else if item.is_in_progress() != 0 {
                 DownloadState::InProgress
@@ -178,7 +324,16 @@ wrap_download_handler! {
             // Percent when the size is known, else every MiB.
             let step = total.map_or(received >> 20, |t| received * 100 / t);
             let key = (context.clone(), item.id());
-            let new = TOLD.with(|t| t.borrow_mut().insert(key, (state, step)) != Some((state, step)));
+            RUNNING.with(|r| {
+                let mut running = r.borrow_mut();
+                match callback {
+                    Some(handle) if state == DownloadState::InProgress => running.insert(key.clone(), handle.clone()),
+                    _ => running.remove(&key),
+                }
+            });
+            let paused = item.is_paused() != 0;
+            let told = (state, step, paused);
+            let new = TOLD.with(|t| t.borrow_mut().insert(key, told) != Some(told));
             if !new {
                 return;
             }
@@ -202,6 +357,7 @@ wrap_download_handler! {
                 received,
                 total,
                 state,
+                paused,
                 url: retryable(&asked).then_some(asked),
             }));
         }
@@ -306,7 +462,25 @@ fn percent_decode(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{display_name, disposition_name, is_extension_install, retryable, url_name};
+    use super::{
+        Instant, OFFER, OFFER_FOR, Offer, PathBuf, display_name, disposition_name,
+        is_extension_install, retryable, take_offer, url_name,
+    };
+
+    #[test]
+    fn an_offered_file_answers_one_chooser_of_its_page_while_fresh() {
+        let at = Instant::now();
+        let offer = |browser| {
+            let path = PathBuf::from("/d/a.pdf");
+            OFFER.with(|o| *o.borrow_mut() = Some(Offer { browser, path, at }));
+        };
+        offer(7);
+        assert_eq!(take_offer(8, at), None, "another page");
+        assert_eq!(take_offer(7, at), Some(PathBuf::from("/d/a.pdf")));
+        assert_eq!(take_offer(7, at), None, "taken once");
+        offer(7);
+        assert_eq!(take_offer(7, at + OFFER_FOR), None, "too late");
+    }
 
     #[test]
     fn web_store_installs_are_no_downloads() {

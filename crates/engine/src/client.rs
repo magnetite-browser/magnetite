@@ -86,6 +86,9 @@ wrap_client! {
         fn drag_handler(&self) -> Option<DragHandler> {
             Some(MagnetiteDragHandler::new(self.kind))
         }
+        fn dialog_handler(&self) -> Option<DialogHandler> {
+            Some(crate::downloads::MagnetiteDialogHandler::new())
+        }
         fn on_process_message_received(
             &self,
             browser: Option<&mut Browser>,
@@ -249,26 +252,32 @@ wrap_display_handler! {
     }
 }
 
-/// First entry of a CEF string list, via the C API (the wrapper owns the list).
+/// First entry of a CEF string list (see `strings`).
 pub(crate) fn first_string(list: &mut CefStringList) -> Option<String> {
+    strings(list).into_iter().next()
+}
+
+/// The entries of a CEF string list, via the C API (the wrapper owns the list).
+pub(crate) fn strings(list: &mut CefStringList) -> Vec<String> {
     let raw: *mut sys::_cef_string_list_t = list.into();
     // SAFETY: `raw` is a live list for the duration of the callback.
     unsafe {
-        if sys::cef_string_list_size(raw) == 0 {
-            return None;
-        }
-        // SAFETY: an all-zero cef_string_t is the documented empty string.
-        let mut value: sys::cef_string_t = std::mem::zeroed();
-        if sys::cef_string_list_value(raw, 0, &mut value) == 0 {
-            return None;
-        }
-        let s = if value.str_.is_null() {
-            String::new()
-        } else {
-            String::from_utf16_lossy(std::slice::from_raw_parts(value.str_, value.length))
-        };
-        sys::cef_string_utf16_clear(&mut value);
-        Some(s)
+        (0..sys::cef_string_list_size(raw))
+            .map_while(|index| {
+                // SAFETY: an all-zero cef_string_t is the documented empty string.
+                let mut value: sys::cef_string_t = std::mem::zeroed();
+                if sys::cef_string_list_value(raw, index, &mut value) == 0 {
+                    return None;
+                }
+                let s = if value.str_.is_null() {
+                    String::new()
+                } else {
+                    String::from_utf16_lossy(std::slice::from_raw_parts(value.str_, value.length))
+                };
+                sys::cef_string_utf16_clear(&mut value);
+                Some(s)
+            })
+            .collect()
     }
 }
 

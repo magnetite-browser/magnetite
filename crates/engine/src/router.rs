@@ -102,7 +102,7 @@ impl Engine {
     /// ("close the overlay", sent when it lost the keyboard) are not about
     /// the one that is open now.
     pub fn query_from_replaced_overlay(&self) -> bool {
-        let Some(sender) = SENDER.get() else {
+        let Some(sender) = query_sender() else {
             return false;
         };
         let open = self
@@ -113,6 +113,11 @@ impl Engine {
             .map(|b| b.identifier());
         open.is_some_and(|open| open != sender)
     }
+}
+
+/// The browser of the page whose query is being handled, if one is.
+pub(crate) fn query_sender() -> Option<i32> {
+    SENDER.get()
 }
 
 /// Renderer-process side (lives in the helper executable).

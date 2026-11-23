@@ -21,7 +21,7 @@ pub use edge::set_edge_zone;
 pub use hotkey::set_quick_search_hotkey;
 pub use layers::{hide_peek_backdrop, set_focus_ring, show_peek_backdrop};
 pub use running::{installer_ready, mark_running};
-pub use share::{copy_png, copy_text, mouse_point, save_png};
+pub use share::{copy_png, copy_text, mouse_point, save_png, trash};
 pub use video::brand_video_window;
 
 #[link(name = "dwmapi")]

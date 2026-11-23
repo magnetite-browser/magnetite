@@ -77,6 +77,7 @@ mod stray;
 mod strings;
 mod system;
 mod tabshare;
+mod trash;
 #[cfg(target_os = "windows")]
 mod win;
 
@@ -91,7 +92,7 @@ pub use config::EngineConfig;
 pub use content::SPLIT_GAP;
 pub use default_browser::DefaultBrowser;
 pub use devdock::{DevToolsDock, DevToolsSize};
-pub use downloads::DownloadPrefs;
+pub use downloads::{DownloadControl, DownloadPrefs};
 pub use engine::{ContextProfile, Engine, EngineDelegate, WindowId};
 pub use events::{
     ContentId, DevPanel, DevToolsAction, DividerAction, DownloadReport, DownloadState, EngineEvent,
@@ -113,6 +114,7 @@ pub use sitedata::{
     ClearReport, PermissionEntry, PermissionKind, PermissionRow, PermissionValue, in_domain,
     registrable_domain,
 };
+pub use trash::move_to_trash;
 #[cfg(target_os = "windows")]
 pub use win::installer_ready;
 

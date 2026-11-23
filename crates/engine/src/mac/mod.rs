@@ -14,6 +14,7 @@
 //! - `chrome`: our child windows over the page area (drag strip, peek
 //!   backdrop, the hidden sidebar's edge, split dividers);
 //! - `default_browser`: whether Magnetite opens links from other apps;
+//! - `drag`: a file dragged out of a page, a file moved to the Trash;
 //! - `hotkey`: the system-wide quick search key;
 //! - `pill`: the link-hover status pill;
 //! - `pressure`: the system's memory pressure signal;
@@ -27,6 +28,7 @@
 
 mod chrome;
 mod default_browser;
+mod drag;
 mod hotkey;
 mod pill;
 mod pressure;
@@ -39,6 +41,7 @@ pub use chrome::{
     show_peek_backdrop,
 };
 pub use default_browser::{handles, set_handler};
+pub use drag::{drag_file, trash};
 pub use hotkey::set_quick_search_hotkey;
 pub use pill::{hide_status_pill, set_status_pill};
 pub use pressure::watch_memory_pressure;

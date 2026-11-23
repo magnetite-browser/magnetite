@@ -11,7 +11,7 @@ use crate::state::{ArcImport, NewTabLinks, now};
 use crate::{lock, trace, url_policy};
 
 use super::commands::UiCommand;
-use super::{EXTENSION_STORE, LinkVariant, MagnetiteApp, WELCOME_URL};
+use super::{DOWNLOADS_URL, EXTENSION_STORE, LinkVariant, MagnetiteApp, WELCOME_URL};
 
 impl EngineDelegate for MagnetiteApp {
     fn on_event(&self, engine: &Engine, event: EngineEvent) {
@@ -535,6 +535,19 @@ impl EngineDelegate for MagnetiteApp {
         });
         if matches!(cmd, UiCommand::SetSiteShortcuts { .. }) && !site_panel {
             return Err("only the site panel and Settings may do that".into());
+        }
+        // A download's file goes to a page only where the list shows: the
+        // sidebar and "All downloads".
+        let download_list = origin.starts_with(DOWNLOADS_URL)
+            || origin
+                .strip_prefix("magnetite://ui/")
+                .is_some_and(|page| page.is_empty() || page.starts_with(['?', '#']));
+        if matches!(
+            cmd,
+            UiCommand::DragDownload { .. } | UiCommand::OfferDownload { .. }
+        ) && !download_list
+        {
+            return Err("only the download lists may do that".into());
         }
         // Pictures are stored from Settings and the space dialog alone: the
         // welcome page has no use for them.

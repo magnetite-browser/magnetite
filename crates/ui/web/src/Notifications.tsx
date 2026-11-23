@@ -270,7 +270,9 @@ function DownloadCard({ d, layout, onClose }: { d: DownloadEntry; layout: string
   const share = d.status === "in_progress" && d.total ? Math.min(1, d.received / d.total) : null;
   const detail =
     d.status === "failed"
-      ? "Download failed"
+      ? d.canceled
+        ? "Download canceled"
+        : "Download failed"
       : d.status === "in_progress"
         ? d.total
           ? `${size(d.received)} of ${size(d.total)}`

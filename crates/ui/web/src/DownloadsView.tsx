@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
-import { ContextMenu, type MenuItem } from "./ContextMenu";
+import { ContextMenu, SEPARATOR, type MenuItem } from "./ContextMenu";
 import { Back, DownloadIcon, FileIcon, Reload, Reveal } from "./Icons";
-import { IS_MAC, onDownloads, send, type DownloadEntry } from "./bridge";
+import { IS_MAC, IS_WINDOWS, onDownloads, send, type DownloadEntry } from "./bridge";
+import { dragProps } from "./downloadDrag";
 import { groupByDay } from "./groupByDay";
 
 /** The file manager's "show the file" action. */
 export const REVEAL = IS_MAC ? "Show in Finder" : "Show in folder";
+
+/** The system's "move to the trash" action. */
+const TRASH = IS_WINDOWS ? "Move to Recycle Bin" : "Move to Trash";
 
 /** "2.4 MB": decimal units, like the file managers. */
 export function size(bytes: number): string {
@@ -40,10 +44,11 @@ function done(d: DownloadEntry): number | null {
 }
 
 function meta(d: DownloadEntry): string {
-  if (d.status === "failed") return "Failed";
+  if (d.status === "failed") return d.canceled ? "Canceled" : "Failed";
   if (d.status === "in_progress") {
     const share = done(d);
-    return share === null ? size(d.received) : `${Math.round(share * 100)}%`;
+    const progress = share === null ? size(d.received) : `${Math.round(share * 100)}%`;
+    return d.paused ? `Paused · ${progress}` : progress;
   }
   return d.missing ? "Deleted" : size(d.total ?? d.received);
 }
@@ -51,24 +56,48 @@ function meta(d: DownloadEntry): string {
 /** Magnetite's own page with the whole list (`DownloadsPage.tsx`). */
 const ALL_DOWNLOADS = "magnetite://ui/downloads";
 
+/** `groups` with a line between them, the empty ones left out. */
+function grouped(...groups: MenuItem[][]): MenuItem[] {
+  return groups.filter((g) => g.length > 0).flatMap((g, i) => (i > 0 ? [SEPARATOR, ...g] : g));
+}
+
 /**
- * The right-click menu of a finished download. The app copies: this page
- * never learns a path. Copying is built for macOS only so far.
+ * The right-click menu of a download, by where it is: running, finished or
+ * failed. The app copies: this page never learns a path or a link. Copying
+ * text is built for macOS and Windows, a file for macOS only.
  */
 function menuOf(d: DownloadEntry): MenuItem[] {
-  const copy = (what: "file" | "path") => () => void send({ cmd: "copy_download", id: d.id, what });
-  return [
-    ...(IS_MAC && !d.missing ? [{ label: "Copy file", onClick: copy("file") }, { label: "Copy file path", onClick: copy("path") }] : []),
-    { label: REVEAL, onClick: () => void send({ cmd: "open_download", id: d.id, reveal: true }) },
-  ];
+  const id = d.id;
+  const copy = (what: "file" | "path" | "link") => () => void send({ cmd: "copy_download", id, what });
+  const control = (what: "pause" | "resume" | "cancel") => () => void send({ cmd: "control_download", id, what });
+  const copiesText = IS_MAC || IS_WINDOWS;
+  const link: MenuItem[] = d.link && copiesText ? [{ label: "Copy download link", onClick: copy("link") }] : [];
+  const remove: MenuItem = { label: "Remove from list", onClick: () => void send({ cmd: "remove_download", id }) };
+  if (d.status === "in_progress") {
+    return grouped([d.paused ? { label: "Resume", onClick: control("resume") } : { label: "Pause", onClick: control("pause") }, { label: "Cancel", onClick: control("cancel") }], link);
+  }
+  if (d.status === "failed") {
+    return grouped([...(d.retryable ? [{ label: "Try again", onClick: () => void send({ cmd: "retry_download", id }) }] : []), ...link], [remove]);
+  }
+  const there = !d.missing;
+  return grouped(
+    [
+      // A file that runs code is only ever shown in its folder (`risky`).
+      ...(there && !d.risky ? [{ label: "Open", onClick: () => void send({ cmd: "open_download", id }) }] : []),
+      { label: REVEAL, onClick: () => void send({ cmd: "open_download", id, reveal: true }) },
+    ],
+    [...(IS_MAC && there ? [{ label: "Copy file", onClick: copy("file") }] : []), ...(copiesText && there ? [{ label: "Copy file path", onClick: copy("path") }] : []), ...link],
+    [remove, ...(there ? [{ label: TRASH, danger: true, onClick: () => void send({ cmd: "trash_download", id }) }] : [])],
+  );
 }
 
 /**
  * Downloads as rows, grouped by day like the archive: a click opens the
- * file, a right click offers copying and the file manager. A failed one
- * offers to try again while the app still knows where it came from. `time` adds when
- * each one started; `inSidebar` says the list is in the sidebar and not on a
- * page (see `ContextMenu`).
+ * file, a drag takes it out (`downloadDrag.ts`), a right click offers what
+ * fits the download as it is (`menuOf`). A failed one offers to try again
+ * while the app still knows where it came from. `time` adds when each one
+ * started; `inSidebar` says the list is in the sidebar and not on a page
+ * (see `ContextMenu`).
  */
 export function DownloadList({ items, time, inSidebar }: { items: DownloadEntry[]; time?: boolean; inSidebar?: boolean }) {
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
@@ -86,9 +115,10 @@ export function DownloadList({ items, time, inSidebar }: { items: DownloadEntry[
                 key={d.id}
                 className="row download"
                 data-dim={d.status === "failed" || d.missing || undefined}
+                {...dragProps(d)}
                 onContextMenu={(e) => {
                   e.preventDefault();
-                  if (finished) setMenu({ x: e.clientX, y: e.clientY, items: menuOf(d) });
+                  setMenu({ x: e.clientX, y: e.clientY, items: menuOf(d) });
                 }}
               >
                 <button className="flex min-w-0 flex-1 items-center gap-2 text-left" disabled={!openable} onClick={() => send({ cmd: "open_download", id: d.id })} title={openable ? `Open ${d.name}` : d.name}>
