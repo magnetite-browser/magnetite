@@ -1166,12 +1166,14 @@ windowSize(window.outerWidth, window.outerHeight);
 
 /**
  * Where the pages lie over the empty page, in window points: the size of the
- * page area they were laid out in, and each page's (and docked DevTools')
- * `[x, y, width, height]` in it.
+ * page area they were laid out in, how far inside its edges they stay (the
+ * frame around the page; 0 without it), and each page's (and docked
+ * DevTools') `[x, y, width, height]` in it.
  */
 export interface PageCards {
   width: number;
   height: number;
+  inset: number;
   cards: [x: number, y: number, width: number, height: number][];
 }
 /** The empty page: the pages over it, now and whenever they move. */

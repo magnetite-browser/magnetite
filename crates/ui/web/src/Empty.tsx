@@ -33,7 +33,7 @@ export function Empty() {
   const panel = !IS_MAC && state.web_panel ? findTab(state, state.web_panel) : null;
   const zoom = appearance.text_scale / 100;
   const grip = panel && (
-    <PanelResizer key={panel.id} id={panel.id} width={panel.panel_width} zoom={zoom} side={side} />
+    <PanelResizer key={panel.id} id={panel.id} width={panel.panel_width} zoom={zoom} side={side} inset={cards?.inset ?? DEFAULT_INSET} />
   );
   // Pages lie over this one: only the gaps around them show, and their shadows.
   if (state.panes.length > 0 || state.peek) {
@@ -66,13 +66,14 @@ const SHADOW_INSET = 2;
 
 /**
  * Where a shadow's edge goes that is `gap` points from its side of a page
- * area `size` points long. An edge at the frame's inset stays that far from
- * the side; one inside the area (a split's gap, beside docked DevTools) keeps
- * its share of the area. So while the window is resized the shadows stay
- * about where the pages go, before the app's next word puts them right.
+ * area `size` points long, whose pages are `inset` from its edges. An edge
+ * at the inset stays that far from the side; one inside the area (a split's
+ * gap, beside docked DevTools) keeps its share of the area. So while the
+ * window is resized the shadows stay about where the pages go, before the
+ * app's next word puts them right.
  */
-const shadowEdge = (gap: number, size: number) =>
-  gap <= INSET ? gap + SHADOW_INSET : `calc(${(gap / size) * 100}% + ${SHADOW_INSET}px)`;
+const shadowEdge = (gap: number, size: number, inset: number) =>
+  gap <= inset ? gap + SHADOW_INSET : `calc(${(gap / size) * 100}% + ${SHADOW_INSET}px)`;
 
 /**
  * A shadow under each page, where the app laid the pages out (`at`), with
@@ -86,10 +87,10 @@ function PageShadows({ at, zoom }: { at: PageCards; zoom: number }) {
         <div
           key={i}
           style={{
-            left: shadowEdge(x, at.width),
-            top: shadowEdge(y, at.height),
-            right: shadowEdge(at.width - x - width, at.width),
-            bottom: shadowEdge(at.height - y - height, at.height),
+            left: shadowEdge(x, at.width, at.inset),
+            top: shadowEdge(y, at.height, at.inset),
+            right: shadowEdge(at.width - x - width, at.width, at.inset),
+            bottom: shadowEdge(at.height - y - height, at.height, at.inset),
             borderRadius: Math.max(PAGE_RADIUS - SHADOW_INSET, 0),
           }}
         />
@@ -98,11 +99,12 @@ function PageShadows({ at, zoom }: { at: PageCards; zoom: number }) {
   );
 }
 
-// The page area's inset, the gap beyond a docked web panel, the panel's
-// widths and its close button, as the app lays them out (`CONTENT_INSET` in
-// frame.rs, `SPLIT_GAP` and `web_panel_rect` in content.rs, `SIZE` and
-// `MARGIN` in panel_close.rs).
-const INSET = 8;
+// The gap beyond a docked web panel, the panel's widths and its close
+// button, as the app lays them out (`SPLIT_GAP` and `web_panel_rect` in
+// content.rs, `SIZE` and `MARGIN` in panel_close.rs). The page area's inset
+// comes with the page cards (none without the frame around the page); until
+// they do, the frame's (`CONTENT_INSET` in frame.rs).
+const DEFAULT_INSET = 8;
 const GAP = 8;
 const CLOSE = { size: 32, margin: 8 };
 const PANEL = { usual: 420, min: 280, rest: 80 };
@@ -115,9 +117,9 @@ const PANEL = { usual: 420, min: 280, rest: 80 };
  * size. Beyond the gap, at the panel's top corner, is the round button that
  * closes panel `id`: a page beside the panel lies over it and has the same
  * button in the same place (`panel_close.rs`). The panel is at the edge of
- * the sidebar's `side`.
+ * the sidebar's `side`, `inset` points inside the page area's edges.
  */
-function PanelResizer({ id, width, zoom, side }: { id: string; width?: number; zoom: number; side: SidebarSide }) {
+function PanelResizer({ id, width, zoom, side, inset }: { id: string; width?: number; zoom: number; side: SidebarSide; inset: number }) {
   const [area, setArea] = useState(window.innerWidth);
   useEffect(() => {
     const measure = () => setArea(window.innerWidth);
@@ -136,9 +138,9 @@ function PanelResizer({ id, width, zoom, side }: { id: string; width?: number; z
   const latest = useRef(0);
   const apply = (done: boolean) => send({ cmd: "web_panel_width", width: latest.current, done });
   // A width within the panel's bounds, as the app keeps it.
-  const within = (w: number) => Math.max(1, Math.min(Math.max(w, PANEL.min), area - 2 * INSET - PANEL.rest));
+  const within = (w: number) => Math.max(1, Math.min(Math.max(w, PANEL.min), area - 2 * inset - PANEL.rest));
   // The pointer stays in the middle of the gap, counted from the panel's edge of the page.
-  const wanted = (x: number) => within(Math.round((side === "left" ? x : area - x) - INSET - GAP / 2));
+  const wanted = (x: number) => within(Math.round((side === "left" ? x : area - x) - inset - GAP / 2));
   // `points` from the panel's edge of the page, in this page's lengths.
   const fromEdge = (points: number) => (side === "left" ? { left: points / zoom } : { right: points / zoom });
   const shown = within(dragged ?? width ?? PANEL.usual);
@@ -150,7 +152,7 @@ function PanelResizer({ id, width, zoom, side }: { id: string; width?: number; z
     <>
     <button
       className="panel-close"
-      style={{ ...fromEdge(INSET + shown + GAP + CLOSE.margin), top: (INSET + CLOSE.margin) / zoom, width: CLOSE.size / zoom, height: CLOSE.size / zoom }}
+      style={{ ...fromEdge(inset + shown + GAP + CLOSE.margin), top: (inset + CLOSE.margin) / zoom, width: CLOSE.size / zoom, height: CLOSE.size / zoom }}
       title="Close the panel"
       aria-label="Close the panel"
       onClick={() => send({ cmd: "toggle_web_panel", id })}
@@ -159,7 +161,7 @@ function PanelResizer({ id, width, zoom, side }: { id: string; width?: number; z
     </button>
     <div
       className="panel-resizer"
-      style={{ ...fromEdge(INSET + shown), width: GAP / zoom, top: INSET / zoom, bottom: INSET / zoom }}
+      style={{ ...fromEdge(inset + shown), width: GAP / zoom, top: inset / zoom, bottom: inset / zoom }}
       role="separator"
       aria-orientation="vertical"
       aria-label="Web panel width"
