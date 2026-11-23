@@ -108,7 +108,8 @@ Where a section is about one profile (Permissions, Passwords and autofill,
 Extensions, deleting browsing data) and there is more than one lasting
 profile, a list chooses which, starting with the profile of the space in
 front. Each choice names the profile and, beside it, the spaces that use
-it: "Main profile", "Personal, Reading".
+it: "Main profile", "Personal, Reading". A profile named after its only
+space does not name it again.
 
 A profile is chosen from a list of the same kind (a favorite's, a
 space's on its page, a new space's): the lasting profiles, each with the

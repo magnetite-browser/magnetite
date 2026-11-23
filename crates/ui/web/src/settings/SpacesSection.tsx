@@ -45,13 +45,23 @@ export function spaceOptions(spaces: Space[]): PickOption[] {
 }
 
 /**
+ * A profile as a choice: its name and, beside it, the spaces that use it.
+ * A profile named after its only space says nothing twice.
+ */
+function profileOption(info: Info, p: Profile): PickOption {
+  const name = profileName(p);
+  const spaces = info.spaces.filter((s) => s.profile_id === p.id).map((s) => s.title);
+  return { value: p.id, label: name, hint: spaces.length === 1 && spaces[0] === name ? undefined : spaces.join(", ") };
+}
+
+/**
  * The choices of a profile list: the lasting profiles by id, each with the
  * spaces that use it, then `NEW` (one named `fresh`, else after the space)
  * and `PRIVATE`.
  */
 function profileOptions(info: Info, fresh?: string): PickOption[] {
   return [
-    ...info.profiles.filter((p) => !p.ephemeral).map((p) => ({ value: p.id, label: profileName(p), hint: info.spaces.filter((s) => s.profile_id === p.id).map((s) => s.title).join(", ") })),
+    ...info.profiles.filter((p) => !p.ephemeral).map((p) => profileOption(info, p)),
     { value: NEW, label: "A new profile", hint: fresh ? `named “${fresh}”` : "named after the space", apart: true },
     { value: PRIVATE, label: "Private", hint: "forgotten when Magnetite quits" },
   ];
@@ -99,8 +109,7 @@ function ProfileChoice({ info, current, name, assign, label, width }: { info: In
  * each with the spaces that use it.
  */
 export function ProfilePick({ info, profiles, value, onChoose }: { info: Info; profiles: Profile[]; value: string | undefined; onChoose: (profile: string) => void }) {
-  const options = profiles.map((p) => ({ value: p.id, label: profileName(p), hint: info.spaces.filter((s) => s.profile_id === p.id).map((s) => s.title).join(", ") }));
-  return <PickList options={options} chosen={value ? [value] : []} label="Profile" width={220} align="right" onChoose={([to]) => to && onChoose(to)} />;
+  return <PickList options={profiles.map((p) => profileOption(info, p))} chosen={value ? [value] : []} label="Profile" width={220} align="right" onChoose={([to]) => to && onChoose(to)} />;
 }
 
 /** All of one space. */
