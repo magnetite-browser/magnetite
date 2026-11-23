@@ -1,17 +1,18 @@
 //! The sidebar as a floating panel. While the docked sidebar is hidden, the
-//! pointer reaching the window's left edge (`mac::set_edge_zone`,
-//! `win::set_edge_zone`) slides a
+//! pointer reaching the window's edge on the sidebar's side
+//! (`mac::set_edge_zone`, `win::set_edge_zone`) slides a
 //! second sidebar page (`magnetite://ui/?float`) over the pages; it hides again
 //! when the pointer leaves it. Created on first use, then kept hidden.
 
 use cef::*;
 
+use crate::SidebarSide;
 use crate::client::MagnetiteClient;
 use crate::engine::Engine;
 
 /// Gap between the panel and the window edges.
 const MARGIN: i32 = 6;
-/// Width of the hover zone along the left edge (the page gap).
+/// Width of the hover zone along the window's edge (the page gap).
 const EDGE: i32 = 8;
 
 /// The floating sidebar's window and page.
@@ -101,15 +102,20 @@ impl Engine {
         }
     }
 
-    /// The hover zone exists exactly while the docked sidebar is hidden.
+    /// The hover zone exists exactly while the docked sidebar is hidden, at
+    /// the edge of the sidebar's side.
     pub(crate) fn update_edge_zone(&self) {
         let (frame, hidden) = (self.frame_window(), !self.sidebar_visible());
         let Some(frame) = frame else { return };
+        let side = self.sidebar_side();
         let b = frame.bounds();
-        // Not beside the top bar: its left end holds the window's buttons.
+        // Not beside the top bar: its ends hold the window's buttons.
         let top = self.top_bar_offset();
         let zone = Rect {
-            x: b.x,
+            x: match side {
+                SidebarSide::Left => b.x,
+                SidebarSide::Right => b.x + b.width - EDGE,
+            },
             y: b.y + top,
             width: EDGE,
             height: (b.height - top).max(1),
@@ -119,22 +125,27 @@ impl Engine {
         #[cfg(target_os = "windows")]
         {
             let _ = zone;
-            crate::win::set_edge_zone(frame.window_handle(), hidden.then_some((EDGE, top)));
+            let at = hidden.then_some((EDGE, top, side));
+            crate::win::set_edge_zone(frame.window_handle(), at);
         }
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-        let _ = (zone, hidden);
+        let _ = (zone, hidden, side);
     }
 
-    /// Along the left edge, the window's height (below the top bar while it
-    /// is on), the sidebar's width.
+    /// Along the edge of the sidebar's side, the window's height (below the
+    /// top bar while it is on), the sidebar's width.
     fn float_bounds(&self) -> Option<Rect> {
         let frame = self.frame_window()?;
         let b = frame.bounds();
         let top = self.top_bar_offset() + MARGIN;
+        let width = self.sidebar_width();
         Some(Rect {
-            x: b.x + MARGIN,
+            x: match self.sidebar_side() {
+                SidebarSide::Left => b.x + MARGIN,
+                SidebarSide::Right => b.x + b.width - MARGIN - width,
+            },
             y: b.y + top,
-            width: self.sidebar_width(),
+            width,
             height: (b.height - top - MARGIN).max(100),
         })
     }

@@ -484,9 +484,11 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 .window-buttons svg .fill { fill: rgba(0, 0, 0, 0.6); stroke: none; }
 .window-buttons:hover svg { opacity: 1; }
 
-/* the floating sidebar slides in each time it appears */
+/* the floating sidebar slides in each time it appears, from its window edge */
 [data-float] { animation: float-in 170ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+[data-float][data-side="right"] { animation-name: float-in-right; }
 @keyframes float-in { from { transform: translateX(-16px); opacity: 0.4; } }
+@keyframes float-in-right { from { transform: translateX(16px); opacity: 0.4; } }
 
 /* Pages that are not loaded: grey icon and text. Loaded pages keep their
    colours and white text; the background marks the selected one. */
@@ -655,8 +657,9 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
 /* Licence texts page. */
 .licence-text { white-space: pre-wrap; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--secondary); }
 
-/* The docked sidebar's right edge: drag to resize. */
+/* The docked sidebar's edge towards the pages: drag to resize. */
 .sidebar-resizer { position: fixed; top: 0; right: 0; bottom: 0; width: 6px; z-index: 60; cursor: col-resize; }
+.sidebar-resizer[data-side="right"] { right: auto; left: 0; }
 /* The shadows under the pages (Empty.tsx): one box per page. One wide
    blur and no outline: the plain dark frame hardly shows them,
    a space with a brighter look (tint, an effect) does. */
@@ -675,6 +678,7 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
 .panel-grip:hover, .panel-grip:active { background: rgb(60,60,62); }
 .panel-grip:hover::after, .panel-grip:active::after { background: rgba(255,255,255,0.9); }
 .sidebar-resizer:hover, .sidebar-resizer:active { background: linear-gradient(to left, var(--space-soft, rgba(255,255,255,0.08)) 2px, transparent 2px); }
+.sidebar-resizer[data-side="right"]:hover, .sidebar-resizer[data-side="right"]:active { background: linear-gradient(to right, var(--space-soft, rgba(255,255,255,0.08)) 2px, transparent 2px); }
 
 /* The device bar above a page in device mode (DeviceBar.tsx): one row,
    centred, on the page area's background. */
@@ -810,6 +814,7 @@ button.wel-space-icon:hover:not(:disabled) { background: color-mix(in srgb, var(
 .wel-mini { display: grid; grid-template-columns: 30% 1fr; gap: 4px; height: 92px; padding: 5px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
 .wel-mini[data-top] { grid-template-rows: 12px 1fr; }
 .wel-mini[data-top] > b[data-bar] { grid-column: 1 / -1; }
+.wel-mini[data-right] { grid-template-columns: 1fr 30%; }
 .wel-mini > span { display: flex; flex-direction: column; gap: 4px; }
 .wel-mini b { display: block; flex: 1; border-radius: 4px; background: rgba(255,255,255,0.08); }
 .wel-mini b[data-bar] { flex: none; height: 12px; background: color-mix(in srgb, var(--accent) 60%, transparent); }

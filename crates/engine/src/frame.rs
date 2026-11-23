@@ -1,5 +1,5 @@
 //! The frame window: the top bar view (when on) above the body, which holds
-//! the sidebar view and, right of it, the developer bar (while the page in
+//! the sidebar view and, beside it, the developer bar (while the page in
 //! front has developer tools) above the content panel.
 
 use cef::*;
@@ -33,15 +33,28 @@ impl PageFrame {
     }
 }
 
+/// The side of the window the docked sidebar is on; the pages, the hover
+/// edge of the hidden sidebar and the web panels follow it. The app puts it
+/// on the right only with the top bar, which then holds the window's
+/// buttons.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SidebarSide {
+    #[default]
+    Left,
+    Right,
+}
+
 pub(crate) struct FrameState {
     pub window: Window,
-    /// The row below the top bar: sidebar view and content panel.
+    /// The row below the top bar: sidebar view and pages column, in the
+    /// order of the sidebar's side.
     pub body: Panel,
     pub sidebar_view: BrowserView,
     /// The top bar's view, made the first time it is turned on.
     pub top_bar_view: Option<BrowserView>,
     pub top_bar_browser: Option<Browser>,
-    /// Right of the sidebar: the developer bar above the content panel.
+    /// Beside the sidebar: the developer bar above the content panel.
     pub pages_column: Panel,
     /// The developer bar's view, made the first time it shows.
     pub dev_bar_view: Option<BrowserView>,
@@ -232,12 +245,13 @@ impl Engine {
     pub fn content_rect(&self) -> Rect {
         let area = self.page_area();
         // Its own statement: `page_area` locks too.
-        let docked = {
+        let (docked, side) = {
             let inner = self.lock();
-            (inner.win.web_panel).map(|_| inner.win.web_panel_width)
+            let docked = (inner.win.web_panel).map(|_| inner.win.web_panel_width);
+            (docked, inner.sidebar_side)
         };
         match docked.filter(|_| crate::content::WEB_PANEL_DOCKED) {
-            Some(width) => crate::content::beside_web_panel(&area, width),
+            Some(width) => crate::content::beside_web_panel(&area, width, side),
             None => area,
         }
     }
@@ -332,24 +346,37 @@ impl Engine {
     /// and the button to close it, in reach while no page lies over it
     /// (beside a docked panel, or under a floating one with no page shown).
     fn docked_controls_in_window(&self) -> Option<[Rect; 2]> {
-        let width = {
+        let (width, side) = {
             let inner = self.lock();
             inner.win.web_panel.filter(|_| !cfg!(target_os = "macos"))?;
-            inner.win.web_panel_width
+            (inner.win.web_panel_width, inner.sidebar_side)
         };
         let area = self.inset(&self.content_panel_in_window());
-        let panel = crate::content::web_panel_rect(&area, width);
+        let panel = crate::content::web_panel_rect(&area, width, side);
+        let gap = crate::content::SPLIT_GAP;
+        let disc = i32::from(crate::panel_close::SIZE);
+        let margin = crate::panel_close::MARGIN;
+        // Beyond the panel's far edge: the gap, then the button.
+        let (grip_x, button_x) = match side {
+            SidebarSide::Left => {
+                let grip_x = panel.x + panel.width;
+                (grip_x, grip_x + gap + margin)
+            }
+            SidebarSide::Right => {
+                let grip_x = panel.x - gap;
+                (grip_x, grip_x - margin - disc)
+            }
+        };
         let grip = Rect {
-            x: panel.x + panel.width,
-            width: crate::content::SPLIT_GAP,
+            x: grip_x,
+            width: gap,
             ..panel.clone()
         };
-        let side = i32::from(crate::panel_close::SIZE);
         let button = Rect {
-            x: grip.x + grip.width + crate::panel_close::MARGIN,
-            y: panel.y + crate::panel_close::MARGIN,
-            width: side,
-            height: side,
+            x: button_x,
+            y: panel.y + margin,
+            width: disc,
+            height: disc,
         };
         Some([grip, button])
     }
@@ -368,7 +395,7 @@ impl Engine {
     /// and the button beside a docked web panel: a drag in the gap resizes
     /// the panel, a click on the button closes it.
     pub(crate) fn apply_drag_regions(&self) {
-        let (window, sidebar, top_bar) = {
+        let (window, sidebar, top_bar, sidebar_x) = {
             let inner = self.lock();
             let Some(f) = inner.win.frame.as_ref() else {
                 return;
@@ -383,11 +410,17 @@ impl Engine {
             } else {
                 Vec::new()
             };
-            (f.window.clone(), sidebar, top_bar)
+            let sidebar_x = match inner.sidebar_side {
+                SidebarSide::Left => 0,
+                SidebarSide::Right => f.window.bounds().width - inner.sidebar_width,
+            };
+            (f.window.clone(), sidebar, top_bar, sidebar_x)
         };
         let caption = Self::caption_height(&self.lock());
-        // The sidebar page reports bounds within itself, below the top bar.
+        // The sidebar page reports bounds within itself, below the top bar
+        // and, on the right, beyond the pages.
         let below = |mut r: DraggableRegion| {
+            r.bounds.x += sidebar_x;
             r.bounds.y += self.top_bar_offset();
             r
         };
@@ -439,7 +472,7 @@ impl Engine {
         }
     }
 
-    /// The content panel's place in the window: right of the sidebar, below
+    /// The content panel's place in the window: beside the sidebar, below
     /// the top bar and the developer bar. Worked out from the window's size, not asked of the
     /// panel: Chromium lays out the nested body lazily, so the panel can
     /// still report where it was before a change.
@@ -449,10 +482,14 @@ impl Engine {
             return Rect::default();
         };
         let client = f.window.bounds();
-        let x = if inner.win.sidebar_visible {
+        let sidebar = if inner.win.sidebar_visible {
             inner.sidebar_width
         } else {
             0
+        };
+        let x = match inner.sidebar_side {
+            SidebarSide::Left => sidebar,
+            SidebarSide::Right => 0,
         };
         let top_bar = if inner.top_bar_visible {
             Self::TOP_BAR_HEIGHT
@@ -468,7 +505,7 @@ impl Engine {
         Rect {
             x,
             y,
-            width: (client.width - x).max(1),
+            width: (client.width - sidebar).max(1),
             height: (client.height - y).max(1),
         }
     }
@@ -714,7 +751,8 @@ impl Engine {
     }
 
     /// Open the system share menu for `url` at a point of the frame window
-    /// (DIP from its top-left; the sidebar page's client coordinates).
+    /// (DIP from its top-left; the sidebar page turns its own points into
+    /// these, `windowPoint` in bridge.ts).
     pub fn share_url(&self, url: &str, x: f64, y: f64) {
         let window = self.frame_window();
         #[cfg(target_os = "macos")]
@@ -775,6 +813,44 @@ impl Engine {
                     self.apply_drag_regions();
                 }
             });
+        }
+    }
+
+    pub fn sidebar_side(&self) -> SidebarSide {
+        self.lock().sidebar_side
+    }
+
+    /// Dock the sidebar at `side` of every window; the pages, the hidden
+    /// sidebar's hover edge and a web panel move with it.
+    pub fn set_sidebar_side(&self, side: SidebarSide) {
+        if std::mem::replace(&mut self.lock().sidebar_side, side) == side {
+            return;
+        }
+        for win in self.windows() {
+            self.in_window(win, || self.place_sidebar());
+        }
+    }
+
+    /// Put the current window's sidebar view at the side set; the pages
+    /// column takes the other and everything placed on it follows.
+    fn place_sidebar(&self) {
+        let frame = (self.lock().win.frame.as_ref())
+            .map(|f| (f.window.clone(), f.body.clone(), f.sidebar_view.clone()));
+        let Some((window, body, sidebar)) = frame else {
+            return;
+        };
+        // A negative index is the end of the row.
+        let index = match self.sidebar_side() {
+            SidebarSide::Left => 0,
+            SidebarSide::Right => -1,
+        };
+        body.reorder_child_view(Some(&mut View::from(&sidebar)), index);
+        window.layout();
+        self.reposition_contents();
+        self.apply_drag_regions();
+        self.update_edge_zone();
+        if self.float_sidebar_shown() {
+            self.show_float_sidebar(true);
         }
     }
 
@@ -855,8 +931,7 @@ impl Engine {
             )
         };
         if let Some(p) = panel {
-            let rect = crate::content::web_panel_rect(&self.page_area(), panel_width);
-            self.place(p, &rect);
+            self.place(p, &self.web_panel_place(panel_width));
         }
         if let Some(p) = peek {
             self.place(p, &crate::content::peek_rect(&self.content_rect()));
@@ -1056,7 +1131,7 @@ wrap_window_delegate! {
             )
             .expect("sidebar view");
 
-            // Right of the sidebar, top to bottom: the row of our own window
+            // Beside the sidebar, top to bottom: the row of our own window
             // buttons where the system draws none, the developer bar (added
             // when it first shows), the content panel.
             let mut pd = BodyPanelDelegate::new();
@@ -1083,8 +1158,16 @@ wrap_window_delegate! {
 
             let mut sv = View::from(&sidebar);
             let mut pv = View::from(&pages);
-            body.add_child_view(Some(&mut sv));
-            body.add_child_view(Some(&mut pv));
+            match engine.sidebar_side() {
+                SidebarSide::Left => {
+                    body.add_child_view(Some(&mut sv));
+                    body.add_child_view(Some(&mut pv));
+                }
+                SidebarSide::Right => {
+                    body.add_child_view(Some(&mut pv));
+                    body.add_child_view(Some(&mut sv));
+                }
+            }
             layout.set_flex_for_view(Some(&mut pv), 1);
             let mut bv = View::from(&body);
             window.add_child_view(Some(&mut bv));

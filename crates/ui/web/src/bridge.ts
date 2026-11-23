@@ -446,6 +446,8 @@ export interface Appearance {
   sidebar_width: number;
   /** Navigation, address and window buttons in a bar across the top. */
   top_bar: boolean;
+  /** The side the sidebar is docked on; the right counts only with the top bar (`dockedSide`). */
+  sidebar_side: SidebarSide;
   /** A row of extension icons below the sidebar's address, in place of the icons in its title band. */
   extension_bar: boolean;
   /** When the frame shows around the pages (`windowed`: not in full screen); without it they reach the window's edges. */
@@ -453,6 +455,31 @@ export interface Appearance {
   /** How each space looks beyond its colour, by space id; a space without an entry has `DEFAULT_LOOK`. Kept on this device. */
   looks: Record<Id, SpaceLook>;
 }
+
+/** A side of the window the sidebar can be docked on. */
+export type SidebarSide = "left" | "right";
+
+/**
+ * The side the sidebar is docked on now: the chosen one with the top bar on,
+ * the left without it, where the window's buttons need the sidebar's top
+ * band (`Appearance::docked_side`).
+ */
+export const dockedSide = (a: Pick<Appearance, "top_bar" | "sidebar_side">): SidebarSide => (a.top_bar ? a.sidebar_side : "left");
+
+/**
+ * The layouts Settings and the first start offer: where back, forward and
+ * the address sit, and with the top bar the side of the sidebar.
+ */
+export const LAYOUTS = {
+  sidebar: { top_bar: false, sidebar_side: "left" },
+  top_bar: { top_bar: true, sidebar_side: "left" },
+  top_bar_right: { top_bar: true, sidebar_side: "right" },
+} as const satisfies Record<string, Pick<Appearance, "top_bar" | "sidebar_side">>;
+export type Layout = keyof typeof LAYOUTS;
+
+/** Which of the `LAYOUTS` appearance `a` has. */
+export const layoutOf = (a: Pick<Appearance, "top_bar" | "sidebar_side">): Layout =>
+  !a.top_bar ? "sidebar" : dockedSide(a) === "right" ? "top_bar_right" : "top_bar";
 
 /** One space's look beyond its colour. */
 export interface SpaceLook {
@@ -1078,12 +1105,25 @@ const swipes = signal();
 const records = signal();
 const pageCards = cached<PageCards>();
 
+/** The window's width in points, as the app last reported it (`windowSize`). */
+let windowWidth = window.outerWidth;
+
+/**
+ * Point (`x`, `y`) of the docked sidebar's page, docked at `side`, in the
+ * frame window's points, where the share menu opens (`share`,
+ * `capture_share`): on the right the sidebar begins where the pages end.
+ */
+export function windowPoint(x: number, y: number, side: SidebarSide) {
+  return { x: side === "right" ? x + windowWidth - window.innerWidth : x, y };
+}
+
 /**
  * Keep the window's size where the styles read it (`--win-w`, `--win-h`):
  * a background across the whole window is cut to this page with it
  * (`windowBackground`).
  */
 function windowSize(width: number, height: number) {
+  windowWidth = width;
   const root = document.documentElement;
   root.style.setProperty("--win-w", `${width}px`);
   root.style.setProperty("--win-h", `${height}px`);

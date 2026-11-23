@@ -3,7 +3,8 @@
 The sidebar is Magnetite's main control. It holds the address row, the
 favorites, the pinned and Today tabs of the current space, and the space
 switcher. It is a page of its own (`magnetite://ui/`) docked at the left of
-the window; the web pages take the rest.
+the window, or with the top bar at the right (below); the web pages take
+the rest.
 
 ## Layout
 
@@ -249,9 +250,9 @@ window and the keyboard. `Cmd+S` shows it again. (On Windows the
 window's buttons are in a row above the pages at the top right, with or
 without the sidebar, unless the top bar is on, which has them.) While it is
 hidden on macOS or Windows,
-moving the pointer to the window's left edge slides the sidebar out over the
-pages, along the window's whole height, without taking the keyboard from the
-page. It leaves when the pointer does, or on Esc; its sidebar button or
+moving the pointer to the window's edge on the sidebar's side slides the
+sidebar out over the pages, along the window's whole height, without taking
+the keyboard from the page. It leaves when the pointer does, or on Esc; its sidebar button or
 `Cmd+S` docks it again. The sidebar is docked at every start.
 
 The pages cover the window's close, minimize and full screen buttons while
@@ -259,7 +260,7 @@ the sidebar is hidden, so the sidebar that slides out has them, in its title
 band. With the top bar on they stay in the top bar. The gap above the pages
 still drags the window.
 
-Dragging the sidebar's right edge sets its width (220 to 360 points, 264 by
+Dragging the sidebar's edge towards the pages sets its width (220 to 360 points, 264 by
 default; double-click resets). Settings → Appearance has the width too, plus
 text size (85 to 130 %), row density (compact, comfortable, spacious), the
 layout and the frame around the page (both below).
@@ -284,6 +285,12 @@ switches at once, without a restart.
   windows just below the bar.
 - The sidebar keeps the rest: favorites, tabs, the footer. Hidden (`Cmd+S`),
   it still slides out over the pages, below the bar.
+- Layout → **Top bar, sidebar right** docks the sidebar at the right of the
+  window, below the bar. The pages, the edge that slides out the hidden
+  sidebar and web panels (`web-panels.md`) move with it. Only with the top
+  bar, which has the window's buttons: without it they would lie over the
+  pages. Turning the bar off ("Toggle top bar") docks the sidebar at the
+  left; turning it on again puts it back at the right.
 - Empty space in the bar drags the window; a double-click maximizes it.
 
 ## Frame around the page
@@ -370,5 +377,5 @@ not opened.
 
 Code: `crates/core/src/{model,sidebar}.rs`, `crates/app/src/app/tabs.rs`,
 `crates/app/src/state/{tabs,folders,profiles}.rs`,
-`crates/engine/src/{keys,floatbar,favicon}.rs`,
+`crates/engine/src/{keys,frame,floatbar,favicon}.rs`,
 `crates/ui/web/src/{App,Rows}.tsx`.

@@ -4,7 +4,7 @@
 // the rest of the space: both change the same stored appearance.
 import { useRef, useState, useEffect } from "react";
 import { storeImage, userImageUrl, type ImageSlot } from "../backgrounds";
-import { DEFAULT_ACCENT, accentCss, keyLabel, lookOf, send, type Appearance, type Color, type SpaceLook } from "../bridge";
+import { DEFAULT_ACCENT, LAYOUTS, accentCss, keyLabel, layoutOf, lookOf, send, type Appearance, type Color, type Layout, type SpaceLook } from "../bridge";
 import { Field, Group, Slider, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
@@ -183,6 +183,9 @@ function TextSample({ from, to }: { from: number; to: number }) {
   );
 }
 
+/** The choices for the layout (`LAYOUTS`). */
+const LAYOUT_CHOICES = [["Sidebar", "sidebar"], ["Top bar", "top_bar"], ["Top bar, sidebar right", "top_bar_right"]] as const satisfies readonly (readonly [string, Layout])[];
+
 /** The choices for the frame around the page. */
 const PAGE_FRAMES = [["Always", "always"], ["Not in full screen", "windowed"], ["Never", "never"]] as const satisfies readonly (readonly [string, Appearance["page_frame"]])[];
 
@@ -192,10 +195,10 @@ export function AppearanceSection({ info, update, open }: { info: Info; update: 
   return (
     <>
       <Group title="Window" hint="The same in every space.">
-      <Field side label="Layout" hint="Where back, forward, the address and the extensions sit: at the top of the sidebar, or in a bar across the window.">
+      <Field side label="Layout" hint="Where back, forward, the address and the extensions sit: at the top of the sidebar, or in a bar across the window. With the bar, the sidebar can also sit on the right.">
         <div className="seg">
-          {([["Sidebar", false], ["Top bar", true]] as const).map(([label, on]) => (
-            <button key={label} data-on={draft.top_bar === on || undefined} aria-pressed={draft.top_bar === on} onClick={() => set({ top_bar: on }, true)}>{label}</button>
+          {LAYOUT_CHOICES.map(([label, layout]) => (
+            <button key={layout} data-on={layoutOf(draft) === layout || undefined} aria-pressed={layoutOf(draft) === layout} onClick={() => set(LAYOUTS[layout], true)}>{label}</button>
           ))}
         </div>
       </Field>

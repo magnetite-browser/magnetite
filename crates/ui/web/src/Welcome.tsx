@@ -9,7 +9,7 @@
 // the end with "Start browsing". Everything here is in Settings too.
 import { useCallback, useEffect, useState } from "react";
 import appIcon from "./assets/icon.png?url";
-import { applyAppearance, send, type Appearance, type ImportPreview, type ImportSource, type SpaceChoice } from "./bridge";
+import { LAYOUTS, applyAppearance, layoutOf, send, type Appearance, type ImportPreview, type ImportSource, type SpaceChoice } from "./bridge";
 import { Glyph, GLYPH_NAMES, SpaceGlyph } from "./Glyphs";
 import { AdblockIcon, Back, Check, DevicesIcon, DownloadIcon, Forward, PaletteIcon, PrivacyIcon, Search, SiteIcon, WarningIcon, type IconComponent } from "./Icons";
 import { Switch, Toggle } from "./settings/fields";
@@ -582,16 +582,14 @@ export function Welcome() {
                 <div className="set-label">Back, forward and the address</div>
                 <p className="set-hint">
                   At the top of the sidebar, which leaves the whole height of the window to the page, or in a bar across
-                  the window, where most browsers have them.
+                  the window, where most browsers have them. With the bar, the sidebar can also sit on the right.
                 </p>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  {([["In the sidebar", false], ["In a bar on top", true]] as const).map(([label, top]) => (
-                    <button key={label} className="wel-layout" aria-pressed={look.top_bar === top} data-active={look.top_bar === top || undefined} onClick={() => setLook({ top_bar: top })}>
-                      {top ? (
-                        <span className="wel-mini" data-top aria-hidden><b data-bar /><span><b /></span><b /></span>
-                      ) : (
-                        <span className="wel-mini" aria-hidden><span><b data-bar /><b /></span><b /></span>
-                      )}
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  {([["In the sidebar", "sidebar"], ["In a bar on top", "top_bar"], ["On top, sidebar right", "top_bar_right"]] as const).map(([label, layout]) => (
+                    <button key={layout} className="wel-layout" aria-pressed={layoutOf(look) === layout} data-active={layoutOf(look) === layout || undefined} onClick={() => setLook(LAYOUTS[layout])}>
+                      {layout === "sidebar" && <span className="wel-mini" aria-hidden><span><b data-bar /><b /></span><b /></span>}
+                      {layout === "top_bar" && <span className="wel-mini" data-top aria-hidden><b data-bar /><span><b /></span><b /></span>}
+                      {layout === "top_bar_right" && <span className="wel-mini" data-top data-right aria-hidden><b data-bar /><b /><span><b /></span></span>}
                       <span className="font-medium">{label}</span>
                     </button>
                   ))}
@@ -669,7 +667,7 @@ export function Welcome() {
                   </Chosen>
                 )}
                 <Chosen label="Look" change={() => go("look")}>
-                  {look.top_bar ? "A bar on top" : "Everything in the sidebar"}, {TEXT_SIZES.find(([, size]) => size === look.text_scale)?.[0].toLowerCase() ?? `${look.text_scale}%`} text
+                  {{ sidebar: "Everything in the sidebar", top_bar: "A bar on top", top_bar_right: "A bar on top, the sidebar on the right" }[layoutOf(look)]}, {TEXT_SIZES.find(([, size]) => size === look.text_scale)?.[0].toLowerCase() ?? `${look.text_scale}%`} text
                 </Chosen>
                 <Chosen label="Sync" change={steps.includes("sync") ? () => go("sync") : undefined}>
                   {syncing ? "With your other devices" : "Only on this computer"}

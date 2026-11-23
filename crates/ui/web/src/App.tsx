@@ -15,7 +15,7 @@ import { NewMenu } from "./NewMenu";
 import { ExtensionBar, PinnedExtensions } from "./PinnedExtensions";
 import { DeviceTabRow, FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, movedUnder, type RowContext } from "./Rows";
 import { windowBackground } from "./backgrounds";
-import { IS_MAC, accentCss, applyAppearance, favoriteShows, keyLabel, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, onRecord, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
+import { IS_MAC, accentCss, applyAppearance, dockedSide, favoriteShows, keyLabel, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, onRecord, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
 import { IconPicker, SpaceIcon } from "./Glyphs";
 import { SpaceSwitcher } from "./SpaceSwitcher";
 import { dragging, endDrag, indexAfterTaking, movedIds } from "./dnd";
@@ -120,7 +120,8 @@ export function App() {
   const activeItem = state.active_tab ? findTab(state, state.active_tab) : null;
   const topBar = state.settings.appearance.top_bar && !FLOAT;
   const extensionBar = state.settings.appearance.extension_bar;
-  const spaceVars = { ["--space" as string]: accentCss(space.accent), ["--space-soft" as string]: accentCss(space.accent, 0.14), ["--bg" as string]: state.chrome, ...windowBackground("sidebar", state.chrome, space.id, lookOf(state.settings.appearance, space.id), space.accent) };
+  const side = dockedSide(state.settings.appearance);
+  const spaceVars = { ["--space" as string]: accentCss(space.accent), ["--space-soft" as string]: accentCss(space.accent, 0.14), ["--bg" as string]: state.chrome, ...windowBackground("sidebar", state.chrome, space.id, lookOf(state.settings.appearance, space.id), side, space.accent) };
   // Media in tabs that are not on screen, playing ones first (at most two rows).
   const onScreen = new Set(state.panes.length > 1 ? state.panes : state.active_tab ? [state.active_tab] : []);
   const media: MediaEntry[] = Object.entries(state.runtime)
@@ -187,8 +188,8 @@ export function App() {
 
 
   return (
-    <div className="flex flex-col h-full" style={spaceVars} onWheel={swipe.onWheel} data-float={FLOAT || undefined} key={FLOAT ? shownAt : undefined}>
-      {!FLOAT && <SidebarResizer />}
+    <div className="flex flex-col h-full" style={spaceVars} onWheel={swipe.onWheel} data-float={FLOAT || undefined} data-side={side} key={FLOAT ? shownAt : undefined}>
+      {!FLOAT && <SidebarResizer side={side} />}
       {/* With the top bar on, it holds the band and the address (TopBar.tsx); the floating sidebar keeps its own. */}
       {!topBar && (<>
       {/* Traffic-light band (macOS keeps room for the window's buttons): sidebar toggle left, navigation right. Empty space drags the window. */}
@@ -270,7 +271,7 @@ export function App() {
         </div>
       </div>
 
-      <CaptureToast />
+      <CaptureToast side={side} />
       {noticeBox}
 
       {/* Footer: archive and downloads left (one button), spaces centred, new right */}

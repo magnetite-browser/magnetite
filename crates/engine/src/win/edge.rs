@@ -1,5 +1,5 @@
-//! The hover zone along the frame's left edge that slides the floating
-//! sidebar out while the docked one is hidden (`floatbar.rs`).
+//! The hover zone along the frame's edge on the sidebar's side that slides
+//! the floating sidebar out while the docked one is hidden (`floatbar.rs`).
 //!
 //! macOS puts an invisible window with a tracking area there. Here a timer
 //! on the UI thread looks where the pointer is: nothing sits in front of the
@@ -8,6 +8,7 @@
 use std::cell::Cell;
 use std::ffi::c_void;
 
+use crate::SidebarSide;
 use crate::engine::Engine;
 
 type Hwnd = *mut c_void;
@@ -34,13 +35,14 @@ unsafe extern "system" {
 /// How often the pointer is looked at: quick enough to feel immediate.
 const EVERY_MS: u32 = 80;
 
-/// The zone: the frame's window, and the zone's width and distance from the
-/// frame's top in points at 100 % scaling.
+/// The zone: the frame's window, the zone's width and distance from the
+/// frame's top in points at 100 % scaling, and the frame's edge it is at.
 #[derive(Clone, Copy)]
 struct Zone {
     frame: isize,
     width: i32,
     top: i32,
+    side: SidebarSide,
 }
 
 thread_local! {
@@ -51,15 +53,17 @@ thread_local! {
     static TIMER: Cell<bool> = const { Cell::new(false) };
 }
 
-/// Watch the left edge of the frame `frame`, `width` points wide and from
-/// `top` points below the frame's top edge down (`Some((width, top))`), or
-/// stop watching (`None`).
-pub fn set_edge_zone(frame: cef::sys::cef_window_handle_t, zone: Option<(i32, i32)>) {
+/// Watch the edge of the frame `frame` at `side`, `width` points wide and
+/// from `top` points below the frame's top edge down
+/// (`Some((width, top, side))`), or stop watching (`None`).
+pub fn set_edge_zone(frame: cef::sys::cef_window_handle_t, zone: Option<(i32, i32, SidebarSide)>) {
     let frame = frame.0 as isize;
-    ZONE.set(
-        zone.filter(|_| frame != 0)
-            .map(|(width, top)| Zone { frame, width, top }),
-    );
+    ZONE.set(zone.filter(|_| frame != 0).map(|(width, top, side)| Zone {
+        frame,
+        width,
+        top,
+        side,
+    }));
     if ZONE.get().is_none() {
         INSIDE.set(false);
         return;
@@ -102,29 +106,51 @@ fn pointer_in(zone: Zone) -> bool {
         }
         i32::try_from(GetDpiForWindow(frame)).unwrap_or(96).max(96)
     };
-    in_zone(at, rect, zone.width * dpi / 96, zone.top * dpi / 96)
+    in_zone(
+        at,
+        rect,
+        zone.width * dpi / 96,
+        zone.top * dpi / 96,
+        zone.side,
+    )
 }
 
-/// Whether the point `at` is in the strip `width` pixels wide along the left
-/// edge of `rect` (left, top, right, bottom), from `top` pixels below its
-/// top edge down.
-fn in_zone(at: [i32; 2], rect: [i32; 4], width: i32, top: i32) -> bool {
-    (rect[0]..rect[0] + width).contains(&at[0]) && (rect[1] + top..rect[3]).contains(&at[1])
+/// Whether the point `at` is in the strip `width` pixels wide along the
+/// edge at `side` of `rect` (left, top, right, bottom), from `top` pixels
+/// below its top edge down.
+fn in_zone(at: [i32; 2], rect: [i32; 4], width: i32, top: i32, side: SidebarSide) -> bool {
+    let across = match side {
+        SidebarSide::Left => rect[0]..rect[0] + width,
+        SidebarSide::Right => rect[2] - width..rect[2],
+    };
+    across.contains(&at[0]) && (rect[1] + top..rect[3]).contains(&at[1])
 }
 
 #[cfg(test)]
 mod tests {
     use super::in_zone;
+    use crate::SidebarSide::{Left, Right};
 
     #[test]
     fn the_zone_is_the_left_edge_below_the_top_row() {
         let frame = [100, 50, 900, 650];
-        assert!(in_zone([100, 300], frame, 8, 40));
-        assert!(in_zone([107, 649], frame, 8, 40));
+        assert!(in_zone([100, 300], frame, 8, 40, Left));
+        assert!(in_zone([107, 649], frame, 8, 40, Left));
         // Beside it, above it, below the frame, left of the frame.
-        assert!(!in_zone([108, 300], frame, 8, 40));
-        assert!(!in_zone([100, 89], frame, 8, 40));
-        assert!(!in_zone([100, 650], frame, 8, 40));
-        assert!(!in_zone([99, 300], frame, 8, 40));
+        assert!(!in_zone([108, 300], frame, 8, 40, Left));
+        assert!(!in_zone([100, 89], frame, 8, 40, Left));
+        assert!(!in_zone([100, 650], frame, 8, 40, Left));
+        assert!(!in_zone([99, 300], frame, 8, 40, Left));
+    }
+
+    #[test]
+    fn with_the_sidebar_on_the_right_the_zone_is_the_right_edge() {
+        let frame = [100, 50, 900, 650];
+        assert!(in_zone([892, 300], frame, 8, 40, Right));
+        assert!(in_zone([899, 649], frame, 8, 40, Right));
+        // Beside it, right of the frame, the left edge.
+        assert!(!in_zone([891, 300], frame, 8, 40, Right));
+        assert!(!in_zone([900, 300], frame, 8, 40, Right));
+        assert!(!in_zone([100, 300], frame, 8, 40, Right));
     }
 }

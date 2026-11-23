@@ -2,7 +2,7 @@
 //! swallow the pointer, so where the frame itself must react, a small
 //! transparent window of ours lies above them: the invisible drag strip
 //! along the top, the dimmed backdrop and buttons behind a peek, the
-//! window's left edge that slides out the hidden sidebar, and the dividers
+//! window's edge that slides out the hidden sidebar, and the dividers
 //! between split pages.
 
 use super::{attach_above, borderless_window, fade, plain_box, screen_rect};
@@ -318,10 +318,15 @@ thread_local! {
 }
 
 /// Show the web panel's close button, a round one as beside a peek, just
-/// right of `panel`'s top corner (CEF screen coordinates: top-left origin,
-/// DIP) and above the pages of the window whose content view is
-/// `frame_handle`. Without a panel that window's button goes.
-pub fn set_panel_close(frame_handle: cef::sys::cef_window_handle_t, panel: Option<&cef::Rect>) {
+/// beyond the top corner of `panel` on the pages' side (CEF screen
+/// coordinates: top-left origin, DIP; the panel is at the sidebar's `side`)
+/// and above the pages of the window whose content view is `frame_handle`.
+/// Without a panel that window's button goes.
+pub fn set_panel_close(
+    frame_handle: cef::sys::cef_window_handle_t,
+    panel: Option<&cef::Rect>,
+    side: crate::SidebarSide,
+) {
     use objc2_app_kit::NSView;
     use objc2_foundation::{NSPoint, NSRect, NSSize};
     let Some(mtm) = MainThreadMarker::new() else {
@@ -329,11 +334,15 @@ pub fn set_panel_close(frame_handle: cef::sys::cef_window_handle_t, panel: Optio
     };
     // Beyond the grip at the panel's edge, as far from it as a peek's buttons.
     #[allow(clippy::cast_possible_truncation)] // a button's size
+    let (gap, button) = (PEEK_BUTTON_GAP as i32, PEEK_BUTTON as i32);
     let at = panel.map(|p| cef::Rect {
-        x: p.x + p.width + PEEK_BUTTON_GAP as i32 + 2,
-        y: p.y + PEEK_BUTTON_GAP as i32,
-        width: PEEK_BUTTON as i32,
-        height: PEEK_BUTTON as i32,
+        x: match side {
+            crate::SidebarSide::Left => p.x + p.width + gap + 2,
+            crate::SidebarSide::Right => p.x - gap - 2 - button,
+        },
+        y: p.y + gap,
+        width: button,
+        height: button,
     });
     let frame_window = (!frame_handle.is_null())
         // SAFETY: CEF hands us the frame's live content NSView; main thread.
@@ -376,9 +385,10 @@ pub fn set_panel_close(frame_handle: cef::sys::cef_window_handle_t, panel: Optio
 }
 
 define_class!(
-    /// The window's left edge while the sidebar is hidden: the pointer
-    /// arriving there slides the sidebar out (`Engine::show_float_sidebar`);
-    /// pressing drags the window, as the gap did before.
+    /// The window's edge on the sidebar's side while the sidebar is hidden:
+    /// the pointer arriving there slides the sidebar out
+    /// (`Engine::show_float_sidebar`); pressing drags the window, as the gap
+    /// did before.
     #[unsafe(super(objc2_app_kit::NSView))]
     #[thread_kind = MainThreadOnly]
     struct MagnetiteEdgeView;

@@ -11,6 +11,7 @@
 
 use cef::*;
 
+use crate::SidebarSide;
 use crate::content::{SPLIT_GAP, WEB_PANEL_DOCKED, web_panel_rect};
 use crate::engine::Engine;
 use crate::events::{ContentId, EngineEvent};
@@ -113,8 +114,9 @@ impl Engine {
                 .and_then(|p| inner.contents.get(&p)?.window.clone());
             (inner.win.panel_grip.clone(), panel)
         };
+        let side = self.sidebar_side();
         let place = panel.as_ref().map(|p| {
-            let edge = crate::content::web_panel_grip(&p.bounds());
+            let edge = crate::content::web_panel_grip(&p.bounds(), side);
             Rect {
                 y: edge.y + (edge.height - GRIP_HEIGHT) / 2,
                 height: GRIP_HEIGHT,
@@ -204,14 +206,15 @@ impl Engine {
         #[cfg(not(target_os = "linux"))]
         let grip = crate::content::WEB_PANEL_GRIP;
         // The pointer stays in the middle of the grip.
-        let wanted = x - self.page_area().x - grip / 2;
+        let wanted = self.web_panel_width_at(x, grip);
         self.lock().win.panel_grip_dragged = !done;
         self.resize_web_panel(u32::try_from(wanted.max(0)).ok(), done);
     }
 
     /// The page the button lies over, and where in it. Beside a docked
-    /// panel: by the top left corner of the page alone on screen or of the
-    /// first of a split. Beyond a floating one, which puts it in the same
+    /// panel on the left: by the top left corner of the page alone on
+    /// screen or of the first of a split. Beside one on the right, as
+    /// beyond a floating one. Beyond a floating one, which puts it in the same
     /// place: in the page under that place, which in a split of narrow
     /// panes is not the first. None without a panel.
     fn panel_close_place(&self) -> Option<(ContentId, Insets)> {
@@ -231,18 +234,23 @@ impl Engine {
             left: MARGIN - PAD,
             ..Default::default()
         };
-        if WEB_PANEL_DOCKED {
+        let sidebar = self.sidebar_side();
+        if WEB_PANEL_DOCKED && sidebar == SidebarSide::Left {
             return Some((first, corner));
         }
         // The disc's top left, on the screen.
         let area = self.page_area();
-        let x = area.x + web_panel_rect(&area, width).width + SPLIT_GAP + MARGIN;
+        let panel_width = web_panel_rect(&area, width, sidebar).width;
+        let size = i32::from(SIZE);
+        let x = match sidebar {
+            SidebarSide::Left => area.x + panel_width + SPLIT_GAP + MARGIN,
+            SidebarSide::Right => area.x + area.width - panel_width - SPLIT_GAP - MARGIN - size,
+        };
         let y = area.y + MARGIN;
-        let side = i32::from(SIZE);
         let (host, page) = pages
             .iter()
             .filter_map(|id| Some((*id, self.page_window(*id)?.bounds())))
-            .find(|(_, b)| b.x <= x && x + side <= b.x + b.width && b.y <= y && y < b.y + b.height)
+            .find(|(_, b)| b.x <= x && x + size <= b.x + b.width && b.y <= y && y < b.y + b.height)
             .or_else(|| Some((first, self.page_window(first)?.bounds())))?;
         Some((
             host,

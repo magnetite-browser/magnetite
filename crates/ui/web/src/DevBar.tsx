@@ -11,7 +11,7 @@ import { useDismiss } from "./dismiss";
 import { CaptureSetIcon, Check, ClearDataIcon, ConsoleIcon, EmulateIcon, PickerIcon, RecordIcon, RequestsIcon, Reset, ResponsiveIcon, StopIcon, TimezoneIcon } from "./Icons";
 import { Switch } from "./settings/fields";
 import { keysHint } from "./settings/shortcutKeys";
-import { IS_MAC, accentCss, applyAppearance, findTab, hostOf, lookOf, onRecord, send, subscribe, type DevState, type Emulation, type TabItem, type TopBarPopupKind, type UiState } from "./bridge";
+import { IS_MAC, accentCss, applyAppearance, dockedSide, findTab, hostOf, lookOf, onRecord, send, subscribe, type DevState, type Emulation, type TabItem, type TopBarPopupKind, type UiState } from "./bridge";
 
 /** The time zones offered, west to east; any other is set from the command bar. */
 export const TIMEZONES: [zone: string, place: string][] = [
@@ -293,7 +293,7 @@ export function DevBar() {
     <div
       className="devbar"
       data-buttons={buttons || undefined}
-      style={{ ["--space" as string]: accentCss(space?.accent), ["--bg" as string]: state.chrome, ["--above" as string]: state.settings.appearance.top_bar ? `calc(-${TOP_BAR}px / var(--zoom, 1))` : "0px", ...windowBackground("devbar", state.chrome, state.active_space, look, space?.accent) }}
+      style={{ ["--space" as string]: accentCss(space?.accent), ["--bg" as string]: state.chrome, ["--above" as string]: state.settings.appearance.top_bar ? `calc(-${TOP_BAR}px / var(--zoom, 1))` : "0px", ...windowBackground("devbar", state.chrome, state.active_space, look, dockedSide(state.settings.appearance), space?.accent) }}
     >
       {item && showsDevTools(state, dev) && (
         <div className="dev-row" data-waiting={dev.waiting ? true : undefined}>

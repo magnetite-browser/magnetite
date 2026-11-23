@@ -9,7 +9,7 @@ import { record } from "./recorder";
 import { Back, Close, Forward, Maximize, Minus, Reload, SidebarIcon, SplitIcon } from "./Icons";
 import { PinnedExtensions, SLOT } from "./PinnedExtensions";
 import { windowBackground } from "./backgrounds";
-import { IS_MAC, accentCss, applyAppearance, findTab, hostOf, keyLabel, lookOf, onRecord, send, subscribe, type UiState } from "./bridge";
+import { IS_MAC, accentCss, applyAppearance, dockedSide, findTab, hostOf, keyLabel, lookOf, onRecord, send, subscribe, type UiState } from "./bridge";
 import { keysHint } from "./settings/shortcutKeys";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
@@ -57,7 +57,7 @@ export function TopBar() {
   return (
     <div
       className="topbar titlebar-drag"
-      style={{ ["--space" as string]: accentCss(space?.accent), ["--bg" as string]: state.chrome, ...windowBackground("topbar", state.chrome, state.active_space, lookOf(state.settings.appearance, state.active_space), space?.accent) }}
+      style={{ ["--space" as string]: accentCss(space?.accent), ["--bg" as string]: state.chrome, ...windowBackground("topbar", state.chrome, state.active_space, lookOf(state.settings.appearance, state.active_space), dockedSide(state.settings.appearance), space?.accent) }}
       onDoubleClick={(e) => e.target === e.currentTarget && send({ cmd: "window_maximize" })}
     >
       <div className={`flex shrink-0 items-center gap-0.5 ${IS_MAC ? "pl-[86px]" : "pl-2"}`}>

@@ -222,6 +222,8 @@ pub(crate) struct Inner {
         HashMap<ContentId, std::collections::BTreeSet<(String, String, crate::PermissionKind)>>,
     /// Width of the docked sidebar (Settings → Appearance).
     pub sidebar_width: i32,
+    /// The side of the window the docked sidebar is on (`set_sidebar_side`).
+    pub sidebar_side: crate::SidebarSide,
     /// Installed extensions per profile (`extensions.rs`).
     pub extensions: crate::extensions::ExtensionCache,
     /// The sites whose pages the system's engine shows (`system.rs`).
@@ -331,6 +333,7 @@ impl Engine {
                 loaded_urls: HashMap::new(),
                 permission_requests: HashMap::new(),
                 sidebar_width: config.sidebar_width,
+                sidebar_side: crate::SidebarSide::default(),
                 extensions: crate::extensions::ExtensionCache::default(),
                 system_sites: Vec::new(),
                 next_serial: 0,

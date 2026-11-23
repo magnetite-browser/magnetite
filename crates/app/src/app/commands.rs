@@ -2112,6 +2112,7 @@ impl MagnetiteApp {
                 })?;
                 engine.set_sidebar_width(settings.appearance.sidebar_width);
                 engine.set_top_bar_visible(settings.appearance.top_bar);
+                engine.set_sidebar_side(settings.appearance.docked_side());
                 engine.set_page_frame(settings.appearance.page_frame);
                 engine
                     .set_chrome_toolbar(settings.chrome_toolbar || engine.config().chrome_toolbar);
@@ -2187,12 +2188,14 @@ impl MagnetiteApp {
             }
             UiCommand::ToggleSidebar => self.handle_shortcut(engine, Shortcut::ToggleSidebar),
             UiCommand::ToggleTopBar => {
-                let on = self.with_state(|s| {
+                // A sidebar on the right goes left with the bar, and back.
+                let (on, side) = self.with_state(|s| {
                     let a = &mut s.settings.appearance;
                     a.top_bar = !a.top_bar;
-                    a.top_bar
+                    (a.top_bar, a.docked_side())
                 });
                 engine.set_top_bar_visible(on);
+                engine.set_sidebar_side(side);
                 self.push_state(engine);
             }
             UiCommand::WindowMinimize => engine.minimize_frame(),

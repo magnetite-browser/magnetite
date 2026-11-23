@@ -6,7 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import icon from "./assets/icon.png";
 import { userImageUrl, windowBackground } from "./backgrounds";
 import { Close } from "./Icons";
-import { IS_MAC, applyAppearance, findTab, lookOf, onPageCards, send, subscribe, type PageCards, type UiState } from "./bridge";
+import { IS_MAC, applyAppearance, dockedSide, findTab, lookOf, onPageCards, send, subscribe, type PageCards, type SidebarSide, type UiState } from "./bridge";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
 export function Empty() {
@@ -27,12 +27,13 @@ export function Empty() {
   // The space in front decides: each has its own look.
   const look = lookOf(appearance, state.active_space);
   const space = state.sidebar.spaces.find((s) => s.id === state.active_space);
-  const frame = windowBackground("frame", state.chrome, state.active_space, look, space?.accent);
+  const side = dockedSide(appearance);
+  const frame = windowBackground("frame", state.chrome, state.active_space, look, side, space?.accent);
   // Outside macOS this page draws a web panel's grip and close button while no page is there (and on Windows the gap beside a docked panel).
   const panel = !IS_MAC && state.web_panel ? findTab(state, state.web_panel) : null;
   const zoom = appearance.text_scale / 100;
   const grip = panel && (
-    <PanelResizer key={panel.id} id={panel.id} width={panel.panel_width} zoom={zoom} />
+    <PanelResizer key={panel.id} id={panel.id} width={panel.panel_width} zoom={zoom} side={side} />
   );
   // Pages lie over this one: only the gaps around them show, and their shadows.
   if (state.panes.length > 0 || state.peek) {
@@ -113,9 +114,10 @@ const PANEL = { usual: 420, min: 280, rest: 80 };
  * is laid out in window points; lengths on this page grow by `zoom`, its text
  * size. Beyond the gap, at the panel's top corner, is the round button that
  * closes panel `id`: a page beside the panel lies over it and has the same
- * button in the same place (`panel_close.rs`).
+ * button in the same place (`panel_close.rs`). The panel is at the edge of
+ * the sidebar's `side`.
  */
-function PanelResizer({ id, width, zoom }: { id: string; width?: number; zoom: number }) {
+function PanelResizer({ id, width, zoom, side }: { id: string; width?: number; zoom: number; side: SidebarSide }) {
   const [area, setArea] = useState(window.innerWidth);
   useEffect(() => {
     const measure = () => setArea(window.innerWidth);
@@ -135,8 +137,10 @@ function PanelResizer({ id, width, zoom }: { id: string; width?: number; zoom: n
   const apply = (done: boolean) => send({ cmd: "web_panel_width", width: latest.current, done });
   // A width within the panel's bounds, as the app keeps it.
   const within = (w: number) => Math.max(1, Math.min(Math.max(w, PANEL.min), area - 2 * INSET - PANEL.rest));
-  // The pointer stays in the middle of the gap.
-  const wanted = (x: number) => within(Math.round(x - INSET - GAP / 2));
+  // The pointer stays in the middle of the gap, counted from the panel's edge of the page.
+  const wanted = (x: number) => within(Math.round((side === "left" ? x : area - x) - INSET - GAP / 2));
+  // `points` from the panel's edge of the page, in this page's lengths.
+  const fromEdge = (points: number) => (side === "left" ? { left: points / zoom } : { right: points / zoom });
   const shown = within(dragged ?? width ?? PANEL.usual);
   const stop = () => {
     cancelAnimationFrame(frame.current);
@@ -146,7 +150,7 @@ function PanelResizer({ id, width, zoom }: { id: string; width?: number; zoom: n
     <>
     <button
       className="panel-close"
-      style={{ left: (INSET + shown + GAP + CLOSE.margin) / zoom, top: (INSET + CLOSE.margin) / zoom, width: CLOSE.size / zoom, height: CLOSE.size / zoom }}
+      style={{ ...fromEdge(INSET + shown + GAP + CLOSE.margin), top: (INSET + CLOSE.margin) / zoom, width: CLOSE.size / zoom, height: CLOSE.size / zoom }}
       title="Close the panel"
       aria-label="Close the panel"
       onClick={() => send({ cmd: "toggle_web_panel", id })}
@@ -155,7 +159,7 @@ function PanelResizer({ id, width, zoom }: { id: string; width?: number; zoom: n
     </button>
     <div
       className="panel-resizer"
-      style={{ left: (INSET + shown) / zoom, width: GAP / zoom, top: INSET / zoom, bottom: INSET / zoom }}
+      style={{ ...fromEdge(INSET + shown), width: GAP / zoom, top: INSET / zoom, bottom: INSET / zoom }}
       role="separator"
       aria-orientation="vertical"
       aria-label="Web panel width"

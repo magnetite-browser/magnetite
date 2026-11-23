@@ -43,6 +43,7 @@ impl EngineDelegate for MagnetiteApp {
                 engine.set_system_engine_sites(self.system_engine_sites());
                 engine.set_sidebar_width(width);
                 engine.set_top_bar_visible(self.with_state(|s| s.settings.appearance.top_bar));
+                engine.set_sidebar_side(self.with_state(|s| s.settings.appearance.docked_side()));
                 engine.set_page_frame(self.with_state(|s| s.settings.appearance.page_frame));
                 if toolbar {
                     engine.set_chrome_toolbar(true);

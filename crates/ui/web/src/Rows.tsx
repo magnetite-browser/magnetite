@@ -5,7 +5,7 @@ import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./sm
 import { Glyph, glyphFor } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, movedIds, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
 import { errorCount } from "./DevBar";
-import { findTab, hostOf, IS_MAC, send, splitGroup, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { dockedSide, findTab, hostOf, IS_MAC, send, splitGroup, windowPoint, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 
 export type Section = "favorites" | "pinned" | "today";
@@ -87,7 +87,7 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   const loaded = !!ctx.state.runtime[tab.id]?.loaded;
   if (loaded) items.push({ label: "Reload", onClick: () => send({ cmd: "reload", id: tab.id }) });
   // The system's share menu: only macOS has one here.
-  if (IS_MAC) items.push({ label: "Share…", onClick: () => send({ cmd: "share", id: tab.id, x: at.x, y: at.y }) });
+  if (IS_MAC) items.push({ label: "Share…", onClick: () => send({ cmd: "share", id: tab.id, ...windowPoint(at.x, at.y, dockedSide(ctx.state.settings.appearance)) }) });
   items.push({ label: "Copy link", onClick: () => navigator.clipboard?.writeText(tab.url) });
   items.push(SEPARATOR);
   // The private space has only Today tabs, and nothing of it is kept or moves out.

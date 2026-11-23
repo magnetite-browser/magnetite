@@ -405,6 +405,10 @@ pub struct Appearance {
     /// Navigation, the address and the window buttons in a bar across the
     /// top of the window, not at the top of the sidebar.
     pub top_bar: bool,
+    /// The side of the window the sidebar is docked on. The right counts
+    /// only with the top bar (`docked_side`): without it the window's
+    /// buttons would lie over the pages.
+    pub sidebar_side: magnetite_engine::SidebarSide,
     /// A row of extension icons below the sidebar's address, in place of
     /// the icons in its title band.
     pub extension_bar: bool,
@@ -450,6 +454,7 @@ impl Default for Appearance {
             density: Density::Comfortable,
             sidebar_width: 264,
             top_bar: false,
+            sidebar_side: magnetite_engine::SidebarSide::Left,
             extension_bar: false,
             page_frame: magnetite_engine::PageFrame::Always,
             looks: BTreeMap::new(),
@@ -458,6 +463,17 @@ impl Default for Appearance {
 }
 
 impl Appearance {
+    /// The side the sidebar is docked on now: the one chosen with the top
+    /// bar on, the left without it. Turning the top bar off and on again
+    /// keeps the choice.
+    pub fn docked_side(&self) -> magnetite_engine::SidebarSide {
+        if self.top_bar {
+            self.sidebar_side
+        } else {
+            magnetite_engine::SidebarSide::Left
+        }
+    }
+
     /// Keep values inside what the layout handles.
     pub fn clamped(mut self) -> Self {
         self.text_scale = self.text_scale.clamp(85, 130);
@@ -1279,6 +1295,25 @@ mod tests {
         };
         let saved = serde_json::to_string(&on).unwrap();
         assert_eq!(serde_json::from_str::<Appearance>(&saved).unwrap(), on);
+    }
+
+    /// The sidebar is on the right only with the top bar, which has the
+    /// window's buttons; turning the bar off and on again keeps the choice.
+    #[test]
+    fn the_sidebar_is_on_the_right_only_with_the_top_bar() {
+        use magnetite_engine::SidebarSide;
+        let right: Appearance =
+            serde_json::from_str(r#"{"top_bar":true,"sidebar_side":"right"}"#).unwrap();
+        assert_eq!(right.docked_side(), SidebarSide::Right);
+        let off = Appearance {
+            top_bar: false,
+            ..right.clone()
+        };
+        assert_eq!(off.docked_side(), SidebarSide::Left);
+        assert_eq!(off.sidebar_side, SidebarSide::Right);
+        // Saved before the choice existed: on the left.
+        let older: Appearance = serde_json::from_str(r#"{"top_bar":true}"#).unwrap();
+        assert_eq!(older.docked_side(), SidebarSide::Left);
     }
 
     #[test]

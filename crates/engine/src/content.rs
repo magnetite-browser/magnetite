@@ -5,6 +5,7 @@ use cef::*;
 
 use magnetite_core::split::{Bounds, SplitNode};
 
+use crate::SidebarSide;
 use crate::client::{Kind, MagnetiteClient};
 use crate::engine::Engine;
 #[cfg(target_os = "macos")]
@@ -781,7 +782,7 @@ impl Engine {
             // The pages make room beside it.
             self.dock_web_panel();
         } else {
-            self.place(id, &web_panel_rect(&self.page_area(), width));
+            self.place(id, &self.web_panel_place(width));
         }
         // A shadow sets it off from the page it lies on.
         #[cfg(target_os = "macos")]
@@ -806,7 +807,7 @@ impl Engine {
                             (inner.win.web_panel == Some(id)).then_some(inner.win.web_panel_width)
                         };
                         if let Some(width) = width {
-                            engine.place(id, &web_panel_rect(&engine.page_area(), width));
+                            engine.place(id, &engine.web_panel_place(width));
                         }
                     });
                 }),
@@ -993,7 +994,7 @@ impl Engine {
             inner.contents.get(&panel)?.window.as_ref()?;
             inner.win.web_panel_width
         };
-        Some(web_panel_rect(&self.page_area(), width))
+        Some(self.web_panel_place(width))
     }
 
     #[cfg(target_os = "macos")]
@@ -1001,11 +1002,10 @@ impl Engine {
     /// `Move` (the panel follows), let go or double-clicked (the usual
     /// width again).
     pub(crate) fn web_panel_divider(&self, action: DividerAction) {
-        let area = self.page_area();
         match action {
             // The pointer stays in the middle of the grip.
             DividerAction::Move(pos) => {
-                let wanted = pos - area.x - WEB_PANEL_GRIP / 2;
+                let wanted = self.web_panel_width_at(pos, WEB_PANEL_GRIP);
                 self.resize_web_panel(u32::try_from(wanted.max(0)).ok(), false);
             }
             DividerAction::Equalize => self.resize_web_panel(None, true),
@@ -1016,6 +1016,23 @@ impl Engine {
         }
     }
 
+    /// Where the current window's web panel lies, `width` points wide (none:
+    /// the usual width): at the page area's edge on the sidebar's side.
+    pub(crate) fn web_panel_place(&self, width: Option<u32>) -> Rect {
+        web_panel_rect(&self.page_area(), width, self.sidebar_side())
+    }
+
+    /// The width a web panel has with the middle of its grip, `grip`
+    /// points wide, at `x` on the screen: from the page area's edge on the
+    /// sidebar's side to the grip.
+    pub(crate) fn web_panel_width_at(&self, x: i32, grip: i32) -> i32 {
+        let area = self.page_area();
+        match self.sidebar_side() {
+            SidebarSide::Left => x - area.x - grip / 2,
+            SidebarSide::Right => area.x + area.width - x - grip / 2,
+        }
+    }
+
     /// Make the open web panel `width` points wide, as far as its bounds
     /// allow (none: the usual width). `done` ends a drag: the width is
     /// reported, to be kept.
@@ -1023,15 +1040,16 @@ impl Engine {
         let Some(id) = self.lock().win.web_panel else {
             return;
         };
-        let area = self.page_area();
+        let (area, side) = (self.page_area(), self.sidebar_side());
         // What it comes to within the bounds, so a drag past them does not
         // leave a width to drag back from.
-        let width = width.and_then(|w| u32::try_from(web_panel_rect(&area, Some(w)).width).ok());
+        let width =
+            width.and_then(|w| u32::try_from(web_panel_rect(&area, Some(w), side).width).ok());
         self.lock().win.web_panel_width = width;
         if WEB_PANEL_DOCKED {
             self.dock_web_panel();
         } else {
-            self.place(id, &web_panel_rect(&area, width));
+            self.place(id, &web_panel_rect(&area, width, side));
             self.show_dividers();
             // The gap and button of the page behind the tabs moved with it.
             #[cfg(target_os = "linux")]
@@ -1722,11 +1740,14 @@ const WEB_PANEL_REST: i32 = 80;
 /// Width of the grip beside a web panel's edge.
 pub(crate) const WEB_PANEL_GRIP: i32 = 8;
 /// Where the grip to resize web panel `panel` lies: a strip beside its far
-/// edge, over the page.
+/// edge from the sidebar's `side`, over the page.
 #[cfg(not(target_os = "windows"))]
-pub(crate) fn web_panel_grip(panel: &Rect) -> Rect {
+pub(crate) fn web_panel_grip(panel: &Rect, side: SidebarSide) -> Rect {
     Rect {
-        x: panel.x + panel.width,
+        x: match side {
+            SidebarSide::Left => panel.x + panel.width,
+            SidebarSide::Right => panel.x - WEB_PANEL_GRIP,
+        },
         width: WEB_PANEL_GRIP,
         ..panel.clone()
     }
@@ -1738,14 +1759,19 @@ pub(crate) fn web_panel_grip(panel: &Rect) -> Rect {
 pub(crate) const WEB_PANEL_DOCKED: bool = cfg!(target_os = "windows");
 
 /// A web panel's place: the full height of the content area, at the edge
-/// the sidebar is on, `width` points wide (none: the usual width) as far
-/// as the area has the room.
-pub(crate) fn web_panel_rect(area: &Rect, width: Option<u32>) -> Rect {
+/// the sidebar is on (`side`), `width` points wide (none: the usual width)
+/// as far as the area has the room.
+pub(crate) fn web_panel_rect(area: &Rect, width: Option<u32>, side: SidebarSide) -> Rect {
     let width = width.map_or(WEB_PANEL_WIDTH, |w| i32::try_from(w).unwrap_or(i32::MAX));
+    let width = (width.max(WEB_PANEL_MIN))
+        .min(area.width - WEB_PANEL_REST)
+        .max(1);
     Rect {
-        width: (width.max(WEB_PANEL_MIN))
-            .min(area.width - WEB_PANEL_REST)
-            .max(1),
+        x: match side {
+            SidebarSide::Left => area.x,
+            SidebarSide::Right => area.x + area.width - width,
+        },
+        width,
         ..area.clone()
     }
 }
@@ -1753,10 +1779,13 @@ pub(crate) fn web_panel_rect(area: &Rect, width: Option<u32>) -> Rect {
 /// What a docked web panel, `width` points wide (none: the usual width),
 /// leaves of `area` for the pages: the rest beyond the panel and a gap,
 /// where the grip to resize it is (`Empty.tsx`).
-pub(crate) fn beside_web_panel(area: &Rect, width: Option<u32>) -> Rect {
-    let taken = web_panel_rect(area, width).width + SPLIT_GAP;
+pub(crate) fn beside_web_panel(area: &Rect, width: Option<u32>, side: SidebarSide) -> Rect {
+    let taken = web_panel_rect(area, width, side).width + SPLIT_GAP;
     Rect {
-        x: area.x + taken,
+        x: match side {
+            SidebarSide::Left => area.x + taken,
+            SidebarSide::Right => area.x,
+        },
         width: (area.width - taken).max(1),
         ..area.clone()
     }
@@ -1898,6 +1927,7 @@ wrap_panel_delegate! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::SidebarSide::{Left, Right};
 
     #[test]
     fn a_peek_fits_a_narrow_area() {
@@ -1923,7 +1953,7 @@ mod tests {
             width,
             height: 800,
         };
-        let width = |area_width, asked| web_panel_rect(&area(area_width), asked).width;
+        let width = |area_width, asked| web_panel_rect(&area(area_width), asked, Left).width;
         assert_eq!(width(1000, None), WEB_PANEL_WIDTH);
         assert_eq!(width(1000, Some(600)), 600);
         // Not narrower than a page can be used at, …
@@ -1931,7 +1961,10 @@ mod tests {
         // … and some of the page behind stays in sight.
         assert_eq!(width(1000, Some(5000)), 1000 - WEB_PANEL_REST);
         assert_eq!(width(300, None), 300 - WEB_PANEL_REST);
-        assert_eq!(web_panel_rect(&area(1000), None).x, 200);
+        assert_eq!(web_panel_rect(&area(1000), None, Left).x, 200);
+        // With the sidebar on the right, at the area's right edge.
+        let right = web_panel_rect(&area(1000), Some(500), Right);
+        assert_eq!((right.x, right.width), (200 + 1000 - 500, 500));
     }
 
     #[test]
@@ -1942,11 +1975,14 @@ mod tests {
             width: 1000,
             height: 800,
         };
-        let rest = beside_web_panel(&area, Some(500));
+        let rest = beside_web_panel(&area, Some(500), Left);
         assert_eq!(
             (rest.x, rest.width),
             (200 + 500 + SPLIT_GAP, 500 - SPLIT_GAP)
         );
         assert_eq!((rest.y, rest.height), (10, 800));
+        // The panel on the right: the pages keep the left part.
+        let rest = beside_web_panel(&area, Some(500), Right);
+        assert_eq!((rest.x, rest.width), (200, 500 - SPLIT_GAP));
     }
 }

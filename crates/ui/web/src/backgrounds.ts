@@ -3,7 +3,7 @@
 // images (stored by the app, served at /user-images/<slot>-<space>). A
 // space's own icon is made here too; it is kept in the space itself.
 import type { CSSProperties } from "react";
-import { DEFAULT_ACCENT, accentCss, send, type Color, type Id, type SpaceLook } from "./bridge";
+import { DEFAULT_ACCENT, accentCss, send, type Color, type Id, type SidebarSide, type SpaceLook } from "./bridge";
 
 export type ImageSlot = "empty" | "sidebar";
 
@@ -42,48 +42,47 @@ export type WindowPart = "sidebar" | "frame" | "topbar" | "devbar";
 /** How far above the developer bar the window begins: the top bar's height while it is on (`--above`, set by the bar). */
 const ABOVE = "var(--above, 0px)";
 
-/**
- * The corner of the window each part reaches, whatever the sidebar's width
- * and with or without the top bar: a picture as large as the window, held at
- * that corner, shows the part's own slice of it.
- */
-const ANCHOR: Record<WindowPart, string> = { sidebar: "left bottom", frame: "right bottom", topbar: "left top", devbar: `right ${ABOVE}` };
-
 /** The window's width and height on this page (`--win-w` and `--win-h` are the app's, in window points; `--zoom` is the text size). */
 const WINDOW_W = "calc(var(--win-w) / var(--zoom, 1))";
 const WINDOW_H = "calc(var(--win-h) / var(--zoom, 1))";
 const WINDOW_SIZE = `${WINDOW_W} ${WINDOW_H}`;
 
 /**
- * Where the grain starts in each part so that its tiles count from the
- * window's top left corner everywhere. A percentage places a tile against
- * the part's far edge, and a whole tile more or less changes nothing, so
- * "100% minus the window's size" is the window's near edge.
+ * Where `part`'s picture is held with the sidebar at `side`. `anchor`: the
+ * corner of the window the part reaches, whatever the sidebar's width and
+ * with or without the top bar, so a picture as large as the window held
+ * there shows the part's own slice of it. `grain`: where the grain starts so
+ * that its tiles count from the window's top left corner everywhere; a
+ * percentage places a tile against the part's far edge, and a whole tile
+ * more or less changes nothing, so "100% minus the window's size" is the
+ * window's near edge. The frame and the developer bar are on the far side
+ * from the sidebar; the top bar spans the window.
  */
-const GRAIN_AT: Record<WindowPart, string> = {
-  sidebar: `0 calc(100% - ${WINDOW_H})`,
-  frame: `calc(100% - ${WINDOW_W}) calc(100% - ${WINDOW_H})`,
-  topbar: "0 0",
-  devbar: `calc(100% - ${WINDOW_W}) ${ABOVE}`,
-};
+function placement(part: WindowPart, side: SidebarSide): { anchor: string; grain: string } {
+  const right = part !== "topbar" && (part === "sidebar") === (side === "right");
+  const [x, grainX] = right ? ["right", `calc(100% - ${WINDOW_W})`] : ["left", "0"];
+  const [y, grainY] = part === "topbar" ? ["top", "0"] : part === "devbar" ? [ABOVE, ABOVE] : ["bottom", `calc(100% - ${WINDOW_H})`];
+  return { anchor: `${x} ${y}`, grain: `${grainX} ${grainY}` };
+}
 
 /**
- * The background of `part` of the window: its colour `chrome` and, over it,
- * the effect of the space's `look`. An effect is one picture across the
- * whole window, in the space colour `accent` and under the grain; each part
- * shows its slice, so no edge shows between them. An own image is the
- * sidebar's alone and lies under a veil of `chrome`, so the rows stay
- * readable on any picture.
+ * The background of `part` of the window, with the sidebar docked at
+ * `side`: its colour `chrome` and, over it, the effect of the space's
+ * `look`. An effect is one picture across the whole window, in the space
+ * colour `accent` and under the grain; each part shows its slice, so no
+ * edge shows between them. An own image is the sidebar's alone and lies
+ * under a veil of `chrome`, so the rows stay readable on any picture.
  */
-export function windowBackground(part: WindowPart, chrome: string, space: Id, look: SpaceLook, accent?: Color): CSSProperties {
+export function windowBackground(part: WindowPart, chrome: string, space: Id, look: SpaceLook, side: SidebarSide, accent?: Color): CSSProperties {
   const flat: CSSProperties = { backgroundColor: chrome };
+  const at = placement(part, side);
   // The grain repeats; the effect's layers under it span the window once.
   const effect = (...images: string[]): CSSProperties => ({
     ...flat,
     backgroundImage: [GRAIN, ...images].join(", "),
     backgroundRepeat: ["repeat", ...images.map(() => "no-repeat")].join(", "),
     backgroundSize: ["auto", ...images.map(() => WINDOW_SIZE)].join(", "),
-    backgroundPosition: [GRAIN_AT[part], ...images.map(() => ANCHOR[part])].join(", "),
+    backgroundPosition: [at.grain, ...images.map(() => at.anchor)].join(", "),
   });
   switch (look.sidebar_effect) {
     case "grain":

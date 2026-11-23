@@ -69,9 +69,10 @@ impl Engine {
             // button to close it.
             let mut wanted = wanted;
             let panel = self.web_panel_bounds();
+            let side = self.sidebar_side();
             wanted.extend((panel.as_ref()).map(|p| {
                 (
-                    crate::content::web_panel_grip(p),
+                    crate::content::web_panel_grip(p, side),
                     crate::mac::DividerKey::WebPanel,
                 )
             }));
@@ -79,7 +80,7 @@ impl Engine {
                 crate::mac::set_dividers(frame.window_handle(), &wanted);
                 // Not over a peek and the dimmed pages behind it.
                 let button = panel.as_ref().filter(|_| !peek);
-                crate::mac::set_panel_close(frame.window_handle(), button);
+                crate::mac::set_panel_close(frame.window_handle(), button, side);
             }
         }
         #[cfg(target_os = "windows")]
