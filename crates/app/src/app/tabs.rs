@@ -877,14 +877,29 @@ impl MagnetiteApp {
     /// pinned tab is unloaded and stays. A kept split (`kept_split`) closes
     /// as the one item it is: all its pages are unloaded, and it stays.
     pub(super) fn close_tab(&self, engine: &Engine, tab_id: &str) {
+        self.end_tab(engine, tab_id, false);
+    }
+
+    /// Remove pinned tab `tab_id` from its space: it goes to the archive as a
+    /// closed Today tab does, and comes back from there as one. The close
+    /// button of a pinned row does this once its page is unloaded.
+    pub(super) fn remove_pinned(&self, engine: &Engine, tab_id: &str) {
+        self.end_tab(engine, tab_id, true);
+    }
+
+    /// `close_tab`, or with `remove` `remove_pinned`; the tab after it comes
+    /// to the front if it was there.
+    fn end_tab(&self, engine: &Engine, tab_id: &str, remove: bool) {
+        // A removed tab leaves its kept split; the split's other pages stay.
+        let kept_split = |s: &AppState| if remove { None } else { s.kept_split(tab_id) };
         // Closed by hand: it does not load by itself after all (`load_pinned`).
-        let closed = self.with_state(|s| s.kept_split(tab_id));
+        let closed = self.with_state(|s| kept_split(s));
         let closed = closed.unwrap_or_else(|| vec![tab_id.to_owned()]);
         lock(&self.start_loads)
             .waiting
             .retain(|id| !closed.contains(id));
         let (contents, next, was_active, on_screen) = self.with_state(|s| {
-            let kept = s.kept_split(tab_id);
+            let kept = kept_split(s);
             let closing = kept.clone().unwrap_or_else(|| vec![tab_id.to_owned()]);
             let was_active = s
                 .active_tab_id()
@@ -908,7 +923,7 @@ impl MagnetiteApp {
             let is_pinned = s.find_tab(tab_id).is_some_and(|(space, _)| {
                 space.is_none_or(|sp| !sp.today.iter().any(|t| t.id == tab_id))
             });
-            let contents: Vec<ContentId> = if is_pinned {
+            let contents: Vec<ContentId> = if is_pinned && !remove {
                 // Pinned items and favorites stay; closing unloads them and
                 // sends them back to their pinned page, which they open at
                 // next time. One that shares a split with a Today tab leaves

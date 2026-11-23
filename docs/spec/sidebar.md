@@ -83,6 +83,12 @@ the row turns the icon into a back arrow that takes the page back.
 - Closing a favorite or a pinned tab unloads it and takes it back to its
   pinned page, which it opens at next time. Its title stays the last page's
   until then.
+- A pinned tab without a loaded page has nothing to close: on hover its row
+  shows a minus in place of the close button, which removes the tab from the
+  space. It goes to the archive and comes back from there as a Today tab
+  (`archive.md`). A row whose page was just closed with its button keeps
+  the close button until the pointer leaves, so a double click removes
+  nothing.
 - **Keep active** in the menu of a Today tab spares that tab: its page is
   never unloaded for being off screen, and it is not auto-archived. A check mark shows it in the menu and a small flash on the
   row; the same entry lets the tab sleep again. Closing the tab ends it.

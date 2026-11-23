@@ -14,6 +14,8 @@ and is not synced.
 - Auto-archive (below).
 - Deleting a space: its pinned and Today tabs. A pinned one comes back as a
   Today tab.
+- Removing a pinned tab with the minus on its row (`sidebar.md`). It comes
+  back as a Today tab.
 
 Not archived:
 

@@ -551,6 +551,7 @@ export type Command =
   | { cmd: "prev_space" }
   | { cmd: "pin"; id: Id }
   | { cmd: "unpin"; id: Id }
+  | { cmd: "remove_pinned"; id: Id }
   | { cmd: "reset_tab"; id: Id }
   | { cmd: "rename_tab"; id: Id; title: string }
   | { cmd: "set_keep_active"; id: Id; keep: boolean }

@@ -206,6 +206,10 @@ pub(super) enum UiCommand {
     Unpin {
         id: String,
     },
+    /// A pinned tab leaves its space for the archive (`remove_pinned`).
+    RemovePinned {
+        id: String,
+    },
     ResetTab {
         id: String,
     },
@@ -1184,6 +1188,7 @@ impl MagnetiteApp {
             UiCommand::PrevSpace => self.handle_shortcut(engine, Shortcut::PrevSpace),
             UiCommand::Pin { id } => self.set_pinned(engine, &id, true),
             UiCommand::Unpin { id } => self.set_pinned(engine, &id, false),
+            UiCommand::RemovePinned { id } => self.remove_pinned(engine, &id),
             UiCommand::ResetTab { id } => {
                 let (home, content) = self.with_state(|s| {
                     let home = s.find_tab(&id).and_then(|(_, t)| t.home_url.clone());

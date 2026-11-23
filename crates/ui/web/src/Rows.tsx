@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Favicon } from "./Favicon";
-import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, PhoneIcon, ScreenShareIcon, SmartFolderIcon, SnoozeIcon, Speaker, SpeakerOff, WakeIcon, WarningIcon } from "./Icons";
+import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, Minus, PhoneIcon, ScreenShareIcon, SmartFolderIcon, SnoozeIcon, Speaker, SpeakerOff, WakeIcon, WarningIcon } from "./Icons";
 import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./smart";
 import { Glyph, glyphFor } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, movedIds, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
@@ -405,6 +405,9 @@ const TabRowInner = memo(
     const [over, setOver] = useState<"before" | "after" | Side | null>(null);
     // The user picks a time of their own to snooze until, in the title's place.
     const [pickingTime, setPickingTime] = useState(false);
+    // Closed with the row's button: it stays "close" until the pointer has
+    // left, so a double click neither removes nor reopens the tab.
+    const [justClosed, setJustClosed] = useState(false);
     const hover = useRef<number | undefined>(undefined);
     // A row that goes away while the pointer rests on its button opens no menu.
     useEffect(() => () => window.clearTimeout(hover.current), []);
@@ -414,6 +417,8 @@ const TabRowInner = memo(
       ctx.openMenu(r.left, r.bottom + 4, snoozeMenu(tab, () => setPickingTime(true)));
     };
     const awayFromHome = section !== "today" && !!tab.home_url && tab.home_url !== tab.url;
+    // A pinned tab without a page has nothing to close: its button removes it.
+    const removable = section === "pinned" && !rt?.loaded && !justClosed;
     const joining = over === "left" || over === "right" ? findTab(ctx.state, dragging()?.id) : null;
     const preview = joining && [<SplitCell key={tab.id} tab={tab} rt={rt} />, <SplitCell key="ghost" tab={joining} rt={ctx.state.runtime[joining.id]} ghost />];
 
@@ -467,6 +472,7 @@ const TabRowInner = memo(
           if (!(e.target instanceof Element && e.target.closest("button"))) ctx.setRenaming(tab.id);
         }}
         onAuxClick={(e) => e.button === 1 && send({ cmd: "close_tab", id: tab.id })}
+        onMouseLeave={() => setJustClosed(false)}
         onContextMenu={(e) => {
           e.preventDefault();
           ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, tab, section, { x: e.clientX, y: e.clientY }));
@@ -555,11 +561,21 @@ const TabRowInner = memo(
                 <SnoozeIcon width={14} height={14} />
               </button>
             )
+          ) : removable ? (
+            <button
+              className="close"
+              title="Remove from pinned tabs"
+              aria-label="Remove from pinned tabs"
+              onClick={(e) => { e.stopPropagation(); send({ cmd: "remove_pinned", id: tab.id }); }}
+            >
+              <Minus width={14} height={14} />
+            </button>
           ) : (
             <button
               className="close"
               onClick={(e) => {
                 e.stopPropagation();
+                if (section === "pinned") setJustClosed(true);
                 send({ cmd: "close_tab", id: tab.id });
               }}
               title={section === "today" ? "Archive" : "Close"}
