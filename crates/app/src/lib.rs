@@ -146,7 +146,11 @@ pub fn run() -> i32 {
         use_mock_keychain: keychain_mode(&data_dir, cli.mock_keychain),
         // Filled in below, once the settings are read.
         accept_languages: String::new(),
-        load_extensions: cli.load_extension,
+        keep_unpacked_extensions: false,
+        load_extensions: extension_dirs(
+            &cli.load_extension,
+            &std::env::current_dir().unwrap_or_default(),
+        ),
         chrome_toolbar: cli.chrome_toolbar,
         helper: helper_path(),
     };
@@ -171,6 +175,7 @@ pub fn run() -> i32 {
     app::install_global(&delegate);
     let config = EngineConfig {
         accept_languages: delegate.accept_languages(),
+        keep_unpacked_extensions: delegate.keep_unpacked_extensions(),
         ..config
     };
     magnetite_engine::run(config, delegate)
@@ -228,6 +233,30 @@ fn keychain_mode(data_dir: &std::path::Path, asked: bool) -> bool {
         std::fs::write(&marker, "").ok();
     }
     asked || marker.exists()
+}
+
+/// The folders `--load-extension` names, read as Chromium reads them: one
+/// value may hold several with commas between, a leading `~` is the home
+/// folder (not on Windows), and a relative one counts from `cwd`. The same
+/// list goes to Chromium and tells which command-line extensions this run
+/// loads (`extensions::installed`).
+fn extension_dirs(args: &[PathBuf], cwd: &std::path::Path) -> Vec<PathBuf> {
+    let home = std::env::var_os("HOME").map(PathBuf::from);
+    let resolve = |dir: &str| match (dir.strip_prefix('~'), &home) {
+        (Some(rest), Some(home)) if cfg!(unix) && (rest.is_empty() || rest.starts_with('/')) => {
+            home.join(rest.trim_start_matches('/'))
+        }
+        _ => PathBuf::from(dir),
+    };
+    args.iter()
+        .flat_map(|arg| {
+            let arg = arg.to_string_lossy();
+            arg.split(',')
+                .filter(|d| !d.is_empty())
+                .map(|d| cwd.join(resolve(d)))
+                .collect::<Vec<_>>()
+        })
+        .collect()
 }
 
 fn default_data_dir() -> PathBuf {
@@ -300,7 +329,29 @@ fn packaged_scriptlets() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_helper, parse_cli, split_at_marker as split_link};
+    use super::{extension_dirs, is_helper, parse_cli, split_at_marker as split_link};
+    use std::path::PathBuf;
+
+    #[test]
+    fn extension_folders_are_read_as_chromium_reads_them() {
+        let cwd = PathBuf::from("/work");
+        let args = [PathBuf::from("/a,rel/b"), PathBuf::from("/c")];
+        assert_eq!(
+            extension_dirs(&args, &cwd),
+            [
+                PathBuf::from("/a"),
+                PathBuf::from("/work/rel/b"),
+                PathBuf::from("/c")
+            ]
+        );
+        #[cfg(unix)]
+        if let Some(home) = std::env::var_os("HOME").map(PathBuf::from) {
+            assert_eq!(
+                extension_dirs(&[PathBuf::from("~/ext")], &cwd),
+                [home.join("ext")]
+            );
+        }
+    }
 
     #[test]
     fn a_link_never_makes_the_process_a_helper() {

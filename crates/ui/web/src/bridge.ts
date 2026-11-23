@@ -351,6 +351,8 @@ export interface Settings {
   /** The system-wide quick search key (⌥⌘N) is on; this device's own choice. */
   quick_search: boolean;
   chrome_toolbar: boolean;
+  /** Unpacked extensions stay on while Developer mode is off; this device's own, applies at the next start. */
+  keep_unpacked_extensions: boolean;
   appearance: Appearance;
   auto_pip: boolean;
   several_windows: boolean;

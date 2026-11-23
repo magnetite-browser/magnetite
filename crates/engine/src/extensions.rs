@@ -206,10 +206,21 @@ fn extension(
     }
     let manifest: Value =
         serde_json::from_slice(&read_small(&inside(&dir, "manifest.json")?, MAX_FILE)?).ok()?;
-    let action = manifest
-        .get("action")
-        .or_else(|| manifest.get("browser_action"))
-        .or_else(|| manifest.get("page_action"))?;
+    // Manifest V2's two forms count only below Manifest V3, which ignores
+    // them.
+    let legacy = manifest
+        .get("manifest_version")
+        .and_then(Value::as_u64)
+        .is_none_or(|v| v < 3);
+    let action = manifest.get("action").or_else(|| {
+        legacy
+            .then(|| {
+                manifest
+                    .get("browser_action")
+                    .or_else(|| manifest.get("page_action"))
+            })
+            .flatten()
+    })?;
     let name = localised(
         &dir,
         &manifest,
@@ -603,7 +614,8 @@ mod tests {
         );
         write(
             &tmp.join(format!("Extensions/{no_action}/1.0/manifest.json")),
-            r#"{"name":"Background only"}"#,
+            // Manifest V3 ignores a leftover Manifest V2 action.
+            r#"{"name":"Background only","manifest_version":3,"browser_action":{}}"#,
         );
         write(
             &tmp.join(format!("Extensions/{page_action}/1.0/manifest.json")),

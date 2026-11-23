@@ -233,6 +233,12 @@ impl MagnetiteApp {
         self.with_state(|s| s.settings.languages.accept_languages())
     }
 
+    /// Whether unpacked extensions stay on while Developer mode is off, as
+    /// the engine takes it at its start.
+    pub fn keep_unpacked_extensions(&self) -> bool {
+        self.with_state(|s| s.settings.keep_unpacked_extensions)
+    }
+
     pub fn new(
         data_dir: PathBuf,
         scriptlets: Option<PathBuf>,

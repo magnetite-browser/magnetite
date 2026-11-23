@@ -346,6 +346,9 @@ export function SettingsPage() {
           <Group title="Inside pages">
           <Toggle label="Show the Chrome toolbar inside pages" hint="Chromium's own toolbar row above every page, with its extension buttons. Applies to tabs loaded from now on." checked={settings.chrome_toolbar} onChange={(v) => update({ chrome_toolbar: v })} />
           </Group>
+          <Group title="Unpacked extensions">
+          <Toggle label="Keep unpacked extensions on when Developer mode is off" hint="Manifest V2 extensions can only be loaded unpacked, and Chromium switches unpacked extensions off while Developer mode is off. With this on, an extension another program put into your profile stays on too. Applies after Magnetite restarts." checked={settings.keep_unpacked_extensions} onChange={(v) => update({ keep_unpacked_extensions: v })} />
+          </Group>
         </>
       )}
       {sectionId === "sync" && <SyncSection info={info} reload={reload} job={syncJob} setJob={setSyncJob} />}

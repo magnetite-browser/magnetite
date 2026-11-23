@@ -197,6 +197,9 @@ wrap_app! {
                     .join(",");
                 cmd.append_switch_with_value(Some(&CefString::from("load-extension")), Some(&CefString::from(list.as_str())));
             }
+            if config.keep_unpacked_extensions {
+                cmd.append_switch(Some(&CefString::from("magnetite-keep-unpacked-extensions")));
+            }
             #[cfg(target_os = "macos")]
             enable_feature(cmd, PIP_WITHOUT_ADDRESS);
             #[cfg(target_os = "linux")]

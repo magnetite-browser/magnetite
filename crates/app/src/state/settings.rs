@@ -73,6 +73,13 @@ pub struct Settings {
     pub quick_search: bool,
     /// Show Chrome's toolbar row in pages (extension buttons).
     pub chrome_toolbar: bool,
+    /// Unpacked extensions stay on while Chromium's Developer mode is off
+    /// (Manifest V2 ones can only be loaded unpacked). A risk the user
+    /// accepts: it keeps on an unpacked extension another program put into
+    /// the profile too. Takes effect at the next start
+    /// (`EngineConfig::keep_unpacked_extensions`). This device's own choice,
+    /// never synced.
+    pub keep_unpacked_extensions: bool,
     /// How the sidebar and Magnetite's own pages look.
     pub appearance: Appearance,
     /// Pop a playing video out (picture-in-picture) when leaving its tab.
@@ -890,6 +897,7 @@ impl Default for Settings {
             shortcut_sites: Vec::new(),
             quick_search: true,
             chrome_toolbar: false,
+            keep_unpacked_extensions: false,
             appearance: Appearance::default(),
             auto_pip: true,
             several_windows: false,
