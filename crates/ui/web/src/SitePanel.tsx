@@ -8,7 +8,7 @@ import { Favicon } from "./Favicon";
 import { BracesIcon, CaptureIcon, CodeIcon, Minus, Plus, ShareIcon, Speaker, SpeakerOff } from "./Icons";
 import { Switch } from "./settings/fields";
 import { keysHint, keysLabel } from "./settings/shortcutKeys";
-import { findTabInSpace, hostOf, IS_MAC, onSiteDataCleared, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type Reply, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { findTabInSpace, hostOf, IS_MAC, onSiteDataCleared, screenPoint, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type Reply, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
 const PERMISSION_LABEL: Record<PermissionKind, string> = {
   camera: "Camera",
@@ -290,7 +290,7 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
           )}
           {/* The system's share menu: only macOS has one here. */}
           {IS_MAC && (
-            <button title="Share" onClick={(e) => { send({ cmd: "share", id: item.id, x: e.screenX, y: e.screenY }); onClose(); }}>
+            <button title="Share" onClick={(e) => { send({ cmd: "share", id: item.id, ...screenPoint(e) }); onClose(); }}>
               <ShareIcon width={16} height={16} />
               <span>Share</span>
             </button>

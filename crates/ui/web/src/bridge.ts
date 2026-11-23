@@ -1108,6 +1108,27 @@ const records = signal();
 const pageCards = cached<PageCards>();
 
 /**
+ * Where this page's top left corner lies on the screen, as the last pointer
+ * event over it showed. `window.screenX` and `screenY` give the corner of the
+ * whole window, where a page docked inside the frame (the sidebar on the
+ * right or below the top bar) does not begin.
+ */
+let pageOrigin: { x: number; y: number } | null = null;
+addEventListener("pointermove", (e) => (pageOrigin = { x: e.screenX - e.clientX, y: e.screenY - e.clientY }), { capture: true, passive: true });
+
+/**
+ * The point on the screen where what click `e` opens belongs (the share
+ * menu): the pointer's, or for a click made with the keyboard, which has no
+ * pointer (`detail` 0), the middle of the clicked element's bottom edge.
+ */
+export function screenPoint(e: { detail: number; screenX: number; screenY: number; currentTarget: Element }) {
+  if (e.detail > 0) return { x: e.screenX, y: e.screenY };
+  const r = e.currentTarget.getBoundingClientRect();
+  const origin = pageOrigin ?? { x: window.screenX, y: window.screenY };
+  return { x: origin.x + r.left + r.width / 2, y: origin.y + r.bottom };
+}
+
+/**
  * Keep the window's size where the styles read it (`--win-w`, `--win-h`):
  * a background across the whole window is cut to this page with it
  * (`windowBackground`).

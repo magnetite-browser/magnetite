@@ -10,7 +10,8 @@ use crate::SidebarSide;
 use crate::client::MagnetiteClient;
 use crate::engine::Engine;
 
-/// Gap between the panel and the window edges.
+/// Gap between the panel and the window edges while the frame around the
+/// pages shows; without it the panel reaches them, as the pages do.
 const MARGIN: i32 = 6;
 /// Width of the hover zone along the window's edge: the gap beside the
 /// pages while the frame around them shows.
@@ -142,20 +143,24 @@ impl Engine {
     }
 
     /// Along the edge of the sidebar's side, the window's height (below the
-    /// top bar while it is on), the sidebar's width.
+    /// top bar while it is on), the sidebar's width. Without the frame it
+    /// reaches the window's edge, so the thin hover zone there lies under
+    /// it and the pointer leaving the zone enters the panel, which hides
+    /// when the pointer leaves it.
     fn float_bounds(&self) -> Option<Rect> {
         let frame = self.frame_window()?;
         let b = frame.bounds();
-        let top = self.top_bar_offset() + MARGIN;
+        let margin = if self.content_inset() > 0 { MARGIN } else { 0 };
+        let top = self.top_bar_offset() + margin;
         let width = self.sidebar_width();
         Some(Rect {
             x: match self.sidebar_side() {
-                SidebarSide::Left => b.x + MARGIN,
-                SidebarSide::Right => b.x + b.width - MARGIN - width,
+                SidebarSide::Left => b.x + margin,
+                SidebarSide::Right => b.x + b.width - margin - width,
             },
             y: b.y + top,
             width,
-            height: (b.height - top - MARGIN).max(100),
+            height: (b.height - top - margin).max(100),
         })
     }
 

@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { Close } from "./Icons";
 import { REVEAL } from "./DownloadsView";
-import { IS_MAC, onCapture, send, type CaptureEvent } from "./bridge";
+import { IS_MAC, onCapture, screenPoint, send, type CaptureEvent } from "./bridge";
 
 export function CaptureToast() {
   const [event, setEvent] = useState<CaptureEvent | null>(null);
@@ -65,7 +65,7 @@ export function CaptureToast() {
       <div className="flex gap-1.5">
         <button className="btn sm flex-1" onClick={copy}>Copy</button>
         <button className="btn sm flex-1" onClick={save}>Save…</button>
-        {IS_MAC && <button className="btn sm flex-1" onClick={(e) => send({ cmd: "capture_share", x: e.screenX, y: e.screenY })}>Share…</button>}
+        {IS_MAC && <button className="btn sm flex-1" onClick={(e) => send({ cmd: "capture_share", ...screenPoint(e) })}>Share…</button>}
         <button className="btn sm flex-1" onClick={() => send({ cmd: "capture_start" })}>Retake</button>
       </div>
       {note && <div className="text-[12px] text-[var(--muted)]" role="status">{note}</div>}

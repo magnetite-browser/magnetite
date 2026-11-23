@@ -564,6 +564,8 @@ impl Engine {
         for win in self.windows() {
             self.in_window(win, || self.show_top_bar(visible));
         }
+        // There is one hover zone, and the last window gone through took it.
+        self.update_edge_zone();
     }
 
     /// The current window's top bar follows the setting.
@@ -831,6 +833,8 @@ impl Engine {
         for win in self.windows() {
             self.in_window(win, || self.place_sidebar());
         }
+        // There is one hover zone, and the last window gone through took it.
+        self.update_edge_zone();
     }
 
     /// Put the current window's sidebar view at the side set; the pages
