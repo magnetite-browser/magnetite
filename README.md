@@ -84,15 +84,15 @@ Magnetite started as a new home for the workflow of the Arc browser and has grow
 
 Magnetite is developed and used daily on macOS (Apple silicon). Linux and Windows builds start and pass the tests. Magnetite runs on [its own build of the engine](https://github.com/magnetite-browser/magnetite-cef), with the H.264 and AAC codecs and Magnetite's patches. On Linux, in a Wayland session Magnetite runs as a Wayland client, and through XWayland when built from source with the official CEF ([ADR-0012](docs/adr/0012-wayland.md)).
 
-There are no releases yet, so for now you [build it yourself](#build-it-yourself). Expect breaking changes, including to the data format on disk.
+Releases are early versions (0.0.x): expect breaking changes, including to the data format on disk.
 
 Not there yet: moving a page between windows on macOS and Windows (to do: written for both, tested on neither). Protected video from services that ask for a verified browser plays on macOS and Windows in a tab of the system's own engine, without extensions, and on Linux in Chromium; which services were checked on which system is listed in [protected-video.md](docs/spec/protected-video.md#checked-services). Every spec in [`docs/spec/`](docs/spec/README.md) ends with what its feature still lacks.
 
 ## Install
 
-Releases will appear on the GitHub releases page, one package per system:
+Download the package for your system from the [releases page](https://github.com/magnetite-browser/magnetite/releases/latest):
 
-- **macOS 13 or newer** (Apple silicon, Intel): a disk image or a zip with `Magnetite.app`, also through Homebrew.
+- **macOS 13 or newer** (Apple silicon, Intel): a disk image or a zip with `Magnetite.app`, also through Homebrew (`brew install --cask magnetite-browser/magnetite/magnetite`).
 - **Linux** (x86_64, aarch64): an rpm (Fedora, RHEL) and a deb (Debian, Ubuntu), which update with your system's updates, and an AppImage and a tarball for other systems. The AppImage is one file to make executable and start, and it updates itself when it is in a folder you may write to (otherwise it opens the release page); the tarball's `README.md` explains the sandbox setup.
 - **Windows 10 or newer** (x86_64): an installer, or a zip to unpack. Not signed yet, so Windows warns before the installer starts.
 
@@ -104,7 +104,7 @@ No telemetry, no analytics, no account. Magnetite talks to:
 
 - the sites you open,
 - the services you connect yourself: sync and smart folders,
-- GitHub, to check for updates once there are releases,
+- GitHub, to check for updates,
 - Google's component server, from which Chromium fetches the Widevine module for protected video and its certificate lists.
 
 Two things that rely on Google's services are left out for that reason: page translation and Safe Browsing warnings.
