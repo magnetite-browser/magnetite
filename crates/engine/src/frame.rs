@@ -66,6 +66,9 @@ pub(crate) struct FrameState {
     /// The window's own buttons in a row at the top of the pages' column,
     /// where the system draws none (`caption.rs`).
     pub caption: Option<crate::caption::Caption>,
+    /// The colour `Engine::set_chrome_color` last gave the panels and the
+    /// caption; none before its first call on this frame.
+    pub chrome_painted: Option<u32>,
 }
 
 impl Engine {
@@ -867,20 +870,33 @@ impl Engine {
 
     /// Colour of the chrome behind the page cards (ARGB). The sidebar page
     /// paints the same colour so there is no seam.
+    ///
+    /// The app calls this with every state it sends the sidebar, up to ten
+    /// times a second while a page starts and stops its videos. Chromium
+    /// repaints a view whenever its background is set, even to the same
+    /// colour, so a colour the frame shows already is left alone.
     pub fn set_chrome_color(&self, argb: u32) {
-        self.lock().win.chrome_color = argb;
-        let panels = (self.lock().win.frame.as_ref()).map(|f| {
-            [
-                f.content_panel.clone(),
-                f.body.clone(),
-                f.pages_column.clone(),
-            ]
-        });
+        let (panels, caption) = {
+            let mut inner = self.lock();
+            inner.win.chrome_color = argb;
+            match inner.win.frame.as_mut() {
+                Some(f) if f.chrome_painted == Some(argb) => return,
+                Some(f) => {
+                    f.chrome_painted = Some(argb);
+                    let panels = [
+                        f.content_panel.clone(),
+                        f.body.clone(),
+                        f.pages_column.clone(),
+                    ];
+                    (Some(panels), f.caption.clone())
+                }
+                None => (None, None),
+            }
+        };
         for panel in panels.into_iter().flatten() {
             panel.set_background_color(argb);
         }
         // Not under the lock: the buttons' callbacks read the colour.
-        let caption = (self.lock().win.frame.as_ref()).and_then(|f| f.caption.clone());
         if let Some(caption) = caption {
             caption.set_background(argb);
         }
@@ -1213,6 +1229,7 @@ wrap_window_delegate! {
                 caption,
                 content_panel: content,
                 sidebar_browser,
+                chrome_painted: None,
             });
             drop(inner);
             // Windows ignores `show` while the window is still being created
