@@ -1,23 +1,33 @@
-import { useEffect, useRef, useState } from "react";
-import { send, subscribe, type UiState } from "./bridge";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { dockedSide, send, subscribe, type SidebarSide, type UiState } from "./bridge";
+
+/** Where the strip's middle is on the screen with the pointer at `screenX`, taken `grab` points into the strip. */
+const middle = (screenX: number, grab: number) => Math.round(screenX - grab + window.innerWidth / 2);
+
+/** See-through (`?clear`): the CEF in use can show the page under the panel through the strip (`cef_app::clear_pages`). */
+const CLEAR = new URLSearchParams(location.search).has("clear");
 
 /**
  * The strip beyond a floating web panel's far edge on Linux
  * (magnetite://ui/panel-grip), part of the panel's own window and as high as
- * it: the gap beside the panel, as between split pages. Drag it to change
- * the panel's width, double-click for the usual one. Like the dividers on
- * macOS, a short line shows in its middle while hovered, a longer one in
- * brass while dragged. The pointer is measured on the screen: the panel's
- * near edge, and with it the window, stays put while it grows or shrinks.
+ * it. Drag it to change the panel's width, double-click for the usual one.
+ * Like the dividers on macOS, a short line shows in its middle while hovered,
+ * a longer one in brass while dragged. See-through where the CEF can do it,
+ * with the panel's shadow falling on the page beside it, as on macOS; else
+ * the gap between split pages. The pointer is measured on the screen.
  */
-/** Where the strip's middle is on the screen with the pointer at `screenX`, taken `grab` points into the strip. */
-const middle = (screenX: number, grab: number) => Math.round(screenX - grab + window.innerWidth / 2);
-
 export function PanelGrip() {
-  const [chrome, setChrome] = useState<string | null>(null);
-  useEffect(() => subscribe((s: UiState) => setChrome(s.chrome)), []);
+  const [look, setLook] = useState<{ chrome: string; side: SidebarSide } | null>(null);
+  useEffect(() => subscribe((s: UiState) => setLook({ chrome: s.chrome, side: dockedSide(s.settings.appearance) })), []);
   useEffect(() => {
     send({ cmd: "get_state" }).then((s) => window.__magnetite?.setState(s));
+  }, []);
+  // The page's own background (index.css) would cover what lies under it.
+  useLayoutEffect(() => {
+    if (!CLEAR) return;
+    for (const el of [document.documentElement, document.body, document.getElementById("root")]) {
+      if (el) el.style.background = "transparent";
+    }
   }, []);
   // The drag under way: its pointer, where in the strip it was taken (the
   // strip keeps that spot under the pointer), and whether it moved.
@@ -32,11 +42,13 @@ export function PanelGrip() {
     drag.current = null;
     setDragging(false);
   };
+  // See-through from the start, not the page's colour until the state comes.
+  const background = CLEAR ? (look ? shadow(look.side) : "none") : look?.chrome;
   return (
     <div
       className="panel-grip"
       data-dragging={dragging || undefined}
-      style={chrome ? { background: chrome } : undefined}
+      style={background ? { background } : undefined}
       role="separator"
       aria-orientation="vertical"
       aria-label="Web panel width"
@@ -80,3 +92,6 @@ export function PanelGrip() {
     />
   );
 }
+
+/** The panel's shadow on the page beside it, from the panel's edge: the panel lies on the sidebar's `side` of the strip. */
+const shadow = (side: SidebarSide) => `linear-gradient(to ${side === "left" ? "right" : "left"}, rgb(0 0 0 / 0.22), transparent)`;

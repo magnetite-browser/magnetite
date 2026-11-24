@@ -150,6 +150,7 @@ impl Engine {
                 && window.is_valid() != 0
             {
                 crate::content::lay_out_page_window(&window, &page, (0, 0));
+                crate::cef_app::set_page_corner_radius(&window, 0);
             }
         }
         let Some((id, window, page)) = wanted else {
@@ -170,6 +171,12 @@ impl Engine {
         };
         self.lock().win.panel_strip = Some((view, Some((id, overlay.clone(), side))));
         crate::content::lay_out_page_window(&window, &page, strip_room(side));
+        if crate::cef_app::clear_pages() {
+            // See-through beside the page, as the strip is: the page under
+            // the panel shows there, and the panel keeps its round corners.
+            window.set_background_color(0);
+            crate::cef_app::set_page_corner_radius(&window, self.corner_radius(id));
+        }
         overlay.set_bounds(Some(&strip_bounds(&window, side)));
         overlay.set_visible(1);
     }
@@ -205,13 +212,25 @@ impl Engine {
         room.unwrap_or((0, 0))
     }
 
-    /// A new strip, for a panel's window to take.
+    /// A new strip, for a panel's window to take. See-through where the CEF
+    /// in use can do it (`cef_app::clear_pages`), as the divider beside a
+    /// panel on macOS is; else in the gap's colour.
     #[cfg(target_os = "linux")]
     fn new_panel_strip(&self) -> Option<BrowserView> {
-        let background = self.lock().win.chrome_color;
+        let clear = crate::cef_app::clear_pages();
+        let background = if clear {
+            crate::cef_app::CLEAR_BACKGROUND
+        } else {
+            self.lock().win.chrome_color
+        };
+        let url = if clear {
+            format!("{STRIP_URL}?clear")
+        } else {
+            STRIP_URL.to_owned()
+        };
         browser_view_create(
             Some(&mut MagnetiteClient::overlay()),
-            Some(&CefString::from(STRIP_URL)),
+            Some(&CefString::from(url.as_str())),
             Some(&BrowserSettings {
                 background_color: background,
                 ..Default::default()

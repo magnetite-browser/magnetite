@@ -673,8 +673,9 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
 .panel-close { position: fixed; z-index: 60; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgba(31,31,31,0.94); color: rgba(255,255,255,0.88); cursor: default; }
 .panel-close:hover { background: rgb(60,60,62); }
 /* The strip beyond a floating web panel on Linux (PanelGrip.tsx), part of
-   the panel's window: the gap's colour, with the line of the macOS dividers
-   (`MagnetiteDividerView`) while hovered or dragged. */
+   the panel's window: see-through where the CEF can do it, else the gap's
+   colour, with the line of the macOS dividers (`MagnetiteDividerView`)
+   while hovered or dragged. */
 .panel-grip { position: fixed; inset: 0; display: grid; place-items: center; cursor: col-resize; background: var(--bg); }
 .panel-grip::after { content: ""; width: 2px; height: 32px; border-radius: 1px; background: rgba(255,255,255,0.35); visibility: hidden; }
 .panel-grip:hover::after { visibility: visible; }

@@ -44,8 +44,10 @@ behind it stays as it is, and a second click puts the panel away again.
   beside the pages, which take the room that is left, with a gap between.
 - Dragging the panel's far edge changes its width, between 280 points and
   all but 80 points of the page area: on macOS a thin strip beside it, over
-  the page; on Linux the gap beyond it, as between split pages, which is
-  part of the panel's window (a CEF without magnetite-cef's
+  the page; on Linux a strip beyond it that is part of the panel's window:
+  see-through, with the panel's shadow on the page and its corners round,
+  as on macOS, with magnetite-cef's `transparent-pages.patch` in the CEF in
+  use, else in the colour of the gap between split pages (and a CEF without
   `window-resize-border.patch` keeps the outer 4 points of a window for
   itself, so only the strip's inner half takes the pointer); on Windows the
   gap beside it. In a

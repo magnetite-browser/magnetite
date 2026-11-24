@@ -87,6 +87,40 @@ const CORNERS_PATCH: &str = "rounded-corners.patch";
 #[cfg(target_os = "linux")]
 const CORNER_RADIUS_ID: i32 = -1;
 
+/// The patch to CEF that lets a page be see-through and rounds the pages in
+/// a window of their own (magnetite-cef, `patches/`).
+#[cfg(target_os = "linux")]
+const PAGES_PATCH: &str = "transparent-pages.patch";
+
+/// The colour id that a CEF with `PAGES_PATCH` takes the corner radius of
+/// the pages in a window under, in place of a colour.
+#[cfg(target_os = "linux")]
+const PAGE_CORNER_RADIUS_ID: i32 = -2;
+
+/// The background colour that asks a CEF with `PAGES_PATCH` for a
+/// see-through page: alpha 0, but not 0 itself, which means unset.
+#[cfg(target_os = "linux")]
+pub(crate) const CLEAR_BACKGROUND: u32 = 0x00FF_FFFF;
+
+/// Whether the CEF in use can make a page see-through and round the pages in
+/// a window (`PAGES_PATCH`).
+#[cfg(target_os = "linux")]
+pub(crate) fn clear_pages() -> bool {
+    static PATCHED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *PATCHED.get_or_init(|| cef_patches().is_some_and(|patches| lists_patch(&patches, PAGES_PATCH)))
+}
+
+/// Give the pages in window `window` corners of their own, `radius` DIP (0:
+/// square), for a page that does not fill its window: the window's own
+/// corners (`set_corner_radius`) are not the page's then. Needs
+/// `PAGES_PATCH`; without it nothing changes.
+#[cfg(target_os = "linux")]
+pub(crate) fn set_page_corner_radius(window: &Window, radius: i32) {
+    if clear_pages() {
+        window.set_theme_color(PAGE_CORNER_RADIUS_ID, u32::try_from(radius).unwrap_or(0));
+    }
+}
+
 /// Give page window `window` corners of `radius` DIP, 0 for square ones
 /// (the counterpart of `mac::set_corner_radius`). Chromium cuts the window
 /// and shows the frame outside the corners. Needs `CORNERS_PATCH` in the
