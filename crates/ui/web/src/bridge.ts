@@ -152,6 +152,8 @@ export interface TabRuntime {
   microphone: boolean;
   /** A page shares this tab's picture right now (screen sharing). */
   shared: boolean;
+  /** This tab's page shares a tab right now (another one, or its own). */
+  sharing: boolean;
   dev: DevState;
 }
 
@@ -286,6 +288,8 @@ export interface UiState {
   extensions: ExtensionInfo[];
   /** Those of them pinned to the sidebar in that profile, in order. */
   pinned_extensions: string[];
+  /** Tabs whose rows offer to share them in place of the tab a page shares now. */
+  share_targets: Id[];
   /** The page being recorded as a video: its tab, and since when (ms since 1970). */
   recording: { tab: Id | null; since: number } | null;
 }
@@ -756,6 +760,7 @@ export type Command =
   | { cmd: "media"; id: Id; action: MediaAction }
   | { cmd: "set_muted"; id: Id; muted: boolean }
   | { cmd: "picture_in_picture"; id: Id }
+  | { cmd: "share_tab_instead"; id: Id }
   | { cmd: "import_sources" }
   /** Read browser `key` and say what an import would add; nothing is added. */
   | { cmd: "import_preview"; key: string }

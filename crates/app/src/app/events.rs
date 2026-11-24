@@ -145,10 +145,15 @@ impl EngineDelegate for MagnetiteApp {
                 });
                 self.show_state_paced(engine);
             }
-            EngineEvent::ShareChanged { id, shared } => {
+            EngineEvent::ShareChanged {
+                id,
+                shared,
+                sharing,
+            } => {
                 self.with_state(|s| {
                     if let Some(rt) = s.page_runtime(id) {
                         rt.shared = shared;
+                        rt.sharing = sharing;
                     }
                 });
                 self.push_state(engine);

@@ -410,6 +410,7 @@ export function TabRow({ ctx, tab, section, index, folderId, onDropAt }: {
       index={index}
       folderId={folderId}
       snoozable={isSmartItem(ctx.state, tab, folderId)}
+      shareTarget={ctx.state.share_targets.includes(tab.id)}
       ctx={ctx}
       onDropAt={onDropAt}
     />
@@ -423,6 +424,8 @@ interface InnerProps {
   renaming: boolean;
   /** An item its smart folder got from its source: the row offers snooze in place of close. */
   snoozable: boolean;
+  /** A page shares another tab: the row offers to share this one instead. */
+  shareTarget: boolean;
   section: Section;
   index: number;
   folderId?: string;
@@ -433,7 +436,7 @@ interface InnerProps {
 // Re-render only when this row's own data changes, or what its menu reads
 // (spaces, the active tab, the pages on screen).
 const TabRowInner = memo(
-  function TabRowInner({ tab, rt, active, renaming, snoozable, section, index, folderId, ctx, onDropAt }: InnerProps) {
+  function TabRowInner({ tab, rt, active, renaming, snoozable, shareTarget, section, index, folderId, ctx, onDropAt }: InnerProps) {
     // `left`/`right`: a tab hovers the middle and would open beside this one.
     const [over, setOver] = useState<"before" | "after" | Side | null>(null);
     // The user picks a time of their own to snooze until, in the title's place.
@@ -593,6 +596,17 @@ const TabRowInner = memo(
               <KeepActiveIcon width={12} height={12} />
             </span>
           )}
+          {shareTarget && (
+            // Beside close, as Chromium's "Share this tab instead".
+            <button
+              className="close share-instead"
+              title="Share this tab instead"
+              aria-label="Share this tab instead"
+              onClick={(e) => { e.stopPropagation(); send({ cmd: "share_tab_instead", id: tab.id }); }}
+            >
+              <ScreenShareIcon width={14} height={14} />
+            </button>
+          )}
           {snoozable ? (
             // Opens on a click, or by itself when the pointer rests on it.
             !pickingTime && (
@@ -638,7 +652,7 @@ const TabRowInner = memo(
     );
   },
   (a, b) =>
-    a.tab === b.tab && a.rt === b.rt && a.active === b.active && a.renaming === b.renaming && a.snoozable === b.snoozable &&
+    a.tab === b.tab && a.rt === b.rt && a.active === b.active && a.renaming === b.renaming && a.snoozable === b.snoozable && a.shareTarget === b.shareTarget &&
     a.section === b.section && a.index === b.index && a.folderId === b.folderId &&
     a.ctx.spaceId === b.ctx.spaceId && a.ctx.state.sidebar.spaces === b.ctx.state.sidebar.spaces &&
     a.ctx.state.active_tab === b.ctx.state.active_tab && a.ctx.state.panes === b.ctx.state.panes,

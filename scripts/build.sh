@@ -167,6 +167,8 @@ package_macos() {
   cp -R "$ui_dist" "$app/Contents/Resources/ui"
   cp -R "$scriptlets" "$app/Contents/Resources/scriptlets"
   copy_licences "$app/Contents/Resources"
+  # In Magnetite's CEF build alone: what that CEF can do (cef_app.rs).
+  if [[ -f $cef/magnetite-patches.txt ]]; then cp "$cef/magnetite-patches.txt" "$app/Contents/Resources/"; fi
   ditto "$fw" "$app/Contents/Frameworks/Chromium Embedded Framework.framework"
 
   # CEF starts its subprocesses from these helper apps, found by name.
@@ -253,7 +255,7 @@ package_folder() {
   # CEF's runtime files. Its headers, wrapper sources, CMake files, import
   # libraries and archive.json are build inputs only. magnetite-patches.txt
   # is in Magnetite's CEF build alone: the app reads from it what that CEF
-  # can do (cef_app.rs, `choose_platform`).
+  # can do (cef_app.rs).
   for f in "$cef"/*; do
     case $(basename "$f") in
       *.so | *.so.* | chrome-sandbox | *.dll | *.pak | *.dat | *.bin | vk_swiftshader_icd.json | magnetite-patches.txt) cp "$f" "$stage/" ;;

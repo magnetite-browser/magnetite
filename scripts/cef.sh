@@ -75,11 +75,11 @@ rm -rf "$unpacked"
 tar -xjf "$archive" -C "$dir/archive"
 # The layout cef-dll-sys makes of a download: the runtime next to the files
 # the C++ wrapper library is built from. On macOS the runtime is the
-# framework (the archive's Release folder); on Linux and Windows it is
-# everything in Release (libcef.so or libcef.dll, magnetite-patches.txt, ...)
-# and Resources.
+# framework (the archive's Release folder), plus the list of our patches; on
+# Linux and Windows it is everything in Release (libcef.so or libcef.dll,
+# magnetite-patches.txt, ...) and Resources.
 if [[ $(host_os) == macos ]]; then
-  runtime=("$unpacked/Release/Chromium Embedded Framework.framework")
+  runtime=("$unpacked/Release/Chromium Embedded Framework.framework" "$unpacked/Release/magnetite-patches.txt")
 else
   runtime=("$unpacked"/Release/* "$unpacked"/Resources/*)
 fi

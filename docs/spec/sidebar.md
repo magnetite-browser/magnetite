@@ -140,6 +140,15 @@ the share dialog), that tab is marked wherever it shows:
   loading another page.
 - A shared tab is not unloaded or archived in the background.
 
+While a page shares a tab, the rows of the other loaded tabs of that
+page's profile show a share button left of the close button on hover. It
+shares that tab in place of the shared one, as Chromium's "Share this tab
+instead" does: no dialog, and the tab in front stays in front. The mark
+moves with the share. The sharing page's own tab and tabs without a loaded
+page get no button, as Chromium has no tab to switch to there. A page that
+asked for no switching (`surfaceSwitching: "exclude"`) keeps its tab; the
+button does nothing then.
+
 Sharing a window or the whole screen marks no tab.
 
 How it works: CEF does not say which tab a capture shows, so the pages
@@ -160,8 +169,16 @@ Not marked, for that reason:
 - a page that sets a capture handle of its own, which replaces ours;
 - captures started by an extension.
 
+The share button needs Magnetite's CEF build with `tab-share-instead.patch`
+(named in its `magnetite-patches.txt`). Chromium puts a sharing bar on
+every tab of the profile while a page shares a tab, and its "Share this
+tab instead" button on the tabs it can switch to. CEF has no call for it,
+so the patch lets the app press that button of a given tab. With the
+official CEF there is no button.
+
 Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
-`crates/app/src/state/tabs.rs` (`in_use`); `crates/ui/web/src/Rows.tsx`.
+`crates/app/src/state/tabs.rs` (`in_use`, `share_targets`);
+`crates/ui/web/src/Rows.tsx`.
 
 ## Moving tabs
 

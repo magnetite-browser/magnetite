@@ -1058,6 +1058,11 @@ pub(super) enum UiCommand {
     PictureInPicture {
         id: String,
     },
+    /// The share button on a tab's row: share tab `id` in place of the tab
+    /// a page shares now.
+    ShareTabInstead {
+        id: String,
+    },
     Shortcut {
         shortcut: Shortcut,
     },
@@ -2588,6 +2593,12 @@ impl MagnetiteApp {
                             .is_some_and(|m| m.pip)
                     });
                     engine.content_picture_in_picture(c, !pip);
+                }
+            }
+            UiCommand::ShareTabInstead { id } => {
+                let offered = self.with_state(|s| s.share_targets().contains(&id.as_str()));
+                if let Some(c) = self.content_of(&id).filter(|_| offered) {
+                    engine.share_tab_instead(c);
                 }
             }
             UiCommand::ImportSources => {

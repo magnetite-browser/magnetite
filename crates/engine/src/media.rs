@@ -168,7 +168,7 @@ impl Engine {
         }
     }
 
-    fn content_main_frame(&self, id: ContentId) -> Option<Frame> {
+    pub(crate) fn content_main_frame(&self, id: ContentId) -> Option<Frame> {
         self.lock().contents.get(&id)?.browser.clone()?.main_frame()
     }
 

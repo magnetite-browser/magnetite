@@ -84,6 +84,10 @@ pub struct UiState<'a> {
     pub extensions: &'a [magnetite_engine::ExtensionInfo],
     /// Those of them pinned to the sidebar in that profile, in order.
     pub pinned_extensions: &'a [String],
+    /// The tabs whose rows offer to share them in place of the tab a page
+    /// shares now (`AppState::share_targets`); none while the CEF in use
+    /// cannot switch a share.
+    pub share_targets: Vec<&'a str>,
 }
 
 /// Refresh state of a smart folder, for the sidebar and the dialog.
@@ -149,6 +153,9 @@ pub struct TabRuntime {
     /// A page shares this tab's picture right now (screen sharing).
     #[serde(default)]
     pub shared: bool,
+    /// This tab's page shares a tab right now (another one, or its own).
+    #[serde(default)]
+    pub sharing: bool,
     /// For developers: whether the page is a local one, its console errors,
     /// what it is shown as (`dev.rs`).
     #[serde(default)]
@@ -159,7 +166,7 @@ impl TabRuntime {
     /// Forget the tab's page window (made again when the tab is shown): the
     /// tab is no longer loaded, loading or playing, nor muted, and nothing
     /// is known about its connection or its use of camera and microphone,
-    /// and it is no longer shared.
+    /// and it is no longer shared or sharing.
     /// Returns the window for the caller to close.
     pub fn unload(&mut self) -> Option<ContentId> {
         self.loaded = false;
@@ -170,6 +177,7 @@ impl TabRuntime {
         self.camera = false;
         self.microphone = false;
         self.shared = false;
+        self.sharing = false;
         self.dev = crate::dev::DevState::default();
         self.content.take()
     }
@@ -329,6 +337,11 @@ impl AppState {
             smart: &self.smart_status,
             extensions,
             pinned_extensions: self.pins(&self.front_context().map(|c| c.id).unwrap_or_default()),
+            share_targets: if magnetite_engine::can_share_tab_instead() {
+                self.share_targets()
+            } else {
+                Vec::new()
+            },
         }
     }
 

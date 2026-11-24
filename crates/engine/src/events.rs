@@ -335,10 +335,12 @@ pub enum EngineEvent {
         microphone: bool,
     },
     /// Another page (or the page itself) started or stopped sharing this
-    /// tab's picture (`tabshare.rs`).
+    /// tab's picture, or this page started or stopped sharing a tab
+    /// (`tabshare.rs`).
     ShareChanged {
         id: ContentId,
         shared: bool,
+        sharing: bool,
     },
     /// Protected playback failed in Chromium page `id`, at `url`
     /// (`protected.rs`), where the system has an engine of its own to play

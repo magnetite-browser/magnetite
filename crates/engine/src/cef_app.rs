@@ -137,14 +137,25 @@ pub(crate) fn set_corner_radius(window: &Window, radius: i32) {
 
 /// The list of Magnetite's patches in the CEF in use, one file name a line.
 /// Magnetite's CEF build carries it, and packaging puts it next to the
-/// executable; the official CEF has none.
-#[cfg(target_os = "linux")]
+/// executable (on macOS in the app's `Resources`); the official CEF has none.
 const CEF_PATCHES_FILE: &str = "magnetite-patches.txt";
 
 /// Whether `patches`, the text of `CEF_PATCHES_FILE`, lists `patch`.
-#[cfg(target_os = "linux")]
 fn lists_patch(patches: &str, patch: &str) -> bool {
     patches.lines().any(|line| line.trim() == patch)
+}
+
+/// The patch to CEF that lets the client press "Share this tab instead" on
+/// a tab while a page shares another one (magnetite-cef, `patches/`).
+const SHARE_INSTEAD_PATCH: &str = "tab-share-instead.patch";
+
+/// Whether the CEF in use can share another tab in place of the one a page
+/// shares (`SHARE_INSTEAD_PATCH`, `Engine::share_tab_instead`).
+pub fn can_share_tab_instead() -> bool {
+    static PATCHED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *PATCHED.get_or_init(|| {
+        cef_patches().is_some_and(|patches| lists_patch(&patches, SHARE_INSTEAD_PATCH))
+    })
 }
 
 /// The platform Chromium runs on when the command line names none: Wayland
@@ -167,10 +178,16 @@ fn default_platform(
 }
 
 /// The text of `CEF_PATCHES_FILE`, if the CEF in use has one.
-#[cfg(target_os = "linux")]
 fn cef_patches() -> Option<String> {
     let exe = std::env::current_exe().ok()?;
-    std::fs::read_to_string(exe.with_file_name(CEF_PATCHES_FILE)).ok()
+    #[cfg(target_os = "macos")]
+    let file = exe
+        .parent()?
+        .with_file_name("Resources")
+        .join(CEF_PATCHES_FILE);
+    #[cfg(not(target_os = "macos"))]
+    let file = exe.with_file_name(CEF_PATCHES_FILE);
+    std::fs::read_to_string(file).ok()
 }
 
 /// Pick Chromium's platform (`default_platform`) unless an

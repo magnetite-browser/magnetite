@@ -167,6 +167,29 @@ impl AppState {
         Some(self.runtime.entry(tab).or_default())
     }
 
+    /// The tabs a page that shares a tab could share instead, as with
+    /// Chromium's "Share this tab instead": the loaded tabs of that page's
+    /// profile (the share dialog offers no others), except the shared one
+    /// and the sharing one, which would show the meeting in the meeting.
+    pub fn share_targets(&self) -> Vec<&str> {
+        // `None` for a page that is no tab (the peek, a mini window).
+        let profile = |id: &str| self.find_tab(id).map(|_| self.profile_for_tab(id));
+        let sharing: Vec<Option<String>> = (self.runtime.iter())
+            .filter(|(_, rt)| rt.sharing)
+            .filter_map(|(id, _)| profile(id))
+            .collect();
+        if sharing.is_empty() {
+            return Vec::new();
+        }
+        let mut targets: Vec<&str> = (self.runtime.iter())
+            .filter(|(_, rt)| rt.loaded && !rt.shared && !rt.sharing)
+            .filter(|(id, _)| profile(id).is_some_and(|p| sharing.contains(&p)))
+            .map(|(id, _)| id.as_str())
+            .collect();
+        targets.sort_unstable();
+        targets
+    }
+
     /// Turn the peek into a Today tab of the active space, reusing its
     /// window and what is known about its page. Returns the tab's id.
     pub fn keep_peek(&mut self) -> Option<Id> {
@@ -1302,5 +1325,42 @@ mod tests {
             order[order.len() - 2..],
             [work.as_str(), private_space.as_str()]
         );
+    }
+
+    #[test]
+    fn a_share_can_switch_to_the_loaded_tabs_of_its_profile() {
+        let mut s = state();
+        s.sidebar.profiles.push(magnetite_core::Profile {
+            id: "work".into(),
+            name: "Work".into(),
+            is_default: false,
+            ephemeral: false,
+        });
+        s.find_tab_mut("c").unwrap().profile_id = Some("work".into());
+        let page = |shared, sharing| TabRuntime {
+            loaded: true,
+            shared,
+            sharing,
+            ..TabRuntime::default()
+        };
+        // `a` shares `b`; the pinned `p` runs in the same profile, `c` in
+        // another one.
+        let pages = [
+            ("a", page(false, true)),
+            ("b", page(true, false)),
+            ("c", page(false, false)),
+            ("p", page(false, false)),
+        ];
+        for (id, rt) in pages {
+            s.runtime.insert(id.into(), rt);
+        }
+        assert_eq!(s.share_targets(), ["p"]);
+        // A tab without a page has no tab for Chromium to switch to.
+        s.runtime.get_mut("p").unwrap().loaded = false;
+        assert_eq!(s.share_targets(), [] as [&str; 0]);
+        // Nothing while no page shares a tab.
+        s.runtime.get_mut("p").unwrap().loaded = true;
+        s.runtime.get_mut("a").unwrap().sharing = false;
+        assert_eq!(s.share_targets(), [] as [&str; 0]);
     }
 }

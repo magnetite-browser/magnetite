@@ -87,6 +87,7 @@ pub use blocker::{Filters, List as FilterList, set_allowed_sites, set_filters};
 pub use bootstrap::set_sandbox_info;
 pub use bootstrap::{reserve_devtools_pipe, run, run_helper, started_by_bootstrap};
 pub use capture::{FrozenFrame, PageTiles};
+pub use cef_app::can_share_tab_instead;
 pub use client::host_of;
 pub use config::EngineConfig;
 pub use content::SPLIT_GAP;

@@ -86,6 +86,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .row:hover .close { background: #2a2a2d; }
 .row .close:hover { color: var(--fg); background: rgba(255,255,255,0.14) !important; }
 .row:hover .title, .row:focus-within .title { -webkit-mask-image: linear-gradient(to left, transparent 24px, #000 44px); }
+/* "Share this tab instead" floats left of close, while a page shares another tab. */
+.row .close.share-instead { right: 30px; }
+.row:has(.share-instead):hover .title, .row:has(.share-instead):focus-within .title { -webkit-mask-image: linear-gradient(to left, transparent 48px, #000 68px); }
 .row .title[data-unread] { font-weight: 600; }
 .row .meta { font-size: 12px; line-height: 16px; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
 .row .slot { width: 20px; height: 20px; flex: none; display: grid; place-items: center; border-radius: 6px; color: var(--muted); }
