@@ -11,6 +11,7 @@ it as a tab, or put it beside the current tab in split view.
 | A click on a link that leaves the tab's site | Pinned tabs and favorites |
 | A link that asks for a new tab or window | Pinned tabs and favorites |
 | `Shift`+click on a link | Any tab |
+| "Open Link in Peek" in a link's menu | Any tab |
 | `Shift+Enter` on an address, search, bookmark or visit in the command bar (`command-bar.md`) | Over the page in front |
 | A link from another app | Only if the setting below says so |
 
@@ -42,7 +43,8 @@ it as a tab, or put it beside the current tab in split view.
   another app, or one picked in the command bar, runs in the active
   space's profile.
 - A link inside the peek navigates the peek. A link there that asks for a
-  new tab or window opens as a Today tab, and the peek closes.
+  new tab or window opens as a Today tab, and the peek closes. The menu of
+  a link in the peek or in a web panel has no "Open Link in Peek".
 - While a peek is open, reload, back and forward (the sidebar's buttons and
   the menu bar's commands), zoom, Copy Link, the capture tool, developer
   tools and extension popups act on the peeked page. `Cmd+W` closes the

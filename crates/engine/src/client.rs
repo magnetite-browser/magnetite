@@ -916,6 +916,33 @@ pub(crate) fn same_site(a: &str, b: &str) -> bool {
     crate::sitedata::registrable_domain(a) == crate::sitedata::registrable_domain(b)
 }
 
+/// Command id of "Open Link in Peek" in a page's menu: the first id CEF
+/// leaves to us.
+const OPEN_LINK_IN_PEEK: ::std::os::raw::c_int = sys::cef_menu_id_t::MENU_ID_USER_FIRST as _;
+
+/// Put "Open Link in Peek" below "Open Link in New Window" in the menu `m`
+/// of the page `browser`: a Shift+click for the mouse. Chromium has that item
+/// only for a link it can open. The peek and a web panel go without, since a
+/// Shift+click there opens a tab.
+fn add_open_link_in_peek(m: &MenuModel, browser: Option<&Browser>) {
+    let Some(new_window) = keys::command_id_for("IDC_CONTENT_CONTEXT_OPENLINKNEWWINDOW") else {
+        return;
+    };
+    let Ok(at) = usize::try_from(m.index_of(new_window)) else {
+        return;
+    };
+    let engine = Engine::global();
+    let page = engine.content_id_for(browser);
+    if page.is_none() || page == engine.peek_content() || page == engine.web_panel_content() {
+        return;
+    }
+    m.insert_item_at(
+        at + 1,
+        OPEN_LINK_IN_PEEK,
+        Some(&CefString::from("Open Link in Peek")),
+    );
+}
+
 wrap_context_menu_handler! {
     struct MagnetiteContextMenuHandler {
         kind: Kind,
@@ -923,10 +950,10 @@ wrap_context_menu_handler! {
     impl ContextMenuHandler {
         /// The sidebar page draws its own menus; never show CEF's default one
         /// there. Pages lose "Open Link in Incognito Window", which opens
-        /// nothing here (`on_open_urlfrom_tab`).
+        /// nothing here (`on_open_urlfrom_tab`), and gain "Open Link in Peek".
         fn on_before_context_menu(
             &self,
-            _browser: Option<&mut Browser>,
+            browser: Option<&mut Browser>,
             _frame: Option<&mut Frame>,
             _params: Option<&mut ContextMenuParams>,
             model: Option<&mut MenuModel>,
@@ -934,16 +961,18 @@ wrap_context_menu_handler! {
             let Some(m) = model else { return };
             if matches!(self.kind, Kind::Sidebar | Kind::TopBar | Kind::Overlay) {
                 m.clear();
-            } else if self.kind == Kind::Content
-                && let Some(incognito) = keys::command_id_for("IDC_CONTENT_CONTEXT_OPENLINKOFFTHERECORD")
-            {
-                m.remove(incognito);
+            } else if self.kind == Kind::Content {
+                if let Some(incognito) = keys::command_id_for("IDC_CONTENT_CONTEXT_OPENLINKOFFTHERECORD") {
+                    m.remove(incognito);
+                }
+                add_open_link_in_peek(m, browser.as_deref());
             }
         }
         /// "Inspect" in a page's menu opens `DevTools` through us, at the
         /// clicked element, so they dock and get our menu items. "Open Link
         /// in New Window" opens a mini window through us: Chromium would ask
-        /// for it just as for a Shift+click (`on_open_urlfrom_tab`).
+        /// for it just as for a Shift+click (`on_open_urlfrom_tab`). "Open
+        /// Link in Peek" asks for what a Shift+click asks for.
         fn on_context_menu_command(
             &self,
             browser: Option<&mut Browser>,
@@ -952,6 +981,11 @@ wrap_context_menu_handler! {
             command_id: ::std::os::raw::c_int,
             _event_flags: EventFlags,
         ) -> ::std::os::raw::c_int {
+            if self.kind == Kind::Content && command_id == OPEN_LINK_IN_PEEK {
+                let Some(url) = params.map(|p| CefString::from(&p.link_url()).to_string()) else { return 0 };
+                Engine::global().request_open(browser.as_deref(), url, UrlSource::Page, false, true, false);
+                return 1;
+            }
             // A page's popup window (`Kind::Stray`) has the item too.
             if matches!(self.kind, Kind::Content | Kind::Stray)
                 && Some(command_id) == keys::command_id_for("IDC_CONTENT_CONTEXT_OPENLINKNEWWINDOW")
