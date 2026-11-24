@@ -2,11 +2,12 @@
 
 Some streaming services play protected video only in a browser build that
 Google's Widevine programme has verified. Magnetite's Chromium is not such a
-build yet, so those services refuse it (Netflix shows error M7701-1003).
-Until it is, their pages are shown by the system's own web engine, which
-plays protected video by its own means: WebKit on macOS, with Apple's
-FairPlay; WebView2 on Windows, Microsoft Edge's engine, with PlayReady and
-Edge's Widevine.
+build yet, so on macOS and Windows those services refuse it (Netflix shows
+error M7701-1003). Until it is, their pages there are shown by the system's
+own web engine, which plays protected video by its own means: WebKit on
+macOS, with Apple's FairPlay; WebView2 on Windows, Microsoft Edge's engine,
+with PlayReady and Edge's Widevine. Linux has no such check: Netflix and
+Disney+ play in Chromium there.
 
 Such a page is called a system page below. Why it is built this way:
 [ADR-0015](../adr/0015-system-engine-pages.md).
@@ -19,7 +20,8 @@ Such a page is called a system page below. Why it is built this way:
   and the services that ask for a verified browser do not play.
 - Linux has no such engine: pages are Chromium's, with Chromium's own
   Widevine, which Chromium fetches from Google's component server after
-  the first start.
+  the first start. Widevine on Linux decrypts in software only, which
+  Netflix and Disney+ allow up to 720p, in every browser.
 - Nothing is shipped for it: the engine is the one that comes with the
   system, in the version the system has.
 
@@ -29,7 +31,7 @@ Played with a real account:
 
 | Service | macOS | Windows | Linux |
 |---|---|---|---|
-| Netflix | WebKit | WebView2 | not checked |
+| Netflix | WebKit | WebView2 | Chromium, up to 720p |
 | Disney+ | WebKit | WebView2 | Chromium, up to 720p |
 | RTL+ | WebKit, moved there by itself | not checked | not checked |
 
