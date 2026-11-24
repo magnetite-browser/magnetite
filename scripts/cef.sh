@@ -3,9 +3,9 @@
 # the H.264, AAC and HEVC decoders and the H.264 encoder for calls those
 # leave out, and our patches
 # (https://github.com/magnetite-browser/magnetite-cef). There is one for
-# macOS on Apple silicon, one for Linux on x86_64 and one for Windows on
-# x86_64; every other system builds with the official CEF, which the build
-# downloads by itself.
+# macOS on Apple silicon and on Intel, for Linux on x86_64 and on arm64, and
+# for Windows on x86_64; any other system builds with the official CEF, which
+# the build downloads by itself.
 #
 #   scripts/cef.sh DIR
 #
@@ -24,7 +24,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # README, "Checking a release"). THIRD_PARTY_NOTICES.md and
 # docs/legal/license-compatibility.md name what is pinned here (the release,
 # its Chromium version, the CEF commit): change them with it.
-RELEASE=156.0.31-7
+RELEASE=156.0.31-8
 NAME="cef_binary_156.0.31+ge603d97+chromium-156.0.8078.111"
 
 case ${1:-} in
@@ -33,17 +33,25 @@ esac
 case "$(host_os)-$(host_arch)" in
   macos-aarch64)
     ARCHIVE="${NAME}_macosarm64_minimal.tar.bz2"
-    SHA256=59057737f6d4f41c226e5558627f1d3624e81dc09a3c97f762ea8406eb7f161b
+    SHA256=506e075a5b48dee5947fd6ac72a1f025f24d03ff9d75c30aae129ed8441c35aa
+    ;;
+  macos-x86_64)
+    ARCHIVE="${NAME}_macosx64_minimal.tar.bz2"
+    SHA256=cb3f5516b2cc3c9fafb09dc862f67295877d240f0a1b9807282b68885d0bbeac
     ;;
   linux-x86_64)
     ARCHIVE="${NAME}_linux64_minimal.tar.bz2"
-    SHA256=40e8f8690a87c08cb4ff5eec8298655015ad86a9390388c6678c709372f0140e
+    SHA256=ea3ff97636cf2f8dbf2edbb992e7639b91230d834a670fd589744e94d498e244
+    ;;
+  linux-aarch64)
+    ARCHIVE="${NAME}_linuxarm64_minimal.tar.bz2"
+    SHA256=589748941290f95eb3a4728b108673ab43628777231900aebc855626af72d97c
     ;;
   windows-x86_64)
     ARCHIVE="${NAME}_windows64_minimal.tar.bz2"
-    SHA256=2263b699638cec721bf0d2b2c0a014f1a9317ebd8233194bf8dcd3d2a4cec70c
+    SHA256=2dbd04114aa647b7f978053d7b92317b85965e769417c39a67fafb74acc3125a
     ;;
-  *) die "Magnetite's own CEF build is for macOS on Apple silicon, Linux on x86_64 and Windows on x86_64 only" ;;
+  *) die "Magnetite's own CEF build is for macOS, Linux on x86_64 and arm64, and Windows on x86_64 only" ;;
 esac
 
 # The CEF version the Rust bindings are made for: "156.7.0+156.0.31" -> 156.0.31.

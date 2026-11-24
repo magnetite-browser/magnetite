@@ -89,35 +89,30 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ## Shipped with the app (macOS, Windows, Linux)
 
 - **CEF and Chromium**: CEF 156.0.31 (commit `e603d97`) with Chromium
-  156.0.8078.111 on macOS with Apple silicon and on Linux and Windows on
-  x86_64, and with Chromium 156.0.8078.100 on the other systems. That is the
-  CEF library (`Chromium Embedded Framework.framework` on macOS, `libcef.dll`
-  on Windows, `libcef.so` on Linux) and the files next to it (`.pak`
-  resources, `icudtl.dat`, the V8 snapshot, SwiftShader and the Vulkan
-  loader). CEF is BSD-3-Clause (above). Chromium and its ~490 third-party
+  156.0.8078.111. That is the CEF library (`Chromium Embedded
+  Framework.framework` on macOS, `libcef.dll` on Windows, `libcef.so` on
+  Linux) and the files next to it (`.pak` resources, `icudtl.dat`, the V8
+  snapshot, SwiftShader and the Vulkan loader). CEF is BSD-3-Clause (above). Chromium and its ~490 third-party
   components carry their own licences, listed in `CREDITS.html` of the CEF
   distribution, which ships next to this file. Most are permissive.
-- **Our own CEF build.** On macOS with Apple silicon and on Linux and Windows
-  on x86_64, the CEF library is one we build ourselves from those sources, in
+- **Our own CEF build.** The CEF library is one we build ourselves from
+  those sources, in
   [magnetite-cef](https://github.com/magnetite-browser/magnetite-cef)
-  (release `156.0.31-7`). It differs from CEF's official build in two ways:
+  (release `156.0.31-8`). It differs from CEF's official build in two ways:
   the H.264, AAC and HEVC decoders and the H.264 encoder are on
   (`proprietary_codecs`, `ffmpeg_branding=Chrome`), and CEF carries the
-  patches in that repository's `patches/` folder. On the other systems it is
-  CEF's official build, unchanged.
+  patches in that repository's `patches/` folder.
 - **Copyleft code inside the CEF library.** It contains code under the LGPL
   (FFmpeg and libusb, LGPL-2.1-or-later; Blink's WebKit-derived code,
   LGPL-2.0/2.1), the MPL (for example symphonia, Eigen, hunspell, and
   Mozilla's URL parser and certificate code) and, on macOS, the Apple Public
   Source License. Magnetite ships the CEF library as a separate dynamic
   library. Its corresponding source is Chromium 156.0.8078.111
-  (<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.111>)
-  or, on the other systems, 156.0.8078.100
-  (<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.100>),
+  (<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.111>),
   with CEF commit `e603d97dd5cb8b0e37d8f1daa2bc5c7eab1aa7a5`
-  (<https://github.com/chromiumembedded/cef/tree/e603d97dd5cb8b0e37d8f1daa2bc5c7eab1aa7a5>).
-  For our own build it is also magnetite-cef at the commit its release
-  names: the patches, the build arguments and the build script.
+  (<https://github.com/chromiumembedded/cef/tree/e603d97dd5cb8b0e37d8f1daa2bc5c7eab1aa7a5>),
+  and magnetite-cef at the commit its release names: the patches, the build
+  arguments and the build script.
   For at least three years after we last distribute this version, we give
   anyone who asks a copy of that source, for no more than the cost of
   distribution. Ask through the project's issue tracker.

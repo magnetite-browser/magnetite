@@ -15,9 +15,8 @@ Nothing found is incompatible with publishing Magnetite's source and binaries
 under the EUPL-1.2. Everything compiled into our own binaries is permissive.
 The copyleft code we ship (LGPL, MPL, APSL) lives inside the CEF library,
 which keeps its own licences, and in one data file of the ad blocker
-(GPL-3.0, "Ad blocker's scriptlets"). We ship it unmodified, except on macOS with
-Apple silicon and on Linux and Windows on x86_64, where we build it
-ourselves with public changes ("CEF and Chromium").
+(GPL-3.0, "Ad blocker's scriptlets"). We build the CEF library ourselves,
+with public changes ("CEF and Chromium").
 
 Compatible does not mean free of duties. Two things must be done before the
 first binary release:
@@ -58,9 +57,8 @@ first binary release:
   says "linking two independent works for ensuring their interoperability is
   authorised regardless of their licence". The FAQ also says "the simple action
   of 'linking' does not merge functional codes". The CEF library is loaded at
-  run time and keeps its own licences. That also holds where we build it
-  ourselves (macOS with Apple silicon, Linux and Windows on x86_64): the
-  library stays a separate work,
+  run time and keeps its own licences. That also holds though we build it
+  ourselves: the library stays a separate work,
   and our changes to it are public in magnetite-cef.
 - **Source and notices** (Art. 3, 5 and 11): with every copy we include the
   EUPL text and the notices. With binaries we give the source or "indicate
@@ -146,18 +144,16 @@ are not enough on their own. The full texts ship in `THIRD_PARTY_NOTICES.md`.
 
 ## CEF and Chromium
 
-We ship the CEF binary distribution unmodified, except on macOS with Apple
-silicon and on Linux and Windows on x86_64 (below): the CEF library and its files next to it. On Windows these are `libcef.dll`, `chrome_elf.dll`,
+We ship the CEF binary distribution, built ourselves (below): the CEF
+library and its files next to it. On Windows these are `libcef.dll`, `chrome_elf.dll`,
 `d3dcompiler_47.dll`, `dxcompiler.dll`, `vk_swiftshader.dll` and
 `vulkan-1.dll`. On Linux they are `libcef.so`, `libvk_swiftshader.so` and
 `libvulkan.so.1`. On macOS they are inside
 `Chromium Embedded Framework.framework`. Every platform also ships the `.pak`
-files, `icudtl.dat` and the V8 snapshot. Proprietary codecs are off, except
-on macOS with Apple silicon and on Linux and Windows on x86_64 (next
-paragraph).
+files, `icudtl.dat` and the V8 snapshot.
 
-**macOS on Apple silicon, and Linux and Windows on x86_64,** ship a CEF we build ourselves from the same
-sources, in [magnetite-cef](https://github.com/magnetite-browser/magnetite-cef).
+**Every platform** ships a CEF we build ourselves from the sources of the
+official build, in [magnetite-cef](https://github.com/magnetite-browser/magnetite-cef).
 It differs from the official build in two ways, both public there with the
 build script: the H.264, AAC and HEVC decoders and the H.264 encoder are on
 (`proprietary_codecs`, `ffmpeg_branding=Chrome`), and CEF carries our patches
@@ -233,14 +229,11 @@ What `CREDITS.html` (macOS arm64 distribution) contains, by licence type.
 
 **CEF source.** The corresponding source is Chromium 156.0.8078.111
 (<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.111>)
-for our own CEF build (macOS on Apple silicon, Linux and Windows on x86_64) and
-156.0.8078.100
-(<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.100>)
-for the official one, each plus CEF commit `e603d97dd5cb8b0e37d8f1daa2bc5c7eab1aa7a5`, which contains
+plus CEF commit `e603d97dd5cb8b0e37d8f1daa2bc5c7eab1aa7a5`, which contains
 CEF's Chromium patches. Google's official tarballs are
 `chromium-<version>.tar.xz` (4.4 GB) and `…-lite.tar.xz` (2.0 GB) in
 `commondatastorage.googleapis.com/chromium-browser-official/`, but there is
-none for either version (checked 2026-11-20). For a version without one, we
+none for this version (checked 2026-11-20). For a version without one, we
 pack a full checkout of the tag (`gclient sync`, with all of its DEPS)
 ourselves. GitHub release files must stay under 2 GiB, so the full tarball
 cannot be a release asset.
@@ -416,8 +409,8 @@ Source files for packaging:
 - [ ] Flatpak: the four files in `/app/share/licenses/<app-id>/`
 - [ ] No bundled system libraries (GTK, NSS, …). If any are bundled, add
       their notices and sources.
-- [ ] On x86_64, CEF from the magnetite-cef release pinned in
-      `scripts/cef.sh` (`magnetite-patches.txt` next to `libcef.so`)
+- [ ] CEF from the magnetite-cef release pinned in `scripts/cef.sh`
+      (`magnetite-patches.txt` next to `libcef.so`)
 - [ ] Same About page as macOS
 
 **Source repository (GitHub)**:
