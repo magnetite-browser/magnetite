@@ -127,9 +127,6 @@ Tried by hand:
 | uBlock Origin Lite | Blocker on `declarativeNetRequest` | blocks (adblock-tester.com: 100 of 100, 46 without it) | not checked | not checked |
 | Dark Reader | Changes pages: its popup acts on the page in front, also after a tab switch | yes | yes | not checked |
 
-On macOS on Intel and Linux on arm64, which use the official CEF, Dark
-Reader is given the wrong page (see Limits).
-
 ## Pinning
 
 - Nothing is pinned until you pin it.
@@ -191,6 +188,16 @@ Reader is given the wrong page (see Limits).
   window Chromium made, every such window showing an extension's own page
   (`chrome-extension://`) stays a window; a pop-up window showing a web
   page still becomes a tab.
+- **Engine patches:** every release builds with Magnetite's CEF
+  ([magnetite-cef](https://github.com/magnetite-browser/magnetite-cef)),
+  whose `extension-*.patch` files this relies on. With them Chromium
+  counts only the page activated last as active, not every page whenever
+  the main window is (`extension-last-active.patch`), and calls a page's
+  window a normal one, not a pop-up window (`extension-window-type.patch`),
+  so an extension that asks for the tab in front gets it. A tab from
+  `chrome.tabs.create` keeps its id (`extension-tab.patch`), and Manifest
+  V2 stays on (`extension-manifest-v2.patch`). A build from source with the
+  official CEF has none of this.
 
 ## Data
 
@@ -229,19 +236,6 @@ Reader is given the wrong page (see Limits).
   Magnetite's layout. On Linux an extension's own page in a normal window
   stays a window too: an options page meant to open in a tab,
   `chrome.windows.create({type: "normal"})`.
-- macOS on Intel and Linux on arm64 use the official CEF, without
-  Magnetite's patches (magnetite-cef). There:
-  - An extension is not told the page in front: Dark Reader shows
-    `about:` or `about:blank` instead. Without
-    `extension-last-active.patch` Chromium counts every page as active
-    whenever the main window is (on macOS all pages turn active one after
-    the other as a popup opens, on Linux each page only once), and it calls
-    every page's window a pop-up window, so an extension that looks for
-    the tab in front among normal windows finds none.
-  - A tab from `chrome.tabs.create` loads again under another id.
-  - Chromium refuses Manifest V2 extensions and switches off the ones
-    installed, and "Keep unpacked extensions on when Developer mode is
-    off" has no effect.
 - Manifest V2 extensions were tried on macOS on Apple silicon only.
 - A `page_action` is off on a page until its extension shows it there.
   Opening such an extension then shows Chromium's menu for it instead of

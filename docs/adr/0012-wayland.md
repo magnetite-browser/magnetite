@@ -67,13 +67,13 @@ pointer.
    a CEF that lacks the patch, Magnetite runs as an X11 client whenever an
    X server is there (`cef_app.rs`, `choose_platform`). `scripts/wayland-test.sh` runs a build in a headless
    Wayland session, with pointer and keyboard.
-2. **CEF for Linux (x86_64 done).** magnetite-cef builds x86_64 and aarch64 with
+2. **CEF for Linux (done).** magnetite-cef builds x86_64 and aarch64 with
    the codecs (H.264, AAC and HEVC, which Linux lacks today) and a patch to
    `CefWindowView::CreateWidget`: under Wayland a window with a parent is a
    bubble, and the X11 calls run under X11 only. The patch
    (`wayland-child-windows.patch`) is written and an x86_64 build with it
-   was tested. Its x86_64 release is pinned in `scripts/cef.sh`,
-   which the Linux x86_64 releases and CI build with; aarch64 is open. The crash fix goes to CEF upstream as well.
+   was tested. Its release is pinned in `scripts/cef.sh`,
+   which the Linux releases (x86_64 and aarch64) and CI build with. The crash fix goes to CEF upstream as well.
 3. **The engine under Wayland (done)**, tested with `scripts/wayland-test.sh
    <stage folder> -- --ozone-platform=wayland`. One change was needed: CEF gives a Linux
    window that cannot be resized its first size as minimum and maximum, and
