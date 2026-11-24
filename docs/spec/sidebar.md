@@ -149,7 +149,10 @@ page get no button, as Chromium has no tab to switch to there. A page that
 asked for no switching (`surfaceSwitching: "exclude"`) keeps its tab; the
 button does nothing then.
 
-Sharing a window or the whole screen marks no tab.
+Sharing a window or the whole screen marks no tab. On macOS a shared
+Magnetite window shows the sidebar and the pages in it, as on screen; that
+takes Magnetite's CEF build with `window-share.patch`, and the Screen
+Recording permission, as sharing any other app's window does.
 
 How it works: CEF does not say which tab a capture shows, so the pages
 tell. Every web page gets a capture handle, a random text set with
