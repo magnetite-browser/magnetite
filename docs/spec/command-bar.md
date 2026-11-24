@@ -69,6 +69,9 @@ With nothing typed it says what the bar finds and gives one site search
 keyword as an example, another one each time the bar opens. Outside macOS,
 Cmd+Enter is Ctrl+Enter.
 
+A right-click in the input shows the usual text menu (Undo, Cut, Copy,
+Paste, Select All).
+
 ## Addresses and search
 
 - Input with `://`, or starting with `about:`, is used as typed.

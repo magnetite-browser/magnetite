@@ -948,9 +948,10 @@ wrap_context_menu_handler! {
         kind: Kind,
     }
     impl ContextMenuHandler {
-        /// The sidebar page draws its own menus; never show CEF's default one
-        /// there. Pages lose "Open Link in Incognito Window", which opens
-        /// nothing here (`on_open_urlfrom_tab`), and gain "Open Link in Peek".
+        /// Our UI pages draw their own menus; CEF's menu there keeps only its
+        /// text editing items (`keep_text_editing`). Pages lose "Open Link in
+        /// Incognito Window", which opens nothing here (`on_open_urlfrom_tab`),
+        /// and gain "Open Link in Peek".
         fn on_before_context_menu(
             &self,
             browser: Option<&mut Browser>,
@@ -960,7 +961,7 @@ wrap_context_menu_handler! {
         ) {
             let Some(m) = model else { return };
             if matches!(self.kind, Kind::Sidebar | Kind::TopBar | Kind::Overlay) {
-                m.clear();
+                keep_text_editing(m);
             } else if self.kind == Kind::Content {
                 if let Some(incognito) = keys::command_id_for("IDC_CONTENT_CONTEXT_OPENLINKOFFTHERECORD") {
                     m.remove(incognito);
@@ -1003,6 +1004,31 @@ wrap_context_menu_handler! {
             engine.content_inspect(id, at.as_ref());
             1
         }
+    }
+}
+
+/// Trims the menu of a sidebar, top bar or overlay page to its text editing
+/// items: a text field there gets Cut, Copy and Paste, a selection Copy.
+/// Anywhere else nothing is left, and CEF shows no menu at all.
+fn keep_text_editing(m: &MenuModel) {
+    use sys::cef_menu_id_t::{MENU_ID_SELECT_ALL, MENU_ID_UNDO};
+    // CEF lists its standard items with its own ids, not Chromium's `IDC_*`:
+    // Undo to Select All are one block.
+    let editing = MENU_ID_UNDO as i32..=MENU_ID_SELECT_ALL as i32;
+    let separator = |i| m.type_at(i) == MenuItemType::SEPARATOR;
+    for i in (0..m.count()).rev() {
+        if !separator(i) && !editing.contains(&m.command_id_at(i)) {
+            m.remove_at(i);
+        }
+    }
+    // A separator stays only between two groups of items.
+    for i in (0..m.count()).rev() {
+        if separator(i) && (i + 1 == m.count() || separator(i + 1)) {
+            m.remove_at(i);
+        }
+    }
+    if m.count() > 0 && separator(0) {
+        m.remove_at(0);
     }
 }
 
