@@ -53,9 +53,13 @@ repository with its key.
   packages and puts both online. It holds no key and waits for no approval:
   as on macOS, publishing is what makes installed copies update.
 - **The app.** A packaged Magnetite (the `system-package` file next to the
-  binary) never asks the release host. When the package manager replaces its
-  binary, it offers "Restart to update" (`update::SystemBinary`). The tarball
-  keeps the old way: the release page.
+  binary, which names `deb` or `rpm`) never asks the release host on its
+  own. When the package manager replaces its binary, it offers "Restart to
+  update" (`update::SystemBinary`). "Check now" in Settings reads the
+  release's signed manifest; when a newer version is out, a dialog opens the
+  desktop's software centre on its updates (`update::SoftwareCentre`) or
+  gives the apt or dnf command. The tarball keeps the old way: the release
+  page.
 - **First host: GitHub Pages**, where the releases already are. The site is
   about 500 MB (two formats, two CPUs), under the 1 GB limit, and GitHub's
   soft limit is 100 GB of traffic a month.

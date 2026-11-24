@@ -611,6 +611,12 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 .set-card { padding: 16px 18px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
 .set-label { font-size: 14px; line-height: 20px; font-weight: 500; color: var(--fg); }
 .set-hint { margin-top: 3px; max-width: 560px; font-size: 13px; line-height: 18px; color: var(--muted); }
+/* A dialog over Settings (About → How to update): Esc or a click beside it closes it. */
+.set-dialog { width: min(520px, calc(100vw - 32px)); margin: auto; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--fg); box-shadow: 0 20px 50px rgba(0,0,0,0.45); }
+.set-dialog::backdrop { background: rgba(0,0,0,0.45); }
+.set-dialog-body { display: grid; gap: 16px; padding: 18px; }
+/* A command to copy into a terminal: one line, scrolled when it does not fit. */
+.set-command { display: block; padding: 7px 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 18px; white-space: nowrap; overflow-x: auto; user-select: all; }
 /* A group of settings: one card, a name on top, a row per setting. */
 .set-group { padding: 0; }
 .set-group-head { padding: 14px 18px 4px; }

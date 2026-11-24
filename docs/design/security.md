@@ -369,8 +369,11 @@ panel instead of Chromium's bubble at the page's top left (`prompts.rs`).
   this computer (`MAGNETITE_UPDATE_FEED`, `MAGNETITE_UPDATE_KEY`); release
   builds ignore both.
 - A Magnetite installed from the rpm or deb (the `system-package` file next
-  to its binary) never asks for updates itself: the system's package manager
+  to its binary) never installs updates itself: the system's package manager
   fetches them from Magnetite's package repository and checks them against
   the GPG key the package installed (ADR-0011). Magnetite only watches its
   own binary, which only root can replace; once the file changed, it runs
-  it with `--version` and offers a restart if that version is newer.
+  it with `--version` and offers a restart if that version is newer. It asks
+  the release host only when "Check now" is clicked, and then only says
+  that a newer version is out and how the system installs it; opening the
+  software centre starts one of a fixed list of programs, found on `PATH`.

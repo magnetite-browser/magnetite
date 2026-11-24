@@ -7,8 +7,9 @@
 //!
 //! What leaves the computer: per check two HTTPS requests to the release
 //! host (at start and once a day while running, unless turned off in
-//! Settings), with a generic user agent and nothing that identifies the
-//! user beyond the connection itself.
+//! Settings; for an rpm or deb only when "Check now" is clicked), with a
+//! generic user agent and nothing that identifies the user beyond the
+//! connection itself.
 //!
 //! Installing: on macOS the app bundle is replaced in place when Magnetite
 //! may write next to it and Gatekeeper accepts the new bundle (Developer ID
@@ -22,8 +23,11 @@
 //!
 //! The Linux rpm and deb packages are updated by the system's package
 //! manager from Magnetite's package repository (ADR-0011). Magnetite then
-//! never asks the release host; it only notices that its binary was
-//! replaced and offers a restart (`SystemBinary`).
+//! never asks the release host on its own; it notices that its binary was
+//! replaced and offers a restart (`SystemBinary`). "Check now" in Settings
+//! reads the manifest all the same, and when a newer version is out,
+//! Settings shows how the system installs it: its software centre
+//! (`SoftwareCentre`) or the package manager's command (`Package`).
 
 use std::collections::HashMap;
 use std::io::Read;
@@ -92,6 +96,12 @@ pub enum Status {
         /// Magnetite can replace itself (`can_install`), or the package
         /// manager already did.
         installable: bool,
+    },
+    /// A newer release is out, and the system's package manager installs
+    /// it (rpm, deb): Settings says how.
+    SystemUpdate {
+        version: String,
+        notes_url: String,
     },
     Installing {
         version: String,
@@ -240,11 +250,39 @@ pub fn replaceable_bundle() -> Option<PathBuf> {
 /// (`scripts/linux-packages.sh`): the package manager updates this copy.
 const SYSTEM_PACKAGE_MARKER: &str = "system-package";
 
+/// The package a system Magnetite came from, as its marker names it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Package {
+    Deb,
+    Rpm,
+}
+
+impl Package {
+    /// The marker's content (older packages left it empty).
+    fn from_marker(content: &str) -> Option<Self> {
+        match content.trim() {
+            "deb" => Some(Self::Deb),
+            "rpm" => Some(Self::Rpm),
+            _ => None,
+        }
+    }
+
+    /// The terminal command that installs the newest Magnetite.
+    pub fn command(self) -> &'static str {
+        match self {
+            Self::Deb => "sudo apt update && sudo apt install --only-upgrade magnetite",
+            Self::Rpm => "sudo dnf upgrade --refresh magnetite",
+        }
+    }
+}
+
 /// The binary of a Magnetite installed from an rpm or deb package, as it
 /// was at start. The package manager replaces it while Magnetite runs.
 pub struct SystemBinary {
     path: PathBuf,
     modified: Option<SystemTime>,
+    /// Which package manager updates it.
+    pub package: Option<Package>,
 }
 
 impl SystemBinary {
@@ -255,13 +293,12 @@ impl SystemBinary {
             return None;
         }
         let path = std::env::current_exe().ok()?.canonicalize().ok()?;
-        path.parent()?
-            .join(SYSTEM_PACKAGE_MARKER)
-            .exists()
-            .then(|| {
-                let modified = modified(&path);
-                Self { path, modified }
-            })
+        let marker = std::fs::read_to_string(path.parent()?.join(SYSTEM_PACKAGE_MARKER)).ok()?;
+        Some(Self {
+            modified: modified(&path),
+            package: Package::from_marker(&marker),
+            path,
+        })
     }
 
     /// The version now at the binary's path, once it has been replaced by a
@@ -293,6 +330,98 @@ impl SystemBinary {
     /// quit.
     pub fn restart_after_exit(&self) -> std::io::Result<()> {
         restart_after_exit(&self.path)
+    }
+}
+
+/// A software centre Magnetite knows.
+struct KnownCentre {
+    /// The desktop that ships it, as `XDG_CURRENT_DESKTOP` names it.
+    desktop: &'static str,
+    program: &'static str,
+    /// What opens it on its list of updates.
+    args: &'static [&'static str],
+    name: &'static str,
+}
+
+const SOFTWARE_CENTRES: &[KnownCentre] = &[
+    KnownCentre {
+        desktop: "KDE",
+        program: "plasma-discover",
+        args: &["--mode", "update"],
+        name: "Discover",
+    },
+    KnownCentre {
+        desktop: "GNOME",
+        program: "gnome-software",
+        args: &["--mode=updates"],
+        name: "Software",
+    },
+    // Ubuntu's: its GNOME comes without GNOME Software.
+    KnownCentre {
+        desktop: "GNOME",
+        program: "update-manager",
+        args: &[],
+        name: "Software Updater",
+    },
+    // Linux Mint's, on each of its desktops.
+    KnownCentre {
+        desktop: "X-Cinnamon",
+        program: "mintupdate",
+        args: &[],
+        name: "Update Manager",
+    },
+];
+
+/// The desktop's program that installs the system's updates, which
+/// Settings opens for a system package with an update waiting.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SoftwareCentre {
+    /// What the user knows it as.
+    pub name: &'static str,
+    program: PathBuf,
+    args: &'static [&'static str],
+}
+
+impl SoftwareCentre {
+    /// The one of this desktop, else the first one installed.
+    pub fn find() -> Option<Self> {
+        Self::find_in(
+            &std::env::var_os("PATH")?,
+            &std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default(),
+        )
+    }
+
+    /// `find` with this `PATH` and desktop (`ubuntu:GNOME` names two).
+    fn find_in(path: &std::ffi::OsStr, desktop: &str) -> Option<Self> {
+        let ours = |c: &&KnownCentre| {
+            desktop
+                .split(':')
+                .any(|d| d.eq_ignore_ascii_case(c.desktop))
+        };
+        let (own, others): (Vec<_>, Vec<_>) = SOFTWARE_CENTRES.iter().partition(ours);
+        own.into_iter().chain(others).find_map(|c| {
+            let program = std::env::split_paths(path)
+                .map(|dir| dir.join(c.program))
+                .find(|p| p.is_file())?;
+            Some(Self {
+                name: c.name,
+                program,
+                args: c.args,
+            })
+        })
+    }
+
+    /// Start it on its updates; Magnetite does not wait for it.
+    pub fn open(&self) -> std::io::Result<()> {
+        use std::process::Stdio;
+        let mut child = std::process::Command::new(&self.program)
+            .args(self.args)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()?;
+        std::thread::spawn(move || child.wait());
+        Ok(())
     }
 }
 
@@ -742,7 +871,46 @@ mod tests {
     #[cfg(unix)]
     fn watching(path: PathBuf) -> SystemBinary {
         let modified = modified(&path);
-        SystemBinary { path, modified }
+        SystemBinary {
+            path,
+            modified,
+            package: None,
+        }
+    }
+
+    #[test]
+    fn the_marker_names_the_package_manager() {
+        assert_eq!(Package::from_marker("deb\n"), Some(Package::Deb));
+        assert_eq!(Package::from_marker("rpm"), Some(Package::Rpm));
+        assert_eq!(Package::from_marker(""), None, "an older package");
+    }
+
+    #[test]
+    fn the_software_centre_of_the_desktop_comes_first() {
+        let dir = crate::files::test_dir("software-centres");
+        let bin = dir.join("bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        for program in ["gnome-software", "plasma-discover", "update-manager"] {
+            std::fs::write(bin.join(program), "").unwrap();
+        }
+        let path = std::env::join_paths([dir.join("none"), bin.clone()]).unwrap();
+        let name = |desktop| SoftwareCentre::find_in(&path, desktop).map(|c| c.name);
+        assert_eq!(name("KDE"), Some("Discover"));
+        assert_eq!(name("ubuntu:GNOME"), Some("Software"));
+        // A desktop without one of its own: the first one installed.
+        assert_eq!(name("XFCE"), Some("Discover"));
+        assert_eq!(
+            SoftwareCentre::find_in(&path, "KDE").map(|c| c.program),
+            Some(bin.join("plasma-discover"))
+        );
+
+        std::fs::remove_file(bin.join("gnome-software")).unwrap();
+        assert_eq!(name("ubuntu:GNOME"), Some("Software Updater"));
+        assert_eq!(
+            SoftwareCentre::find_in(&dir.join("none").into_os_string(), "KDE"),
+            None
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[cfg(unix)]

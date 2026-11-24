@@ -54,8 +54,6 @@ mkdir -p "$tree/opt" "$tree/usr/bin" "$tree/usr/share/applications" \
 cp -a "$stage" "$tree/opt/magnetite"
 rm -f "$tree/opt/magnetite/README.md" "$tree/opt/magnetite/magnetite.desktop" "$tree/opt/magnetite/magnetite.png"
 chmod 4755 "$tree/opt/magnetite/chrome-sandbox"
-# Tells the app that the package manager updates it (crates/app/src/update.rs).
-: >"$tree/opt/magnetite/system-package"
 ln -s ../../opt/magnetite/magnetite "$tree/usr/bin/magnetite"
 cp "$linux/magnetite.desktop" "$tree/usr/share/applications/"
 cp "$linux/magnetite.png" "$tree/usr/share/icons/hicolor/512x512/apps/"
@@ -63,6 +61,8 @@ cp "$linux/magnetite.png" "$tree/usr/share/icons/hicolor/512x512/apps/"
 log "rpm"
 rpm_tree="$work/rpm-tree"
 cp -a "$tree" "$rpm_tree"
+# Tells the app that dnf updates it (crates/app/src/update.rs).
+echo rpm >"$rpm_tree/opt/magnetite/system-package"
 install -D -m 644 "$linux/repo-key.asc" "$rpm_tree/etc/pki/rpm-gpg/RPM-GPG-KEY-magnetite"
 install -D -m 644 "$linux/magnetite.repo" "$rpm_tree/etc/yum.repos.d/magnetite.repo"
 rpmbuild -bb --quiet --target "$arch" \
@@ -76,6 +76,8 @@ echo "$out/$name.rpm"
 log "deb"
 deb_tree="$work/deb-tree"
 cp -a "$tree" "$deb_tree"
+# Tells the app that apt updates it (crates/app/src/update.rs).
+echo deb >"$deb_tree/opt/magnetite/system-package"
 install -D -m 644 "$linux/repo-key.asc" "$deb_tree/usr/share/keyrings/magnetite.asc"
 install -D -m 644 "$linux/magnetite.sources" "$deb_tree/etc/apt/sources.list.d/magnetite.sources"
 case $arch in

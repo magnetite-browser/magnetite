@@ -746,6 +746,7 @@ export type Command =
   | { cmd: "check_updates" }
   | { cmd: "install_update" }
   | { cmd: "open_update_page" }
+  | { cmd: "open_software_centre" }
   | { cmd: "set_tab_profile"; id: Id; profile: Id | null }
   | { cmd: "set_favorite_spaces"; id: Id; spaces: Id[] }
   | { cmd: "move_favorite"; id: Id; index: number }
@@ -1036,13 +1037,23 @@ export type UpdateStatus =
   | { state: "checking" }
   | { state: "up_to_date"; checked_at: number }
   | { state: "available"; version: string; notes_url: string; installable: boolean }
+  /** A newer release is out, and the system's package manager installs it. */
+  | { state: "system_update"; version: string; notes_url: string }
   | { state: "installing"; version: string }
   | { state: "failed"; error: string };
+
+/** How the package manager updates an rpm or deb install. */
+export interface SystemPackage {
+  /** The terminal command that installs the update (null: unknown package). */
+  command: string | null;
+  /** The software centre "open_software_centre" opens, by name. */
+  centre: string | null;
+}
 
 export interface UpdateInfo {
   status: UpdateStatus;
   /** An rpm or deb install, also once `status` has moved on from "system". */
-  system: boolean;
+  system: SystemPackage | null;
   /** The running version. */
   version: string;
 }

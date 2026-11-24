@@ -1018,6 +1018,8 @@ pub(super) enum UiCommand {
     InstallUpdate,
     /// The release notes of the update found, in a new tab.
     OpenUpdatePage,
+    /// The system's software centre on its updates (rpm, deb).
+    OpenSoftwareCentre,
     /// Browsers on this computer we can import from.
     ImportSources,
     /// Read the browser `key` (see `ImportSources`) and say what an import
@@ -2563,6 +2565,7 @@ impl MagnetiteApp {
             }
             UiCommand::InstallUpdate => self.install_update(engine),
             UiCommand::OpenUpdatePage => self.open_update_page(engine),
+            UiCommand::OpenSoftwareCentre => self.open_software_centre()?,
             UiCommand::Media { id, action } => {
                 if let Some(c) = self.content_of(&id) {
                     engine.content_media(c, action);
