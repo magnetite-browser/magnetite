@@ -4,13 +4,17 @@
 #
 #   scripts/release/linux-repo-site.sh <release files> <out>
 #
-# <release files> holds the release's rpm and deb packages and
+# <release files> holds the release's rpm and deb packages,
 # linux-repository.tar, the index scripts/release/linux-repo.sh built and
-# signed when the release was made. Needs no key: this only checks that the
-# index is signed with the repository key and lists exactly these packages,
-# so a repository that dnf or apt would refuse is never published.
+# signed when the release was made, and the update manifest (latest.json
+# and latest.json.sig), which a packaged Magnetite's "Check now" reads from
+# the site's root. Needs no key: this only checks that the index is signed
+# with the repository key and lists exactly these packages, and that the
+# manifest is signed with the release key and names their version, so
+# nothing that dnf, apt or Magnetite would refuse is published.
 #
-# Needs gpg, and zstd if createrepo_c compressed the rpm metadata with it.
+# Needs gpg, OpenSSL 3, and zstd if createrepo_c compressed the rpm
+# metadata with it.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/../lib.sh"
 
@@ -20,6 +24,18 @@ shopt -s nullglob
 rpms=("$files"/*.rpm) debs=("$files"/*.deb)
 ((${#rpms[@]} && ${#debs[@]})) || die "no rpm and deb packages in $files"
 [[ -f $files/linux-repository.tar ]] || die "$files has no linux-repository.tar (a release from before it was added?)"
+[[ -f $files/latest.json && -f $files/latest.json.sig ]] || die "$files has no latest.json and latest.json.sig"
+
+log "update manifest"
+public="$(sed -n 's/^const PUBLIC_KEY: &str = "\(.*\)";$/\1/p' "$ROOT/crates/app/src/update.rs")"
+[[ -n $public ]] || die "no release key in crates/app/src/update.rs"
+"$ROOT/scripts/release/verify-manifest.sh" "$files/latest.json" "$public" >/dev/null ||
+  die "latest.json is not signed with the release key"
+version="$(sed -n 's/^ *"version": "\(.*\)",$/\1/p' "$files/latest.json")"
+for package in "${rpms[@]}" "${debs[@]}"; do
+  [[ $(basename "$package") == "magnetite-$version-linux-"* ]] ||
+    die "$(basename "$package") is not version ${version:-?} of latest.json"
+done
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -27,6 +43,7 @@ trap 'rm -rf "$tmp"' EXIT
 rm -rf "$out"
 mkdir -p "$out"
 tar -C "$out" -xf "$files/linux-repository.tar"
+cp "$files/latest.json" "$files/latest.json.sig" "$out/"
 cp "$ROOT/packaging/linux/repo-key.asc" "$out/repo-key.asc"
 cp "${rpms[@]}" "$out/rpm/"
 cp "${debs[@]}" "$out/deb/"

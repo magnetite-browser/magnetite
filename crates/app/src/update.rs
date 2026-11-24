@@ -7,9 +7,10 @@
 //!
 //! What leaves the computer: per check two HTTPS requests to the release
 //! host (at start and once a day while running, unless turned off in
-//! Settings; for an rpm or deb only when "Check now" is clicked), with a
-//! generic user agent and nothing that identifies the user beyond the
-//! connection itself.
+//! Settings), with a generic user agent and nothing that identifies the
+//! user beyond the connection itself. An rpm or deb asks only when "Check
+//! now" is clicked, and asks its package repository instead, the host its
+//! package manager already updates from.
 //!
 //! Installing: on macOS the app bundle is replaced in place when Magnetite
 //! may write next to it and Gatekeeper accepts the new bundle (Developer ID
@@ -25,7 +26,8 @@
 //! manager from Magnetite's package repository (ADR-0011). Magnetite then
 //! never asks the release host on its own; it notices that its binary was
 //! replaced and offers a restart (`SystemBinary`). "Check now" in Settings
-//! reads the manifest all the same, and when a newer version is out,
+//! reads the manifest that the package repository holds next to the
+//! packages (`PACKAGE_REPOSITORY`), and when a newer version is out,
 //! Settings shows how the system installs it: its software centre
 //! (`SoftwareCentre`) or the package manager's command (`Package`).
 
@@ -46,6 +48,11 @@ const PUBLIC_KEY: &str = "d51FsDQ59WN1P85cj0UOGVCZuhCEPSJtSyUlV7DcwZg=";
 /// Where releases are published (the workspace `repository`); the manifest
 /// is a fixed asset of the latest release.
 const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
+
+/// Magnetite's dnf and apt repository (`packaging/linux/magnetite.repo`,
+/// `magnetite.sources`). It also serves the manifest of the release its
+/// packages come from (`scripts/release/linux-repo-site.sh`).
+const PACKAGE_REPOSITORY: &str = "https://packages.magnetitebrowser.org";
 
 /// Hours between automatic checks while Magnetite runs.
 pub const CHECK_EVERY_SECS: i64 = 24 * 3600;
@@ -106,6 +113,11 @@ pub enum Status {
     Installing {
         version: String,
     },
+    /// The check found no answer.
+    CheckFailed {
+        error: String,
+    },
+    /// The install, or a system package's restart, failed.
     Failed {
         error: String,
     },
@@ -127,11 +139,18 @@ fn local_feed(feed: &str) -> bool {
 }
 
 impl Source {
-    pub fn configured() -> Option<Self> {
+    /// The latest release on the project's page, or for a system package
+    /// (`system`) its package repository: that one has a release's manifest
+    /// once its packages are there too.
+    pub fn configured(system: bool) -> Option<Self> {
         let env = |name: &str| std::env::var(name).ok().filter(|_| cfg!(debug_assertions));
         let key = env("MAGNETITE_UPDATE_KEY").unwrap_or_else(|| PUBLIC_KEY.to_string());
         let feed = env("MAGNETITE_UPDATE_FEED").or_else(|| {
-            (!REPOSITORY.is_empty()).then(|| format!("{REPOSITORY}/releases/latest/download"))
+            if system {
+                Some(PACKAGE_REPOSITORY.to_string())
+            } else {
+                (!REPOSITORY.is_empty()).then(|| format!("{REPOSITORY}/releases/latest/download"))
+            }
         })?;
         let bytes: [u8; 32] = base64::engine::general_purpose::STANDARD
             .decode(key.trim())
@@ -337,8 +356,8 @@ impl SystemBinary {
 
 /// A software centre Magnetite knows.
 struct KnownCentre {
-    /// The desktop that ships it, as `XDG_CURRENT_DESKTOP` names it.
-    desktop: &'static str,
+    /// The desktops that ship it, as `XDG_CURRENT_DESKTOP` names them.
+    desktops: &'static [&'static str],
     program: &'static str,
     /// What opens it on its list of updates.
     args: &'static [&'static str],
@@ -347,27 +366,27 @@ struct KnownCentre {
 
 const SOFTWARE_CENTRES: &[KnownCentre] = &[
     KnownCentre {
-        desktop: "KDE",
+        desktops: &["KDE"],
         program: "plasma-discover",
         args: &["--mode", "update"],
         name: "Discover",
     },
     KnownCentre {
-        desktop: "GNOME",
+        desktops: &["GNOME"],
         program: "gnome-software",
         args: &["--mode=updates"],
         name: "Software",
     },
     // Ubuntu's: its GNOME comes without GNOME Software.
     KnownCentre {
-        desktop: "GNOME",
+        desktops: &["GNOME"],
         program: "update-manager",
         args: &[],
         name: "Software Updater",
     },
     // Linux Mint's, on each of its desktops.
     KnownCentre {
-        desktop: "X-Cinnamon",
+        desktops: &["X-Cinnamon", "MATE", "XFCE"],
         program: "mintupdate",
         args: &[],
         name: "Update Manager",
@@ -398,7 +417,7 @@ impl SoftwareCentre {
         let ours = |c: &&KnownCentre| {
             desktop
                 .split(':')
-                .any(|d| d.eq_ignore_ascii_case(c.desktop))
+                .any(|d| c.desktops.iter().any(|own| d.eq_ignore_ascii_case(own)))
         };
         let (own, others): (Vec<_>, Vec<_>) = SOFTWARE_CENTRES.iter().partition(ours);
         own.into_iter().chain(others).find_map(|c| {
@@ -924,11 +943,15 @@ mod tests {
         assert_eq!(name("KDE"), Some("Discover"));
         assert_eq!(name("ubuntu:GNOME"), Some("Software"));
         // A desktop without one of its own: the first one installed.
-        assert_eq!(name("XFCE"), Some("Discover"));
+        assert_eq!(name("LXQt"), Some("Discover"));
         assert_eq!(
             SoftwareCentre::find_in(&path, "KDE").map(|c| c.program),
             Some(bin.join("plasma-discover"))
         );
+
+        // Linux Mint Xfce with GNOME Software added: Mint's own first.
+        program(&bin, "mintupdate", 0o755);
+        assert_eq!(name("XFCE"), Some("Update Manager"));
 
         std::fs::remove_file(bin.join("gnome-software")).unwrap();
         assert_eq!(name("ubuntu:GNOME"), Some("Software Updater"));

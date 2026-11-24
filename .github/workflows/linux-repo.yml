@@ -32,10 +32,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Download the packages and the index
+      - name: Download the packages, the index and the update manifest
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release download "$TAG" --pattern '*.rpm' --pattern '*.deb' --pattern linux-repository.tar --dir packages
+        run: >-
+          gh release download "$TAG" --dir packages --pattern '*.rpm' --pattern '*.deb'
+          --pattern linux-repository.tar --pattern latest.json --pattern latest.json.sig
       - name: Check and put together
         run: scripts/release/linux-repo-site.sh packages site
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0

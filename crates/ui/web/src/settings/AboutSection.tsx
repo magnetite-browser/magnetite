@@ -1,5 +1,5 @@
 // Settings → About: version and updates, project links, licences.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 // `?url`: the file's address as a string in every bundler (the website's
 // live demo runs a copy of this code and builds it with Astro).
 import appIcon from "../assets/icon.png?url";
@@ -71,6 +71,8 @@ export function About({ info, update }: { info: Info; update: (patch: SettingsPa
 function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (patch: SettingsPatch) => void }) {
   const [u, setU] = useState<UpdateInfo | null>(null);
   const [guide, setGuide] = useState(false);
+  // Where focus goes when the dialog closes: "Check now" is gone by then.
+  const howTo = useRef<HTMLButtonElement>(null);
   useEffect(() => onUpdate(setU), []);
   const st = u?.status;
   const checkNow = () => {
@@ -90,7 +92,10 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
     : st.state === "available" ? `Magnetite ${st.version} is available.`
     : st.state === "system_update" ? `Magnetite ${st.version} is available. Your system's updates install it.`
     : st.state === "installing" ? `Installing Magnetite ${st.version}… Magnetite restarts when it is ready.`
-    : st.error;
+    : st.state === "check_failed" ? `The last check failed: ${st.error}`
+    // A system package's only failure is its restart, which says so.
+    : u?.system ? st.error
+    : `The update was not installed: ${st.error}`;
   return (
     <Group>
       <div className="set-row" data-search-row>
@@ -107,7 +112,7 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
           ) : st?.state === "system_update" ? (
             <div className="flex shrink-0 gap-2">
               <button className="btn ghost" onClick={() => send({ cmd: "open_update_page" })}>What's new</button>
-              <button className="btn primary" onClick={() => setGuide(true)}>How to update</button>
+              <button ref={howTo} className="btn primary" onClick={() => setGuide(true)}>How to update</button>
             </div>
           ) : (
             <button className="btn shrink-0" disabled={st?.state === "checking" || st?.state === "installing" || st?.state === "unavailable"} onClick={checkNow}>Check now</button>
@@ -115,7 +120,14 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
         </div>
       </div>
       {guide && st?.state === "system_update" && u?.system && (
-        <SystemUpdateDialog version={st.version} system={u.system} onClose={() => setGuide(false)} />
+        <SystemUpdateDialog
+          version={st.version}
+          system={u.system}
+          onClose={() => {
+            setGuide(false);
+            howTo.current?.focus();
+          }}
+        />
       )}
       {/* A system package asks only on "Check now": the switch would do nothing. */}
       {!u?.system && <Toggle
@@ -131,13 +143,15 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
 /**
  * How to install an update that the system's package manager brings: in
  * its software centre, or with the command for a terminal. Esc, Close or a
- * click beside it closes it; it opens with Close focused.
+ * click beside it closes it; it opens with Close focused. It stays open
+ * once the software centre is started: that one may not come to the front
+ * (GNOME then only says it is ready), and the command stays at hand.
  */
 function SystemUpdateDialog({ version, system, onClose }: { version: string; system: SystemPackage; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
-  // Pressed beside the dialog: a drag that only ends there (selecting the
-  // command) does not close it.
+  // Pressed beside the dialog: a drag that only starts or ends there
+  // (selecting the command) does not close it.
   const pressedBeside = useRef(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -148,7 +162,12 @@ function SystemUpdateDialog({ version, system, onClose }: { version: string; sys
   }, []);
   const close = () => ref.current?.close();
   const { centre, command } = system;
-  const openCentre = () => send({ cmd: "open_software_centre" }).then(close, (e: Error) => setError(e.message));
+  const openCentre = () => send({ cmd: "open_software_centre" }).then(() => setError(null), (e: Error) => setError(e.message));
+  // The backdrop is the dialog element itself, outside its box.
+  const beside = (e: MouseEvent<HTMLDialogElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  };
   const copy = () => {
     if (!command) return;
     const copying = navigator.clipboard?.writeText(command) ?? Promise.reject(new Error("no clipboard"));
@@ -167,8 +186,13 @@ function SystemUpdateDialog({ version, system, onClose }: { version: string; sys
       className="set-dialog"
       aria-labelledby="system-update-title"
       onClose={onClose}
-      onMouseDown={(e) => (pressedBeside.current = e.target === e.currentTarget)}
-      onClick={(e) => pressedBeside.current && e.target === e.currentTarget && close()}
+      onMouseDown={(e) => (pressedBeside.current = beside(e))}
+      onClick={(e) => {
+        // Reset each time: a key's click has no position of its own.
+        const pressed = pressedBeside.current;
+        pressedBeside.current = false;
+        if (pressed && beside(e)) close();
+      }}
     >
       <div className="set-dialog-body">
         <div>

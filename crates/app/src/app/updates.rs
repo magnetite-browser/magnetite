@@ -55,18 +55,20 @@ impl Updater {
             || (self.system.is_some() && self.found.is_some())
     }
 
-    /// Offer a system package's restart again after it failed: the version
-    /// the package manager installed is still there.
-    fn offer_restart_again(&mut self) {
-        if let (Some(_), Some(m), update::Status::Failed { .. }) =
+    /// Offer a system package's restart again after it failed (the version
+    /// the package manager installed is still there); true if it did.
+    fn offer_restart_again(&mut self) -> bool {
+        let (Some(_), Some(m), update::Status::Failed { .. }) =
             (&self.system, &self.found, &self.status)
-        {
-            self.status = update::Status::Available {
-                version: m.version.clone(),
-                notes_url: m.notes_url.clone(),
-                installable: true,
-            };
-        }
+        else {
+            return false;
+        };
+        self.status = update::Status::Available {
+            version: m.version.clone(),
+            notes_url: m.notes_url.clone(),
+            installable: true,
+        };
+        true
     }
 }
 
@@ -104,12 +106,10 @@ impl MagnetiteApp {
     }
 
     /// Offer a restart once the package manager put a newer version in
-    /// place of the running one.
+    /// place of the running one, and name the newest one if it does so
+    /// again before the restart.
     fn system_update_tick(&self, engine: &Engine) {
         let version = self.with_updater(|u| {
-            if u.found.is_some() {
-                return None;
-            }
             let version = u.system.as_mut()?.replaced()?;
             let notes_url = format!("{}/releases/tag/v{version}", env!("CARGO_PKG_REPOSITORY"));
             u.status = update::Status::Available {
@@ -139,7 +139,9 @@ impl MagnetiteApp {
         // restart that failed.
         if self.with_updater(|u| u.system.is_some()) {
             self.system_update_tick(engine);
-            self.with_updater(Updater::offer_restart_again);
+            if self.with_updater(Updater::offer_restart_again) {
+                self.show_update(engine);
+            }
         }
         // An install under way keeps its status (and the release it found),
         // as does a system package waiting for its restart.
@@ -149,8 +151,12 @@ impl MagnetiteApp {
             }
             return;
         }
-        let Some(source) = update::Source::configured() else {
-            self.with_updater(|u| u.status = update::Status::Unavailable);
+        let system = self.with_updater(|u| u.system.is_some());
+        let Some(source) = update::Source::configured(system) else {
+            // A system package is still updated, by its package manager.
+            if !system {
+                self.with_updater(|u| u.status = update::Status::Unavailable);
+            }
             if let Some(t) = ticket {
                 engine.finish_reply(t, Ok(self.update_json().to_string()));
             }
@@ -214,9 +220,7 @@ impl MagnetiteApp {
                 Ok(_) => update::Status::UpToDate {
                     checked_at: u.last_check,
                 },
-                Err(error) => update::Status::Failed {
-                    error: format!("The last check failed: {error}"),
-                },
+                Err(error) => update::Status::CheckFailed { error },
             };
             let announce = match &u.status {
                 update::Status::Available { version, .. }

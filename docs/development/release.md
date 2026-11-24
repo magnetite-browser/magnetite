@@ -88,8 +88,10 @@ The rpm and deb packages update from Magnetite's dnf and apt repository at
 repository's index, signs it and adds it to the draft as
 `linux-repository.tar`. Publishing a release (not a pre-release) runs the
 "Linux repository" workflow, which checks that index against the release's
-packages and puts both on GitHub Pages. That run needs no approval: the key
-was used in the release run, which had one.
+packages and puts both on GitHub Pages, with the release's `latest.json`
+and `latest.json.sig` at the root ("Check now" of a packaged Magnetite
+reads them there; the run checks their signature and version first). That
+run needs no approval: the key was used in the release run, which had one.
 
 Once:
 

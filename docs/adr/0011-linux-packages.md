@@ -39,6 +39,8 @@ repository with its key.
   `scripts/release/linux-repo.sh`: `rpm/` (createrepo metadata, the signed
   `repomd.xml`) and `deb/` (a flat apt repository with a signed `InRelease`).
   It holds the latest release only. Installed systems need nothing older.
+  The site's root also serves that release's update manifest
+  (`latest.json` and its signature) for the app.
 - **Signatures.** One GPG key signs the rpm packages, each deb (a `.deb.asc`
   file in the release, checked before the repository lists the deb),
   `repomd.xml` and apt's
@@ -56,10 +58,12 @@ repository with its key.
   binary, which names `deb` or `rpm`) never asks the release host on its
   own. When the package manager replaces its binary, it offers "Restart to
   update" (`update::SystemBinary`). "Check now" in Settings reads the
-  release's signed manifest; when a newer version is out, a dialog opens the
-  desktop's software centre on its updates (`update::SoftwareCentre`) or
-  gives the apt or dnf command. The tarball keeps the old way: the release
-  page.
+  release's signed manifest from the repository's host, which the package
+  manager contacts anyway and which moves with the repository; it is online
+  together with the packages, so the version it names is one dnf and apt
+  can install. When it is newer, a dialog opens the desktop's software
+  centre on its updates (`update::SoftwareCentre`) or gives the apt or dnf
+  command. The tarball keeps the old way: the release page.
 - **First host: GitHub Pages**, where the releases already are. The site is
   about 500 MB (two formats, two CPUs), under the 1 GB limit, and GitHub's
   soft limit is 100 GB of traffic a month.

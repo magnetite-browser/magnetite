@@ -1040,6 +1040,9 @@ export type UpdateStatus =
   /** A newer release is out, and the system's package manager installs it. */
   | { state: "system_update"; version: string; notes_url: string }
   | { state: "installing"; version: string }
+  /** The check found no answer. */
+  | { state: "check_failed"; error: string }
+  /** The install, or a system package's restart, failed. */
   | { state: "failed"; error: string };
 
 /** How the package manager updates an rpm or deb install. */
