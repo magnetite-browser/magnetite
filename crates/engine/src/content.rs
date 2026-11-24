@@ -1595,7 +1595,24 @@ wrap_window_delegate! {
         // The making of the page this window belongs to (`ContentState`).
         serial: u64,
     }
-    impl ViewDelegate {}
+    impl ViewDelegate {
+        // Views gives a window its theme's background again on each theme
+        // change. On Linux a page window's background is see-through where
+        // the CEF can do it: beside a web panel's page, under its strip
+        // (`panel_close.rs`), the page under the panel shows. Elsewhere the
+        // page covers the window. Not a mini window: a window of its own.
+        fn on_theme_changed(&self, view: Option<&mut View>) {
+            #[cfg(target_os = "linux")]
+            if let Some(view) = view
+                && self.mini.is_none()
+                && crate::cef_app::clear_pages()
+            {
+                view.set_background_color(0);
+            }
+            #[cfg(not(target_os = "linux"))]
+            let _ = view;
+        }
+    }
     impl PanelDelegate {}
     impl WindowDelegate {
         fn on_window_created(&self, window: Option<&mut Window>) {

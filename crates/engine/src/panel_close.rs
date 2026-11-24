@@ -171,12 +171,10 @@ impl Engine {
         };
         self.lock().win.panel_strip = Some((view, Some((id, overlay.clone(), side))));
         crate::content::lay_out_page_window(&window, &page, strip_room(side));
-        if crate::cef_app::clear_pages() {
-            // See-through beside the page, as the strip is: the page under
-            // the panel shows there, and the panel keeps its round corners.
-            window.set_background_color(0);
-            crate::cef_app::set_page_corner_radius(&window, self.corner_radius(id));
-        }
+        // The window is see-through beside the page, as the strip is
+        // (`ContentWindowDelegate::on_theme_changed`): the panel keeps its
+        // round corners there.
+        crate::cef_app::set_page_corner_radius(&window, self.corner_radius(id));
         overlay.set_bounds(Some(&strip_bounds(&window, side)));
         overlay.set_visible(1);
     }
