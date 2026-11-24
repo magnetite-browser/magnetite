@@ -1000,10 +1000,13 @@ pub(super) enum UiCommand {
         #[serde(default)]
         done: bool,
     },
-    /// Dragging the grip over the page at a floating web panel's edge: `x`
-    /// is the pointer on the screen; `done` (on release) keeps the width.
+    /// Dragging the strip beyond a floating web panel's far edge (Linux):
+    /// `x` is where on the screen the strip's middle goes; `done` (on
+    /// release) keeps the width. Without `x`: the strip was pressed, or (with
+    /// `done`) let go without a move.
     WebPanelGrip {
-        x: i32,
+        #[serde(default)]
+        x: Option<i32>,
         #[serde(default)]
         done: bool,
     },

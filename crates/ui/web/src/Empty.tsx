@@ -6,7 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import icon from "./assets/icon.png";
 import { userImageUrl, windowBackground } from "./backgrounds";
 import { Close } from "./Icons";
-import { IS_MAC, applyAppearance, dockedSide, findTab, lookOf, onPageCards, send, subscribe, type PageCards, type SidebarSide, type UiState } from "./bridge";
+import { IS_MAC, IS_WINDOWS, applyAppearance, dockedSide, findTab, lookOf, onPageCards, send, subscribe, type PageCards, type SidebarSide, type UiState } from "./bridge";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
 export function Empty() {
@@ -29,7 +29,7 @@ export function Empty() {
   const space = state.sidebar.spaces.find((s) => s.id === state.active_space);
   const side = dockedSide(appearance);
   const frame = windowBackground("frame", state.chrome, state.active_space, look, side, space?.accent);
-  // Outside macOS this page draws a web panel's grip and close button while no page is there (and on Windows the gap beside a docked panel).
+  // Outside macOS this page draws a web panel's close button while no page is there, and on Windows the gap beside the docked panel that resizes it (on Linux the panel's window has its own strip there, `PanelGrip.tsx`).
   const panel = !IS_MAC && state.web_panel ? findTab(state, state.web_panel) : null;
   const zoom = appearance.text_scale / 100;
   const grip = panel && (
@@ -110,7 +110,7 @@ const CLOSE = { size: 32, margin: 8 };
 const PANEL = { usual: 420, min: 280, rest: 80 };
 
 /**
- * The gap beyond a web panel outside macOS, `width` points wide (the usual width
+ * The gap beyond a docked web panel on Windows, `width` points wide (the usual width
  * without one), and the pages: drag to change the panel's width (the pages
  * follow live), release to keep it, double-click for the usual width. The gap
  * is laid out in window points; lengths on this page grow by `zoom`, its text
@@ -159,7 +159,7 @@ function PanelResizer({ id, width, zoom, side, inset }: { id: string; width?: nu
     >
       <Close size={14} />
     </button>
-    <div
+    {IS_WINDOWS && <div
       className="panel-resizer"
       style={{ ...fromEdge(inset + shown), width: GAP / zoom, top: inset / zoom, bottom: inset / zoom }}
       role="separator"
@@ -205,7 +205,7 @@ function PanelResizer({ id, width, zoom, side, inset }: { id: string; width?: nu
         if (ended.sent) send({ cmd: "web_panel_width", width: width ?? null, done: false });
       }}
       onDoubleClick={() => send({ cmd: "web_panel_width", width: null, done: true })}
-    />
+    />}
     </>
   );
 }

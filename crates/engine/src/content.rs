@@ -499,7 +499,7 @@ impl Engine {
             let mut inner = self.lock();
             inner.win.split = None;
             inner.win.shown = Some(id);
-            // It gets the keyboard (below), back from the grip too.
+            // It gets the keyboard (below), back from a web panel's strip too.
             #[cfg(target_os = "linux")]
             {
                 inner.win.last_focused = Some(id);
@@ -690,8 +690,8 @@ impl Engine {
             }
             peek
         };
-        // The keyboard, back from the grip, goes to the page under it, not
-        // to the peek that goes away (`panel_grip_shown`).
+        // The keyboard, back from the web panel's strip, goes to the page
+        // under it, not to the peek that goes away (`grip_returns_keyboard`).
         #[cfg(target_os = "linux")]
         if ended.is_some() && self.lock().win.last_focused == ended {
             let under = self.top_page_id();
@@ -711,7 +711,7 @@ impl Engine {
         #[cfg(target_os = "linux")]
         if ended {
             self.sync_peek_buttons();
-            // The grip, gone under the peek, is back with the panel.
+            // The web panel's close button, over the page again.
             self.sync_panel_close();
             self.raise_web_panel_after_map();
         }
@@ -748,8 +748,8 @@ impl Engine {
             let mut inner = self.lock();
             let before = inner.win.web_panel.replace(id);
             inner.win.web_panel_width = width;
-            // It gets the keyboard (below), and keeps it when the grip
-            // is shown (`panel_grip_shown`).
+            // It gets the keyboard (below), and gets it back from its strip
+            // (`grip_returns_keyboard`).
             #[cfg(target_os = "linux")]
             {
                 inner.win.last_focused = Some(id);
@@ -782,7 +782,7 @@ impl Engine {
             // The pages make room beside it.
             self.dock_web_panel();
         } else {
-            self.place(id, &self.web_panel_place(width));
+            self.place(id, &self.web_panel_window_place(width));
         }
         // A shadow sets it off from the page it lies on.
         #[cfg(target_os = "macos")]
@@ -807,14 +807,13 @@ impl Engine {
                             (inner.win.web_panel == Some(id)).then_some(inner.win.web_panel_width)
                         };
                         if let Some(width) = width {
-                            engine.place(id, &engine.web_panel_place(width));
+                            engine.place(id, &engine.web_panel_window_place(width));
                         }
                     });
                 }),
                 250,
             );
             crate::panel_stack::keep_above(&window, self.top_page().as_ref(), false);
-            self.raise_panel_grip(true);
         }
         hide_before();
         view.request_focus();
@@ -872,25 +871,30 @@ impl Engine {
         }
     }
 
-    /// The web panel `window` (page `id`) above the pages, its docked
-    /// `DevTools` and device bar above it, and the grip above it too.
-    /// `reshown`: as for `panel_stack::keep_above`.
+    /// The web panel `window` (page `id`) above the pages, and its docked
+    /// `DevTools` and device bar above it. `reshown`: as for
+    /// `panel_stack::keep_above`.
     #[cfg(target_os = "linux")]
     fn lift_web_panel(&self, id: ContentId, window: &Window, reshown: bool) {
         crate::panel_stack::keep_above(window, self.top_page().as_ref(), reshown);
         for docked in self.docked_windows(id) {
             crate::panel_stack::keep_above(&docked, Some(window), reshown);
         }
-        self.raise_panel_grip(reshown);
     }
 
-    /// Page `id` got the keyboard: remembered for when the grip's window
-    /// takes it (`panel_grip_shown`). Under X11 a click raised the page, and
+    /// Page `id` got the keyboard: remembered for when the web panel's strip
+    /// takes it (`grip_returns_keyboard`). Under X11 a click raised the page, and
     /// a window manager that does not keep transient windows above their
     /// parent then has it over the web panel.
     #[cfg(target_os = "linux")]
     pub(crate) fn keep_web_panel_above(&self, id: ContentId) {
-        self.lock().win.last_focused = Some(id);
+        {
+            let mut inner = self.lock();
+            let before = inner.win.last_focused.replace(id);
+            if before != Some(id) {
+                inner.win.keyboard_before = Some((before, std::time::Instant::now()));
+            }
+        }
         if !crate::cef_app::runs_on_x11() {
             return;
         }
@@ -963,7 +967,6 @@ impl Engine {
         for docked in self.docked_windows(panel) {
             docked.bring_to_top();
         }
-        self.raise_panel_grip(false);
         // Raised over by the page: the notifications.
         self.place_notifications();
     }
@@ -1022,6 +1025,12 @@ impl Engine {
         web_panel_rect(&self.page_area(), width, self.sidebar_side())
     }
 
+    /// Where the current window's web panel's window goes: its place, and on
+    /// Linux its strip beyond (`web_panel_window_rect`).
+    pub(crate) fn web_panel_window_place(&self, width: Option<u32>) -> Rect {
+        web_panel_window_rect(&self.web_panel_place(width), self.sidebar_side())
+    }
+
     /// The width a web panel has with the middle of its grip, `grip`
     /// points wide, at `x` on the screen: from the page area's edge on the
     /// sidebar's side to the grip.
@@ -1049,7 +1058,10 @@ impl Engine {
         if WEB_PANEL_DOCKED {
             self.dock_web_panel();
         } else {
-            self.place(id, &web_panel_rect(&area, width, side));
+            self.place(
+                id,
+                &web_panel_window_rect(&web_panel_rect(&area, width, side), side),
+            );
             self.show_dividers();
             // The gap and button of the page behind the tabs moved with it.
             #[cfg(target_os = "linux")]
@@ -1057,8 +1069,8 @@ impl Engine {
         }
         if done {
             self.emit(EngineEvent::WebPanelResized { id, width });
-            // A drag or double click on the grip, which a window manager
-            // may have given the keyboard.
+            // A drag or double click on the strip, which took the keyboard
+            // or whose window a window manager gave it.
             #[cfg(target_os = "linux")]
             self.grip_returns_keyboard();
         }
@@ -1704,6 +1716,16 @@ wrap_window_delegate! {
         // size, in a split and as a web panel too. A frameless child window
         // has no resize handles anyway.
         fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { (self.mini.is_some() || cfg!(target_os = "linux")).into() }
+        // A web panel's strip stays along the window's far edge, also when
+        // the window manager chose the size. Posted: this runs inside the
+        // call that sized the window.
+        fn on_window_bounds_changed(&self, _window: Option<&mut Window>, _new_bounds: Option<&Rect>) {
+            #[cfg(target_os = "linux")]
+            {
+                let id = self.id;
+                Engine::post(Box::new(move || Engine::global().fit_panel_strip(id)));
+            }
+        }
         fn can_minimize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { self.mini.is_some().into() }
         fn is_frameless(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
         fn with_standard_window_buttons(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 0 }
@@ -1737,11 +1759,12 @@ const WEB_PANEL_WIDTH: i32 = 420;
 const WEB_PANEL_MIN: i32 = 280;
 /// The least of the page behind a web panel that stays in sight.
 const WEB_PANEL_REST: i32 = 80;
-/// Width of the grip beside a web panel's edge.
+/// Width of the grip beside a web panel's far edge: the native divider on
+/// macOS, the strip in the panel's window on Linux (`panel_close.rs`).
 pub(crate) const WEB_PANEL_GRIP: i32 = 8;
-/// Where the grip to resize web panel `panel` lies: a strip beside its far
-/// edge from the sidebar's `side`, over the page.
-#[cfg(not(target_os = "windows"))]
+/// Where the grip to resize web panel `panel` lies on macOS: a strip
+/// beside its far edge from the sidebar's `side`, over the page.
+#[cfg(target_os = "macos")]
 pub(crate) fn web_panel_grip(panel: &Rect, side: SidebarSide) -> Rect {
     Rect {
         x: match side {
@@ -1773,6 +1796,25 @@ pub(crate) fn web_panel_rect(area: &Rect, width: Option<u32>, side: SidebarSide)
         },
         width,
         ..area.clone()
+    }
+}
+
+/// Where the window of a web panel in `panel` (`web_panel_rect`) goes, the
+/// sidebar on its `side`: on Linux the strip to resize it is part of it,
+/// beyond its far edge.
+pub(crate) fn web_panel_window_rect(panel: &Rect, side: SidebarSide) -> Rect {
+    let strip = if cfg!(target_os = "linux") {
+        WEB_PANEL_GRIP
+    } else {
+        0
+    };
+    Rect {
+        x: match side {
+            SidebarSide::Left => panel.x,
+            SidebarSide::Right => panel.x - strip,
+        },
+        width: panel.width + strip,
+        ..panel.clone()
     }
 }
 
@@ -1891,17 +1933,30 @@ fn attach_toolbar(view: &BrowserView, shown: bool) {
         ..Default::default()
     }));
     holder.add_child_view(Some(&mut toolbar));
-    // The row would show as a line along the page's top edge (white on
-    // Windows): the window's box starts one point higher, so the row sits
-    // just above the window and the page fills it from its first row.
+    #[cfg(target_os = "linux")]
+    let strip = Engine::global().panel_strip_room(&window);
+    #[cfg(not(target_os = "linux"))]
+    let strip = (0, 0);
+    lay_out_page_window(&window, view, strip);
+}
+
+/// Lay out page window `window` around its page `view`: a box down the
+/// window, the page filling what its toolbar's row leaves, and `strip` (left,
+/// right) points beside the page for a web panel's strip on Linux
+/// (`panel_close.rs`). The hidden toolbar's row would show as a line along
+/// the page's top edge (white on Windows): then the box starts one point
+/// higher, so the row sits just above the window and the page fills it from
+/// its first row.
+pub(crate) fn lay_out_page_window(window: &Window, view: &BrowserView, strip: (i32, i32)) {
+    let hidden_toolbar = window.child_view_at(0).and_then(|v| v.as_panel()).is_some();
     if let Some(layout) = window.set_to_box_layout(Some(&BoxLayoutSettings {
         horizontal: 0,
         cross_axis_alignment: AxisAlignment::STRETCH,
         inside_border_insets: Insets {
-            top: -1,
-            left: 0,
+            top: if hidden_toolbar { -1 } else { 0 },
+            left: strip.0,
             bottom: 0,
-            right: 0,
+            right: strip.1,
         },
         ..Default::default()
     })) {

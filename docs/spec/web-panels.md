@@ -42,8 +42,13 @@ behind it stays as it is, and a second click puts the panel away again.
   under X11 depends on the window manager: under `KWin` the panel can end
   up behind a pane of a split or behind the page after a tab switch. On Windows it sits
   beside the pages, which take the room that is left, with a gap between.
-- Dragging the panel's far edge (on Linux a small handle in the middle of
-  that edge, on Windows the gap beside it) changes its width, between 280 points and all but 80 points of the page area. In a
+- Dragging the panel's far edge changes its width, between 280 points and
+  all but 80 points of the page area: on macOS a thin strip beside it, over
+  the page; on Linux the gap beyond it, as between split pages, which is
+  part of the panel's window (a CEF without magnetite-cef's
+  `window-resize-border.patch` keeps the outer 4 points of a window for
+  itself, so only the strip's inner half takes the pointer); on Windows the
+  gap beside it. In a
   window too narrow for both, the room left
   for the pages counts and the panel is narrower than 280 points. Each
   panel keeps its own width; a double click there gives it the usual one
@@ -101,8 +106,9 @@ Code: `crates/app/src/app/panels.rs` (`open_web_panel`, `settle_web_panel`),
 (`show_web_panel`, `web_panel_rect`, `WEB_PANEL_DOCKED`,
 `resize_web_panel`), `panel_stack.rs` (the panel above the pages on
 Linux), `mac/chrome.rs` (`set_panel_close`, the close button on macOS),
-`panel_close.rs` (the close button elsewhere, the handle on Linux),
+`panel_close.rs` (the close button elsewhere, the strip on Linux),
 `device.rs` (`set_mobile_view`),
 `crates/ui/web/src/Rows.tsx` (the favorite's click and menu entry),
-`PanelGrip.tsx` (the handle on Linux), `Empty.tsx` (`PanelResizer`, the
-grip and close button while no page is there, and on Windows the grip).
+`PanelGrip.tsx` (the strip on Linux), `Empty.tsx` (`PanelResizer`, the
+close button while no page is there, and on Windows the gap beside the
+panel).

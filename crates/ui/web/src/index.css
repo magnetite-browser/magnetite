@@ -672,11 +672,13 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
    as the pages beside the panel have it (`panel_close.rs`). */
 .panel-close { position: fixed; z-index: 60; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgba(31,31,31,0.94); color: rgba(255,255,255,0.88); cursor: default; }
 .panel-close:hover { background: rgb(60,60,62); }
-/* The grip at a floating web panel's edge on Linux, a small window of its own. */
-.panel-grip { position: fixed; inset: 0; display: grid; place-items: center; cursor: col-resize; background: rgb(31,31,31); }
-.panel-grip::after { content: ""; width: 3px; height: 28px; border-radius: 2px; background: rgba(255,255,255,0.55); }
-.panel-grip:hover, .panel-grip:active { background: rgb(60,60,62); }
-.panel-grip:hover::after, .panel-grip:active::after { background: rgba(255,255,255,0.9); }
+/* The strip beyond a floating web panel on Linux (PanelGrip.tsx), part of
+   the panel's window: the gap's colour, with the line of the macOS dividers
+   (`MagnetiteDividerView`) while hovered or dragged. */
+.panel-grip { position: fixed; inset: 0; display: grid; place-items: center; cursor: col-resize; background: var(--bg); }
+.panel-grip::after { content: ""; width: 2px; height: 32px; border-radius: 1px; background: rgba(255,255,255,0.35); visibility: hidden; }
+.panel-grip:hover::after { visibility: visible; }
+.panel-grip[data-dragging]::after { visibility: visible; height: 56px; background: var(--accent); }
 .sidebar-resizer:hover, .sidebar-resizer:active { background: linear-gradient(to left, var(--space-soft, rgba(255,255,255,0.08)) 2px, transparent 2px); }
 .sidebar-resizer[data-side="right"]:hover, .sidebar-resizer[data-side="right"]:active { background: linear-gradient(to right, var(--space-soft, rgba(255,255,255,0.08)) 2px, transparent 2px); }
 

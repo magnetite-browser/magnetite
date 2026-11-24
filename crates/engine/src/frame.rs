@@ -134,8 +134,8 @@ impl Engine {
         Some(result)
     }
 
-    /// The window whose sidebar, top bar, floating sidebar or empty page is browser
-    /// `id`, or whose page it is.
+    /// The window whose sidebar, top bar, floating sidebar, empty page or
+    /// web panel strip is browser `id`, or whose page it is.
     pub(crate) fn window_of_browser(&self, id: i32) -> Option<WindowId> {
         self.find_browser(id).map(|(win, _)| win)
     }
@@ -159,11 +159,16 @@ impl Engine {
             let frame = w.frame.as_ref();
             let float = w.float_bar.as_ref().and_then(|f| f.view.browser());
             let empty = frame.and_then(|f| f.empty.as_ref()?.browser());
+            #[cfg(target_os = "linux")]
+            let strip = w.panel_strip.as_ref().and_then(|(view, _)| view.browser());
+            #[cfg(not(target_os = "linux"))]
+            let strip = None;
             let browser = is(frame.and_then(|f| f.sidebar_browser.as_ref()))
                 .or_else(|| is(empty.as_ref()))
                 .or_else(|| is(frame.and_then(|f| f.top_bar_browser.as_ref())))
                 .or_else(|| is(frame.and_then(|f| f.dev_bar_browser.as_ref())))
-                .or_else(|| is(float.as_ref()))?;
+                .or_else(|| is(float.as_ref()))
+                .or_else(|| is(strip.as_ref()))?;
             Some((win, browser))
         })
     }
@@ -342,9 +347,9 @@ impl Engine {
     }
 
     /// What the page behind the tabs shows by a web panel outside macOS, in
-    /// the window (`Empty.tsx`): the gap beyond it, the grip to resize it,
-    /// and the button to close it, in reach while no page lies over it
-    /// (beside a docked panel, or under a floating one with no page shown).
+    /// the window (`Empty.tsx`): the gap beyond a docked one, which is the
+    /// grip to resize it (a floating one on Linux has its own strip there),
+    /// and the button to close it, in reach while no page lies over it.
     fn docked_controls_in_window(&self) -> Option<[Rect; 2]> {
         let (width, side) = {
             let inner = self.lock();
@@ -937,7 +942,7 @@ impl Engine {
             )
         };
         if let Some(p) = panel {
-            self.place(p, &self.web_panel_place(panel_width));
+            self.place(p, &self.web_panel_window_place(panel_width));
         }
         if let Some(p) = peek {
             self.place(p, &crate::content::peek_rect(&self.content_rect()));

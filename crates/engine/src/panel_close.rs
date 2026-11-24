@@ -2,32 +2,36 @@
 //! the panel's top corner, over the page next to or under it, always in the
 //! same place. It is an overlay view of that page's own window, so it needs
 //! no place in the stacking order. While no page is there, the page behind
-//! the tabs draws the button and the grip (`Empty.tsx`). On macOS the button
-//! is a native window (`mac::set_panel_close`).
+//! the tabs draws the button, and on Windows the gap that resizes a docked
+//! panel (`Empty.tsx`). On macOS the button is a native window
+//! (`mac::set_panel_close`).
 //!
-//! On Linux the panel floats over the page, so the grip to resize it lies
-//! over that page too: a small window of our UI kept above the panel
-//! (`panel_stack.rs`).
+//! On Linux the panel floats over the page, and the strip to resize it is
+//! part of the panel's own window: a slim page of our UI, an overlay along
+//! the window's far edge, beyond the panel's page, where the gap beside a
+//! docked panel would be. So it needs no place among the windows, goes
+//! wherever the panel goes, and the pointer is measured from an edge that
+//! stays put while the panel's width changes.
 
 use cef::*;
 
 use crate::SidebarSide;
+#[cfg(target_os = "linux")]
+use crate::client::MagnetiteClient;
+#[cfg(target_os = "linux")]
+use crate::content::PageView;
 use crate::content::{SPLIT_GAP, WEB_PANEL_DOCKED, web_panel_rect};
 use crate::engine::Engine;
 use crate::events::{ContentId, EngineEvent};
 use crate::glyphs::Glyph;
 
-/// The grip's page.
+/// The strip's page.
 #[cfg(target_os = "linux")]
-const GRIP_URL: &str = "magnetite://ui/panel-grip";
-/// The grip's size, in points. Fixed: a window that cannot be resized
-/// (`OverlayWindowDelegate`) keeps its first one. Not narrower: Chromium
-/// keeps the outer points of a frameless window for itself, and at 8 wide
-/// no pointer event reached the page.
+const STRIP_URL: &str = "magnetite://ui/panel-grip";
+/// Where the strip is: the web panel whose window it is an overlay of, and
+/// the sidebar's side it was laid out for.
 #[cfg(target_os = "linux")]
-const GRIP_WIDTH: i32 = 16;
-#[cfg(target_os = "linux")]
-const GRIP_HEIGHT: i32 = 72;
+pub(crate) type StripPlace = (ContentId, OverlayController, SidebarSide);
 /// The disc's width, in points.
 pub(crate) const SIZE: u16 = 32;
 /// The disc's distance from the top and near edges of the page it is over.
@@ -41,15 +45,15 @@ const DISC: u32 = 0xF01F_1F1F;
 const DISC_HOVERED: u32 = 0xFF3C_3C3E;
 
 impl Engine {
-    /// Keep the close button (and on Linux the grip) at the web panel's
+    /// Keep the close button (and on Linux the strip) at the web panel's
     /// edge: call after pages were shown, hidden or laid out.
     pub(crate) fn sync_panel_close(&self) {
         if cfg!(target_os = "macos") {
             return;
         }
-        let place = self.panel_close_place();
         #[cfg(target_os = "linux")]
-        self.sync_panel_grip(place.is_some());
+        self.sync_panel_strip();
+        let place = self.panel_close_place();
         let old = {
             let mut inner = self.lock();
             if inner.win.panel_close.as_ref().map(|(id, _)| *id)
@@ -103,79 +107,137 @@ impl Engine {
         self.lock().win.panel_close = Some((id, overlay));
     }
 
-    /// The grip in the middle of the floating panel's far edge, while a page lies under
-    /// it (`over_page`) and no peek over it.
+    /// Keep the strip at the far edge of the open web panel's window, beside
+    /// its page, and in no other window.
     #[cfg(target_os = "linux")]
-    fn sync_panel_grip(&self, over_page: bool) {
-        let (grip, panel) = {
+    fn sync_panel_strip(&self) {
+        let (wanted, strip) = {
             let inner = self.lock();
-            let panel = (inner.win.web_panel)
-                .filter(|_| over_page && inner.win.peek.is_none())
-                .and_then(|p| inner.contents.get(&p)?.window.clone());
-            (inner.win.panel_grip.clone(), panel)
+            let wanted = (inner.win.web_panel).and_then(|id| {
+                let c = inner.contents.get(&id)?;
+                let PageView::Chromium(page) = &c.view else {
+                    return None;
+                };
+                Some((id, c.window.clone()?, page.clone()))
+            });
+            (wanted, inner.win.panel_strip.clone())
+        };
+        let (view, held) = match strip {
+            Some(strip) => strip,
+            // The first panel of this window: a strip of its own.
+            None => match wanted.as_ref().and_then(|_| self.new_panel_strip()) {
+                Some(view) => (view, None),
+                None => return,
+            },
         };
         let side = self.sidebar_side();
-        let place = panel.as_ref().map(|p| {
-            let edge = crate::content::web_panel_grip(&p.bounds(), side);
-            Rect {
-                // Wider than the strip, beside the panel all the same.
-                x: match side {
-                    SidebarSide::Left => edge.x,
-                    SidebarSide::Right => edge.x + edge.width - GRIP_WIDTH,
-                },
-                y: edge.y + (edge.height - GRIP_HEIGHT) / 2,
-                width: GRIP_WIDTH,
-                height: GRIP_HEIGHT,
+        if let (Some((id, window, _)), Some((holder, overlay, was))) = (&wanted, &held)
+            && id == holder
+            && *was == side
+            && overlay.is_valid() != 0
+        {
+            // Where it is: only the panel's width or height may be new.
+            overlay.set_bounds(Some(&strip_bounds(window, side)));
+            return;
+        }
+        // The window it was part of is a plain page's again (or the
+        // sidebar changed sides, and it goes to the panel's other edge).
+        if let Some((holder, overlay, _)) = held {
+            if overlay.is_valid() != 0 {
+                overlay.destroy();
+            }
+            if let Some((window, PageView::Chromium(page))) = self.content_handles(holder)
+                && window.is_valid() != 0
+            {
+                crate::content::lay_out_page_window(&window, &page, (0, 0));
+            }
+        }
+        let Some((id, window, page)) = wanted else {
+            self.lock().win.panel_strip = Some((view, None));
+            return;
+        };
+        // One that went with the window it was part of is made again.
+        let Some(view) = Some(view)
+            .filter(|view| view.is_valid() != 0)
+            .or_else(|| self.new_panel_strip())
+        else {
+            return;
+        };
+        let overlay = window.add_overlay_view(Some(&mut View::from(&view)), DockingMode::CUSTOM, 0);
+        let Some(overlay) = overlay else {
+            self.lock().win.panel_strip = Some((view, None));
+            return;
+        };
+        self.lock().win.panel_strip = Some((view, Some((id, overlay.clone(), side))));
+        crate::content::lay_out_page_window(&window, &page, strip_room(side));
+        overlay.set_bounds(Some(&strip_bounds(&window, side)));
+        overlay.set_visible(1);
+    }
+
+    /// Page `id`'s window has a new size, maybe one the window manager
+    /// chose (`KWin` under X11 at first keeps a new window's old one): the
+    /// strip stays along its far edge if it is the web panel's.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn fit_panel_strip(&self, id: ContentId) {
+        let home = self.lock().home_of(id);
+        self.in_window(home, || {
+            let overlay = (self.lock().win.panel_strip.as_ref())
+                .and_then(|(_, held)| held.clone())
+                .filter(|(holder, _, _)| *holder == id);
+            if let (Some((_, overlay, side)), Some(window)) = (overlay, self.page_window(id))
+                && overlay.is_valid() != 0
+            {
+                overlay.set_bounds(Some(&strip_bounds(&window, side)));
             }
         });
-        match (grip, place) {
-            (Some(grip), Some(place)) => {
-                // Moved under the pointer during a drag, the window would
-                // change the screen position Wayland reports for it, and
-                // the width would run away.
-                if !self.lock().win.panel_grip_dragged {
-                    grip.set_bounds(Some(&place));
-                }
-                if grip.is_visible() == 0 {
-                    grip.show();
-                    self.panel_grip_shown();
-                }
-            }
-            (Some(grip), None) => {
-                grip.hide();
-                // A drag cut off by the panel going: no release comes.
-                self.lock().win.panel_grip_dragged = false;
-            }
-            (None, Some(place)) => {
-                self.create_overlay(
-                    place,
-                    GRIP_URL,
-                    0.0,
-                    false,
-                    false,
-                    crate::overlay::Slot::PanelGrip,
-                    false,
-                );
-            }
-            (None, None) => {}
-        }
     }
 
-    /// The grip's window is new or shown again: it goes above the panel,
-    /// and the keyboard stays with the page that has it.
-    #[cfg(not(target_os = "linux"))]
-    #[allow(clippy::unused_self)] // the Linux one is an Engine method
-    pub(crate) fn panel_grip_shown(&self) {}
-
+    /// The room page window `window` leaves beside its page for the strip
+    /// (left, right): none unless it is the web panel's.
     #[cfg(target_os = "linux")]
-    pub(crate) fn panel_grip_shown(&self) {
-        self.raise_panel_grip(false);
-        self.grip_returns_keyboard();
+    pub(crate) fn panel_strip_room(&self, window: &Window) -> (i32, i32) {
+        let held = (self.lock().win.panel_strip.as_ref())
+            .and_then(|(_, held)| held.as_ref().map(|(id, _, side)| (*id, *side)));
+        let room = held.and_then(|(id, side)| {
+            let w = self.page_window(id)?;
+            (View::from(&w).is_same(Some(&mut View::from(window))) != 0).then(|| strip_room(side))
+        });
+        room.unwrap_or((0, 0))
     }
 
-    /// The grip does not keep the keyboard (shown, or used under a window
-    /// manager that activates what is clicked): it goes back to the page
-    /// that had it, if that is still on screen.
+    /// A new strip, for a panel's window to take.
+    #[cfg(target_os = "linux")]
+    fn new_panel_strip(&self) -> Option<BrowserView> {
+        let background = self.lock().win.chrome_color;
+        browser_view_create(
+            Some(&mut MagnetiteClient::overlay()),
+            Some(&CefString::from(STRIP_URL)),
+            Some(&BrowserSettings {
+                background_color: background,
+                ..Default::default()
+            }),
+            None,
+            None,
+            Some(&mut PanelStripDelegate::new()),
+        )
+    }
+
+    /// The strip's page, for state pushes.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn panel_strip_browser(&self) -> Option<Browser> {
+        let strip = self
+            .lock()
+            .win
+            .panel_strip
+            .as_ref()
+            .map(|(view, _)| view.clone());
+        strip?.browser()
+    }
+
+    /// The strip does not keep the keyboard (pressed, or under a window
+    /// manager that activates the panel's window when it is clicked): it
+    /// goes back to the page or panel that had it, if that is still on
+    /// screen.
     #[cfg(target_os = "linux")]
     pub(crate) fn grip_returns_keyboard(&self) {
         let focused = self.lock().win.last_focused;
@@ -186,33 +248,39 @@ impl Engine {
         }
     }
 
-    /// Keep the grip above the panel. `reshown`: the panel was shown again,
-    /// so that under Wayland it lies over the grip now.
-    #[cfg(target_os = "linux")]
-    pub(crate) fn raise_panel_grip(&self, reshown: bool) {
-        let (grip, panel) = {
-            let inner = self.lock();
-            let panel = (inner.win.web_panel).and_then(|p| inner.contents.get(&p)?.window.clone());
-            (inner.win.panel_grip.clone(), panel)
-        };
-        if let (Some(grip), Some(panel)) = (grip, panel)
-            && grip.is_visible() != 0
-        {
-            crate::panel_stack::keep_above(&grip, Some(&panel), reshown);
+    /// The strip beyond the web panel was dragged so that its middle is at
+    /// `x` on the screen (the panel follows); `done` on release keeps the
+    /// width. No `x`: it was pressed (`done` false), or let go without a
+    /// move.
+    pub fn drag_web_panel_grip(&self, x: Option<i32>, done: bool) {
+        match (x, done) {
+            (Some(x), _) => {
+                let wanted = self.web_panel_width_at(x, crate::content::WEB_PANEL_GRIP);
+                self.resize_web_panel(u32::try_from(wanted.max(0)).ok(), done);
+            }
+            #[cfg(target_os = "linux")]
+            (None, false) => self.panel_strip_pressed(),
+            #[cfg(target_os = "linux")]
+            (None, true) => self.grip_returns_keyboard(),
+            #[cfg(not(target_os = "linux"))]
+            (None, _) => {}
         }
     }
 
-    /// The grip was dragged to `x` on the screen (the panel follows); `done`
-    /// on release keeps the width.
-    pub fn drag_web_panel_grip(&self, x: i32, done: bool) {
-        #[cfg(target_os = "linux")]
-        let grip = GRIP_WIDTH;
-        #[cfg(not(target_os = "linux"))]
-        let grip = crate::content::WEB_PANEL_GRIP;
-        // The pointer stays in the middle of the grip.
-        let wanted = self.web_panel_width_at(x, grip);
-        self.lock().win.panel_grip_dragged = !done;
-        self.resize_web_panel(u32::try_from(wanted.max(0)).ok(), done);
+    /// The strip was pressed. The click gave the panel's window the
+    /// keyboard a moment ago, before the strip's page heard of it: the page
+    /// that had it before is the one to get it back (`grip_returns_keyboard`).
+    #[cfg(target_os = "linux")]
+    fn panel_strip_pressed(&self) {
+        let mut inner = self.lock();
+        let win = &mut inner.win;
+        if let Some((before, at)) = win.keyboard_before
+            && win.web_panel.is_some()
+            && win.last_focused == win.web_panel
+            && at.elapsed() < std::time::Duration::from_secs(1)
+        {
+            win.last_focused = before;
+        }
     }
 
     /// The page the button lies over, and where in it. Beside a docked
@@ -264,6 +332,52 @@ impl Engine {
                 ..Default::default()
             },
         ))
+    }
+}
+
+/// Where the strip goes in web panel window `window`, the sidebar on its
+/// `side`: along the far edge, `WEB_PANEL_GRIP` wide, in the room the page
+/// leaves there (`strip_room`).
+#[cfg(target_os = "linux")]
+fn strip_bounds(window: &Window, side: SidebarSide) -> Rect {
+    let bounds = window.bounds();
+    let width = crate::content::WEB_PANEL_GRIP;
+    Rect {
+        x: match side {
+            SidebarSide::Left => bounds.width - width,
+            SidebarSide::Right => 0,
+        },
+        y: 0,
+        width,
+        height: bounds.height,
+    }
+}
+
+/// The room (left, right) a web panel's page leaves in its window for the
+/// strip, the sidebar on its `side`.
+#[cfg(target_os = "linux")]
+fn strip_room(side: SidebarSide) -> (i32, i32) {
+    let width = crate::content::WEB_PANEL_GRIP;
+    match side {
+        SidebarSide::Left => (0, width),
+        SidebarSide::Right => (width, 0),
+    }
+}
+
+#[cfg(target_os = "linux")]
+wrap_browser_view_delegate! {
+    struct PanelStripDelegate {}
+    impl ViewDelegate {}
+    impl BrowserViewDelegate {
+        fn browser_runtime_style(&self) -> RuntimeStyle { RuntimeStyle::ALLOY }
+        fn on_popup_browser_view_created(
+            &self,
+            _browser_view: Option<&mut BrowserView>,
+            _popup_browser_view: Option<&mut BrowserView>,
+            _is_devtools: ::std::os::raw::c_int,
+        ) -> ::std::os::raw::c_int {
+            1
+        }
     }
 }
 

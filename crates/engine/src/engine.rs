@@ -57,13 +57,19 @@ pub(crate) struct WindowState {
     /// The peek's buttons on Linux, and the page whose window they are
     /// overlays of (`peek_buttons.rs`).
     pub peek_buttons: Option<(ContentId, Vec<OverlayController>)>,
-    /// The grip at a floating web panel's edge on Linux (`panel_close.rs`).
-    pub panel_grip: Option<Window>,
-    /// The grip is being dragged: its window stays put until the release.
-    pub panel_grip_dragged: bool,
+    /// The strip beyond a floating web panel's far edge on Linux, to resize
+    /// it, and the panel whose window it is an overlay of, on the side away
+    /// from the sidebar's (none while no panel is open): one per window,
+    /// moved to the panel that opens (`panel_close.rs`).
+    #[cfg(target_os = "linux")]
+    pub panel_strip: Option<(BrowserView, Option<crate::panel_close::StripPlace>)>,
     /// The page or panel that had the keyboard last, on Linux.
     #[cfg(target_os = "linux")]
     pub last_focused: Option<ContentId>,
+    /// When the keyboard last went to another page or panel by itself (a
+    /// click into it), and where it was before (`panel_strip_pressed`).
+    #[cfg(target_os = "linux")]
+    pub keyboard_before: Option<(Option<ContentId>, std::time::Instant)>,
     /// The page last shown alone (`show_content`) and not hidden since.
     pub shown: Option<ContentId>,
     /// Last draggable regions reported by the sidebar page (its own
@@ -100,10 +106,12 @@ impl WindowState {
             web_panel_width: None,
             panel_close: None,
             peek_buttons: None,
-            panel_grip: None,
-            panel_grip_dragged: false,
+            #[cfg(target_os = "linux")]
+            panel_strip: None,
             #[cfg(target_os = "linux")]
             last_focused: None,
+            #[cfg(target_os = "linux")]
+            keyboard_before: None,
             shown: None,
             sidebar_drag: Vec::new(),
             top_bar_drag: Vec::new(),
@@ -461,11 +469,15 @@ impl Engine {
     }
 
     /// Run `js` in every sidebar page, the top bar and the empty page, shown
-    /// or not, and in the overlay (a pop-up of the top bar shows live state):
-    /// state pushes.
+    /// or not, in the overlay (a pop-up of the top bar shows live state) and
+    /// in a web panel's strip on Linux: state pushes.
     pub fn ui_eval_all(&self, js: &str) {
         let overlay = (self.lock().overlay.clone())
             .and_then(|w| w.child_view_at(0)?.as_browser_view()?.browser());
+        #[cfg(target_os = "linux")]
+        let strip = self.panel_strip_browser();
+        #[cfg(not(target_os = "linux"))]
+        let strip = None;
         for browser in [
             self.docked_sidebar_browser(),
             self.float_sidebar_browser(),
@@ -473,6 +485,7 @@ impl Engine {
             self.dev_bar_browser(),
             self.empty_browser(),
             overlay,
+            strip,
         ]
         .into_iter()
         .flatten()
