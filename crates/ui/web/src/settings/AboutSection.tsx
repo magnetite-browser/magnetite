@@ -90,8 +90,7 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
     : st.state === "available" ? `Magnetite ${st.version} is available.`
     : st.state === "system_update" ? `Magnetite ${st.version} is available. Your system's updates install it.`
     : st.state === "installing" ? `Installing Magnetite ${st.version}… Magnetite restarts when it is ready.`
-    : u?.system ? st.error
-    : `The last check failed: ${st.error}`;
+    : st.error;
   return (
     <Group>
       <div className="set-row" data-search-row>
@@ -118,7 +117,7 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
       {guide && st?.state === "system_update" && u?.system && (
         <SystemUpdateDialog version={st.version} system={u.system} onClose={() => setGuide(false)} />
       )}
-      {/* A system package never asks GitHub: the switch would do nothing. */}
+      {/* A system package asks only on "Check now": the switch would do nothing. */}
       {!u?.system && <Toggle
         label="Check for updates automatically"
         hint="At start and once a day Magnetite asks the project's release page on GitHub for a new version: no identifiers, no usage data. Before it installs an update, Magnetite checks it against the release manifest the project's key signed."
@@ -132,24 +131,45 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
 /**
  * How to install an update that the system's package manager brings: in
  * its software centre, or with the command for a terminal. Esc, Close or a
- * click beside it closes it.
+ * click beside it closes it; it opens with Close focused.
  */
 function SystemUpdateDialog({ version, system, onClose }: { version: string; system: SystemPackage; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  // Pressed beside the dialog: a drag that only ends there (selecting the
+  // command) does not close it.
+  const pressedBeside = useRef(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => ref.current?.showModal(), []);
+  useEffect(() => {
+    ref.current?.showModal();
+    // showModal focuses the first button; Enter should not start a program.
+    closeButton.current?.focus();
+  }, []);
   const close = () => ref.current?.close();
   const { centre, command } = system;
   const openCentre = () => send({ cmd: "open_software_centre" }).then(close, (e: Error) => setError(e.message));
   const copy = () => {
     if (!command) return;
-    navigator.clipboard?.writeText(command);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    const copying = navigator.clipboard?.writeText(command) ?? Promise.reject(new Error("no clipboard"));
+    copying.then(
+      () => {
+        setError(null);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      },
+      () => setError("Could not copy the command. Select it and copy it by hand."),
+    );
   };
   return (
-    <dialog ref={ref} className="set-dialog" aria-labelledby="system-update-title" onClose={onClose} onClick={(e) => e.target === e.currentTarget && close()}>
+    <dialog
+      ref={ref}
+      className="set-dialog"
+      aria-labelledby="system-update-title"
+      onClose={onClose}
+      onMouseDown={(e) => (pressedBeside.current = e.target === e.currentTarget)}
+      onClick={(e) => pressedBeside.current && e.target === e.currentTarget && close()}
+    >
       <div className="set-dialog-body">
         <div>
           <div className="set-label" id="system-update-title">Magnetite {version} is available</div>
@@ -160,7 +180,6 @@ function SystemUpdateDialog({ version, system, onClose }: { version: string; sys
         {centre && (
           <div>
             <button className="btn primary" onClick={openCentre}>Open {centre}</button>
-            {error && <p className="set-hint" role="alert">{error}</p>}
           </div>
         )}
         {command && (
@@ -172,10 +191,11 @@ function SystemUpdateDialog({ version, system, onClose }: { version: string; sys
             <code className="set-command">{command}</code>
           </div>
         )}
+        {error && <p className="set-hint" role="alert">{error}</p>}
         <p className="set-hint">Once it is installed, Magnetite offers a restart.</p>
         <div className="flex justify-end gap-2">
           <button className="btn ghost" onClick={() => send({ cmd: "open_update_page" })}>What's new</button>
-          <button className="btn" autoFocus onClick={close}>Close</button>
+          <button ref={closeButton} className="btn" onClick={close}>Close</button>
         </div>
       </div>
     </dialog>

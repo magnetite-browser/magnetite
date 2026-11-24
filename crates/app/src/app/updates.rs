@@ -54,6 +54,20 @@ impl Updater {
         matches!(self.status, update::Status::Installing { .. })
             || (self.system.is_some() && self.found.is_some())
     }
+
+    /// Offer a system package's restart again after it failed: the version
+    /// the package manager installed is still there.
+    fn offer_restart_again(&mut self) {
+        if let (Some(_), Some(m), update::Status::Failed { .. }) =
+            (&self.system, &self.found, &self.status)
+        {
+            self.status = update::Status::Available {
+                version: m.version.clone(),
+                notes_url: m.notes_url.clone(),
+                installable: true,
+            };
+        }
+    }
 }
 
 impl MagnetiteApp {
@@ -121,9 +135,11 @@ impl MagnetiteApp {
     /// package asks only through here ("Check now"): its package manager
     /// installs what the check finds.
     pub(super) fn check_updates(&self, engine: &Engine, ticket: Option<ReplyTicket>) {
-        // The package manager may have installed it already.
+        // The package manager may have installed it already, also before a
+        // restart that failed.
         if self.with_updater(|u| u.system.is_some()) {
             self.system_update_tick(engine);
+            self.with_updater(Updater::offer_restart_again);
         }
         // An install under way keeps its status (and the release it found),
         // as does a system package waiting for its restart.
@@ -198,7 +214,9 @@ impl MagnetiteApp {
                 Ok(_) => update::Status::UpToDate {
                     checked_at: u.last_check,
                 },
-                Err(error) => update::Status::Failed { error },
+                Err(error) => update::Status::Failed {
+                    error: format!("The last check failed: {error}"),
+                },
             };
             let announce = match &u.status {
                 update::Status::Available { version, .. }

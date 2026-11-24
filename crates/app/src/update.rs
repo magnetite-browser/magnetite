@@ -293,10 +293,12 @@ impl SystemBinary {
             return None;
         }
         let path = std::env::current_exe().ok()?.canonicalize().ok()?;
-        let marker = std::fs::read_to_string(path.parent()?.join(SYSTEM_PACKAGE_MARKER)).ok()?;
-        Some(Self {
+        let marker = path.parent()?.join(SYSTEM_PACKAGE_MARKER);
+        marker.exists().then(|| Self {
             modified: modified(&path),
-            package: Package::from_marker(&marker),
+            package: std::fs::read_to_string(&marker)
+                .ok()
+                .and_then(|c| Package::from_marker(&c)),
             path,
         })
     }
@@ -401,8 +403,9 @@ impl SoftwareCentre {
         let (own, others): (Vec<_>, Vec<_>) = SOFTWARE_CENTRES.iter().partition(ours);
         own.into_iter().chain(others).find_map(|c| {
             let program = std::env::split_paths(path)
+                .filter(|dir| dir.is_absolute())
                 .map(|dir| dir.join(c.program))
-                .find(|p| p.is_file())?;
+                .find(|p| runnable(p))?;
             Some(Self {
                 name: c.name,
                 program,
@@ -423,6 +426,18 @@ impl SoftwareCentre {
         std::thread::spawn(move || child.wait());
         Ok(())
     }
+}
+
+/// A file that may be run (on Linux: one with an execute bit).
+fn runnable(path: &Path) -> bool {
+    let Ok(meta) = std::fs::metadata(path) else {
+        return false;
+    };
+    #[cfg(unix)]
+    let runs = std::os::unix::fs::PermissionsExt::mode(&meta.permissions()) & 0o111 != 0;
+    #[cfg(not(unix))]
+    let runs = true;
+    meta.is_file() && runs
 }
 
 /// Start `program` with this run's arguments once Magnetite has quit.
@@ -885,15 +900,26 @@ mod tests {
         assert_eq!(Package::from_marker(""), None, "an older package");
     }
 
+    #[cfg(unix)]
     #[test]
     fn the_software_centre_of_the_desktop_comes_first() {
         let dir = crate::files::test_dir("software-centres");
         let bin = dir.join("bin");
         std::fs::create_dir_all(&bin).unwrap();
-        for program in ["gnome-software", "plasma-discover", "update-manager"] {
-            std::fs::write(bin.join(program), "").unwrap();
+        let program = |dir: &Path, name: &str, mode: u32| {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::create_dir_all(dir).unwrap();
+            std::fs::write(dir.join(name), "").unwrap();
+            std::fs::set_permissions(dir.join(name), std::fs::Permissions::from_mode(mode))
+                .unwrap();
+        };
+        for name in ["gnome-software", "plasma-discover", "update-manager"] {
+            program(&bin, name, 0o755);
         }
-        let path = std::env::join_paths([dir.join("none"), bin.clone()]).unwrap();
+        // Earlier on PATH, but a file that may not run.
+        let leftover = dir.join("leftover");
+        program(&leftover, "plasma-discover", 0o644);
+        let path = std::env::join_paths([dir.join("none"), leftover, bin.clone()]).unwrap();
         let name = |desktop| SoftwareCentre::find_in(&path, desktop).map(|c| c.name);
         assert_eq!(name("KDE"), Some("Discover"));
         assert_eq!(name("ubuntu:GNOME"), Some("Software"));
