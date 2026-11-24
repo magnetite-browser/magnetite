@@ -24,7 +24,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 # README, "Checking a release"). THIRD_PARTY_NOTICES.md and
 # docs/legal/license-compatibility.md name what is pinned here (the release,
 # its Chromium version, the CEF commit): change them with it.
-RELEASE=156.0.31-6
+RELEASE=156.0.31-7
 NAME="cef_binary_156.0.31+ge603d97+chromium-156.0.8078.111"
 
 case ${1:-} in
@@ -33,15 +33,15 @@ esac
 case "$(host_os)-$(host_arch)" in
   macos-aarch64)
     ARCHIVE="${NAME}_macosarm64_minimal.tar.bz2"
-    SHA256=ad9a160b0521276e31b433a8df456ef5c6d2848e321ec766f5b2f90546b0d24a
+    SHA256=59057737f6d4f41c226e5558627f1d3624e81dc09a3c97f762ea8406eb7f161b
     ;;
   linux-x86_64)
     ARCHIVE="${NAME}_linux64_minimal.tar.bz2"
-    SHA256=dbc996810ce2fa5f58113bb83248859b5c02a6fcb0e4e7903d545a4367fd974c
+    SHA256=40e8f8690a87c08cb4ff5eec8298655015ad86a9390388c6678c709372f0140e
     ;;
   windows-x86_64)
     ARCHIVE="${NAME}_windows64_minimal.tar.bz2"
-    SHA256=44127140be14e2e974bad30542b4069dcd130b65badc4c6b3aa80656e27b9c3f
+    SHA256=2263b699638cec721bf0d2b2c0a014f1a9317ebd8233194bf8dcd3d2a4cec70c
     ;;
   *) die "Magnetite's own CEF build is for macOS on Apple silicon, Linux on x86_64 and Windows on x86_64 only" ;;
 esac
