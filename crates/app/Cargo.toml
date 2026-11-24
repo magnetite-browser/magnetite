@@ -25,6 +25,7 @@ dox = ["magnetite-engine/dox"]
 
 [dependencies]
 magnetite-core.workspace = true
+magnetite-ui.workspace = true
 magnetite-engine.workspace = true
 magnetite-importer.workspace = true
 magnetite-sync-proto.workspace = true

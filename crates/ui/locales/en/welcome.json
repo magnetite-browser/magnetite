@@ -1,0 +1,230 @@
+{
+  "title": "Welcome",
+  "steps": {
+    "welcome": "Welcome",
+    "sync": "Your devices",
+    "import": "Your tabs",
+    "privacy": "Search and ads",
+    "look": "Look",
+    "habits": "Tabs and links",
+    "done": "Ready",
+    "position": "Step {step} of {total}"
+  },
+  "rail_note": "No account, no telemetry. Everything asked here is in Settings as well.",
+  "count": {
+    "spaces_one": "{count} space",
+    "spaces_other": "{count} spaces",
+    "tabs_one": "{count} tab",
+    "tabs_other": "{count} tabs",
+    "bookmarks_one": "{count} bookmark",
+    "bookmarks_other": "{count} bookmarks"
+  },
+  "start": {
+    "title": "Welcome to Magnetite",
+    "intro": "A browser built around a sidebar: spaces for the things you do, tabs that tidy themselves up, and nothing about you collected anywhere.",
+    "again": "The questions of the first start, once more. Nothing you have set changes until you choose something.",
+    "new": {
+      "title": "I am new here",
+      "hint": "Bring your tabs along from another browser and answer a few short questions."
+    },
+    "join": {
+      "title": "I use Magnetite already",
+      "hint": "Enter the sync code of another device: your spaces and tabs come from there."
+    }
+  },
+  "sketch": {
+    "favorites": "Favorites",
+    "pinned": "Pinned",
+    "today": "Today",
+    "spaces": "Spaces"
+  },
+  "sync": {
+    "syncing_title": "This device syncs",
+    "join": {
+      "title": "Join your other devices",
+      "intro": "Enter the 24 words that Settings → Sync shows on a device that syncs already. This device then takes the sidebar of the others, encrypted all the way; the server never sees what is in it.",
+      "syncing": "Your spaces, pinned tabs and favorites arrive from the chain, and with them when tabs are tidied up, where links open and your shortcuts. There is nothing to import."
+    },
+    "create": {
+      "title": "Sync with your other devices",
+      "intro": "Optional. With sync, your spaces, pinned tabs and favorites are the same on all your computers, encrypted before they leave this one. No account. It can wait: Settings → Sync has the same.",
+      "syncing": "Enter the 24 words below on your other devices, under Settings → Sync or on their welcome page. They take the sidebar of this one."
+    }
+  },
+  "import": {
+    "title": "Bring your tabs along",
+    "intro": "Choose a browser to see what it has. Magnetite reads its open and pinned tabs, tab groups and bookmarks, never passwords, cookies or history, and nothing leaves this computer. It all comes in when you start browsing.",
+    "none_found": "No other browser found on this computer.",
+    "browser": {
+      "reading": "Reading…",
+      "failed": "Could not be read",
+      "empty": "Nothing to bring along",
+      "not_coming": "Not coming along",
+      "coming": "Coming along",
+      "all_off": "All spaces switched off",
+      "unread": "Show what it has",
+      "error": "{browser}: {error}"
+    },
+    "sidebar": {
+      "title": "Your sidebar, as it will start",
+      "hint": "Each line is a space: a sidebar of its own for one part of your day, such as work or private, with its own tabs. You switch between spaces in the sidebar. Change a name or an icon here, or switch off a space you do not want."
+    },
+    "from": {
+      "spaces": "From {browser}",
+      "spaces_favorites_one": "From {browser}, with {count} favorite",
+      "spaces_favorites_other": "From {browser}, with {count} favorites",
+      "plain": "From {browser}: it has no spaces, so everything comes in as one. Give it the name you want.",
+      "plain_favorites_one": "From {browser}: it has no spaces, so everything comes in as one. Give it the name you want. {count} favorite comes along too.",
+      "plain_favorites_other": "From {browser}: it has no spaces, so everything comes in as one. Give it the name you want. {count} favorites come along too."
+    },
+    "space": {
+      "choose_icon": "Choose an icon",
+      "icon_of": "Icon of the space {name}",
+      "name_of": "Name of the space {name}",
+      "bring_along": "Bring {name} along",
+      "stays_behind": "Stays behind",
+      "contents": "{tabs}, {bookmarks}",
+      "same_name": "Another space coming in is called \"{name}\": this one stays a space of its own, as \"{final}\"."
+    },
+    "passwords": "<b>Passwords and extensions</b> are not read. Magnetite offers to save a password the next time you sign in somewhere, and Chrome extensions, a password manager among them, install from the Chrome Web Store (Settings → Extensions).",
+    "safari": "<b>Coming from Safari?</b> macOS keeps its tabs from other apps. Export its bookmarks there (File → Export → Bookmarks…) and import the file later under Settings → Bookmarks."
+  },
+  "privacy": {
+    "title": "Search and ads",
+    "intro": "Two choices about what leaves this computer. Magnetite itself sends nothing anywhere.",
+    "search": {
+      "label": "Search with",
+      "hint": "Used when what you type in the command bar is not a web address. Nothing goes to it until you search; more are in Settings → Search."
+    },
+    "ads": {
+      "label": "Ads and trackers",
+      "hint": "Websites load ads and trackers from known addresses. A filter list names those addresses, and Magnetite stops what is on it before it loads. Each list is downloaded from its publisher, who sees your IP address as any website does; what you browse is never sent.",
+      "list_from": "From {host}.",
+      "recommended": {
+        "title": "Block with the recommended lists",
+        "hint_one": "{count} list against ads, trackers and \"turn off your ad blocker\" walls.",
+        "hint_other": "{count} lists against ads, trackers and \"turn off your ad blocker\" walls."
+      },
+      "own": {
+        "title": "Choose the lists myself",
+        "hint_one": "All {count} list, to turn on one by one.",
+        "hint_other": "All {count} lists, to turn on one by one.",
+        "none": "Choose at least one list: without one, nothing is blocked."
+      },
+      "off": {
+        "title": "Do not block",
+        "hint": "Nothing is downloaded. You can turn it on later in Settings → Content blocking."
+      },
+      "fetched_first_site_one": "Nothing is downloaded yet: the list is fetched when you open your first website.",
+      "fetched_first_site_other": "Nothing is downloaded yet: the lists are fetched when you open your first website.",
+      "fetched_on_continue_one": "Nothing is downloaded yet: the list is fetched when you continue.",
+      "fetched_on_continue_other": "Nothing is downloaded yet: the lists are fetched when you continue.",
+      "lists_on": "These lists are on.",
+      "failed": "Ad blocking could not be set: {error}"
+    }
+  },
+  "look": {
+    "title": "How it looks",
+    "intro": "The sidebar and Magnetite's own pages; web pages keep their own design. This page follows what you choose. Each space can have a color and a background of its own later, in Settings → Appearance.",
+    "layout": {
+      "label": "Back, forward and the address",
+      "hint": "At the top of the sidebar, which leaves the whole height of the window to the page, or in a bar across the window, where most browsers have them. With the bar, the sidebar can also sit on the right.",
+      "sidebar": "In the sidebar",
+      "top_bar": "In a bar on top",
+      "top_bar_right": "On top, sidebar right"
+    },
+    "text_size": {
+      "label": "Text size",
+      "hint": "Of the sidebar, the command bar and pages like this one. Web pages zoom on their own.",
+      "small": "Small",
+      "normal": "Normal",
+      "large": "Large",
+      "largest": "Largest"
+    },
+    "density": {
+      "label": "Rows in the sidebar",
+      "hint": "How high the rows of tabs are and how far apart.",
+      "compact": "Compact",
+      "comfortable": "Comfortable",
+      "spacious": "Spacious"
+    }
+  },
+  "habits": {
+    "title": "Tabs and links",
+    "intro": "Magnetite tidies up behind you: pages you are not looking at stop using memory, and tabs you forgot leave the sidebar. This is how it starts, and most people leave it so.",
+    "unload": {
+      "title": "Unload a page that is off screen for",
+      "hint": "An unloaded page uses no memory. Its tab stays, and the page loads again when you open it. Favorites stay loaded."
+    },
+    "archive": {
+      "title": "Archive a Today tab not used for",
+      "hint": "Today tabs are the ones you open as you go. Left alone this long, a tab moves from the sidebar to the archive, where you find it again. Pinned tabs and favorites stay."
+    },
+    "links": {
+      "title": "Open links from other apps in",
+      "hint": "Links from Mail, Slack and other apps, when Magnetite is your default browser. A mini window is a small window of its own; one click moves its page into a space."
+    },
+    "something_else": "Something else"
+  },
+  "done": {
+    "title": "Ready when you are",
+    "intro": "This is what you chose; all of it can be changed in Settings.",
+    "intro_importing": "Your tabs come in when you start browsing. This is what you chose; all of it can be changed in Settings.",
+    "tabs": {
+      "label": "Tabs",
+      "from": "From {browsers}",
+      "browser": "{browser} ({spaces}, {tabs})",
+      "and": "{rest} and {last}",
+      "fresh": "A fresh start, nothing imported"
+    },
+    "search": {
+      "label": "Search",
+      "own": "Your own"
+    },
+    "ads": {
+      "label": "Ads and trackers",
+      "off": "Not blocked",
+      "on_one": "Blocked with {count} list",
+      "on_other": "Blocked with {count} lists"
+    },
+    "tabs_left": {
+      "label": "Tabs left alone",
+      "archived": "Unloaded after {unload}, archived after {archive}",
+      "never_archived": "Unloaded after {unload}, never archived",
+      "a_while": "a while"
+    },
+    "look": {
+      "label": "Look",
+      "summary": "{layout}, {text}",
+      "sidebar": "Everything in the sidebar",
+      "top_bar": "A bar on top",
+      "top_bar_right": "A bar on top, the sidebar on the right",
+      "small": "small text",
+      "normal": "normal text",
+      "large": "large text",
+      "largest": "largest text",
+      "percent": "{percent}% text"
+    },
+    "sync": {
+      "label": "Sync",
+      "on": "With your other devices",
+      "off": "Only on this computer"
+    },
+    "more_keys": "More in Settings → Shortcuts.",
+    "default_browser": {
+      "label": "Make Magnetite the default browser",
+      "hint": "Links from Mail, Slack and other apps then open here. macOS asks you to confirm right after you start browsing."
+    },
+    "import_failed_one": "{failures} Nothing was imported. Start again to go on without it.",
+    "import_failed_other": "{failures} Nothing was imported. Start again to go on without them."
+  },
+  "actions": {
+    "skip": "Skip the questions",
+    "go_through": "Go through them",
+    "go_on_without": "Go on without",
+    "not_now": "Not now",
+    "start_fresh": "Start fresh",
+    "importing": "Importing…",
+    "start": "Start browsing"
+  }
+}

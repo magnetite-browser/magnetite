@@ -1,6 +1,7 @@
 //! Texts of Chromium's own dialogs that Magnetite words differently. Only
 //! the screen-share dialog so far: it calls the browser "Chromium", and its
-//! tab list leaves out most of the sidebar without saying so.
+//! tab list leaves out most of the sidebar without saying so. Also what
+//! Chromium calls a download it has not named yet.
 //!
 //! Chromium asks `Strings` for every text it shows, on any thread and in
 //! every process, so all but the few texts listed here are turned down at
@@ -30,17 +31,12 @@ const NAMES_THE_BROWSER: [&CStr; 7] = [
     c"IDS_DESKTOP_MEDIA_PICKER_SYSTEM_AUDIO_PERMISSION_TEXT_MAC",
 ];
 
-/// The text beside the tab list while no tab is picked.
+/// The text beside the tab list while no tab is picked; it gets a hint
+/// (`reword`).
 const TAB_LIST_PROMPT: &CStr = c"IDS_DESKTOP_MEDIA_PICKER_EMPTY_PREVIEW";
 
-/// Added to `TAB_LIST_PROMPT`. The list holds the tabs Chromium has a page
-/// for, in the profile of the tab that asks: a tab the sidebar shows but
-/// that is not loaded is missing, and the list can be empty.
-const TAB_LIST_HINT: &str = "Only loaded tabs of this profile are listed.";
-
-/// The English of `TAB_LIST_PROMPT`. The hint is English, so it is added to
-/// this text only and other languages keep Chromium's.
-const TAB_LIST_PROMPT_ENGLISH: &str = "Select a tab to share";
+/// Endings of a sentence: after one the hint follows with a space only.
+const SENTENCE_ENDS: [char; 7] = ['.', '!', '?', '…', '。', '！', '？'];
 
 /// How a text is changed.
 #[derive(Clone, Copy)]
@@ -65,15 +61,39 @@ fn changes() -> &'static [(c_int, Change)] {
 }
 
 /// `text` as Magnetite words it; `None` leaves Chromium's.
+///
+/// The tab list's prompt gets a hint in Magnetite's language, which is
+/// Chromium's too (`bootstrap.rs`): the list holds the tabs Chromium has a
+/// page for, in the profile of the tab that asks, so a tab the sidebar
+/// shows but that is not loaded is missing, and the list can be empty.
 fn reword(change: Change, text: &str) -> Option<String> {
     match change {
         Change::Rename => text
             .contains(THEIR_NAME)
             .then(|| text.replace(THEIR_NAME, OUR_NAME)),
         Change::AddTabHint => {
-            (text == TAB_LIST_PROMPT_ENGLISH).then(|| format!("{text}. {TAB_LIST_HINT}"))
+            let text = text.trim_end();
+            let hint = magnetite_ui::t!("app.screen_share.tab_hint");
+            Some(if text.ends_with(SENTENCE_ENDS) {
+                format!("{text} {hint}")
+            } else {
+                format!("{text}. {hint}")
+            })
         }
     }
+}
+
+/// What Chromium calls a download before its file is picked
+/// (`Unconfirmed 4711.crdownload`), in the language of its UI.
+pub(crate) fn unconfirmed_download() -> &'static str {
+    static PREFIX: OnceLock<String> = OnceLock::new();
+    PREFIX.get_or_init(|| {
+        // SAFETY: the name is NUL-terminated, and CEF only reads it.
+        let id = unsafe {
+            sys::cef_id_for_pack_string_name(c"IDS_DOWNLOAD_UNCONFIRMED_PREFIX".as_ptr())
+        };
+        chromium_text(id).unwrap_or_else(|| "Unconfirmed".to_string())
+    })
 }
 
 thread_local! {
@@ -124,11 +144,14 @@ mod tests {
     }
 
     #[test]
-    fn the_hint_follows_the_english_prompt_only() {
+    fn the_hint_follows_the_prompt_as_a_sentence_of_its_own() {
         assert_eq!(
             reword(Change::AddTabHint, "Select a tab to share").as_deref(),
             Some("Select a tab to share. Only loaded tabs of this profile are listed.")
         );
-        assert_eq!(reword(Change::AddTabHint, "Tab zum Teilen auswählen"), None);
+        assert_eq!(
+            reword(Change::AddTabHint, "Choisissez un onglet à partager.").as_deref(),
+            Some("Choisissez un onglet à partager. Only loaded tabs of this profile are listed.")
+        );
     }
 }

@@ -22,6 +22,7 @@ import { dragging, endDrag, indexAfterTaking, movedIds } from "./dnd";
 import { useSpaceSwipe } from "./useSpaceSwipe";
 import { keysHint, keysLabel } from "./settings/shortcutKeys";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
+import { t } from "./i18n";
 
 /**
  * `magnetite://ui/?float`: this page is the sidebar floating over the pages while
@@ -163,24 +164,24 @@ export function App() {
     };
     if (target.id === state.private_space) {
       return openMenu(x, y, [
-        { label: "Hide private space", onClick: () => send({ cmd: "hide_private_space" }) },
-        { label: "Close private space", danger: true, onClick: () => send({ cmd: "close_private_space" }) },
+        { label: t("sidebar.space.hide_private"), onClick: () => send({ cmd: "hide_private_space" }) },
+        { label: t("sidebar.space.close_private"), danger: true, onClick: () => send({ cmd: "close_private_space" }) },
       ]);
     }
     openMenu(x, y, [
       // Name, icon, colour and background; switches first, so the changes show.
-      { label: "Space settings…", onClick: there(() => send({ cmd: "space_dialog", id: target.id })) },
-      { label: "New folder", onClick: there(() => send({ cmd: "new_folder", title: "" })) },
+      { label: t("sidebar.space_menu.settings"), onClick: there(() => send({ cmd: "space_dialog", id: target.id })) },
+      { label: t("sidebar.space_menu.new_folder"), onClick: there(() => send({ cmd: "new_folder", title: "" })) },
       SEPARATOR,
       ...state.sidebar.profiles.map((p) => ({
-        label: `${p.id === target.profile_id ? "● " : "○ "}Profile: ${p.name}`,
+        label: `${p.id === target.profile_id ? "● " : "○ "}${t("sidebar.profile.item", { name: p.name })}`,
         onClick: () => p.id !== target.profile_id && send({ cmd: "set_space_profile", id: target.id, profile: p.id }),
       })),
-      { label: "New profile for this space…", onClick: there(() => send({ cmd: "open_palette", mode: "new_profile" })) },
+      { label: t("sidebar.space_menu.new_profile"), onClick: there(() => send({ cmd: "open_palette", mode: "new_profile" })) },
       ...(state.sidebar.spaces.length > 1
         ? [
             SEPARATOR,
-            { label: "Delete space…", confirm: "Click again to delete space", danger: true, onClick: () => send({ cmd: "delete_space", id: target.id }) },
+            { label: t("sidebar.space_menu.delete"), confirm: t("sidebar.space_menu.delete_confirm"), danger: true, onClick: () => send({ cmd: "delete_space", id: target.id }) },
           ]
         : []),
     ]);
@@ -195,22 +196,22 @@ export function App() {
       {/* Traffic-light band (macOS keeps room for the window's buttons): sidebar toggle left, navigation right. Empty space drags the window. */}
       <div className={`titlebar-drag hdr flex h-[42px] shrink-0 items-center gap-0.5 ${FLOAT || !IS_MAC ? "pl-2" : "pl-[86px]"} pr-2`}>
         {windowButtons}
-        <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={`${FLOAT ? "Keep the sidebar open" : "Hide sidebar"}${keysHint(state.keys, "toggle_sidebar")}`}><SidebarIcon /></button>
+        <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={`${FLOAT ? t("sidebar.header.keep_open") : t("sidebar.header.hide")}${keysHint(state.keys, "toggle_sidebar")}`}><SidebarIcon /></button>
         {!extensionBar && <PinnedExtensions state={state} openMenu={openMenu} />}
         <span className="flex-1" />
-        <button className="ib nav no-drag" disabled={!frontRt?.can_go_back} onClick={() => send({ cmd: "go_back" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: -1 })} title={`Back (${keyLabel("⌘[", "Alt+←")})`}><Back /></button>
-        <button className="ib nav no-drag" disabled={!frontRt?.can_go_forward} onClick={() => send({ cmd: "go_forward" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: 1 })} title={`Forward (${keyLabel("⌘]", "Alt+→")})`}><Forward /></button>
-        <button className="ib no-drag" disabled={!activeItem && !state.peek} onClick={() => send({ cmd: "reload" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: 0 })} title={`Reload (${keyLabel("⌘R")})`}><Reload /></button>
+        <button className="ib nav no-drag" disabled={!frontRt?.can_go_back} onClick={() => send({ cmd: "go_back" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: -1 })} title={`${t("common.back")} (${keyLabel("⌘[", "Alt+←")})`}><Back /></button>
+        <button className="ib nav no-drag" disabled={!frontRt?.can_go_forward} onClick={() => send({ cmd: "go_forward" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: 1 })} title={`${t("sidebar.header.forward")} (${keyLabel("⌘]", "Alt+→")})`}><Forward /></button>
+        <button className="ib no-drag" disabled={!activeItem && !state.peek} onClick={() => send({ cmd: "reload" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: 0 })} title={`${t("sidebar.header.reload")} (${keyLabel("⌘R")})`}><Reload /></button>
       </div>
 
       {/* Address field, or the peek pill in the same slot so nothing moves */}
       <div className="shrink-0 px-2">
         {state.peek ? (
           <div className="urlbar no-drag" data-peek>
-            <span className="min-w-0 flex-1 truncate"><span className="text-[var(--muted)]">Peek · </span>{state.peek.title || hostOf(state.peek.url)}</span>
-            <button className="h-6 shrink-0 rounded-md bg-white/10 px-2 text-[12px] font-medium hover:bg-white/15" title={`Keep as tab (${keyLabel("⌘O")})`} onClick={() => send({ cmd: "peek_to_tab" })}>Keep</button>
-            <button className="ib sm shrink-0" title="Open in split view" aria-label="Open in split view" onClick={() => send({ cmd: "peek_to_split" })}><SplitIcon width={14} height={14} /></button>
-            <button className="ib sm shrink-0" title="Close (Esc)" onClick={() => send({ cmd: "close_peek" })}><Close width={14} height={14} /></button>
+            <span className="min-w-0 flex-1 truncate"><span className="text-[var(--muted)]">{t("sidebar.peek.label")} · </span>{state.peek.title || hostOf(state.peek.url)}</span>
+            <button className="h-6 shrink-0 rounded-md bg-white/10 px-2 text-[12px] font-medium hover:bg-white/15" title={`${t("sidebar.peek.keep_as_tab")} (${keyLabel("⌘O")})`} onClick={() => send({ cmd: "peek_to_tab" })}>{t("sidebar.peek.keep")}</button>
+            <button className="ib sm shrink-0" title={t("sidebar.peek.open_in_split")} aria-label={t("sidebar.peek.open_in_split")} onClick={() => send({ cmd: "peek_to_split" })}><SplitIcon width={14} height={14} /></button>
+            <button className="ib sm shrink-0" title={`${t("common.close")} (Esc)`} onClick={() => send({ cmd: "close_peek" })}><Close width={14} height={14} /></button>
           </div>
         ) : (
           <AddressRow state={state} item={activeItem} rt={activeRt} onEdit={() => send({ cmd: "open_palette", mode: activeItem ? "navigate" : "new" })} openMenu={openMenu} />
@@ -229,18 +230,18 @@ export function App() {
         <div className="space-title" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }}>
           <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: "var(--space)" }}><MaskIcon width={15} height={15} /></span>
           <span className="truncate">{space.title}</span>
-          <button className="ib sm ml-auto" title={`Hide private space${keysHint(state.keys, "hide_private_space")}`} aria-label="Hide private space" onClick={() => send({ cmd: "hide_private_space" })}><PrivateIcon width={14} height={14} /></button>
-          <button className="ib sm" title={`Close private space${keysHint(state.keys, "close_private_space")}`} aria-label="Close private space" onClick={() => send({ cmd: "close_private_space" })}><Close width={14} height={14} /></button>
+          <button className="ib sm ml-auto" title={`${t("sidebar.space.hide_private")}${keysHint(state.keys, "hide_private_space")}`} aria-label={t("sidebar.space.hide_private")} onClick={() => send({ cmd: "hide_private_space" })}><PrivateIcon width={14} height={14} /></button>
+          <button className="ib sm" title={`${t("sidebar.space.close_private")}${keysHint(state.keys, "close_private_space")}`} aria-label={t("sidebar.space.close_private")} onClick={() => send({ cmd: "close_private_space" })}><Close width={14} height={14} /></button>
         </div>
         ) : (
         <div className="space-title group" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }} onDoubleClick={() => setRenamingSpace(space.id)}>
-          <button className="grid h-5 w-5 shrink-0 place-items-center rounded-md" style={{ color: "var(--space)" }} title="Change icon" onClick={(e) => pickSpaceIcon(e.clientX, e.clientY)}><SpaceIcon space={space} size={15} /></button>
+          <button className="grid h-5 w-5 shrink-0 place-items-center rounded-md" style={{ color: "var(--space)" }} title={t("sidebar.space.change_icon")} onClick={(e) => pickSpaceIcon(e.clientX, e.clientY)}><SpaceIcon space={space} size={15} /></button>
           {renamingSpace === space.id ? (
             <RenameInput value={space.title} onCommit={(title) => { send({ cmd: "rename_space", id: space.id, title }); setRenamingSpace(null); }} onCancel={() => setRenamingSpace(null)} />
           ) : (
             <span className="truncate">{space.title}</span>
           )}
-          <button className="ib sm ml-auto opacity-0 group-hover:opacity-100" title="Space options" onClick={(e) => spaceMenu(e.clientX, e.clientY)}><Dots width={14} height={14} /></button>
+          <button className="ib sm ml-auto opacity-0 group-hover:opacity-100" title={t("sidebar.space.options")} onClick={(e) => spaceMenu(e.clientX, e.clientY)}><Dots width={14} height={14} /></button>
         </div>
         )}
 
@@ -251,7 +252,7 @@ export function App() {
 
         <div className="divider">
           <hr />
-          {space.today.length > 0 && <button title={isPrivate ? "Close all private tabs" : "Archive all Today tabs"} onClick={(e) => !movedUnder(e) && send({ cmd: "archive_today" })}>Clear</button>}
+          {space.today.length > 0 && <button title={isPrivate ? t("sidebar.today.clear_private_title") : t("sidebar.today.clear_title")} onClick={(e) => !movedUnder(e) && send({ cmd: "archive_today" })}>{t("common.clear")}</button>}
         </div>
 
         <div
@@ -259,9 +260,9 @@ export function App() {
           onDragOver={(e) => dragging()?.kind === "tab" && e.preventDefault()}
           onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); dropToday(space.today.length); endDrag(); }}
         >
-          <button className="row newtab w-full" onClick={() => send({ cmd: "open_palette", mode: "new" })} title={`${isPrivate ? "New private tab" : "New tab"}${keysHint(state.keys, "new_tab")}`}>
+          <button className="row newtab w-full" onClick={() => send({ cmd: "open_palette", mode: "new" })} title={`${isPrivate ? t("sidebar.today.new_private_tab_title") : t("sidebar.today.new_tab_title")}${keysHint(state.keys, "new_tab")}`}>
             <span className="icon-slot"><Plus width={15} height={15} /></span>
-            <span className="title text-left">{isPrivate ? "New Private Tab" : "New Tab"}</span>
+            <span className="title text-left">{isPrivate ? t("sidebar.today.new_private_tab") : t("common.new_tab")}</span>
           </button>
           {looseSplit && <SplitRow ctx={ctx} split={looseSplit} />}
           {space.today.map((t, i) => (
@@ -280,7 +281,7 @@ export function App() {
         <SpaceSwitcher spaces={state.sidebar.spaces} current={space.id} privateSpace={state.private_space} onMenu={spaceMenu} />
         <button
           className="ib lg plus-btn"
-          aria-label={newMenu ? "Close menu" : "New…"}
+          aria-label={newMenu ? t("sidebar.new_menu.close") : t("sidebar.new_menu.open")}
           aria-expanded={newMenu}
           data-open={newMenu || undefined}
           onMouseDown={(e) => newMenu && e.stopPropagation()}
@@ -294,14 +295,14 @@ export function App() {
           onClose={closeNewMenu}
           groups={[
             [
-              { id: "space", label: "New Space", Icon: SpacePlus, shortcut: keysLabel(state.keys.new_space), run: () => send({ cmd: "open_palette", mode: "new_space" }) },
-              { id: "private", label: "Private Space", Icon: MaskIcon, shortcut: keysLabel(state.keys.private_space), run: () => send({ cmd: "open_private_space" }) },
-              { id: "folder", label: "New Folder", Icon: FolderIcon, disabled: isPrivate, run: () => send({ cmd: "new_folder", title: "" }) },
-              { id: "smart", label: "New Smart Folder", Icon: SmartFolderIcon, disabled: isPrivate, run: () => send({ cmd: "smart_folder_dialog" }) },
+              { id: "space", label: t("sidebar.new_menu.space"), Icon: SpacePlus, shortcut: keysLabel(state.keys.new_space), run: () => send({ cmd: "open_palette", mode: "new_space" }) },
+              { id: "private", label: t("sidebar.new_menu.private_space"), Icon: MaskIcon, shortcut: keysLabel(state.keys.private_space), run: () => send({ cmd: "open_private_space" }) },
+              { id: "folder", label: t("sidebar.new_menu.folder"), Icon: FolderIcon, disabled: isPrivate, run: () => send({ cmd: "new_folder", title: "" }) },
+              { id: "smart", label: t("sidebar.new_menu.smart_folder"), Icon: SmartFolderIcon, disabled: isPrivate, run: () => send({ cmd: "smart_folder_dialog" }) },
             ],
             [
-              { id: "split", label: "New Split", Icon: SplitIcon, disabled: !activeItem, run: () => send({ cmd: "open_palette", mode: "split" }) },
-              { id: "tab", label: isPrivate ? "New Private Tab" : "New Tab", Icon: TabPlus, shortcut: keysLabel(state.keys.new_tab), run: () => send({ cmd: "open_palette", mode: "new" }) },
+              { id: "split", label: t("sidebar.new_menu.split"), Icon: SplitIcon, disabled: !activeItem, run: () => send({ cmd: "open_palette", mode: "split" }) },
+              { id: "tab", label: isPrivate ? t("sidebar.new_menu.private_tab") : t("common.new_tab"), Icon: TabPlus, shortcut: keysLabel(state.keys.new_tab), run: () => send({ cmd: "open_palette", mode: "new" }) },
             ],
           ]}
         />
@@ -333,13 +334,13 @@ function WindowButtons() {
   };
   return (
     <div className="window-buttons no-drag">
-      <button data-kind="close" onClick={() => send({ cmd: "window_close" })} title="Close" aria-label="Close">
+      <button data-kind="close" onClick={() => send({ cmd: "window_close" })} title={t("common.close")} aria-label={t("common.close")}>
         <svg viewBox="0 0 12 12"><path d="M3.6 3.6l4.8 4.8M8.4 3.6l-4.8 4.8" /></svg>
       </button>
-      <button data-kind="minimize" onClick={() => act("window_minimize")} title="Minimize" aria-label="Minimize">
+      <button data-kind="minimize" onClick={() => act("window_minimize")} title={t("sidebar.window.minimize")} aria-label={t("sidebar.window.minimize")}>
         <svg viewBox="0 0 12 12"><path d="M2.8 6h6.4" /></svg>
       </button>
-      <button data-kind="fullscreen" onClick={() => act("window_fullscreen")} title="Full screen" aria-label="Full screen">
+      <button data-kind="fullscreen" onClick={() => act("window_fullscreen")} title={t("sidebar.window.full_screen")} aria-label={t("sidebar.window.full_screen")}>
         <svg viewBox="0 0 12 12"><path className="fill" d="M3.4 3.4h3.6L3.4 7zM8.6 8.6H5L8.6 5z" /></svg>
       </button>
     </div>

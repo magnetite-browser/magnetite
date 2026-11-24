@@ -3,6 +3,7 @@
 // Rust -> JS: window.__magnetite.setState(state) and a few UI calls.
 // JS -> Rust: window.magnetiteQuery({request: JSON, onSuccess, onFailure}) (CEF message router).
 
+import { t } from "./i18n";
 import type { ShortcutAction, ShortcutFirst, ShortcutKeys } from "./settings/shortcutKeys";
 import type { Info } from "./settings/types";
 
@@ -388,6 +389,8 @@ export interface Settings {
   page_zoom: number;
   /** Spell check in text fields, and the languages websites are asked for, the preferred one first, as language tags; empty for the system's (Settings → General). */
   languages: { spellcheck: boolean; languages: string[] };
+  /** The language of Magnetite's own texts; null: the system's. Counts from the next start. */
+  language: string | null;
   /** The ad blocker (Settings → Content blocking); this device's own choice, never synced. */
   /** Developer features (Settings → Developer tools). */
   developer: { enabled: boolean; hosts: string[] };
@@ -756,6 +759,8 @@ export type Command =
   | { cmd: "update_status" }
   | { cmd: "check_updates" }
   | { cmd: "install_update" }
+  /** Quit and start again (a new language counts from the next start). */
+  | { cmd: "restart" }
   | { cmd: "open_update_page" }
   | { cmd: "open_software_centre" }
   | { cmd: "set_tab_profile"; id: Id; profile: Id | null }
@@ -1319,15 +1324,16 @@ export const IS_WINDOWS = navigator.userAgent.includes("Windows");
 /**
  * A shortcut as this system writes it. On macOS `mac` as it is ("⇧⌘T");
  * elsewhere `other` when the keys differ there, or else `mac` with its
- * modifier signs spelled out, ⌘ being Ctrl ("Ctrl+Shift+T").
+ * modifier signs spelled out in the page's language, ⌘ being Ctrl
+ * ("Ctrl+Shift+T").
  */
 export function keyLabel(mac: string, other?: string): string {
   if (IS_MAC) return mac;
   if (other) return other;
   const [, mods = "", key = ""] = /^([⌘⌥⇧⌃]*)(.*)$/u.exec(mac) ?? [];
   const names: string[] = [];
-  if (mods.includes("⌘") || mods.includes("⌃")) names.push("Ctrl");
-  if (mods.includes("⌥")) names.push("Alt");
-  if (mods.includes("⇧")) names.push("Shift");
+  if (mods.includes("⌘") || mods.includes("⌃")) names.push(t("settings.keys.ctrl"));
+  if (mods.includes("⌥")) names.push(t("settings.keys.alt"));
+  if (mods.includes("⇧")) names.push(t("settings.keys.shift"));
   return [...names, key.trim()].filter(Boolean).join("+");
 }

@@ -5,16 +5,17 @@
 import { ProfilePick } from "./SpacesSection";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { send, type PermissionEntry, type PermissionKind } from "../bridge";
+import { t } from "../i18n";
 import { Field, Group } from "./fields";
 import type { Info } from "./types";
 
 const PERMISSION_LABEL: Record<PermissionKind, string> = {
-  camera: "Camera",
-  microphone: "Microphone",
-  location: "Location",
-  notifications: "Notifications",
-  popups: "Pop-ups and redirects",
-  clipboard: "Clipboard",
+  camera: t("permissions.kind.camera"),
+  microphone: t("permissions.kind.microphone"),
+  location: t("permissions.kind.location"),
+  notifications: t("permissions.kind.notifications"),
+  popups: t("permissions.kind.popups"),
+  clipboard: t("permissions.kind.clipboard"),
 };
 
 /** A site's address without `https://`; another scheme stays, to tell it apart. */
@@ -84,28 +85,28 @@ export function PermissionsSection({ info }: { info: Info }) {
     <>
       {logins.length > 1 && (
         <Group>
-          <Field side label="Profile" hint="Each profile keeps its own choices.">
+          <Field side label={t("permissions.profile.label")} hint={t("permissions.profile.hint")}>
             <ProfilePick info={info} profiles={logins} value={profile} onChoose={setChosen} />
           </Field>
         </Group>
       )}
       {unread && (
         <Group>
-          <Field side label="The permissions could not be read" hint="What shows below may be out of date.">
-            <button className="btn" onClick={() => void load()}>Try again</button>
+          <Field side label={t("permissions.unread.label")} hint={t("permissions.unread.hint")}>
+            <button className="btn" onClick={() => void load()}>{t("common.retry")}</button>
           </Field>
         </Group>
       )}
       {retry && (
         <Group>
-          <Field side label={`${PERMISSION_LABEL[retry.row.kind]} for ${siteName(retry.row.origin)} could not be changed`} hint="Nothing was changed.">
-            <button className="btn" onClick={() => set(retry.row, retry.value)}>Try again</button>
+          <Field side label={t("permissions.unchanged.label", { permission: PERMISSION_LABEL[retry.row.kind], site: siteName(retry.row.origin) })} hint={t("permissions.unchanged.hint")}>
+            <button className="btn" onClick={() => set(retry.row, retry.value)}>{t("common.retry")}</button>
           </Field>
         </Group>
       )}
       {rows?.length === 0 && (
         <Group>
-          <Field label="No website has a choice of its own" hint="A website that wants the camera, the microphone, your location or notifications asks first. What you answer shows here, to change or take back." />
+          <Field label={t("permissions.empty.label")} hint={t("permissions.empty.hint")} />
         </Group>
       )}
       {sites.map((origin) => (
@@ -113,12 +114,12 @@ export function PermissionsSection({ info }: { info: Info }) {
           {rows!.filter((r) => r.origin === origin).map((row) => (
             <Field key={row.kind} side label={PERMISSION_LABEL[row.kind]}>
               <div className="flex items-center gap-2">
-                <div className="seg" role="group" aria-label={`${PERMISSION_LABEL[row.kind]} for ${siteName(origin)}`}>
+                <div className="seg" role="group" aria-label={t("permissions.for_site", { permission: PERMISSION_LABEL[row.kind], site: siteName(origin) })}>
                   {(["allow", "block"] as const).map((value) => (
-                    <button key={value} data-on={row.value === value || undefined} aria-pressed={row.value === value} onClick={() => set(row, value)}>{value === "allow" ? "Allow" : "Block"}</button>
+                    <button key={value} data-on={row.value === value || undefined} aria-pressed={row.value === value} onClick={() => set(row, value)}>{value === "allow" ? t("permissions.allow") : t("permissions.block")}</button>
                   ))}
                 </div>
-                <button className="btn ghost" title={row.kind === "popups" ? "Back to blocked, as for every site" : "The site asks again"} aria-label={`Reset ${PERMISSION_LABEL[row.kind]} for ${siteName(origin)}`} onClick={() => set(row, "ask")}>Reset</button>
+                <button className="btn ghost" title={row.kind === "popups" ? t("permissions.reset.popups") : t("permissions.reset.ask")} aria-label={t("permissions.reset.label", { permission: PERMISSION_LABEL[row.kind], site: siteName(origin) })} onClick={() => set(row, "ask")}>{t("common.reset")}</button>
               </div>
             </Field>
           ))}

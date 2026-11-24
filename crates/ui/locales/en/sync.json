@@ -1,0 +1,59 @@
+{
+  "spaces": {
+    "label": "Spaces",
+    "hint": "A space that is only on this device is not synced: devices that still sync it lose it with their next sync. Profiles and favorites that only such spaces use stay here too.",
+    "only": "Only on this device",
+    "only_switch": "Keep {space} only on this device"
+  },
+  "status": {
+    "syncing": "Syncing with <b>{server}</b>",
+    "last": "Last sync {when}",
+    "not_yet": "not yet",
+    "sync_now": "Sync now"
+  },
+  "code": {
+    "label": "Your sync code",
+    "hint": "Enter these 24 words on another device to sync it. On a phone, “Scan QR Code” in Magnetite reads the QR code instead; a phone without that step takes the words. The words are the only key to your synced data, and the QR code holds them too: the server cannot read the data, and nobody can recover the words for you.",
+    "write_down": "Write these words down or keep them in your password manager now.",
+    "qr_label": "Your sync code as a QR code",
+    "qr_caption": "For “Scan QR Code” in Magnetite on a phone",
+    "copy": "Copy words",
+    "show": "Show sync code"
+  },
+  "stop": {
+    "label": "Stop syncing",
+    "hint": "Leaving keeps the chain and your other devices as they are. Deleting removes the chain and all its data from the server for every device.",
+    "leave": "Leave on this device",
+    "delete": "Delete sync chain…",
+    "delete_confirm": "Click again to delete it from the server"
+  },
+  "server": {
+    "label": "Server",
+    "own_hint": "Your own magnetite-sync server. github.com/magnetite-browser/magnetite-sync shows how to run one.",
+    "public_hint": "Free to use, run by StackForge on servers in Germany. Starting a chain needs no account.",
+    "own": "Your own server",
+    "address": "Address of your server"
+  },
+  "create": {
+    "label": "First device",
+    "label_only": "Start a sync chain",
+    "hint": "Magnetite creates a sync code for you to use on your other devices.",
+    "hint_only": "Magnetite gives you 24 words, your sync code. Enter them on your other computers and they show the same sidebar.",
+    "invite": "Invite code, if the server needs one",
+    "starting": "Starting…",
+    "start": "Start syncing"
+  },
+  "join": {
+    "label": "Another device",
+    "label_only": "Your sync code",
+    "hint": "Enter the 24 words from Settings → Sync on a device that already syncs.",
+    "hint_only": "The 24 words that Settings → Sync shows on a device that already syncs.",
+    "placeholder": "24 words",
+    "joining": "Joining…",
+    "typed": "{typed} of 24 words",
+    "join": "Join"
+  },
+  "zero_knowledge": "Zero knowledge: the server only ever sees an anonymous key and encrypted data padded to fixed sizes. No email, no password, no device names, no content.",
+  "kept_own": "How long an unused chain is kept is up to the server's operator.",
+  "kept_public": "Chains nobody uses for 400 days are deleted."
+}

@@ -1,0 +1,52 @@
+{
+  "title": "Notifications",
+  "prompt": {
+    "wants_to": "{site} wants to",
+    "block": "Block",
+    "allow": "Allow",
+    "ask_later": "Ask later",
+    "kinds": {
+      "camera": "Use your camera",
+      "camera_control": "Move your camera",
+      "microphone": "Use your microphone",
+      "location": "Know your location",
+      "notifications": "Show notifications",
+      "clipboard": "See text and images you copy",
+      "downloads": "Download several files",
+      "midi": "Control your MIDI devices",
+      "fonts": "Use the fonts on your computer",
+      "idle": "Know when you are using this computer",
+      "windows": "Place windows on all your displays",
+      "local_network": "Connect to devices on your network",
+      "sensors": "Use your motion sensors",
+      "storage_access": "Use its cookies on this site",
+      "links": "Open a kind of link",
+      "keyboard_lock": "Take over your keyboard",
+      "pointer_lock": "Take over your mouse pointer",
+      "other": "Use another feature"
+    }
+  },
+  "download": {
+    "canceled": "Download canceled",
+    "failed": "Download failed",
+    "progress": "{received} of {total}",
+    "so_far": "{received} so far",
+    "paused": "Paused · {progress}",
+    "missing": "Moved or deleted",
+    "done": "Downloaded · {size}",
+    "dismiss": "Dismiss {name}"
+  },
+  "update": {
+    "not_installed": "The update was not installed",
+    "download": "Download",
+    "dismiss": "Dismiss",
+    "installing": "Installing Magnetite {version}…",
+    "installing_detail": "Magnetite restarts when it is ready. Your tabs stay.",
+    "available": "Magnetite {version} is available",
+    "restart_detail": "Restart to use it. Your tabs stay.",
+    "download_detail": "Download it from the release page.",
+    "restart": "Restart to update",
+    "whats_new": "What's new",
+    "later": "Later"
+  }
+}

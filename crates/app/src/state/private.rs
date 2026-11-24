@@ -156,7 +156,7 @@ impl AppState {
         let profile_id = self.new_private_profile();
         self.sidebar.spaces.push(Space {
             id: id.clone(),
-            title: "Private".into(),
+            title: magnetite_ui::t!("app.names.private").into(),
             icon: None,
             icon_image: None,
             accent: Some(Color {
@@ -181,7 +181,7 @@ impl AppState {
         let id = new_id();
         self.sidebar.profiles.push(Profile {
             id: id.clone(),
-            name: "Private".into(),
+            name: magnetite_ui::t!("app.names.private").into(),
             is_default: false,
             ephemeral: true,
         });

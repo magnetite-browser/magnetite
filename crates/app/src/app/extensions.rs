@@ -21,7 +21,7 @@ impl MagnetiteApp {
             None => Self::ui_call(
                 engine,
                 "notice",
-                &json!({ "text": "Open a page first: extensions act on the page in front." }),
+                &json!({ "text": magnetite_ui::t!("app.notices.extension_needs_page") }),
             ),
         }
     }

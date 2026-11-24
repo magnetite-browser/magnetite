@@ -13,6 +13,7 @@ rust-version = "1.88"
 magnetite-core = { path = "crates/core" }
 magnetite-engine = { path = "crates/engine" }
 magnetite-importer = { path = "crates/importer" }
+magnetite-ui = { path = "crates/ui" }
 # The sync protocol lives with the server in magnetite-sync and is taken from
 # one of its releases (docs/development/release.md).
 magnetite-sync-proto = { git = "https://github.com/magnetite-browser/magnetite-sync", tag = "v0.1.0" }

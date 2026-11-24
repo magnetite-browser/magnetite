@@ -143,6 +143,10 @@ pub struct Settings {
     /// Spell check, and the languages websites are asked for. Not synced:
     /// a device has its own keyboard and reader.
     pub languages: magnetite_engine::LanguagePrefs,
+    /// The language of Magnetite's own texts, one of
+    /// `magnetite_ui::languages`; `None`: the system's (`magnetite_ui::resolve`).
+    /// Counts from the next start. This device's own choice, never synced.
+    pub language: Option<String>,
     /// Smart folders allowed to fetch on this device (`smart_key`): those made
     /// or edited here, or turned on here. A folder another device synced
     /// waits, so the words alone cannot make this device's accounts run a
@@ -282,8 +286,9 @@ impl SystemEngine {
         // the list as it was.
         let others = self.sites.iter().filter(|own| !covers(own)).count();
         if system && others >= MAX_SYSTEM_ENGINE_SITES {
-            return Err(format!(
-                "The list holds {MAX_SYSTEM_ENGINE_SITES} sites already. Remove one in Settings → Protected video first."
+            return Err(magnetite_ui::t!(
+                "app.system_engine.list_full",
+                max = MAX_SYSTEM_ENGINE_SITES
             ));
         }
         self.sites.retain(|own| !covers(own));
@@ -840,6 +845,9 @@ impl Settings {
             self.page_zoom = defaults.page_zoom;
         }
         self.languages = self.languages.sanitised();
+        self.language = self
+            .language
+            .filter(|tag| magnetite_ui::languages().any(|known| known == tag));
         self
     }
 }
@@ -960,6 +968,7 @@ impl Default for Settings {
             downloads: magnetite_engine::DownloadPrefs::default(),
             page_zoom: 100,
             languages: magnetite_engine::LanguagePrefs::default(),
+            language: None,
             smart_allowed: None,
             adblock: AdblockSettings::default(),
             developer: crate::dev::DeveloperSettings::default(),

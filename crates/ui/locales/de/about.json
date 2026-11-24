@@ -1,0 +1,53 @@
+{
+  "version": "Version {version}",
+  "links": {
+    "website": "Website",
+    "source": "Quellcode",
+    "release_notes": "Versionshinweise",
+    "report": "Problem melden",
+    "security": "Sicherheitsrichtlinie"
+  },
+  "project": {
+    "label": "Projekt",
+    "unpublished": "Das Quellcode-Repository ist noch nicht veröffentlicht; seine Links folgen, sobald es so weit ist."
+  },
+  "licence": {
+    "label": "Lizenz",
+    "hint": "Magnetite ist freie Software unter der Open-Source-Lizenz für die Europäische Union 1.2 (EUPL-1.2): Du darfst sie nutzen, untersuchen, weitergeben und verändern; veränderte Versionen, die du weitergibst, bleiben unter derselben Lizenz. Magnetite baut auf Open-Source-Software auf, deren Lizenzen mit ihr weitergegeben werden. Diese Software nutzt Code von FFmpeg unter der LGPLv2.1; wie du an dessen Quellcode kommst, steht in den Open-Source-Lizenzen.",
+    "eupl": "EUPL-1.2-Lizenz",
+    "open_source": "Open-Source-Lizenzen",
+    "chromium": "Chromium-Lizenzen"
+  },
+  "copyright": "© die Mitwirkenden von Magnetite. Magnetite ist ein unabhängiges Projekt und steht in keiner Verbindung zu The Browser Company.",
+  "updates": {
+    "label": "Updates",
+    "idle": "Noch nicht geprüft.",
+    "unavailable": "Dieser Build aktualisiert sich nicht selbst: Er hat keinen Release-Schlüssel. Updates kommen mit dem nächsten Release von der Projektseite.",
+    "system": "Die Updates deines Systems bringen neue Versionen von Magnetite (dnf, apt oder das Software-Center). Magnetite bietet einen Neustart an, sobald eine installiert ist.",
+    "checking": "Wird geprüft …",
+    "up_to_date": "Magnetite ist auf dem neuesten Stand. Zuletzt geprüft: {when}.",
+    "available": "Magnetite {version} ist verfügbar.",
+    "system_update": "Magnetite {version} ist verfügbar. Die Updates deines Systems installieren es.",
+    "installing": "Magnetite {version} wird installiert … Magnetite startet neu, wenn es so weit ist.",
+    "check_failed": "Die letzte Prüfung ist fehlgeschlagen: {error}",
+    "install_failed": "Das Update wurde nicht installiert: {error}",
+    "whats_new": "Neuigkeiten",
+    "restart": "Zum Aktualisieren neu starten",
+    "download": "Herunterladen",
+    "how_to": "So aktualisierst du",
+    "check_now": "Jetzt prüfen",
+    "auto": "Automatisch nach Updates suchen",
+    "auto_hint": "Beim Start und einmal am Tag fragt Magnetite die Release-Seite des Projekts auf GitHub nach einer neuen Version: keine Kennungen, keine Nutzungsdaten. Bevor es ein Update installiert, prüft Magnetite es gegen das Release-Manifest, das mit dem Schlüssel des Projekts signiert ist."
+  },
+  "system_dialog": {
+    "title": "Magnetite {version} ist verfügbar",
+    "centre": "{centre} installiert es mit den anderen Updates deines Systems.",
+    "no_centre": "Dein System installiert es mit seinen anderen Updates.",
+    "again": "Falls es noch nicht aufgeführt ist, lass erneut nach Updates suchen.",
+    "open": "{centre} öffnen",
+    "or_terminal": "Oder im Terminal:",
+    "terminal": "Im Terminal:",
+    "copy_failed": "Der Befehl konnte nicht kopiert werden. Markiere ihn und kopiere ihn von Hand.",
+    "restart": "Sobald es installiert ist, bietet Magnetite einen Neustart an."
+  }
+}

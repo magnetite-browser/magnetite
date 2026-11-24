@@ -371,7 +371,7 @@ impl MagnetiteApp {
                 engine.close_content(phone);
             }
             Some(Do::Full) => {
-                let text = "Split view holds up to four pages";
+                let text = magnetite_ui::t!("app.notices.split_full");
                 return Self::ui_call(engine, "notice", &json!({ "text": text }));
             }
             None => return,

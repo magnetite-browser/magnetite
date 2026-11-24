@@ -167,6 +167,16 @@ package_macos() {
   cp -R "$ui_dist" "$app/Contents/Resources/ui"
   cp -R "$scriptlets" "$app/Contents/Resources/scriptlets"
   copy_licences "$app/Contents/Resources"
+  # A folder for each translation of Magnetite's texts (English is
+  # English.lproj): with it macOS shows its own parts of the app, such as
+  # open and save panels and permission prompts, in that language too.
+  local locale
+  for locale in "$ROOT"/crates/ui/locales/*/; do
+    locale="$(basename "$locale")"
+    [[ $locale == en ]] && continue
+    mkdir -p "$app/Contents/Resources/$locale.lproj"
+    node "$ROOT/tools/info-plist-strings.mjs" "$locale" >"$app/Contents/Resources/$locale.lproj/InfoPlist.strings"
+  done
   # In Magnetite's CEF build alone: what that CEF can do (cef_app.rs).
   if [[ -f $cef/magnetite-patches.txt ]]; then cp "$cef/magnetite-patches.txt" "$app/Contents/Resources/"; fi
   ditto "$fw" "$app/Contents/Frameworks/Chromium Embedded Framework.framework"

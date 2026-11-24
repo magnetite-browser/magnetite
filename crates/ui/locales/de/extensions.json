@@ -1,0 +1,29 @@
+{
+  "profile": {
+    "label": "Profil",
+    "hint": "Jedes Profil hat eigene Erweiterungen mit eigenen Daten. Alles darunter betrifft das hier gewählte Profil."
+  },
+  "list": {
+    "label": "Deine Erweiterungen",
+    "label_of": "Erweiterungen von „{profile}“",
+    "hint": "Der Schalter legt eine Erweiterung in die Seitenleiste, über deine Tabs. Das „Anpinnen“ auf der Erweiterungsseite von Chromium geht auch.",
+    "hint_of": "Der Schalter legt eine Erweiterung in die Seitenleiste, über deine Tabs, in den Spaces von „{profile}“. Das „Anpinnen“ auf der Erweiterungsseite von Chromium geht auch.",
+    "empty": "Noch keine Erweiterungen installiert.",
+    "empty_of": "Noch keine Erweiterungen in „{profile}“ installiert.",
+    "in_sidebar": "{extension} in der Seitenleiste"
+  },
+  "elsewhere": {
+    "label": "In deinen anderen Profilen",
+    "hint": "Nicht in „{profile}“ installiert. Eine Erweiterung wird Profil für Profil installiert: „Hinzufügen“ öffnet ihre Seite im Chrome Web Store in einem Tab, der in „{profile}“ läuft, wo du sie bestätigst.",
+    "in": "In {profiles}",
+    "add": "Zu „{profile}“ hinzufügen",
+    "not_from_store": "Nicht aus dem Store"
+  },
+  "manage": {
+    "label": "Installieren und verwalten",
+    "hint_of": "Installieren, Entfernen, Deaktivieren und Websitezugriff gibt es auf den Seiten von Chromium. Sie öffnen sich in einem Tab, der in „{profile}“ läuft.",
+    "hint_shared": "Entfernen, Deaktivieren und Websitezugriff gibt es auf der Erweiterungsseite von Chromium. Alle deine Spaces nutzen das Hauptprofil und teilen sich daher diese Erweiterungen.",
+    "hint": "Entfernen, Deaktivieren und Websitezugriff gibt es auf der Erweiterungsseite von Chromium.",
+    "button": "Erweiterungen verwalten"
+  }
+}

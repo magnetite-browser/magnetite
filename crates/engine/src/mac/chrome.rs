@@ -226,15 +226,19 @@ fn create_peek_backdrop(mtm: MainThreadMarker) -> PeekBackdrop {
     root.addSubview(&dim);
     let target: &AnyObject = &root;
     let buttons = [
-        ("xmark", "Close (Esc)", sel!(closePeek:)),
+        (
+            "xmark",
+            magnetite_ui::t!("app.peek.close"),
+            sel!(closePeek:),
+        ),
         (
             "arrow.up.left.and.arrow.down.right",
-            "Open as tab (⌘O)",
+            magnetite_ui::t!("app.peek.open_as_tab_mac"),
             sel!(keepPeek:),
         ),
         (
             "rectangle.split.2x1",
-            "Open in split view",
+            magnetite_ui::t!("app.peek.split"),
             sel!(splitPeek:),
         ),
     ]
@@ -370,7 +374,13 @@ pub fn set_panel_close(
             let root: Retained<MagnetitePanelClose> =
                 unsafe { msg_send![MagnetitePanelClose::alloc(mtm), initWithFrame: NSRect::ZERO] };
             let target: &AnyObject = &root;
-            let button = round_button(mtm, "xmark", "Close the panel", target, sel!(closePanel:));
+            let button = round_button(
+                mtm,
+                "xmark",
+                magnetite_ui::t!("app.panel.close"),
+                target,
+                sel!(closePanel:),
+            );
             button.setFrame(NSRect::new(
                 NSPoint::new(0.0, 0.0),
                 NSSize::new(PEEK_BUTTON, PEEK_BUTTON),

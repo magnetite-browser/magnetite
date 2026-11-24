@@ -211,7 +211,7 @@ impl AppState {
         };
         let id = new_id();
         let title = match title.trim() {
-            "" => "New folder",
+            "" => magnetite_ui::t!("app.names.new_folder"),
             given => given,
         };
         list.insert(

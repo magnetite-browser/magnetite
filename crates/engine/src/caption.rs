@@ -46,9 +46,9 @@ impl Action {
 
     fn name(self) -> &'static str {
         match self {
-            Self::Minimize => "Minimize",
-            Self::Maximize => "Maximize or restore",
-            Self::Close => "Close",
+            Self::Minimize => magnetite_ui::t!("app.window_buttons.minimize"),
+            Self::Maximize => magnetite_ui::t!("app.window_buttons.maximize"),
+            Self::Close => magnetite_ui::t!("common.close"),
         }
     }
 }

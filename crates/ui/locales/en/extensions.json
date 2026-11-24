@@ -1,0 +1,29 @@
+{
+  "profile": {
+    "label": "Profile",
+    "hint": "Each profile has its own extensions, with their own data. Everything below is about the profile chosen here."
+  },
+  "list": {
+    "label": "Your extensions",
+    "label_of": "Extensions of {profile}",
+    "hint": "The switch puts an extension into the sidebar, above your tabs. Chromium's own “Pin” on its extensions page works too.",
+    "hint_of": "The switch puts an extension into the sidebar, above your tabs, in the spaces of {profile}. Chromium's own “Pin” on its extensions page works too.",
+    "empty": "No extensions installed yet.",
+    "empty_of": "No extensions installed in {profile} yet.",
+    "in_sidebar": "{extension} in the sidebar"
+  },
+  "elsewhere": {
+    "label": "In your other profiles",
+    "hint": "Not installed in {profile}. An extension is installed profile by profile: “Add” opens its page in the Chrome Web Store, in a tab that runs in {profile}, where you confirm it.",
+    "in": "In {profiles}",
+    "add": "Add to {profile}",
+    "not_from_store": "Not from the store"
+  },
+  "manage": {
+    "label": "Install and manage",
+    "hint_of": "Installing, removing, turning off and site access live on Chromium's pages. They open in a tab that runs in {profile}.",
+    "hint_shared": "Removing, turning off and site access live on Chromium's extensions page. All your spaces use the main profile, so they share these extensions.",
+    "hint": "Removing, turning off and site access live on Chromium's extensions page.",
+    "button": "Manage extensions"
+  }
+}

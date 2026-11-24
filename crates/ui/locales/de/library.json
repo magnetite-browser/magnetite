@@ -1,0 +1,59 @@
+{
+  "archive": {
+    "title": "Archiv",
+    "search": "Archivierte Tabs durchsuchen",
+    "remove": "Aus Archiv entfernen",
+    "no_match": "Keine passenden archivierten Tabs.",
+    "empty": "Noch nichts archiviert."
+  },
+  "history": {
+    "title": "Verlauf",
+    "clear": "Löschen",
+    "clear_confirm": "Alles löschen?",
+    "search": "Verlauf durchsuchen",
+    "remove": "Aus Verlauf entfernen",
+    "no_match": "Keine passenden Seiten.",
+    "empty": "Noch kein Verlauf."
+  },
+  "bookmarks": {
+    "title": "Lesezeichen",
+    "add": "Aktuelle Seite als Lesezeichen sichern",
+    "search": "Lesezeichen durchsuchen",
+    "empty": "Noch keine Lesezeichen. Klicke mit der rechten Maustaste auf einen Tab und wähle „{item}“ oder importiere sie in den Einstellungen aus einem anderen Browser.",
+    "no_match": "Keine passenden Lesezeichen.",
+    "new_folder": "Neuer Ordner",
+    "open_in": "In {space} öffnen",
+    "open_in_background": "Im Hintergrund öffnen",
+    "remove": "Lesezeichen entfernen",
+    "new_folder_inside": "Neuer Ordner darin",
+    "rename_folder": "Ordner umbenennen",
+    "remove_folder": "Ordner entfernen",
+    "remove_folder_with_one": "Ordner und sein Lesezeichen entfernen",
+    "remove_folder_with_other": "Ordner und seine {count} Lesezeichen entfernen",
+    "remove_folder_confirm": "Zum Entfernen erneut klicken"
+  },
+  "downloads": {
+    "title": "Downloads",
+    "clear_title": "Fertige und fehlgeschlagene Downloads aus dieser Liste entfernen (die Dateien bleiben)",
+    "all": "Alle Downloads …",
+    "all_title": "Die ganze Liste als Seite, mit Suche",
+    "search": "Downloads durchsuchen",
+    "empty": "Noch keine Downloads.",
+    "no_match": "Kein Download mit diesem Namen.",
+    "open_file": "{name} öffnen",
+    "canceled": "Abgebrochen",
+    "failed": "Fehlgeschlagen",
+    "paused": "Pausiert · {progress}",
+    "deleted": "Gelöscht",
+    "reveal_finder": "Im Finder zeigen",
+    "reveal_folder": "Im Ordner zeigen",
+    "trash": "In den Papierkorb legen",
+    "recycle_bin": "In den Papierkorb verschieben",
+    "copy_link": "Download-Link kopieren",
+    "copy_file": "Datei kopieren",
+    "copy_path": "Dateipfad kopieren",
+    "remove": "Aus Liste entfernen",
+    "pause": "Pausieren",
+    "resume": "Fortsetzen"
+  }
+}

@@ -260,7 +260,7 @@ impl MagnetiteApp {
                 return;
             }
             Some(Err(e)) => {
-                let error = format!("Cannot restart: {e}");
+                let error = magnetite_ui::t!("app.update.restart_failed", error = e);
                 self.with_updater(|u| u.status = update::Status::Failed { error });
                 engine.ensure_notifications();
                 self.show_update(engine);
@@ -318,6 +318,15 @@ impl MagnetiteApp {
         });
     }
 
+    /// Quit, and start again with this run's arguments once quit.
+    pub(super) fn restart(&self, engine: &Engine) -> Result<(), String> {
+        let program = std::env::current_exe().map_err(|e| e.to_string())?;
+        update::restart_after_exit(&program).map_err(|e| e.to_string())?;
+        self.with_state(|s| s.persist());
+        engine.quit();
+        Ok(())
+    }
+
     /// The install is ready for Magnetite to quit (what starts it again is
     /// already waiting), or it failed and says why.
     fn update_installed(result: Result<(), String>) {
@@ -351,10 +360,10 @@ impl MagnetiteApp {
     /// A system package's software centre, on its list of updates.
     pub(super) fn open_software_centre(&self) -> Result<(), String> {
         let centre = self.with_updater(|u| u.centre.clone());
-        let centre = centre.ok_or("No software centre found.")?;
+        let centre = centre.ok_or(magnetite_ui::t!("app.update.no_software_centre"))?;
         centre
             .open()
-            .map_err(|e| format!("Cannot open {}: {e}", centre.name))
+            .map_err(|e| magnetite_ui::t!("app.update.open_failed", name = centre.name, error = e))
     }
 
     pub(super) fn update_json(&self) -> Value {

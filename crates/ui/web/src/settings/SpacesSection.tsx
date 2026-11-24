@@ -10,6 +10,7 @@ import { Glyph, GLYPH_NAMES, glyphFor, SpaceIcon } from "../Glyphs";
 import { Forward } from "../Icons";
 import { accentCss, hostOf, send } from "../bridge";
 import { useArmed } from "../dismiss";
+import { t } from "../i18n";
 import { OwnImage, SpaceLookFields } from "./AppearanceSection";
 import { PickList, type PickOption } from "./PickList";
 import { Field, Group, Switch } from "./fields";
@@ -21,7 +22,7 @@ type Space = Info["spaces"][number];
 type Profile = Info["profiles"][number];
 
 /** The name a profile goes by: the default one has none of its own. */
-export const profileName = (p: Profile | undefined) => (!p ? "A profile that is gone" : p.is_default ? "Main profile" : p.name);
+export const profileName = (p: Profile | undefined) => (!p ? t("spaces.profile_name.gone") : p.is_default ? t("spaces.profile_name.main") : p.name);
 
 /** Choices of a profile list that are no profile: make one. */
 const NEW = "\u0000new";
@@ -59,11 +60,11 @@ function profileOption(info: Info, p: Profile): PickOption {
  * spaces that use it, then `NEW` (one named `fresh`, else after what it is
  * for: `after`) and `PRIVATE`.
  */
-function profileOptions(info: Info, fresh?: string, after = "space"): PickOption[] {
+function profileOptions(info: Info, fresh?: string, after: "space" | "site" = "space"): PickOption[] {
   return [
     ...info.profiles.filter((p) => !p.ephemeral).map((p) => profileOption(info, p)),
-    { value: NEW, label: "A new profile", hint: fresh ? `named “${fresh}”` : `named after the ${after}`, apart: true },
-    { value: PRIVATE, label: "Private", hint: "forgotten when Magnetite quits" },
+    { value: NEW, label: t("spaces.profile_choice.new"), hint: fresh ? t("spaces.profile_choice.new_named", { name: fresh }) : after === "site" ? t("spaces.profile_choice.new_after_site") : t("spaces.profile_choice.new_after_space"), apart: true },
+    { value: PRIVATE, label: t("spaces.profile_choice.private"), hint: t("spaces.profile_choice.private_hint") },
   ];
 }
 
@@ -81,7 +82,7 @@ function ProfileChoice({ info, current, name, assign, label, width }: { info: In
   const create = async (ephemeral: boolean) => {
     setCreating(true);
     try {
-      const r = await send({ cmd: "new_profile", name: ephemeral ? `${name} (private)` : fresh, ephemeral });
+      const r = await send({ cmd: "new_profile", name: ephemeral ? t("spaces.profile_name.private", { name }) : fresh, ephemeral });
       if (r.id) await assign(r.id);
     } finally {
       setCreating(false);
@@ -109,7 +110,7 @@ function ProfileChoice({ info, current, name, assign, label, width }: { info: In
  * each with the spaces that use it.
  */
 export function ProfilePick({ info, profiles, value, onChoose }: { info: Info; profiles: Profile[]; value: string | undefined; onChoose: (profile: string) => void }) {
-  return <PickList options={profiles.map((p) => profileOption(info, p))} chosen={value ? [value] : []} label="Profile" width={220} align="right" onChoose={([to]) => to && onChoose(to)} />;
+  return <PickList options={profiles.map((p) => profileOption(info, p))} chosen={value ? [value] : []} label={t("spaces.profile_label")} width={220} align="right" onChoose={([to]) => to && onChoose(to)} />;
 }
 
 /** All of one space. */
@@ -132,78 +133,78 @@ function SpacePage({ info, space, update, reload, open }: { info: Info; space: S
   const glyph = ownIcon == null ? glyphFor(space.icon) : null;
   return (
     <>
-      <Group title="Name and icon">
-        <Field side label="Name">
-          <input className="field" style={{ width: 240 }} value={name} maxLength={80} aria-label="Name of the space" onChange={(e) => setName(e.target.value)} onBlur={rename} onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()} />
+      <Group title={t("spaces.page.name_icon.title")}>
+        <Field side label={t("spaces.page.name_icon.name")}>
+          <input className="field" style={{ width: 240 }} value={name} maxLength={80} aria-label={t("spaces.page.name_icon.name_label")} onChange={(e) => setName(e.target.value)} onBlur={rename} onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()} />
         </Field>
-        <Field side label="Icon" hint="Shows on the space's button in the sidebar.">
+        <Field side label={t("spaces.page.name_icon.icon")} hint={t("spaces.page.name_icon.icon_hint")}>
           <button className="btn inline-flex items-center gap-2" aria-expanded={icons} onClick={() => setIcons(!icons)}>
             <span style={{ color: accentCss(space.accent ?? undefined) }}><SpaceIcon space={space} size={15} /></span>
-            {icons ? "Done" : "Change"}
+            {icons ? t("common.done") : t("common.change")}
           </button>
         </Field>
         {icons && (
-          <div className="set-row set-glyphs" role="group" aria-label="Icons">
+          <div className="set-row set-glyphs" role="group" aria-label={t("spaces.page.name_icon.icons")}>
             {/* A glyph takes the place of the own picture (`rename_space`). */}
             {GLYPH_NAMES.map((g) => (
-              <button key={g} title={g} aria-label={g} aria-pressed={glyph === g} data-active={glyph === g || undefined} onClick={() => void send({ cmd: "rename_space", id: space.id, icon: g }).then(reload)}>
+              <button key={g} title={t(`sidebar.glyphs.${g}`)} aria-label={t(`sidebar.glyphs.${g}`)} aria-pressed={glyph === g} data-active={glyph === g || undefined} onClick={() => void send({ cmd: "rename_space", id: space.id, icon: g }).then(reload)}>
                 <Glyph name={g} size={15} />
               </button>
             ))}
           </div>
         )}
         {icons && (
-          <Field side label="Your own icon" hint="A picture such as a PNG or an SVG, in place of the icons above. It syncs with the space, so it is kept small.">
+          <Field side label={t("spaces.page.name_icon.own_icon")} hint={t("spaces.page.name_icon.own_icon_hint")}>
             <OwnImage square preview={ownIcon} store={(file) => storeIcon(space.id, file)} reload={() => void reload()} />
           </Field>
         )}
       </Group>
-      <Group title="Look">
+      <Group title={t("spaces.page.look")}>
         <SpaceLookFields info={info} space={space} update={update} reload={() => void reload()} />
       </Group>
-      <Group title="Profile" hint="A profile is a set of logins of its own: cookies, site data and extensions. Spaces in one profile are signed in to the same accounts.">
+      <Group title={t("spaces.page.profile.title")} hint={t("spaces.page.profile.hint")}>
         <Field
           side
-          label="This space uses"
+          label={t("spaces.page.profile.uses")}
           hint={
             profile?.ephemeral
-              ? "A private profile: what its pages store is gone when Magnetite quits."
+              ? t("spaces.page.profile.private")
               : sharing.length > 0
-                ? `Shared with ${sharing.join(", ")}. Changing it loads this space's pages again, signed in as the other profile is.`
-                : "Changing it loads this space's pages again, signed in as the other profile is."
+                ? t("spaces.page.profile.shared", { spaces: sharing.join(", ") })
+                : t("spaces.page.profile.change")
           }
         >
-          <ProfileChoice info={info} current={space.profile_id} name={space.title} label={`Profile of ${space.title}`} width={220} assign={(to) => send({ cmd: "set_space_profile", id: space.id, profile: to }).then(reload)} />
+          <ProfileChoice info={info} current={space.profile_id} name={space.title} label={t("spaces.profile_of", { name: space.title })} width={220} assign={(to) => send({ cmd: "set_space_profile", id: space.id, profile: to }).then(reload)} />
         </Field>
       </Group>
-      <Group title="Bookmarks">
-        <Field side label={space.bookmarks === 0 ? "No bookmarks" : `${space.bookmarks} bookmark${space.bookmarks === 1 ? "" : "s"}`} hint="Adding this space's pinned tabs to them, deleting, importing and exporting are in Bookmarks.">
-          <button className="btn" onClick={() => open("bookmarks", space.id)}>Open Bookmarks</button>
+      <Group title={t("spaces.page.bookmarks.title")}>
+        <Field side label={space.bookmarks === 0 ? t("spaces.page.bookmarks.none") : t("spaces.page.bookmarks.count", { count: space.bookmarks })} hint={t("spaces.page.bookmarks.hint")}>
+          <button className="btn" onClick={() => open("bookmarks", space.id)}>{t("spaces.page.bookmarks.open")}</button>
         </Field>
       </Group>
-      <Group title="On this device">
+      <Group title={t("spaces.page.device.title")}>
         <label className="set-row flex cursor-default items-start gap-4" data-search-row>
           <span className="min-w-0 flex-1" data-search-name>
-            <span className="set-label block">Only on this device</span>
-            <span className="set-hint block">Not synced: the space stays here, and devices that still sync it lose it with their next sync.</span>
+            <span className="set-label block">{t("spaces.page.device.only")}</span>
+            <span className="set-hint block">{t("spaces.page.device.only_hint")}</span>
           </span>
-          <Switch label={`Keep ${space.title} only on this device`} checked={!space.synced} onChange={(only) => void send({ cmd: "set_space_synced", id: space.id, synced: !only }).then(reload)} />
+          <Switch label={t("spaces.page.device.only_switch", { name: space.title })} checked={!space.synced} onChange={(only) => void send({ cmd: "set_space_synced", id: space.id, synced: !only }).then(reload)} />
         </label>
-        <Field side label="Keys" hint={space.keys ? `${keysLabel(space.keys)} goes straight to this space.` : "No keys go straight to this space."}>
-          <button className="btn" onClick={() => open("shortcuts")}>Change in Shortcuts</button>
+        <Field side label={t("spaces.page.device.keys")} hint={space.keys ? t("spaces.page.device.keys_set", { keys: keysLabel(space.keys) }) : t("spaces.page.device.keys_none")}>
+          <button className="btn" onClick={() => open("shortcuts")}>{t("spaces.page.device.keys_change")}</button>
         </Field>
-        <Field side label="Links from other apps" hint={rules.length > 0 ? `Open here for ${rules.map((r) => r.site).join(", ")}.` : "No site's links are sent to this space."}>
-          <button className="btn" onClick={() => open("links")}>Change in Links</button>
+        <Field side label={t("spaces.page.device.links")} hint={rules.length > 0 ? t("spaces.page.device.links_set", { sites: rules.map((r) => r.site).join(", ") }) : t("spaces.page.device.links_none")}>
+          <button className="btn" onClick={() => open("links")}>{t("spaces.page.device.links_change")}</button>
         </Field>
       </Group>
       <Group>
-        <Field side label="Delete this space" hint={info.spaces.length < 2 ? "The last space cannot be deleted." : "Its pinned and Today tabs move to the archive."}>
+        <Field side label={t("spaces.page.delete.label")} hint={info.spaces.length < 2 ? t("spaces.page.delete.last") : t("spaces.page.delete.hint")}>
           <button className="btn" disabled={info.spaces.length < 2} data-danger={armed === space.id || undefined} onClick={() => arm(space.id, () => void send({ cmd: "delete_space", id: space.id }).then(reload).then(() => open("spaces")))}>
-            {armed === space.id ? "Click again to delete" : "Delete space…"}
+            {armed === space.id ? t("spaces.page.delete.confirm") : t("spaces.page.delete.button")}
           </button>
         </Field>
       </Group>
-      {current && <p className="hint">This is the space the window shows now.</p>}
+      {current && <p className="hint">{t("spaces.page.current")}</p>}
     </>
   );
 }
@@ -237,7 +238,7 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
       let to = before.current[sp.id];
       if (on) {
         before.current[sp.id] = sp.profile_id;
-        to = (await send({ cmd: "new_profile", name: `${sp.title} (private)`, ephemeral: true })).id;
+        to = (await send({ cmd: "new_profile", name: t("spaces.profile_name.private", { name: sp.title }), ephemeral: true })).id;
       } else if (!to || !kept.some((p) => p.id === to)) {
         to = main;
       }
@@ -259,7 +260,7 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
   };
   const sorting = useSorting(landing, move);
   return (
-      <Group title="All spaces" hint="A space is a sidebar of its own for one part of your day, with its own tabs. Their order here is their order in the sidebar: drag a space by its handle to sort. A private space forgets its logins, cookies and site data when Magnetite quits.">
+      <Group title={t("spaces.list.title")} hint={t("spaces.list.hint")}>
         {info.spaces.map((sp, i) => {
           const profile = info.profiles.find((p) => p.id === sp.profile_id);
           const isPrivate = !!profile?.ephemeral;
@@ -278,8 +279,8 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
               role="button"
               tabIndex={info.spaces.length > 1 ? 0 : -1}
               aria-disabled={info.spaces.length < 2 || undefined}
-              title="Drag to sort, or press the up and down arrow keys"
-              aria-label={`Sort ${sp.title}: space ${i + 1} of ${info.spaces.length}. The up and down arrow keys move it.`}
+              title={t("spaces.sort.title")}
+              aria-label={t("spaces.sort.space", { name: sp.title, position: i + 1, total: info.spaces.length })}
               onKeyDown={(e) => {
                 const to = e.key === "ArrowUp" ? i - 1 : e.key === "ArrowDown" ? i + 1 : -1;
                 if (to < 0 || to >= info.spaces.length) return;
@@ -296,7 +297,7 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
               className="field set-space-name"
               defaultValue={sp.title}
               maxLength={80}
-              aria-label={`Name of the space ${sp.title}`}
+              aria-label={t("spaces.list.name_label", { name: sp.title })}
               onBlur={(e) => {
                 const to = e.target.value.trim();
                 if (!to) e.target.value = sp.title;
@@ -305,30 +306,30 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
               onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
             />
             {/* The rest of the row opens the space's page; the keyboard has the arrow for that. */}
-            <button className="set-space-open" tabIndex={-1} aria-hidden="true" onClick={() => open("spaces", sp.id)} title={`Everything about ${sp.title}`}>
+            <button className="set-space-open" tabIndex={-1} aria-hidden="true" onClick={() => open("spaces", sp.id)} title={t("spaces.everything_about", { name: sp.title })}>
               <span className="set-hint block truncate" style={{ marginTop: 0 }}>
-                {isPrivate ? "Private profile" : profileName(profile)}
-                {!sp.synced && " · only on this device"}
+                {isPrivate ? t("spaces.list.private_profile") : profileName(profile)}
+                {!sp.synced && ` · ${t("spaces.list.only_device")}`}
                 {sp.keys && ` · ${keysLabel(sp.keys)}`}
-                {sp.id === info.active_space && " · current"}
+                {sp.id === info.active_space && ` · ${t("spaces.list.current")}`}
               </span>
             </button>
-            <label className="set-space-private" title={isPrivate ? "Private: its logins, cookies and site data are gone when Magnetite quits. Turning it off loads its pages again in the profile it had before, or the main one." : "Make this space private: its pages load again in a profile of its own that is forgotten when Magnetite quits."}>
-              <span>Private</span>
-              <Switch label={`${sp.title} is private`} checked={isPrivate} disabled={changing !== undefined} onChange={(on) => void setPrivate(sp, on)} />
+            <label className="set-space-private" title={isPrivate ? t("spaces.list.private.on_title") : t("spaces.list.private.off_title")}>
+              <span>{t("spaces.list.private.label")}</span>
+              <Switch label={t("spaces.list.private.switch", { name: sp.title })} checked={isPrivate} disabled={changing !== undefined} onChange={(on) => void setPrivate(sp, on)} />
             </label>
-            <button className="set-space-go" onClick={() => open("spaces", sp.id)} title={`Everything about ${sp.title}`} aria-label={`Everything about ${sp.title}`}>
+            <button className="set-space-go" onClick={() => open("spaces", sp.id)} title={t("spaces.everything_about", { name: sp.title })} aria-label={t("spaces.everything_about", { name: sp.title })}>
               <Forward width={15} height={15} />
             </button>
           </div>
           );
         })}
-        <Field label="A new space" hint="It comes last in the sidebar. Its profile decides which logins its pages use.">
+        <Field label={t("spaces.list.new.label")} hint={t("spaces.list.new.hint")}>
           <div className="flex flex-wrap gap-2">
             {/* The name gives way to the profile, which shows its choice whole. */}
-            <input className="field" style={{ flex: "1 1 160px", maxWidth: 280 }} value={name} placeholder="Name" maxLength={80} aria-label="Name of the new space" onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} />
-            <PickList options={profileOptions(info)} chosen={[chosen]} label="Profile of the new space" width={190} onChoose={([to]) => to && setSpaceProfile(to)} />
-            <button className="btn" disabled={!name.trim()} onClick={add}>Add space</button>
+            <input className="field" style={{ flex: "1 1 160px", maxWidth: 280 }} value={name} placeholder={t("spaces.list.new.name")} maxLength={80} aria-label={t("spaces.list.new.name_label")} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} />
+            <PickList options={profileOptions(info)} chosen={[chosen]} label={t("spaces.list.new.profile_label")} width={190} onChoose={([to]) => to && setSpaceProfile(to)} />
+            <button className="btn" disabled={!name.trim()} onClick={add}>{t("spaces.list.new.add")}</button>
           </div>
         </Field>
       </Group>
@@ -363,11 +364,11 @@ export function ProfilesSection({ info, reload, open }: { info: Info; reload: ()
   const favoritesOf = (id: string) => info.favorites.filter((f) => (f.profile_id ?? main) === id).map((f) => f.title || hostOf(f.url));
   return (
     <>
-      <Group title="Profiles" hint="A profile is a set of logins of its own: cookies, site data and extensions. What uses the same profile is signed in to the same accounts; a second profile is how to use a second account of one site. A private profile is not listed: it is forgotten when Magnetite quits.">
+      <Group title={t("spaces.profiles.title")} hint={t("spaces.profiles.hint")}>
         <div className="set-row set-profile set-profile-head" aria-hidden="true">
-          <span>Profile</span>
-          <span>Used by spaces</span>
-          <span>Used by favorites</span>
+          <span>{t("spaces.profile_label")}</span>
+          <span>{t("spaces.profiles.used_by_spaces")}</span>
+          <span>{t("spaces.profiles.used_by_favorites")}</span>
           <span />
         </div>
         {kept.map((p) => {
@@ -376,15 +377,15 @@ export function ProfilesSection({ info, reload, open }: { info: Info; reload: ()
           return (
             <div key={p.id} className="set-row set-profile" data-search-row>
               {p.is_default ? (
-                <span className="set-label" data-search-name>Main profile</span>
+                <span className="set-label" data-search-name>{t("spaces.profile_name.main")}</span>
               ) : (
                 <span>
-                  <span className="sr-only" data-search-name>{p.name} profile</span>
+                  <span className="sr-only" data-search-name>{t("spaces.profiles.search_name", { name: p.name })}</span>
                   <input
                     key={p.name}
                     className="field"
                     defaultValue={p.name}
-                    aria-label="Name of the profile"
+                    aria-label={t("spaces.profiles.name_label")}
                     onBlur={(e) => {
                       const to = e.target.value.trim();
                       if (to && to !== p.name) void send({ cmd: "rename_profile", id: p.id, name: to }).then(reload);
@@ -394,42 +395,42 @@ export function ProfilesSection({ info, reload, open }: { info: Info; reload: ()
                 </span>
               )}
               <span className="set-hint min-w-0" style={{ marginTop: 0 }} data-search-name>
-                <span className="set-profile-cap">Used by spaces: </span>
+                <span className="set-profile-cap">{t("spaces.profiles.used_by_spaces_caption")} </span>
                 {spaces.length > 0
                   ? spaces.map((sp, i) => (
                       <span key={sp.id}>
                         {i > 0 && ", "}
-                        <button className="set-profile-link" title={`Everything about ${sp.title}`} onClick={() => open("spaces", sp.id)}>{sp.title}</button>
+                        <button className="set-profile-link" title={t("spaces.everything_about", { name: sp.title })} onClick={() => open("spaces", sp.id)}>{sp.title}</button>
                       </span>
                     ))
-                  : "None"}
-                {!p.synced && " · only on this device"}
+                  : t("common.none")}
+                {!p.synced && ` · ${t("spaces.list.only_device")}`}
               </span>
               <span className="set-hint min-w-0" style={{ marginTop: 0 }} data-search-name>
-                <span className="set-profile-cap">Used by favorites: </span>
-                {favorites.length > 0 ? favorites.join(", ") : "None"}
+                <span className="set-profile-cap">{t("spaces.profiles.used_by_favorites_caption")} </span>
+                {favorites.length > 0 ? favorites.join(", ") : t("common.none")}
               </span>
               <span>
                 {!p.is_default && spaces.length === 0 && favorites.length === 0 && (
-                  <button className="btn" data-danger={armed === p.id || undefined} title="Its logins, cookies and site data leave this computer the next time Magnetite starts" onClick={() => arm(p.id, () => void deleteProfile(p.id))}>
-                    {armed === p.id ? "Click again" : "Delete"}
+                  <button className="btn" data-danger={armed === p.id || undefined} title={t("spaces.profiles.delete_title")} onClick={() => arm(p.id, () => void deleteProfile(p.id))}>
+                    {armed === p.id ? t("spaces.profiles.delete_confirm") : t("common.delete")}
                   </button>
                 )}
               </span>
             </div>
           );
         })}
-        {undeleted && <p className="set-row set-hint" role="alert" style={{ marginTop: 0, color: "var(--danger)" }}>That profile was not deleted: {undeleted}.</p>}
-        <Field label="A new profile" hint="It starts empty: nothing is signed in. Give it to a space when adding the space or on its page, or to a favorite in Favorites.">
+        {undeleted && <p className="set-row set-hint" role="alert" style={{ marginTop: 0, color: "var(--danger)" }}>{t("spaces.profiles.undeleted", { reason: undeleted })}</p>}
+        <Field label={t("spaces.profiles.new.label")} hint={t("spaces.profiles.new.hint")}>
           <div className="flex gap-2">
-            <input className="field" style={{ maxWidth: 280 }} placeholder="Name" aria-label="Name of the new profile" value={profile} onChange={(e) => setProfile(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addProfile()} />
-            <button className="btn" disabled={!profile.trim()} onClick={addProfile}>Add profile</button>
+            <input className="field" style={{ maxWidth: 280 }} placeholder={t("spaces.profiles.new.name")} aria-label={t("spaces.profiles.new.name_label")} value={profile} onChange={(e) => setProfile(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addProfile()} />
+            <button className="btn" disabled={!profile.trim()} onClick={addProfile}>{t("spaces.profiles.new.add")}</button>
           </div>
         </Field>
       </Group>
-      <Group title="Profiles for favorites only" hint="A profile needs no space. A favorite runs in its own profile whichever space is in front: its page stays signed in to that profile's accounts, and its cookies and site data stay apart from the space's. The history is one list for all profiles; only a private profile leaves nothing in it.">
-        <Field side label="Give a favorite a profile" hint="In Favorites, each favorite has a list to choose its profile from.">
-          <button className="btn" onClick={() => open("favorites")}>Open Favorites</button>
+      <Group title={t("spaces.profiles.for_favorites.title")} hint={t("spaces.profiles.for_favorites.hint")}>
+        <Field side label={t("spaces.profiles.for_favorites.label")} hint={t("spaces.profiles.for_favorites.label_hint")}>
+          <button className="btn" onClick={() => open("favorites")}>{t("spaces.profiles.for_favorites.open")}</button>
         </Field>
       </Group>
     </>
@@ -523,14 +524,14 @@ export function FavoritesSection({ info, reload }: { info: Info; reload: () => P
     }
   };
   return (
-    <Group title="Favorites" hint="The sites at the top of the sidebar. A favorite shows in every space, or only in the spaces you choose. Each runs in a profile; a copy in another profile (right-click → Duplicate favorite) is a second account of the same site. As in the sidebar, every profile has a list of its own, and a favorite is sorted inside its list.">
+    <Group title={t("spaces.favorites.title")} hint={t("spaces.favorites.hint")}>
       {info.favorites.length > 0 && (
         <div className="set-row set-fav set-fav-cols" aria-hidden="true">
           <span />
           <span />
-          <span>Name</span>
-          <span>Shows in</span>
-          <span>Profile</span>
+          <span>{t("spaces.favorites.columns.name")}</span>
+          <span>{t("spaces.favorites.columns.shows")}</span>
+          <span>{t("spaces.favorites.columns.profile")}</span>
           <span />
         </div>
       )}
@@ -555,8 +556,8 @@ export function FavoritesSection({ info, reload }: { info: Info; reload: () => P
               tabIndex={list.length > 1 ? 0 : -1}
               aria-disabled={list.length < 2 || undefined}
               {...sorting.handle(f.id, list.length > 1)}
-              title={list.length > 1 ? "Drag to sort, or press the up and down arrow keys" : "The only favorite of its profile: there is nothing to sort"}
-              aria-label={`Sort ${name}: favorite ${place + 1} of ${list.length}. The up and down arrow keys move it.`}
+              title={list.length > 1 ? t("spaces.sort.title") : t("spaces.sort.favorite_alone")}
+              aria-label={t("spaces.sort.favorite", { name, position: place + 1, total: list.length })}
               onKeyDown={(e) => {
                 const to = e.key === "ArrowUp" ? place - 1 : e.key === "ArrowDown" ? place + 1 : -1;
                 if (to < 0 || to >= list.length) return;
@@ -574,34 +575,34 @@ export function FavoritesSection({ info, reload }: { info: Info; reload: () => P
               defaultValue={f.title}
               placeholder={hostOf(f.url)}
               title={f.url}
-              aria-label={`Name of the favorite ${name}`}
+              aria-label={t("spaces.favorites.name_label", { name })}
               onBlur={(e) => {
                 const to = e.target.value.trim();
                 if (to !== f.title) void send({ cmd: "rename_tab", id: f.id, title: to }).then(reload);
               }}
               onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
             />
-            <PickList several none="Every space" options={spaceOptions(info.spaces)} chosen={shows} label={`Where ${name} shows`} onChoose={(spaces) => choose(f.id, spaces)} />
+            <PickList several none={t("spaces.favorites.every_space")} options={spaceOptions(info.spaces)} chosen={shows} label={t("spaces.favorites.shows_label", { name })} onChoose={(spaces) => choose(f.id, spaces)} />
             <span>
-              <ProfileChoice info={info} current={profileOf(f)} name={name} label={`Profile of ${name}`} assign={(to) => send({ cmd: "set_tab_profile", id: f.id, profile: to === main ? null : to }).then(reload)} />
+              <ProfileChoice info={info} current={profileOf(f)} name={name} label={t("spaces.profile_of", { name })} assign={(to) => send({ cmd: "set_tab_profile", id: f.id, profile: to === main ? null : to }).then(reload)} />
             </span>
             <button
               className="btn"
               data-danger={armed === f.id || undefined}
-              title="Takes it out of the favorites; its page is in the archive afterwards"
+              title={t("spaces.favorites.remove_title")}
               onClick={() => arm(f.id, () => void send({ cmd: "move_tab", id: f.id, space: leaveTo, section: "today", index: 0 }).then(() => send({ cmd: "close_tab", id: f.id })).then(reload))}
             >
-              {armed === f.id ? "Click again" : "Remove"}
+              {armed === f.id ? t("spaces.favorites.remove_confirm") : t("common.remove")}
             </button>
           </div>
           </Fragment>
         );
       })}
-      <Field label="A new favorite" hint="By its address. It comes last in the list of its profile and shows in every space. Its profile decides which logins its page uses.">
+      <Field label={t("spaces.favorites.new.label")} hint={t("spaces.favorites.new.hint")}>
         <div className="flex flex-wrap gap-2">
-          <input className="field" style={{ flex: "1 1 200px", maxWidth: 360 }} placeholder="example.com" aria-label="Address of the new favorite" value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void add()} />
-          <PickList options={profileOptions(info, undefined, "site")} chosen={[chosen]} label="Profile of the new favorite" width={190} onChoose={([to]) => to && setNewProfile(to)} />
-          <button className="btn" disabled={!url.trim() || adding} onClick={() => void add()}>Add favorite</button>
+          <input className="field" style={{ flex: "1 1 200px", maxWidth: 360 }} placeholder="example.com" aria-label={t("spaces.favorites.new.address_label")} value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void add()} />
+          <PickList options={profileOptions(info, undefined, "site")} chosen={[chosen]} label={t("spaces.favorites.new.profile_label")} width={190} onChoose={([to]) => to && setNewProfile(to)} />
+          <button className="btn" disabled={!url.trim() || adding} onClick={() => void add()}>{t("spaces.favorites.new.add")}</button>
         </div>
         {failed && <p className="set-hint" role="alert" style={{ color: "var(--danger)" }}>{failed}</p>}
       </Field>

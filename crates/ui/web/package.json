@@ -5,9 +5,10 @@
   "license": "EUPL-1.2",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc -b"
+    "dev": "node scripts/locales.mjs && vite",
+    "build": "node scripts/locales.mjs && tsc -b && vite build",
+    "typecheck": "node scripts/locales.mjs && tsc -b",
+    "locales": "node scripts/locales.mjs --missing"
   },
   "dependencies": {
     "lucide-react": "^1.73.0",

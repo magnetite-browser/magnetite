@@ -116,11 +116,11 @@ impl Engine {
     /// is. Empty where there is none.
     pub fn system_engine_name() -> (&'static str, &'static str) {
         if cfg!(target_os = "macos") {
-            ("WebKit", "the Mac's own web engine")
+            ("WebKit", magnetite_ui::t!("app.system_engine.webkit_about"))
         } else if cfg!(target_os = "windows") {
             (
                 "WebView2",
-                "Microsoft Edge's engine, which comes with Windows",
+                magnetite_ui::t!("app.system_engine.webview2_about"),
             )
         } else {
             ("", "")

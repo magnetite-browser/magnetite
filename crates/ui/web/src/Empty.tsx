@@ -7,6 +7,7 @@ import icon from "./assets/icon.png";
 import { userImageUrl, windowBackground } from "./backgrounds";
 import { Close } from "./Icons";
 import { IS_MAC, IS_WINDOWS, applyAppearance, dockedSide, findTab, lookOf, onPageCards, send, subscribe, type PageCards, type SidebarSide, type UiState } from "./bridge";
+import { t } from "./i18n";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
 export function Empty() {
@@ -51,7 +52,7 @@ export function Empty() {
   return (
     <div className="flex h-full select-none flex-col items-center justify-center gap-3.5" style={frame}>
       <img src={icon} width={72} height={72} alt="" draggable={false} />
-      <div className="text-[15px] text-[var(--muted)]">Press {IS_MAC ? "⌘T" : "Ctrl+T"} to open a tab</div>
+      <div className="text-[15px] text-[var(--muted)]">{t("page.empty.hint", { keys: IS_MAC ? "⌘T" : "Ctrl+T" })}</div>
       {grip}
     </div>
   );
@@ -153,8 +154,8 @@ function PanelResizer({ id, width, zoom, side, inset }: { id: string; width?: nu
     <button
       className="panel-close"
       style={{ ...fromEdge(inset + shown + GAP + CLOSE.margin), top: (inset + CLOSE.margin) / zoom, width: CLOSE.size / zoom, height: CLOSE.size / zoom }}
-      title="Close the panel"
-      aria-label="Close the panel"
+      title={t("page.empty.close_panel")}
+      aria-label={t("page.empty.close_panel")}
       onClick={() => send({ cmd: "toggle_web_panel", id })}
     >
       <Close size={14} />
@@ -164,8 +165,8 @@ function PanelResizer({ id, width, zoom, side, inset }: { id: string; width?: nu
       style={{ ...fromEdge(inset + shown), width: GAP / zoom, top: inset / zoom, bottom: inset / zoom }}
       role="separator"
       aria-orientation="vertical"
-      aria-label="Web panel width"
-      title="Drag to resize the panel · double-click to reset"
+      aria-label={t("page.empty.panel_width")}
+      title={t("page.empty.panel_resize_hint")}
       onPointerDown={(e) => {
         e.preventDefault();
         if (drag.current) return;

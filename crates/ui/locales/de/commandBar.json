@@ -1,0 +1,320 @@
+{
+  "window_title": "Befehl",
+  "input": {
+    "label": "Befehlsleiste",
+    "default": "Suchen oder URL eingeben",
+    "quick": "Suchen oder URL eingeben – öffnet in einem Mini-Fenster",
+    "name_space": "Name für den neuen Space",
+    "name_profile": "Name für das neue Profil",
+    "split_left": "Links neben diesem Tab öffnen …",
+    "split_top": "Über diesem Tab öffnen …",
+    "split_bottom": "Unter diesem Tab öffnen …",
+    "split_beside": "Neben diesem Tab öffnen …"
+  },
+  "site_search": {
+    "search": "{site} durchsuchen",
+    "chip_title": "Durchsucht {site} – zurück mit der Rückschritttaste",
+    "result": "{site} nach „{query}“ durchsuchen",
+    "idle": "Suchbegriff für {site} eingeben",
+    "example": "{keyword} und ein Leerzeichen durchsucht {site}"
+  },
+  "results": {
+    "open_address": "{address} öffnen",
+    "search_for": "Nach „{query}“ suchen",
+    "create_space": "Space „{name}“ erstellen",
+    "create_space_unnamed": "Space erstellen",
+    "create_profile_favorite": "Profil „{name}“ erstellen und für diesen Favoriten verwenden",
+    "create_profile_space": "Profil „{name}“ erstellen und für diesen Space verwenden",
+    "name_profile": "Profil benennen",
+    "archived": "Archiviert · {host}"
+  },
+  "groups": {
+    "tabs": "Tabs",
+    "commands": "Befehle",
+    "bookmarks": "Lesezeichen",
+    "history": "Verlauf",
+    "archive": "Archiv",
+    "local_servers": "Lokale Server"
+  },
+  "local_servers_keywords": "localhost, server, ports",
+  "hints": {
+    "idle": "Findet Tabs, Lesezeichen, besuchte Seiten und Befehle",
+    "idle_quick": "Findet Lesezeichen und besuchte Seiten",
+    "open_mini": "In einem Mini-Fenster öffnen",
+    "open_here": "In diesem Tab öffnen",
+    "open_split": "In der Split View öffnen",
+    "open_new_tab": "In neuem Tab öffnen",
+    "create": "Erstellen",
+    "run": "Ausführen",
+    "add_to_split": "Zur Split View hinzufügen",
+    "go_to_tab": "Zum Tab wechseln",
+    "peek": "Vorschau",
+    "new_tab": "Neuer Tab",
+    "all_results": "Alle Ergebnisse"
+  },
+  "commands": {
+    "new_space": {
+      "title": "Neuer Space",
+      "keywords": "space, neu"
+    },
+    "spaces": {
+      "title": "Alle Spaces anzeigen …",
+      "keywords": "space, wechseln, gehen, liste, alle"
+    },
+    "private_space": {
+      "title": "Privaten Space öffnen",
+      "keywords": "privat, inkognito, anonym, space"
+    },
+    "new_folder": {
+      "title": "Neuer Ordner",
+      "keywords": "ordner, neu"
+    },
+    "archive_today": {
+      "title": "Alle Heute-Tabs archivieren",
+      "keywords": "leeren, archiv, archivieren, heute"
+    },
+    "reopen": {
+      "title": "Zuletzt archivierten Tab wieder öffnen",
+      "keywords": "wiederherstellen, geschlossen, wieder"
+    },
+    "downloads": {
+      "title": "Downloads öffnen",
+      "keywords": "downloads, dateien"
+    },
+    "bookmarks": {
+      "title": "Lesezeichen öffnen",
+      "keywords": "lesezeichen, gespeichert"
+    },
+    "bookmark_page": {
+      "title": "Lesezeichen für diese Seite hinzufügen",
+      "keywords": "lesezeichen, speichern, merken"
+    },
+    "toggle_sidebar": {
+      "title": "Seitenleiste ein- oder ausblenden",
+      "keywords": "ausblenden, einblenden, anzeigen, seitenleiste"
+    },
+    "web_panel": {
+      "title": "Web-Panel öffnen oder schließen",
+      "keywords": "panel, seite, web"
+    },
+    "toggle_top_bar": {
+      "title": "Obere Leiste ein- oder ausblenden",
+      "keywords": "oben, leiste, adresse, layout, symbolleiste, toolbar"
+    },
+    "import": {
+      "title": "Aus einem anderen Browser importieren …",
+      "keywords": "importieren, chrome, firefox, zen, arc, brave, edge"
+    },
+    "welcome": {
+      "title": "Willkommensseite erneut anzeigen",
+      "keywords": "willkommen, einrichtung, assistent, erste, start, onboarding"
+    },
+    "copy_link": {
+      "title": "Link ohne Tracker kopieren",
+      "keywords": "kopieren, link, url, sauber, tracker"
+    },
+    "copy_original": {
+      "title": "Originallink kopieren",
+      "keywords": "kopieren, link, url, original, roh"
+    },
+    "copy_markdown": {
+      "title": "Link als Markdown kopieren",
+      "keywords": "kopieren, markdown, md"
+    },
+    "zoom_reset": {
+      "title": "Zoom zurücksetzen",
+      "keywords": "zoom, 100, zurücksetzen"
+    },
+    "split_right": {
+      "title": "Split rechts hinzufügen …",
+      "keywords": "split, rechts, seite, teilen"
+    },
+    "split_left": {
+      "title": "Split links hinzufügen …",
+      "keywords": "split, links, seite, teilen"
+    },
+    "split_top": {
+      "title": "Split oben hinzufügen …",
+      "keywords": "split, oben, darüber, teilen"
+    },
+    "split_bottom": {
+      "title": "Split unten hinzufügen …",
+      "keywords": "split, unten, darunter, teilen"
+    },
+    "split_even": {
+      "title": "Split-Größen angleichen",
+      "keywords": "split, gleich, angleichen, zurücksetzen"
+    },
+    "split_grid": {
+      "title": "Split als Raster anordnen",
+      "keywords": "split, raster, kacheln, 2x2, viertel"
+    },
+    "separate": {
+      "title": "Split-Tabs trennen",
+      "keywords": "split, trennen, aufheben"
+    },
+    "devtools": {
+      "title": "Entwicklerwerkzeuge ein- oder ausblenden",
+      "keywords": "devtools, entwickler, konsole, console, untersuchen, inspect, f12"
+    },
+    "dev_console": {
+      "title": "Konsole öffnen",
+      "keywords": "konsole, console, devtools, entwickler, fehler, log"
+    },
+    "dev_picker": {
+      "title": "Element auswählen",
+      "keywords": "untersuchen, inspect, element, auswählen, picker, devtools"
+    },
+    "dev_network": {
+      "title": "Netzwerk-Panel öffnen",
+      "keywords": "netzwerk, network, anfragen, requests, devtools, xhr, fetch"
+    },
+    "dev_application": {
+      "title": "Speicher und Service Worker öffnen",
+      "keywords": "anwendung, application, speicher, storage, cookies, service, worker, devtools"
+    },
+    "dev_reset": {
+      "title": "Seite zurücksetzen (am Cache vorbei neu laden)",
+      "keywords": "zurücksetzen, hart, neu laden, cache, leeren, speicher"
+    },
+    "emu_dark": {
+      "title": "Seite dunkel anzeigen",
+      "keywords": "dunkel, dark, emulieren, farbe, schema, erscheinungsbild"
+    },
+    "emu_light": {
+      "title": "Seite hell anzeigen",
+      "keywords": "hell, light, emulieren, farbe, schema, erscheinungsbild"
+    },
+    "emu_motion": {
+      "title": "Seite mit reduzierter Bewegung anzeigen",
+      "keywords": "reduziert, bewegung, animation, emulieren"
+    },
+    "emu_print": {
+      "title": "Seite wie gedruckt anzeigen",
+      "keywords": "drucken, druck, print, medien, emulieren, stile"
+    },
+    "emu_offline": {
+      "title": "Seite offline schalten",
+      "keywords": "offline, netzwerk, emulieren"
+    },
+    "emu_slow": {
+      "title": "Netzwerk der Seite verlangsamen",
+      "keywords": "langsam, netzwerk, drosseln, 3g, 4g, emulieren"
+    },
+    "emu_cpu": {
+      "title": "Prozessor der Seite verlangsamen",
+      "keywords": "cpu, langsam, drosseln, prozessor, emulieren"
+    },
+    "emu_cache": {
+      "title": "Cache für die Seite ausschalten",
+      "keywords": "cache, deaktivieren, ausschalten, emulieren"
+    },
+    "dev_responsive": {
+      "title": "Responsiver Split (die Seite als Smartphone neben sich selbst)",
+      "keywords": "responsiv, responsive, smartphone, handy, mobil, split, daneben, viewport, breakpoint"
+    },
+    "dev_capture_set": {
+      "title": "Bildschirmfoto-Set (hell und dunkel in drei Größen)",
+      "keywords": "bildschirmfoto, screenshot, set, hell, dunkel, größen, breiten, responsiv"
+    },
+    "dev_record": {
+      "title": "Seite als Video aufnehmen (oder Aufnahme beenden)",
+      "keywords": "aufnehmen, aufnahme, video, screencast, gif, stopp, beenden"
+    },
+    "emu_zone_off": {
+      "title": "Seite in der Zeitzone dieses Computers anzeigen",
+      "keywords": "zeit, zone, zeitzone, emulieren, system, lokal"
+    },
+    "emu_off": {
+      "title": "Seite so anzeigen, wie sie ist",
+      "keywords": "emulieren, zurücksetzen, online, system, normal"
+    },
+    "capture": {
+      "title": "Bildschirmfoto der Seite aufnehmen …",
+      "keywords": "bildschirmfoto, screenshot, aufnehmen, foto"
+    },
+    "capture_copy": {
+      "title": "Letztes Bildschirmfoto kopieren",
+      "keywords": "bildschirmfoto, screenshot, kopieren"
+    },
+    "find": {
+      "title": "Auf der Seite suchen …",
+      "keywords": "suchen, finden, text"
+    },
+    "print": {
+      "title": "Seite drucken",
+      "keywords": "drucken, pdf"
+    },
+    "history": {
+      "title": "Verlauf öffnen",
+      "keywords": "verlauf, besucht, history"
+    },
+    "open_archive": {
+      "title": "Archiv öffnen",
+      "keywords": "archiv"
+    },
+    "open_settings": {
+      "title": "Einstellungen öffnen",
+      "keywords": "einstellungen, optionen, präferenzen"
+    }
+  },
+  "time_zone": {
+    "title": "Seite in der Zeitzone {place} anzeigen",
+    "keywords": "zeit, zone, zeitzone, emulieren"
+  },
+  "tab_commands": {
+    "switch_space": {
+      "title": "Zu {space} wechseln",
+      "keywords": "space, wechseln, gehen"
+    },
+    "close_private_space": {
+      "title": "Privaten Space schließen",
+      "keywords": "privat, inkognito, schließen, space"
+    },
+    "hide_private_space": {
+      "title": "Privaten Space ausblenden",
+      "keywords": "privat, inkognito, ausblenden, space"
+    },
+    "split_as": {
+      "title": "Daneben als {profile} öffnen",
+      "keywords": "split, daneben, benutzer, profil, zweites, login, konto"
+    },
+    "duplicate": {
+      "title": "Tab duplizieren",
+      "keywords": "duplizieren, kopieren, klonen"
+    },
+    "pin": {
+      "title": "Tab anheften",
+      "keywords": "anheften, pin"
+    },
+    "unpin": {
+      "title": "Tab lösen",
+      "keywords": "lösen, anheften, pin"
+    },
+    "reset": {
+      "title": "Zurück zur angehefteten Seite ({host})",
+      "keywords": "zurücksetzen, start, angeheftet"
+    },
+    "favorite": {
+      "title": "Tab zu Favoriten hinzufügen",
+      "keywords": "favorit, favoriten"
+    },
+    "unfavorite": {
+      "title": "Tab aus Favoriten entfernen",
+      "keywords": "favorit, favoriten, entfernen"
+    },
+    "keep_active": {
+      "title": "Tab aktiv halten",
+      "stop": "Tab nicht mehr aktiv halten",
+      "keywords": "aktiv, halten, wach"
+    },
+    "move": {
+      "title": "Tab zu {space} bewegen",
+      "keywords": "bewegen, verschieben, space"
+    },
+    "close_others": {
+      "title": "Andere Heute-Tabs schließen",
+      "keywords": "schließen, andere, archiv"
+    }
+  }
+}

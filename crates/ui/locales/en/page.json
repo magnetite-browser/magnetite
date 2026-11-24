@@ -1,0 +1,176 @@
+{
+  "top_bar": {
+    "hide_sidebar": "Hide sidebar",
+    "show_sidebar": "Show sidebar",
+    "back": "Back ({keys})",
+    "forward": "Forward ({keys})",
+    "reload": "Reload ({keys})",
+    "peek": "<muted>Peek · </muted>{title}",
+    "keep": "Keep",
+    "keep_title": "Keep as tab ({keys})",
+    "open_split": "Open in split view",
+    "close_peek": "Close (Esc)",
+    "minimize": "Minimize",
+    "maximize": "Maximize"
+  },
+  "site_state": {
+    "camera_and_microphone": "Using camera and microphone",
+    "camera": "Using the camera",
+    "microphone": "Using the microphone",
+    "shared": "This tab is being shared",
+    "cert_problem": "Certificate problem",
+    "not_encrypted": "Not encrypted",
+    "zoom": "Zoom {percent}%",
+    "muted": "Muted"
+  },
+  "address": {
+    "empty": "Search or enter address",
+    "site_controls": "Site controls",
+    "site_controls_with": "Site controls: {states}",
+    "label": "Address: {url}. Edit{keys}",
+    "copy_link_label": "Copy link{keys}. Right-click for more.",
+    "copy_original_short": "Copy original"
+  },
+  "copy_menu": {
+    "link": "Copy link",
+    "original": "Copy original link",
+    "markdown": "Copy as Markdown"
+  },
+  "copy_status": {
+    "failed": "Could not copy",
+    "original": "Copied original link",
+    "markdown": "Copied as Markdown",
+    "removed_one": "Copied · {count} tracker removed",
+    "removed_other": "Copied · {count} trackers removed"
+  },
+  "site_panel": {
+    "label": "Site controls for {host}",
+    "profile": "Profile: {name}",
+    "connection": {
+      "magnetite_page": "Magnetite page",
+      "local_file": "Local file",
+      "encrypted": "Encrypted connection",
+      "unavailable": "Unavailable"
+    },
+    "tools": {
+      "capture": "Capture",
+      "share": "Share",
+      "user_code": "User scripts and styles",
+      "user_code_hint": "Your own CSS and JavaScript for {host}",
+      "devtools": "Developer tools"
+    },
+    "system_engine": {
+      "note": "The system's own web engine shows this page. Extensions cannot read or fill it; ad blocking, Global Privacy Control and developer tools do not work here, and the site signs in apart from your other pages.",
+      "note_named": "{engine}, {about}, shows this page. Extensions cannot read or fill it; ad blocking, Global Privacy Control and developer tools do not work here, and the site signs in apart from your other pages.",
+      "open_in": "Open in {engine}",
+      "open_switch": "Open this site in {engine}",
+      "open_hint": "For all of {site}: its pages open in {engine}, {about}, which plays protected video. Extensions cannot read or fill its pages, there is no ad blocking, and the site asks you to sign in again. The page loads again.",
+      "always": "Always, for its video"
+    },
+    "permissions": {
+      "title": "Permissions",
+      "none": "This site has not asked for any permissions.",
+      "via": "via {host}",
+      "allow": "Allow",
+      "ask": "Ask",
+      "block": "Block",
+      "kinds": {
+        "camera": "Camera",
+        "microphone": "Microphone",
+        "location": "Location",
+        "notifications": "Notifications",
+        "popups": "Pop-ups and redirects",
+        "clipboard": "Clipboard"
+      }
+    },
+    "this_site": "This site",
+    "zoom": "Zoom",
+    "zoom_out": "Zoom out",
+    "zoom_in": "Zoom in",
+    "zoom_reset_label": "Reset zoom to {percent}%",
+    "zoom_reset_title": "Reset to {percent}%",
+    "mute": "Mute tab",
+    "unmute": "Unmute tab",
+    "block_ads": {
+      "label": "Block ads",
+      "switch": "Block ads on this site",
+      "hint": "For all of {site}. The page loads again."
+    },
+    "site_shortcuts": {
+      "label": "Site's shortcuts first",
+      "switch": "This site gets the keys of shortcuts first",
+      "hint": "For all of {site}: the site may use the keys of Magnetite's shortcuts itself, and a shortcut runs only if the site leaves its keys alone. The digits that choose a tab or a space stay Magnetite's."
+    },
+    "dev_mode": {
+      "label": "Developer mode",
+      "hint": "The developer bar, a caution border on the tab and the console error count for this site",
+      "always_local": "Always, on this computer",
+      "on_for_domain": "On for its domain"
+    },
+    "clear_data": {
+      "button": "Clear cookies and site storage…",
+      "working": "Clearing…",
+      "confirm": "Remove the cookies of <b>{domain}</b> and its subdomains, and the site storage of:",
+      "confirm_profile": "Remove the cookies of <b>{domain}</b> and its subdomains in profile <b>{profile}</b>, and the site storage of:",
+      "signed_out": "You will be signed out. Storage of parts of the site you did not open this session may remain.",
+      "clear": "Clear",
+      "nothing": "Nothing to clear here: this works for websites only.",
+      "moved": "Nothing was removed: the page is no longer on {domain}.",
+      "cookies": "Cookies: {removed} removed",
+      "cookies_failed": "Cookies could not be removed",
+      "storage_one": "Storage: {done} of {count} origin",
+      "storage_other": "Storage: {done} of {count} origins",
+      "retry": "Retry"
+    }
+  },
+  "capture": {
+    "window_title": "Capture",
+    "click_element": "Click an element",
+    "element_off": "Element picking unavailable",
+    "element_off_hint": "The page moved while freezing; element picking is off for this capture",
+    "drag_region": "Drag a region",
+    "visible": "Visible",
+    "full_page": "Full page",
+    "padding_on": "Padding on",
+    "padding_off": "Padding off",
+    "context_on": "Context on",
+    "context_off": "Context off",
+    "context_hint": "Also copy the element's selector, markup and styles as text, with the picture's file: for an issue or a coding agent"
+  },
+  "capture_toast": {
+    "busy": "Capturing {what}…",
+    "failed": "Capture failed: {error}",
+    "dismiss": "Dismiss",
+    "dismiss_capture": "Dismiss capture",
+    "label": "Capture, {width} by {height} pixels",
+    "cut_at": "Page cut at {px} px (size limit)",
+    "save": "Save…",
+    "share": "Share…",
+    "retake": "Retake",
+    "context_copied": "Element copied as text, with the picture's file",
+    "copy_failed": "Could not copy",
+    "saved_as": "Saved as {name}",
+    "recording_saved": "Recording saved to Downloads",
+    "copy_file": "Copy file"
+  },
+  "empty": {
+    "hint": "Press {keys} to open a tab",
+    "close_panel": "Close the panel",
+    "panel_width": "Web panel width",
+    "panel_resize_hint": "Drag to resize the panel · double-click to reset"
+  },
+  "shared": {
+    "title": "Shared folder",
+    "add": "Add to sidebar",
+    "added": "Added",
+    "summary_one": "{count} tab. Nothing is opened until you open it.",
+    "summary_other": "{count} tabs. Nothing is opened until you open it.",
+    "unreadable": "This link could not be read",
+    "unreadable_hint": "It may have been cut off on the way. Ask for it again."
+  },
+  "licenses": {
+    "title": "Licenses",
+    "notices": "Open-source licenses",
+    "chromium": "Chromium licenses"
+  }
+}

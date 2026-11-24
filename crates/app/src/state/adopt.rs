@@ -218,8 +218,8 @@ impl AppState {
             *known = (*known).max(v);
         }
         self.settings.sync.last_sync_at = Some(now());
-        self.settings.sync.last_error = refused
-            .then(|| "Ignored a synced sidebar without spaces; waiting for a usable one.".into());
+        self.settings.sync.last_error =
+            refused.then(|| magnetite_ui::t!("app.sync.ignored_empty").into());
         contents
     }
 

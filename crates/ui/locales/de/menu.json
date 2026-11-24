@@ -1,0 +1,94 @@
+{
+  "app": {
+    "about": "Über Magnetite",
+    "settings": "Einstellungen …",
+    "services": "Dienste",
+    "hide": "Magnetite ausblenden",
+    "hide_others": "Andere ausblenden",
+    "show_all": "Alle einblenden",
+    "quit": "Magnetite beenden"
+  },
+  "file": {
+    "title": "Ablage",
+    "new_tab": "Neuer Tab",
+    "new_window": "Neues Fenster",
+    "new_space": "Neuer Space …",
+    "private_space": "Privater Space",
+    "hide_private_space": "Privaten Space ausblenden",
+    "close_private_space": "Privaten Space schließen",
+    "new_split": "Neue Split View …",
+    "new_mini": "Neues Mini-Fenster",
+    "open_location": "Adresse öffnen …",
+    "screenshot": "Bildschirmfoto aufnehmen …",
+    "print": "Drucken …",
+    "close_tab": "Tab schließen",
+    "close_window": "Fenster schließen"
+  },
+  "edit": {
+    "title": "Bearbeiten",
+    "undo": "Widerrufen",
+    "redo": "Wiederholen",
+    "cut": "Ausschneiden",
+    "copy": "Kopieren",
+    "paste": "Einsetzen",
+    "paste_match_style": "Einsetzen und Stil anpassen",
+    "delete": "Löschen",
+    "select_all": "Alles auswählen",
+    "copy_link": "Link kopieren",
+    "find": "Suchen …",
+    "find_next": "Weitersuchen",
+    "find_previous": "Rückwärts suchen"
+  },
+  "view": {
+    "title": "Darstellung",
+    "toggle_sidebar": "Seitenleiste ein-/ausblenden",
+    "toggle_web_panel": "Web-Panel ein-/ausblenden",
+    "reload": "Seite neu laden",
+    "reload_without_cache": "Ohne Cache neu laden",
+    "zoom_in": "Vergrößern",
+    "zoom_out": "Verkleinern",
+    "actual_size": "Originalgröße",
+    "developer_tools": "Entwicklerwerkzeuge",
+    "console": "Konsole",
+    "pick_element": "Element auswählen",
+    "network": "Netzwerk",
+    "reset_page": "Seite zurücksetzen"
+  },
+  "history": {
+    "title": "Verlauf",
+    "back": "Zurück",
+    "forward": "Vorwärts",
+    "show_history": "Verlauf anzeigen",
+    "reopen_closed_tab": "Geschlossenen Tab wieder öffnen"
+  },
+  "tabs": {
+    "title": "Tabs",
+    "next_tab": "Nächster Tab",
+    "previous_tab": "Vorheriger Tab",
+    "toggle_pin": "Tab anheften oder lösen",
+    "site_controls": "Website-Steuerung …"
+  },
+  "spaces": {
+    "title": "Spaces",
+    "next_space": "Nächster Space",
+    "previous_space": "Vorheriger Space",
+    "show_all": "Alle Spaces anzeigen …"
+  },
+  "extensions": {
+    "title": "Erweiterungen",
+    "none": "Keine Erweiterungen installiert",
+    "show_in_sidebar": "In der Seitenleiste zeigen",
+    "manage": "Erweiterungen verwalten …",
+    "store": "Chrome Web Store …"
+  },
+  "window": {
+    "title": "Fenster",
+    "minimize": "Im Dock ablegen",
+    "zoom": "Zoomen",
+    "bring_all_to_front": "Alle nach vorne bringen",
+    "downloads": "Downloads"
+  },
+  "help": {
+    "title": "Hilfe"
+  }
+}

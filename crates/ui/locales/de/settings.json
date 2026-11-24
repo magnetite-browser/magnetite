@@ -1,0 +1,643 @@
+{
+  "language": {
+    "label": "Sprache",
+    "hint": "Für die Menüs, Seiten und Dialoge von Magnetite. Websites behalten ihre eigene Sprache. Eine Änderung gilt ab dem nächsten Start.",
+    "system": "Wie im System ({language})",
+    "restart": "Jetzt neu starten",
+    "after_restart": "Magnetite zeigt nach einem Neustart {language}."
+  },
+  "page": {
+    "search": "Suchen",
+    "section": "Bereich",
+    "search_results": "Suchergebnisse",
+    "all_spaces": "Alle Spaces",
+    "space_intro": "Die Einstellungen nur dieses Space: Name, Symbol, Aussehen und Profil. „Alle Spaces“ führt zurück zur Liste.",
+    "back_to_results": "Zurück zu allem, was die Suche gefunden hat",
+    "everything_for": "Alles zu „{query}“",
+    "open_section": "{section} öffnen",
+    "no_match": "Keine Einstellung passt zu „{query}“."
+  },
+  "groups": {
+    "browsing": "Surfen",
+    "organization": "Organisation",
+    "services": "Dienste",
+    "advanced": "Erweitert"
+  },
+  "sections": {
+    "general": {
+      "label": "Allgemein",
+      "intro": "Fenster, die Befehlsleiste und der erste Start. Ein Konto ist nicht nötig."
+    },
+    "appearance": {
+      "label": "Erscheinungsbild",
+      "intro": "Wie die Seitenleiste und die eigenen Seiten von Magnetite aussehen. Websites behalten ihr eigenes Design."
+    },
+    "shortcuts": {
+      "label": "Tastaturkurzbefehle",
+      "intro": "Die Tasten, mit denen Befehle von Magnetite ausgeführt werden. Jeder Befehl kann andere Tasten bekommen – oder keine."
+    },
+    "tabs": {
+      "label": "Tabs und Archiv",
+      "intro": "Ein geschlossener Tab kommt ins Archiv, und Heute-Tabs, die du nicht mehr nutzt, wandern von selbst dorthin. Dort lässt er sich wieder öffnen, solange das Archiv ihn behält."
+    },
+    "links": {
+      "label": "Links",
+      "intro": "Was mit einem Link passiert, den du in einer anderen App anklickst, den eine Seite in einem neuen Tab öffnet oder den du kopierst."
+    },
+    "search": {
+      "label": "Suche",
+      "intro": "Wird verwendet, wenn deine Eingabe in der Befehlsleiste keine Webadresse ist. Ein Kürzel und ein Leerzeichen durchsuchen stattdessen eine einzelne Website."
+    },
+    "adblock": {
+      "label": "Inhaltsblocker",
+      "intro": "Magnetite kann Werbung und Tracker blockieren, bevor sie laden – mit Filterlisten deiner Wahl. Aus, bis du es einschaltest."
+    },
+    "video": {
+      "label": "Geschützte Videos",
+      "intro": "Manche Streamingdienste laufen noch nicht in der Chromium-Engine von Magnetite. Ihre Seiten öffnen sich stattdessen in der Web-Engine deines Systems."
+    },
+    "permissions": {
+      "label": "Berechtigungen",
+      "intro": "Die Websites, die deine Kamera, dein Mikrofon oder deinen Standort nutzen, Mitteilungen senden, Pop-ups öffnen oder die Zwischenablage lesen dürfen – oder nicht. Eine Website fragt zuerst; hier steht, was du geantwortet hast."
+    },
+    "autofill": {
+      "label": "Passwörter und Autofill",
+      "intro": "Magnetite kann deine Passwörter, Adressen und Karten speichern und für dich ausfüllen. Was es speichert, bleibt auf diesem Computer."
+    },
+    "code": {
+      "label": "Eigene Skripte und Stile",
+      "intro": "Mit eigenem CSS und JavaScript ändern, wie eine Website aussieht oder sich verhält: einen Teil einer Seite ausblenden, ihre Schriften oder Farben ändern oder ein kleines Skript auf ihr ausführen. Sie gelten für Webseiten, nicht für die eigenen Seiten von Magnetite."
+    },
+    "spaces": {
+      "label": "Spaces",
+      "intro": "Deine Spaces: ihre Namen, ihre Reihenfolge, ihr Aussehen und das Profil, mit dem jeder angemeldet ist."
+    },
+    "profiles": {
+      "label": "Profile",
+      "intro": "Die Anmeldungen, mit denen deine Spaces und Favoriten angemeldet sind, und was jedes Profil nutzt."
+    },
+    "favorites": {
+      "label": "Favoriten",
+      "intro": "Die Websites oben in der Seitenleiste: ihre Namen und Reihenfolge, die Spaces, in denen jede erscheint, und ihr Profil."
+    },
+    "bookmarks": {
+      "label": "Lesezeichen",
+      "intro": "Die gespeicherten Adressen jedes Space: seine angehefteten Tabs hinzufügen, löschen sowie als Datei importieren und exportieren."
+    },
+    "smart": {
+      "label": "Smarte Ordner",
+      "intro": "Ordner, die sich selbst mit deinen Pull-Requests, Issues oder Tickets füllen. Magnetite fragt den Dienst von diesem Computer aus ab; Tokens bleiben hier und werden nie synchronisiert."
+    },
+    "sync": {
+      "label": "Sync",
+      "intro": "Optionaler Zero-Knowledge-Sync zwischen deinen Geräten, über den kostenlosen Server von Magnetite oder einen eigenen. Kein Konto: Ein Sync-Code aus 24 Wörtern ist der einzige Schlüssel."
+    },
+    "extensions": {
+      "label": "Erweiterungen",
+      "intro": "Chrome-Erweiterungen werden direkt hier in Magnetite aus dem Chrome Web Store installiert. Wähle, welche in der Seitenleiste sitzen; alle stehen in der Menüleiste unter „Erweiterungen“."
+    },
+    "developer": {
+      "label": "Entwicklerwerkzeuge",
+      "intro": "Werkzeuge zum Entwickeln und Debuggen von Websites."
+    },
+    "data": {
+      "label": "Daten und Datenschutz",
+      "intro": "Keine Telemetrie, kein Magnetite-Konto. Was Magnetite auf diesem Computer speichert und mit welchen wenigen Servern es spricht."
+    },
+    "about": {
+      "label": "Über Magnetite",
+      "title": "Über Magnetite",
+      "intro": "Ein freier Open-Source-Browser rund um eine Seitenleiste, mit Chromium-Engine, gemacht in Europa."
+    }
+  },
+  "not_saved": "Nicht gespeichert: {reason}",
+  "general": {
+    "windows": {
+      "title": "Fenster",
+      "several": {
+        "label": "Mehrere Fenster",
+        "hint": "„Neues Fenster“ öffnet ein weiteres Fenster mit derselben Seitenleiste; wird ein Tab in einem Fenster ausgewählt, wandert er dorthin. Fenster öffnen sich nach einem Neustart wieder. Neu und unter macOS und Windows noch nicht getestet."
+      },
+      "private_window": {
+        "label": "Privater Space im eigenen Fenster",
+        "hint": "Der private Space öffnet sich in einem neuen Fenster, das nur ihn zeigt, statt in der Seitenleiste des Fensters, aus dem du ihn öffnest. Wird dieses Fenster geschlossen, schließt sich auch der private Space."
+      },
+      "panel_autoclose": {
+        "label": "Web-Panels schließen sich selbst",
+        "hint": "Ein Web-Panel (ein Favorit mit „Als Panel öffnen“) schließt sich, wenn du in die Seite dahinter klickst. Aus: Es bleibt offen, bis du es schließt."
+      },
+      "auto_pip": {
+        "label": "Laufende Videos als Bild-in-Bild",
+        "hint": "Wenn du einen Tab mit einem laufenden Video verlässt, spielt es in einem schwebenden Bild-in-Bild-Fenster weiter. Bei der Rückkehr kommt es wieder in die Seite."
+      }
+    },
+    "downloads": {
+      "title": "Downloads",
+      "folder": {
+        "label": "Downloads speichern in",
+        "system": "Der Downloads-Ordner deines Systems.",
+        "missing": "Dieser Ordner ist gerade nicht vorhanden.",
+        "failed": "Das hat nicht geklappt. Was hier steht, ist vielleicht nicht mehr aktuell; versuche es noch einmal."
+      },
+      "ask": {
+        "label": "Für jede Datei nach dem Speicherort fragen",
+        "hint": "Ein Dialog bei jedem Download, um Dateinamen und Ordner festzulegen."
+      }
+    },
+    "languages": {
+      "title": "Text und Sprachen",
+      "spellcheck": {
+        "label": "Rechtschreibung während der Eingabe prüfen",
+        "hint": "Markiert Wörter, die die Rechtschreibprüfung nicht kennt, in den Textfeldern von Webseiten."
+      },
+      "web": {
+        "label": "Bevorzugte Sprachen für Websites",
+        "hint": "In der Reihenfolge deiner Vorliebe, als Sprachcodes: de, en-US, en. Eine Website mit mehreren Sprachen kann danach wählen. Leer: die Sprachen deines Systems. Eine Änderung gilt ab dem nächsten Start von Magnetite.",
+        "not_codes_one": "Nicht gespeichert: {codes} ist kein Sprachcode.",
+        "not_codes_other": "Nicht gespeichert: {codes} sind keine Sprachcodes.",
+        "over_max": "Nicht gespeichert: höchstens {max} Sprachen.",
+        "refused": "Nicht gespeichert: Das hat nicht geklappt. Verlasse das Feld erneut, um es noch einmal zu versuchen."
+      }
+    },
+    "command_bar": {
+      "title": "Befehlsleiste",
+      "quick_search": {
+        "label": "Schnellsuche von überall ({keys})",
+        "hint": "Öffnet die Befehlsleiste über jeder App; was du auswählst, öffnet sich in einem Mini-Fenster. Nur diese Tastenkombination erreicht Magnetite, keine andere Eingabe."
+      }
+    },
+    "first_start": {
+      "title": "Erster Start",
+      "welcome": {
+        "label": "Willkommensseite",
+        "hint": "Die Fragen des ersten Starts, noch einmal. Nichts von dem, was du eingestellt hast, ändert sich, bevor du dort etwas auswählst.",
+        "show": "Erneut zeigen"
+      }
+    }
+  },
+  "links": {
+    "other_apps": {
+      "title": "Aus anderen Apps",
+      "default_browser": {
+        "label": "Standardbrowser",
+        "yes": "Magnetite öffnet Links aus anderen Apps.",
+        "no": "Links aus anderen Apps öffnen sich in einem anderen Browser.",
+        "waiting_mac": "Warten auf macOS …",
+        "opening_settings": "Einstellungen werden geöffnet …",
+        "make_default": "Als Standard festlegen"
+      },
+      "open_in": {
+        "label": "Links aus anderen Apps öffnen in",
+        "hint": "Links aus Mail, Slack und anderen Apps, wenn Magnetite dein Standardbrowser ist.",
+        "mini": "einem Mini-Fenster",
+        "tab": "einem neuen Tab im aktuellen Space",
+        "peek": "einem Vorschaufenster"
+      },
+      "rules": {
+        "label": "Links zu diesen Websites öffnen in einem eigenen Space",
+        "hint": "Ein Link aus einer anderen App zu einer hier aufgeführten Website öffnet sich in ihrem Space, mit dem Profil dieses Space. Eine Website steht auch für ihre Subdomains; github.com/acme ist nur dieser Teil von GitHub. Die genaueste Regel gilt.",
+        "site": "Website",
+        "opens_in": "öffnet in",
+        "choose_space": "einem Space …",
+        "space_for": "Space, in dem sich Links zu {site} öffnen",
+        "this_site": "dieser Website",
+        "remove": "Regel für {site} entfernen",
+        "a_site": "eine Website",
+        "no_site": "Gib eine Website an, etwa github.com oder github.com/acme.",
+        "taken": "Eine andere Regel hat diese Website.",
+        "space_gone": "Wähle einen Space; der dieser Regel existiert nicht mehr.",
+        "max": "Es werden höchstens {max} Regeln behalten.",
+        "add": "Regel hinzufügen"
+      }
+    },
+    "pages": {
+      "title": "Von Webseiten",
+      "new_tab": {
+        "label": "In neuem Tab geöffnete Links",
+        "hint": "„Link in neuem Tab öffnen“, {key}-Klick und Mittelklick. Warten hält den Speicher frei, bis du den Tab öffnest.",
+        "inactive": "warten, bis geöffnet",
+        "load": "im Hintergrund laden",
+        "switch": "zum neuen Tab wechseln"
+      }
+    },
+    "copied": {
+      "title": "Kopierte Links",
+      "strip_trackers": {
+        "label": "Tracker aus kopierten Links entfernen",
+        "hint": "„Link kopieren“ entfernt Tracking-Parameter wie utm_source und fbclid."
+      }
+    }
+  },
+  "tabs": {
+    "tidying": {
+      "title": "Aufräumen",
+      "hint": "Was Magnetite mit Tabs macht, die du nicht anrührst. Ein archivierter Tab lässt sich wieder öffnen, solange das Archiv ihn behält.",
+      "archive_after": {
+        "label": "Heute-Tabs archivieren nach",
+        "hint": "Angeheftete Tabs und Favoriten bleiben, wo sie sind."
+      },
+      "keep_archived": {
+        "label": "Archivierte Tabs behalten für",
+        "hint": "Ältere werden endgültig aus dem Archiv gelöscht. Ein Tab lässt sich auch von Hand in der Archivansicht entfernen.",
+        "forever": "Für immer"
+      },
+      "unload_after": {
+        "label": "Inaktive Tabs entladen nach",
+        "hint": "Entladene Tabs behalten ihren Platz und laden neu, wenn sie geöffnet werden. So bleiben auch Hunderte Tabs sparsam."
+      },
+      "load_pinned": {
+        "label": "Angeheftete Tabs beim Start laden",
+        "hint": "Favoriten und angeheftete Tabs aller Spaces laden beim Start von Magnetite, damit sie beim ersten Klick bereit sind. Aus: Jeder lädt erst, wenn du ihn zum ersten Mal öffnest."
+      },
+      "archived": {
+        "label": "Archivierte Tabs",
+        "hint": "Bisher {number}. Durchsuchen lassen sie sich über die Befehlsleiste oder die Archivansicht in der Seitenleiste.",
+        "reopen": "Zuletzt archivierten Tab wieder öffnen"
+      }
+    },
+    "getting_around": {
+      "title": "Zwischen Tabs wechseln",
+      "ctrl_tab": {
+        "label": "{ctrl}+Tab wechselt durch die Tabs",
+        "hint": "Nach letzter Nutzung: Ein Druck führt zum zuvor genutzten Tab; {ctrl} halten und erneut Tab drücken, um weiter zurückzugehen. In Reihenfolge der Seitenleiste: die Seitenleiste hinunter, Zeile für Zeile.",
+        "recent": "Nach letzter Nutzung",
+        "sidebar": "In Reihenfolge der Seitenleiste"
+      },
+      "library": {
+        "label": "Ein Klick auf die Archivtaste öffnet",
+        "hint": "Die Taste unten links in der Seitenleiste; ruht der Zeiger darauf, zeigt sie Lesezeichen, Verlauf, Downloads und das Archiv. Während ein Download läuft, öffnet ein Klick die Downloads.",
+        "archive": "das Archiv",
+        "downloads": "die Downloads",
+        "bookmarks": "die Lesezeichen",
+        "history": "den Verlauf"
+      }
+    }
+  },
+  "times": {
+    "minutes_one": "{count} Minute",
+    "minutes_other": "{count} Minuten",
+    "hours_one": "{count} Stunde",
+    "hours_other": "{count} Stunden",
+    "days_one": "{count} Tag",
+    "days_other": "{count} Tage",
+    "years_one": "{count} Jahr",
+    "years_other": "{count} Jahre",
+    "never": "Nie"
+  },
+  "retention": {
+    "custom": "Eigene …",
+    "days": "Tage",
+    "days_unit": "Tage",
+    "invalid": "Nicht gespeichert: 1 bis {max} Tage eingeben."
+  },
+  "search": {
+    "engine": {
+      "label": "Suchmaschine",
+      "hint": "Sie erhält nichts, bis du suchst.",
+      "own": "Eigene Adresse"
+    },
+    "custom": {
+      "label": "Eigene Suchadresse",
+      "hint": "%s steht für den Suchbegriff. Gilt, sobald die Adresse mit https:// beginnt und %s enthält.",
+      "invalid": "Nicht gespeichert: Die Adresse muss mit https:// beginnen und %s enthalten."
+    },
+    "sites": {
+      "label": "Website-Suche",
+      "hint": "In der Befehlsleiste ein Kürzel und ein Leerzeichen (oder Tab) eingeben, dann den Suchbegriff: „gh rust“ durchsucht GitHub. %s steht für den Suchbegriff.",
+      "keyword_placeholder": "Kürzel",
+      "keyword": "Kürzel",
+      "name": "Name",
+      "address": "Suchadresse",
+      "remove": "{name} entfernen",
+      "site_search": "Website-Suche",
+      "bad_keyword": "Das Kürzel ist ein Wort aus Buchstaben, Ziffern, - oder _ (bis zu 20 Zeichen).",
+      "keyword_taken": "Eine andere Website hat dieses Kürzel.",
+      "no_name": "Gib ihr einen Namen.",
+      "bad_address": "Die Adresse muss mit https:// beginnen und %s enthalten.",
+      "add": "Website hinzufügen"
+    }
+  },
+  "extensions": {
+    "inside_pages": {
+      "title": "In Seiten",
+      "chrome_toolbar": {
+        "label": "Chrome-Symbolleiste in Seiten zeigen",
+        "hint": "Die eigene Symbolleiste von Chromium über jeder Seite, mit ihren Erweiterungstasten. Gilt für Tabs, die ab jetzt geladen werden."
+      }
+    },
+    "unpacked": {
+      "title": "Entpackte Erweiterungen",
+      "keep": {
+        "label": "Entpackte Erweiterungen anlassen, wenn der Entwicklermodus aus ist",
+        "hint": "Manifest-V2-Erweiterungen lassen sich nur entpackt laden, und Chromium schaltet entpackte Erweiterungen aus, solange der Entwicklermodus aus ist. Ist diese Option an, bleibt auch eine Erweiterung an, die ein anderes Programm in dein Profil gelegt hat. Gilt nach einem Neustart von Magnetite."
+      }
+    }
+  },
+  "developer": {
+    "dock": {
+      "label": "Entwicklerwerkzeuge öffnen sich",
+      "hint": "Mit F12 oder über das Website-Panel. Angedockte Werkzeuge sitzen neben der Seite im Fenster.",
+      "right": "Rechts der Seite",
+      "bottom": "Unter der Seite",
+      "window": "In eigenem Fenster"
+    },
+    "bar": {
+      "label": "Entwicklerleiste für lokale Seiten",
+      "hint": "Eine Seite von diesem Computer (localhost, 127.0.0.1) bekommt eine Zeile unter ihrer Adresse: ihr Projekt, ihre Konsolenfehler und, je einen Klick entfernt, Konsole, Elementauswahl, Netzwerk-Panel und Zurücksetzen."
+    },
+    "hosts": {
+      "label": "Ebenfalls lokal",
+      "hint": "Hosts, die die Entwicklerleiste auch bekommen, einer pro Zeile: staging.example.org, oder *.test für alle Namen darunter. Das Zurücksetzen löscht ihre Daten nie per Tastendruck."
+    }
+  },
+  "data": {
+    "browsing": {
+      "title": "Browserdaten",
+      "history": {
+        "label": "Verlauf behalten für",
+        "hint": "Die Seiten, die du besuchst, mit Titel und Zeit, um sie wiederzufinden: höchstens die neuesten {limit}. Nur auf diesem Computer gespeichert, nie synchronisiert; private Profile hinterlassen keinen.",
+        "none": "Keinen Verlauf behalten"
+      },
+      "visited": {
+        "label": "Besuchte Seiten",
+        "hint": "Bisher {number}. Einzelne Seiten lassen sich in der Verlaufsansicht entfernen.",
+        "clear": "Verlauf löschen …",
+        "clear_all": "Gesamten Verlauf löschen",
+        "show": "Verlauf zeigen"
+      },
+      "site_data": {
+        "label": "Cookies, Websitedaten und Cache",
+        "hint": "Löschen, was Websites auf diesem Computer gespeichert haben – für die letzte Stunde oder für den gesamten Zeitraum. Das Löschen von Cookies meldet dich bei Websites ab. Der Dialog ist der von Chromium; der Verlauf, den er nennt, ist nicht der obige.",
+        "delete": "Löschen …",
+        "failed": "Der Dialog ließ sich für dieses Profil nicht öffnen. Wähle erneut ein Profil."
+      }
+    },
+    "import": {
+      "title": "Import",
+      "bookmarks": {
+        "label": "Lesezeichen als Datei",
+        "hint": "Eine Lesezeichendatei importieren und deine Lesezeichen exportieren: unter „Lesezeichen“.",
+        "open": "Lesezeichen öffnen"
+      }
+    },
+    "told": {
+      "title": "Was Websites mitgeteilt wird",
+      "gpc": {
+        "label": "Websites mitteilen, meine Daten nicht zu verkaufen oder weiterzugeben",
+        "hint": "Global Privacy Control: Jede Anfrage an eine Website trägt das Signal, und eine Seite kann es in ihren Skripten lesen. Manche Gesetze verpflichten eine Website, es zu beachten; ob sie es tut, liegt bei ihr."
+      }
+    },
+    "talks": {
+      "title": "Womit Magnetite spricht",
+      "hint": "Sonst verlässt nichts diesen Computer: keine Telemetrie, keine Nutzungsdaten, kein Konto.",
+      "sites": {
+        "name": "Die Websites, die du öffnest",
+        "what": "und was ihre Seiten laden, abzüglich dessen, was der Werbeblocker stoppt."
+      },
+      "services": {
+        "name": "Dienste, die du verbindest",
+        "what": "dein Sync-Server und die Server deiner smarten Ordner."
+      },
+      "filter_lists": {
+        "name": "Herausgeber von Filterlisten",
+        "what": "für die Blocklisten, die du wählst, alle vier Tage."
+      },
+      "github": {
+        "what": "für die Suche nach Updates, beim Start und einmal täglich, außer sie ist unter „Über Magnetite“ ausgeschaltet. Nicht, wo die Pakete deines Systems die Updates bringen."
+      },
+      "components": {
+        "name": "Der Komponentenserver von Google",
+        "what": "von dem Chromium das Widevine-Modul für geschützte Videos und seine Zertifikatslisten lädt."
+      },
+      "password_check": {
+        "name": "Die Passwortprüfung von Google",
+        "what": "nur solange „Vor Passwörtern aus Datenlecks warnen“ an ist: ein verschlüsseltes Bruchstück eines Passworts, mit dem du dich anmeldest."
+      }
+    },
+    "computer": {
+      "title": "Auf diesem Computer",
+      "where": {
+        "label": "Wo deine Daten liegen",
+        "hint": "Seitenleiste, Archiv und Einstellungen liegen in state.json, der Verlauf in history.json; die Profildaten von Chromium (Cookies, Cache, Erweiterungen) im Ordner „cef“ daneben.",
+        "copy_failed": "Kopieren fehlgeschlagen",
+        "open_failed": "Öffnen fehlgeschlagen",
+        "open_hint": "Zeigt den Ordner in deinem Dateimanager"
+      },
+      "mock_keychain": {
+        "label": "Entwicklungsmodus: Cookies nutzen einen festen Schlüssel",
+        "hint": "Dieser Datenordner läuft mit --mock-keychain: Chromium verschlüsselt Cookies und gesicherte Passwörter mit seinem eingebauten Testschlüssel statt mit einem aus deinem macOS-Schlüsselbund, sodass jedes Programm, das den Ordner lesen kann, sie lesen kann. Beim Entwickeln in Ordnung; ein signierter Release-Build nutzt den Schlüsselbund."
+      }
+    }
+  },
+  "appearance": {
+    "colours": {
+      "indigo": "Indigo",
+      "blue": "Blau",
+      "teal": "Türkis",
+      "green": "Grün",
+      "lime": "Limette",
+      "yellow": "Gelb",
+      "orange": "Orange",
+      "red": "Rot",
+      "pink": "Pink",
+      "purple": "Lila",
+      "graphite": "Graphit",
+      "any": "Beliebige Farbe"
+    },
+    "effects": {
+      "none": "Ohne",
+      "grain": "Körnung",
+      "glow": "Leuchten",
+      "aurora": "Aurora",
+      "fade": "Farbverlauf"
+    },
+    "picture": {
+      "choose": "Bild auswählen …",
+      "change": "Ändern …",
+      "unreadable": "Dieses Bild ließ sich nicht lesen",
+      "too_detailed": "Dieses Bild ist zu detailreich für ein Symbol"
+    },
+    "space": {
+      "colour": {
+        "label": "Farbe",
+        "hint": "Färbt die Seitenleiste und umrandet in Split View die Seite im Fokus. Wird mit dem Space synchronisiert."
+      },
+      "strength": {
+        "label": "Farbstärke",
+        "hint": "Wie viel von der Farbe des Space das Fenster annimmt."
+      },
+      "background": {
+        "label": "Hintergrund",
+        "hint": "Ein Effekt in der Farbe des Space über das ganze Fenster oder ein eigenes Bild unter den Zeilen der Seitenleiste.",
+        "yours": "Dein Bild"
+      },
+      "empty": {
+        "label": "Leeres Fenster",
+        "hint": "Ein Bild im Fenster, solange in diesem Space kein Tab offen ist. Ohne Bild erscheint dort das Logo."
+      }
+    },
+    "text_sample": {
+      "text": "Text in dieser Größe",
+      "now": "Jetzt",
+      "new": "Neu"
+    },
+    "window": {
+      "title": "Fenster",
+      "hint": "In jedem Space gleich."
+    },
+    "layout": {
+      "label": "Layout",
+      "hint": "Wo Zurück, Vorwärts, die Adresse und die Erweiterungen sitzen: oben in der Seitenleiste oder in einer Leiste quer über das Fenster. Mit der Leiste kann die Seitenleiste auch rechts sitzen.",
+      "sidebar": "Seitenleiste",
+      "top_bar": "Obere Leiste",
+      "top_bar_right": "Obere Leiste, Seitenleiste rechts"
+    },
+    "extension_bar": {
+      "label": "Erweiterungsleiste",
+      "hint": "Eine Zeile mit angehefteten Erweiterungen unter der Adresse, mit einer Taste, die die übrigen auflistet. Die Symbole verlassen dafür die Zeile darüber."
+    },
+    "frame": {
+      "label": "Rahmen um die Seite",
+      "hint": "Der Abstand zwischen einer Seite und den Fensterrändern sowie die runden Ecken der Seite. Ohne ihn reicht eine Seite bis an die Ränder des Fensters.",
+      "always": "Immer",
+      "windowed": "Nicht im Vollbild",
+      "never": "Nie"
+    },
+    "text_size": {
+      "label": "Textgröße",
+      "hint": "Die Seitenleiste, die Befehlsleiste und diese Seiten. Webseiten zoomen eigenständig mit {zoom_in} und {zoom_out}."
+    },
+    "page_zoom": {
+      "label": "Seitenzoom",
+      "hint": "Der Zoom einer Website, bis du sie selbst zoomst. Eine Änderung gilt ab dem nächsten Start von Magnetite."
+    },
+    "density": {
+      "label": "Dichte",
+      "hint": "Höhe und Abstände der Zeilen in der Seitenleiste.",
+      "compact": "Kompakt",
+      "comfortable": "Komfortabel",
+      "spacious": "Großzügig"
+    },
+    "sidebar_width": {
+      "label": "Breite der Seitenleiste",
+      "hint": "Die Seiten nehmen den Rest des Fensters ein."
+    },
+    "colours_link": {
+      "label": "Farben und Hintergründe",
+      "hint": "Jeder Space hat eine eigene Farbe und einen eigenen Hintergrund. Sie gehören zum Space, unter Einstellungen → Spaces.",
+      "open": "Spaces öffnen"
+    }
+  },
+  "shortcuts": {
+    "groups": {
+      "tabs": "Tabs",
+      "windows": "Fenster und Spaces",
+      "page": "Die Seite",
+      "magnetite": "Magnetite",
+      "developer": "Entwickler"
+    },
+    "actions": {
+      "new_tab": "Neuer Tab, Suche, Befehle",
+      "focus_address": "Adresse ändern",
+      "close_tab": "Tab schließen (er kommt ins Archiv)",
+      "reopen_closed": "Zuletzt geschlossenen Tab wieder öffnen",
+      "next_tab": "Nächster Tab",
+      "prev_tab": "Vorheriger Tab",
+      "toggle_pin": "Tab anheften oder lösen",
+      "new_split": "Split View",
+      "new_window": "Neues Fenster",
+      "close_window": "Fenster schließen",
+      "new_space": "Neuer Space",
+      "private_space": "Privater Space",
+      "close_private_space": "Privaten Space schließen",
+      "hide_private_space": "Privaten Space ausblenden",
+      "next_space": "Nächster Space",
+      "prev_space": "Vorheriger Space",
+      "space_picker": "Alle Spaces zeigen, um zu einem zu wechseln",
+      "toggle_sidebar": "Seitenleiste ein- oder ausblenden",
+      "web_panel": "Web-Panel öffnen oder schließen",
+      "site_panel": "Website-Steuerung",
+      "copy_link": "Link kopieren",
+      "capture": "Seite aufnehmen",
+      "find": "In der Seite suchen",
+      "find_next": "Nächster Treffer",
+      "find_previous": "Vorheriger Treffer",
+      "print": "Seite drucken",
+      "history": "Verlauf",
+      "downloads": "Downloads",
+      "settings": "Einstellungen",
+      "toggle_dev_tools": "Entwicklerwerkzeuge",
+      "dev_console": "Konsole",
+      "dev_picker": "Element auswählen",
+      "dev_network": "Netzwerk",
+      "dev_reset": "Seite zurücksetzen (ohne Cache neu laden)"
+    },
+    "conflict": {
+      "label": "Wenn eine Seite dieselben Tasten nutzt",
+      "hint": "Bei jedem Kurzbefehl ist festgelegt, wer seine Tasten zuerst bekommt, während eine Seite im Fokus ist. „Magnetite zuerst“: Die Seite sieht sie nie. „Seite zuerst“: Eine Web-App darf sie selbst nutzen, und der Kurzbefehl läuft nur, wenn sie es nicht tut."
+    },
+    "first": {
+      "label": "Wer die Tasten von „{action}“ zuerst bekommt",
+      "magnetite": "Magnetite zuerst",
+      "page": "Seite zuerst",
+      "magnetite_hint": "Eine Seite sieht diese Tasten nie",
+      "page_hint": "Eine Seite darf diese Tasten selbst nutzen; der Kurzbefehl läuft, wenn sie es nicht tut"
+    },
+    "reset": {
+      "title": "Zurücksetzen auf {keys}, {first}",
+      "no_keys": "keine Tasten",
+      "page_first": "Seite zuerst"
+    },
+    "go_to_space": "Zu {space} wechseln",
+    "the_space": "dem Space",
+    "recording": "Neue Tasten drücken · Esc bricht ab",
+    "unused": "{keys}, hier nicht genutzt",
+    "unused_hint": "Diese Tasten sind auf diesem Gerät fest vergeben oder werden schon anderweitig genutzt",
+    "no_keys": "Keine Tasten",
+    "remove_hint": "Ab jetzt keine Tasten",
+    "taken": "{keys} ist schon „{name}“ zugewiesen und würde dort entfernt.",
+    "use_here": "Hier verwenden",
+    "commands_one": "{count} Befehl",
+    "commands_other": "{count} Befehle",
+    "sites": {
+      "title": "Websites, die die Tasten aller Kurzbefehle zuerst bekommen",
+      "hint": "Für eine Web-App mit vielen eigenen Kurzbefehlen, etwa einen Editor: Die Wahl der einzelnen Kurzbefehle gilt dort nicht. Eine Website hier hinzufügen oder im Website-Panel (die Taste links neben der Adresse) für die Seite im Vordergrund einschalten.",
+      "add_label": "Hinzuzufügende Website",
+      "add": "Website hinzufügen",
+      "remove_hint": "Auf dieser Website gilt wieder die Wahl der einzelnen Kurzbefehle"
+    },
+    "spaces": {
+      "title": "Spaces",
+      "hint": "Tasten, die direkt zu einem Space führen. Die ersten neun haben zusätzlich die Ziffer ihrer Position.",
+      "count_one": "{count} Space",
+      "count_other": "{count} Spaces"
+    },
+    "reset_all": {
+      "label": "Alle Kurzbefehle zurücksetzen",
+      "hint": "Geänderte Kurzbefehle werden mit deinen anderen Geräten synchronisiert, die Tasten eines Space mit dem Space. Neu laden, Zurück, Vorwärts, Zoom, die Ziffern zur Wahl eines Tabs oder Space und die Schnellsuche von überall behalten ihre Tasten.",
+      "title": "Jeder Kurzbefehl bekommt seine Standardtasten zurück und geht wieder zuerst an den, an den er vorher ging – auf jeder Website; die Spaces haben keine eigenen Tasten mehr",
+      "button": "Alle zurücksetzen"
+    }
+  },
+  "keys": {
+    "ctrl": "Strg",
+    "alt": "Alt",
+    "shift": "Umschalt",
+    "space": "Leertaste",
+    "tab": "Tab",
+    "enter": "Return",
+    "backspace": "Rückschritt",
+    "delete": "Entfernen",
+    "left": "Pfeil nach links",
+    "right": "Pfeil nach rechts",
+    "up": "Pfeil nach oben",
+    "down": "Pfeil nach unten",
+    "page_up": "Bild auf",
+    "page_down": "Bild ab",
+    "home": "Pos1",
+    "end": "Ende"
+  },
+  "pick": {
+    "nothing": "nichts ausgewählt"
+  }
+}

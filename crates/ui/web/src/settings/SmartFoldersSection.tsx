@@ -5,10 +5,11 @@ import { RefreshIcon, SmartFolderIcon } from "../Icons";
 import { TokenForm } from "../SmartFolderDialog";
 import { normaliseHost, send, type Service, type SmartSource, type UiState } from "../bridge";
 import { useArmed } from "../dismiss";
+import { t } from "../i18n";
 import { DEFAULT_SOURCES, SERVICES, SERVICE_LABEL, ago, smartFolders } from "../smart";
 import { Field, Group } from "./fields";
 
-const SHOW_LABEL = { pull_requests: "Mine + review requests", review_requests: "Review requests", my_pull_requests: "Mine", assigned_issues: "Issues assigned to me" } as const;
+const SHOW_LABEL = { pull_requests: t("smartFolders.show.pull_requests"), review_requests: t("smartFolders.show.review_requests"), my_pull_requests: t("smartFolders.show.my_pull_requests"), assigned_issues: t("smartFolders.show.assigned_issues") } as const;
 
 /** One line saying what a source shows. */
 function describe(source: SmartSource): string {
@@ -35,8 +36,8 @@ export function SmartFoldersSection() {
   const reload = useCallback(() => send({ cmd: "get_state" }).then(setState), []);
   useEffect(() => {
     void reload();
-    const t = setInterval(reload, 4000);
-    return () => clearInterval(t);
+    const timer = setInterval(reload, 4000);
+    return () => clearInterval(timer);
   }, [reload]);
   if (!state) return null;
   const folders = smartFolders(state);
@@ -53,9 +54,9 @@ export function SmartFoldersSection() {
     : { ...DEFAULT_SOURCES.github, host };
   return (
     <Group>
-      <Field label="Folders" hint="Right-click any folder in the sidebar to turn it into a smart folder.">
+      <Field label={t("smartFolders.folders.label")} hint={t("smartFolders.folders.hint")}>
         <div className="list">
-          {folders.length === 0 && <div className="list-empty">No smart folders yet.</div>}
+          {folders.length === 0 && <div className="list-empty">{t("smartFolders.folders.empty")}</div>}
           {folders.map(({ folder, space }) => {
             const st = state.smart[folder.id];
             return (
@@ -65,23 +66,23 @@ export function SmartFoldersSection() {
                   <div className="truncate">{folder.title} <span className="text-[var(--muted)]">· {space}</span></div>
                   <div className="truncate text-[12px] text-[var(--muted)]">
                     {folder.smart && describe(folder.smart.source)}
-                    {st?.error ? <span className="sf-error"> · {st.error}</span> : st?.updated_at ? ` · updated ${ago(st.updated_at)}` : ""}
+                    {st?.error ? <span className="sf-error"> · {st.error}</span> : st?.updated_at ? ` · ${t("smartFolders.folders.updated", { when: ago(st.updated_at) })}` : ""}
                   </div>
                 </div>
                 {st?.fetching ? <span className="spinner" /> : (
-                  <button className="ib sm" title="Refresh now" onClick={() => send({ cmd: "smart_refresh", id: folder.id }).then(reload)}><RefreshIcon width={14} height={14} /></button>
+                  <button className="ib sm" title={t("smartFolders.folders.refresh")} onClick={() => send({ cmd: "smart_refresh", id: folder.id }).then(reload)}><RefreshIcon width={14} height={14} /></button>
                 )}
-                <button className="btn sm" onClick={() => send({ cmd: "smart_folder_dialog", id: folder.id })}>Edit</button>
+                <button className="btn sm" onClick={() => send({ cmd: "smart_folder_dialog", id: folder.id })}>{t("common.edit")}</button>
               </div>
             );
           })}
         </div>
-        <button className="btn mt-3" onClick={() => send({ cmd: "smart_folder_dialog" })}>New smart folder</button>
+        <button className="btn mt-3" onClick={() => send({ cmd: "smart_folder_dialog" })}>{t("smartFolders.folders.new")}</button>
       </Field>
 
-      <Field label="Accounts" hint="An account is an access token for one server. Disconnecting deletes the token here; revoke it on the server as well if you no longer need it.">
+      <Field label={t("smartFolders.accounts.label")} hint={t("smartFolders.accounts.hint")}>
         <div className="list">
-          {state.accounts.length === 0 && <div className="list-empty">No accounts connected.</div>}
+          {state.accounts.length === 0 && <div className="list-empty">{t("smartFolders.accounts.empty")}</div>}
           {state.accounts.map((a) => (
             <div key={a.id} className="list-row">
               <Favicon url={`https://${normaliseHost(a.host)}`} />
@@ -94,7 +95,7 @@ export function SmartFoldersSection() {
                 data-danger={armed === a.id || undefined}
                 onClick={() => arm(a.id, () => send({ cmd: "smart_disconnect", id: a.id }).then(reload))}
               >
-                {armed === a.id ? "Click again to disconnect" : "Disconnect"}
+                {armed === a.id ? t("smartFolders.accounts.disconnect_confirm") : t("smartFolders.accounts.disconnect")}
               </button>
             </div>
           ))}
@@ -110,7 +111,7 @@ export function SmartFoldersSection() {
             <TokenForm key={connect} source={source} onConnected={() => { setConnect(null); reload(); }} onCancel={() => setConnect(null)} />
           </div>
         ) : (
-          <button className="btn mt-3" onClick={() => startConnect("github")}>Connect an account</button>
+          <button className="btn mt-3" onClick={() => startConnect("github")}>{t("smartFolders.accounts.connect")}</button>
         )}
       </Field>
     </Group>

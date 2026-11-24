@@ -26,6 +26,7 @@ use magnetite_sync_proto::{
     ChainKeys, CollectionResponse, CreateChainRequest, PutCollectionRequest, PutCollectionResponse,
     SyncCode,
 };
+use magnetite_ui::t;
 use serde::{Deserialize, Serialize};
 
 use crate::devices::{self, DEVICES, Devices, Me, RemoteTab};
@@ -133,11 +134,11 @@ pub fn qr_rows(text: &str) -> Option<Vec<String>> {
 /// `127.0.0.1`, `::1`). A path prefix is fine; user info and queries are not.
 fn server_base(url: &str) -> Result<String, String> {
     let url = url.trim().trim_end_matches('/');
-    let bad = || format!("not a sync server address: {url}");
+    let bad = || t!("app.sync.bad_address", url = url);
     let uri: ureq::http::Uri = url.parse().map_err(|_| bad())?;
     let authority = uri.authority().ok_or_else(bad)?;
     if authority.as_str().contains('@') {
-        return Err("the sync server address must not contain a user name".into());
+        return Err(t!("app.sync.user_name").into());
     }
     if uri.query().is_some() {
         return Err(bad());
@@ -146,9 +147,7 @@ fn server_base(url: &str) -> Result<String, String> {
     match uri.scheme_str() {
         Some("https") => Ok(url.to_string()),
         Some("http") if loopback => Ok(url.to_string()),
-        _ => Err(format!(
-            "the sync server needs an https:// address (plain http only for this computer): {url}"
-        )),
+        _ => Err(t!("app.sync.https_only", url = url)),
     }
 }
 
@@ -387,7 +386,7 @@ impl SyncClient {
                 if let Some(code) = &code
                     && let Err(e) = save_pending_delete(&self.data_dir, &server, code)
                 {
-                    (self.notify)(Outcome::Error(format!("cannot remember the deletion: {e}")));
+                    (self.notify)(Outcome::Error(t!("app.sync.remember_deletion", error = e)));
                 }
                 self.leave();
                 let Some(code) = code else { return };
@@ -499,6 +498,14 @@ fn now_ms() -> i64 {
         .map_or(0, |d| i64::try_from(d.as_millis()).unwrap_or(0))
 }
 
+/// Why a write did not go through.
+enum Unwritten {
+    /// Another device wrote first: read again, then write.
+    Behind,
+    /// What went wrong, for Settings.
+    Failed(String),
+}
+
 /// A response: status and body bytes.
 struct Reply {
     status: u16,
@@ -509,24 +516,23 @@ impl Reply {
     /// The body as `T`. A parse error would quote the body, so it is not
     /// shown: no text of the server's reaches Settings.
     fn json<T: serde::de::DeserializeOwned>(&self) -> Result<T, String> {
-        serde_json::from_slice(&self.body)
-            .map_err(|_| "the sync server sent an answer this version cannot read".to_string())
+        serde_json::from_slice(&self.body).map_err(|_| t!("app.sync.unreadable_answer").to_string())
     }
     /// What went wrong, in our words: the server's own text is never shown,
     /// so a server cannot use Settings to ask for the sync code.
     fn error(&self) -> String {
         match self.status {
-            400 => "the sync server did not understand the request".into(),
-            401 => "the sync server did not accept this device's signature (is the clock right?)".into(),
-            403 => "the sync server refused: it takes no new sync chains, the invite code is wrong, or the chain is full".into(),
-            404 => "the sync server does not know this sync chain".into(),
-            408 => "the request took too long to reach the sync server".into(),
-            410 => "this sync chain was deleted a moment ago".into(),
-            409 => "another device wrote first; trying again".into(),
-            413 => "this sync chain has used up its storage on the server".into(),
-            429 | 503 => "the sync server is busy; trying again later".into(),
-            s if s >= 500 => "the sync server had an error; trying again later".into(),
-            s => format!("the sync server answered {s}"),
+            400 => t!("app.sync.status_400").into(),
+            401 => t!("app.sync.status_401").into(),
+            403 => t!("app.sync.status_403").into(),
+            404 => t!("app.sync.status_404").into(),
+            408 => t!("app.sync.status_408").into(),
+            410 => t!("app.sync.status_410").into(),
+            409 => t!("app.sync.status_409").into(),
+            413 => t!("app.sync.status_413").into(),
+            429 | 503 => t!("app.sync.busy").into(),
+            s if s >= 500 => t!("app.sync.server_error").into(),
+            s => t!("app.sync.status", status = s),
         }
     }
 }
@@ -586,7 +592,7 @@ impl Worker {
                 .map_err(|e| e.to_string())
                 .and_then(|r| self.agent.run(r).map_err(|e| e.to_string()))
         };
-        let mut res = result.map_err(|e| format!("cannot reach the sync server: {e}"))?;
+        let mut res = result.map_err(|e| t!("app.sync.unreachable", error = e))?;
         let status = res.status().as_u16();
         // ureq applies the limit to the decoded body (since 3.5.2), so a
         // compressed answer counts unpacked.
@@ -596,9 +602,7 @@ impl Worker {
             .limit(MAX_REPLY)
             .read_to_vec()
             .map_err(|e| match e {
-                ureq::Error::BodyExceedsLimit(_) => {
-                    "the sync server sent more data than a collection can hold".to_string()
-                }
+                ureq::Error::BodyExceedsLimit(_) => t!("app.sync.too_much").to_string(),
                 e => e.to_string(),
             })?;
         Ok(Reply { status, body })
@@ -612,7 +616,7 @@ impl Worker {
             std::fs::remove_file(pending_delete_path(&self.data_dir)).ok();
         }
         if let Err(e) = save_code(&self.data_dir, &code) {
-            return vec![Outcome::Error(format!("cannot store the sync code: {e}"))];
+            return vec![Outcome::Error(t!("app.sync.store_code", error = e))];
         }
         self.use_code(Some(code));
         self.settings.started_here = created;
@@ -625,11 +629,9 @@ impl Worker {
     /// A second chain over the first would replace its sync code, and the
     /// first chain could then neither be used nor deleted.
     fn in_a_chain(&self) -> Option<Vec<Outcome>> {
-        self.code.as_ref().map(|_| {
-            vec![Outcome::Error(
-                "this device is in a sync chain already; leave it first".into(),
-            )]
-        })
+        self.code
+            .as_ref()
+            .map(|_| vec![Outcome::Error(t!("app.sync.already_in_chain").into())])
     }
 
     fn create(&mut self, server: &str, invite: Option<String>) -> Vec<Outcome> {
@@ -661,9 +663,9 @@ impl Worker {
         match self.request(&code.keys(), "GET", "/chain", None) {
             Ok(r) if r.status == 204 => self.adopt(server.trim(), code, false),
             // The server tells only the key holder that a chain does not exist.
-            Ok(r) if r.status == 404 => vec![Outcome::Error(format!(
-                "No sync chain with this code on {}",
-                self.settings.server_url
+            Ok(r) if r.status == 404 => vec![Outcome::Error(t!(
+                "app.sync.no_chain",
+                server = self.settings.server_url
             ))],
             Ok(r) => vec![Outcome::Error(r.error())],
             Err(e) => vec![Outcome::Error(e)],
@@ -677,7 +679,7 @@ impl Worker {
         sidebar_unchanged: bool,
     ) -> Vec<Outcome> {
         let Some(code) = self.code.clone() else {
-            return vec![Outcome::Error("this device is not in a sync chain".into())];
+            return vec![Outcome::Error(t!("app.sync.not_in_chain").into())];
         };
         let keys = code.keys();
         self.settings = settings.sync.clone();
@@ -713,9 +715,11 @@ impl Worker {
                         }
                     };
                     if remote.version < seen {
-                        errors.push(format!(
-                            "{name}: the server has version {} but this device has {seen}; not going back",
-                            remote.version
+                        errors.push(t!(
+                            "app.sync.going_back",
+                            name = name,
+                            remote = remote.version,
+                            seen = seen
                         ));
                         continue;
                     }
@@ -727,14 +731,14 @@ impl Worker {
                                 // Data this version cannot read (a newer Magnetite
                                 // wrote it) is not taken: counting it as applied
                                 // would let this device overwrite it later.
-                                let unreadable = "cannot read it; is Magnetite up to date?";
+                                let unreadable = t!("app.sync.unreadable");
                                 if *name == SIDEBAR {
                                     // One without spaces cannot be shown. Not
                                     // counted as seen: every round says so
                                     // until a usable one is there.
                                     match serde_json::from_slice::<SidebarSnapshot>(&data) {
                                         Ok(s) if s.spaces.is_empty() => {
-                                            Err("it has no spaces".to_string())
+                                            Err(t!("app.sync.no_spaces").to_string())
                                         }
                                         Ok(s) => {
                                             pulled_sidebar = Some(s);
@@ -754,7 +758,12 @@ impl Worker {
                                 versions.push(((*name).to_string(), remote.version));
                             }
                             Err(e) => {
-                                errors.push(format!("{name} version {}: {e}", remote.version));
+                                errors.push(t!(
+                                    "app.sync.version_failed",
+                                    name = name,
+                                    version = remote.version,
+                                    error = e
+                                ));
                             }
                         }
                         continue;
@@ -773,9 +782,7 @@ impl Worker {
                 // write went through would make its own sidebar the chain's.
                 Ok(r) if r.status == 404 => {
                     if applied == 0 && !self.settings.started_here {
-                        errors.push(format!(
-                            "{name}: this sync chain holds no data yet; sync the device that started it first"
-                        ));
+                        errors.push(t!("app.sync.no_data_yet", name = name));
                         continue;
                     }
                 }
@@ -804,7 +811,8 @@ impl Worker {
                     self.known.insert((*name).to_string(), version);
                     versions.push(((*name).to_string(), version));
                 }
-                Err(e) => errors.push(e),
+                Err(Unwritten::Behind) => errors.push(t!("app.sync.wrote_first", name = name)),
+                Err(Unwritten::Failed(e)) => errors.push(e),
             }
         }
         let mut outcomes = Vec::new();
@@ -825,23 +833,36 @@ impl Worker {
 
     /// Write collection `name` as the version after `base`. Returns that
     /// version once the server acknowledged exactly it.
-    fn push(&self, keys: &ChainKeys, name: &str, base: u64, bytes: &[u8]) -> Result<u64, String> {
+    fn push(
+        &self,
+        keys: &ChainKeys,
+        name: &str,
+        base: u64,
+        bytes: &[u8],
+    ) -> Result<u64, Unwritten> {
+        let failed = Unwritten::Failed;
         let id = keys.collection_id(name);
         let next = base
             .checked_add(1)
-            .ok_or_else(|| format!("{name}: version overflow"))?;
-        let sealed = keys.seal(&id, next, bytes).map_err(|e| e.to_string())?;
+            .ok_or_else(|| failed(t!("app.sync.overflow", name = name)))?;
+        let sealed = keys
+            .seal(&id, next, bytes)
+            .map_err(|e| failed(e.to_string()))?;
         let body = serde_json::to_vec(&PutCollectionRequest::new(base, sealed)).unwrap_or_default();
-        let r = self.request(keys, "PUT", &format!("/collections/{id}"), Some(body))?;
+        let r = (self.request(keys, "PUT", &format!("/collections/{id}"), Some(body)))
+            .map_err(failed)?;
         match r.status {
-            200 => match r.json::<PutCollectionResponse>()?.version {
+            200 => match r.json::<PutCollectionResponse>().map_err(failed)?.version {
                 v if v == next => Ok(next),
-                v => Err(format!(
-                    "{name}: the server acknowledged version {v} for a write of version {next}; ignored"
-                )),
+                v => Err(failed(t!(
+                    "app.sync.wrong_version",
+                    name = name,
+                    acked = v,
+                    next = next
+                ))),
             },
-            409 => Err(format!("{name}: another device wrote first; will retry")),
-            _ => Err(r.error()),
+            409 => Err(Unwritten::Behind),
+            _ => Err(failed(r.error())),
         }
     }
 
@@ -857,14 +878,16 @@ impl Worker {
         let keys = code.keys();
         let id = keys.collection_id(DEVICES);
         let path = format!("/collections/{id}");
-        let unreadable = || "devices: cannot read them; is Magnetite up to date?".to_string();
+        let unreadable = || t!("app.sync.devices_unreadable").to_string();
         let applied = self.settings.versions.get(DEVICES).copied().unwrap_or(0);
         for _ in 0..4 {
             let seen = applied.max(self.known.get(DEVICES).copied().unwrap_or(0));
-            let back = |has: &str| {
-                vec![Outcome::Error(format!(
-                    "devices: the server has {has} but this device has version {seen}; not going back"
-                ))]
+            // The server's version is older than one seen, or it has none.
+            let back = |remote: Option<u64>| {
+                vec![Outcome::Error(match remote {
+                    Some(remote) => t!("app.sync.devices_going_back", remote = remote, seen = seen),
+                    None => t!("app.sync.devices_gone", seen = seen),
+                })]
             };
             let (version, mut all) = match self.request(&keys, "GET", &path, None) {
                 Ok(r) if r.status == 200 => {
@@ -873,7 +896,7 @@ impl Worker {
                         Err(e) => return vec![Outcome::Error(e)],
                     };
                     if remote.version < seen {
-                        return back(&format!("version {}", remote.version));
+                        return back(Some(remote.version));
                     }
                     // Data this version cannot read is not written over.
                     let read = keys
@@ -887,7 +910,7 @@ impl Worker {
                 }
                 // No device listed a tab yet.
                 Ok(r) if r.status == 404 && seen == 0 => (0, Devices::default()),
-                Ok(r) if r.status == 404 => return back("none"),
+                Ok(r) if r.status == 404 => return back(None),
                 Ok(r) => return vec![Outcome::Error(r.error())],
                 Err(e) => return vec![Outcome::Error(e)],
             };
@@ -916,23 +939,17 @@ impl Worker {
                     return done(written);
                 }
                 // Another device wrote first: read again.
-                Err(e) if e.contains("another device wrote first") => {}
-                Err(e) => return vec![Outcome::Error(e)],
+                Err(Unwritten::Behind) => {}
+                Err(Unwritten::Failed(e)) => return vec![Outcome::Error(e)],
             }
         }
-        vec![Outcome::Error(
-            "devices: other devices kept writing first; trying again later".into(),
-        )]
+        vec![Outcome::Error(t!("app.sync.devices_busy").into())]
     }
 
     /// Erase `code`'s chain on `server`. This device left it already, so only
     /// a failure is reported; the pending record stays for another try.
     fn delete_remote(&self, server: &str, code: &SyncCode) -> Vec<Outcome> {
-        let failed = |e: String| {
-            vec![Outcome::Error(format!(
-                "Left the sync chain, but the server has not deleted it yet ({e}). Magnetite tries again at its next start."
-            ))]
-        };
+        let failed = |e: String| vec![Outcome::Error(t!("app.sync.delete_pending", error = e))];
         // 404: the chain is gone already. Anything else, also a refused
         // signature (401, for example after a wrong clock), is no proof.
         match self.request_to(server, &code.keys(), "DELETE", "/chain", None) {

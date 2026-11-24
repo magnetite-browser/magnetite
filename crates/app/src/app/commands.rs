@@ -9,6 +9,8 @@ use magnetite_core::smart::{Service, SmartFolder, SmartSource};
 use magnetite_core::split::Side;
 use magnetite_core::{Color, SidebarNode, Space, TabItem};
 use magnetite_engine::{Engine, MediaAction, Shortcut};
+use magnetite_importer::ImportError;
+use magnetite_ui::t;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -25,6 +27,23 @@ use super::{
 
 /// The largest bookmarks file `ImportBookmarks` reads: 16 MiB.
 const MAX_BOOKMARKS_FILE: usize = 16 << 20;
+
+/// Why another browser's data was not imported, for the page: in the
+/// user's language where Magnetite words it, else the importer's own text.
+fn import_error(error: ImportError) -> String {
+    match error {
+        ImportError::Empty(name) => t!("app.errors.nothing_to_import", name = name),
+        e => e.to_string(),
+    }
+}
+
+/// `import_error` for a bookmarks file.
+fn file_import_error(error: ImportError) -> String {
+    match error {
+        ImportError::Empty(_) => t!("app.errors.file_nothing_to_import").to_string(),
+        e => e.to_string(),
+    }
+}
 
 /// What `CopyDownload` puts on the clipboard.
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -1029,6 +1048,9 @@ pub(super) enum UiCommand {
     CheckUpdates,
     /// Install the release found and restart (else open its page).
     InstallUpdate,
+    /// Quit and start again with the same arguments (Settings → General →
+    /// Language, which counts from the next start).
+    Restart,
     /// The release notes of the update found, in a new tab.
     OpenUpdatePage,
     /// The system's software centre on its updates (rpm, deb).
@@ -1098,7 +1120,7 @@ impl MagnetiteApp {
             if s.sidebar.profiles.iter().any(|p| p.id == id) {
                 Ok(s.context(Some(id)))
             } else {
-                Err("That profile is gone.".into())
+                Err(t!("app.errors.profile_gone").into())
             }
         })
     }
@@ -1361,8 +1383,10 @@ impl MagnetiteApp {
             }
             UiCommand::ShareFolder { id } => {
                 let text = match self.with_state(|s| s.share_folder(&id)) {
-                    Ok(link) if engine.copy_text(&link) => "Link to folder copied".to_string(),
-                    Ok(_) => "Could not copy".to_string(),
+                    Ok(link) if engine.copy_text(&link) => {
+                        t!("app.notices.folder_link_copied").to_string()
+                    }
+                    Ok(_) => t!("app.notices.copy_failed").to_string(),
                     Err(e) => e.to_string(),
                 };
                 Self::ui_call(engine, "notice", &json!({ "text": text }));
@@ -1373,7 +1397,7 @@ impl MagnetiteApp {
             UiCommand::AddShared { url } => {
                 let added = self.with_state(|s| s.add_shared(&url));
                 let text = match &added {
-                    Ok(title) => format!("Added \u{201c}{title}\u{201d}"),
+                    Ok(title) => t!("app.notices.added", title = title),
                     Err(e) => e.to_string(),
                 };
                 self.push_state(engine);
@@ -1643,19 +1667,19 @@ impl MagnetiteApp {
                 // No window to open the dialog over is no choice made, and
                 // is said: a dialog closed without one is not.
                 if !engine.can_open_dialog() {
-                    return Err("The dialog could not be opened.".into());
+                    return Err(t!("app.errors.dialog_failed").into());
                 }
                 if let Some(ticket) = engine.defer_reply() {
                     let now = self.with_state(|s| s.settings.downloads.folder.clone());
                     let start = (!now.is_empty()).then(|| std::path::PathBuf::from(now));
                     engine.choose_folder(
-                        "Save downloads to",
+                        t!("app.downloads.choose_folder"),
                         start.as_deref(),
                         Box::new(move |chosen| {
                             let engine = Engine::global();
                             let Some(app) = super::global() else {
                                 return engine
-                                    .finish_reply(ticket, Err("Magnetite is closing".into()));
+                                    .finish_reply(ticket, Err(t!("app.errors.closing").into()));
                             };
                             // Chosen, and gone or no folder by now: said, where
                             // a dialog closed without a choice is not.
@@ -1665,7 +1689,7 @@ impl MagnetiteApp {
                             {
                                 return engine.finish_reply(
                                     ticket,
-                                    Err("That folder cannot be used.".into()),
+                                    Err(t!("app.errors.folder_unusable").into()),
                                 );
                             }
                             let (downloads, changed) = app.with_state(|s| {
@@ -1710,7 +1734,7 @@ impl MagnetiteApp {
             } => Self::smart_connect(engine, service, host, token),
             UiCommand::SmartDisconnect { id } => {
                 self.with_state(|s| s.accounts.remove(&id))
-                    .map_err(|e| format!("Cannot remove the account: {e}"))?;
+                    .map_err(|e| t!("app.smart.remove_failed", error = e))?;
                 self.show_state(engine);
             }
             UiCommand::SmartPreview { source, account } => {
@@ -1825,10 +1849,10 @@ impl MagnetiteApp {
             }
             UiCommand::OpenExtensionStore { id, profile } => {
                 if !magnetite_engine::is_extension_id(&id) {
-                    return Err("That is no extension.".into());
+                    return Err(t!("app.errors.no_extension").into());
                 }
                 if self.with_state(|s| s.profile_for_context(&profile).is_none()) {
-                    return Err("That profile is gone.".into());
+                    return Err(t!("app.errors.profile_gone").into());
                 }
                 let url = format!("https://chromewebstore.google.com/detail/{id}");
                 let source = url_policy::Source::User;
@@ -1853,7 +1877,7 @@ impl MagnetiteApp {
                 if url.starts_with("magnetite://")
                     || !url_policy::allowed(&url, url_policy::Source::User)
                 {
-                    return Err("That is no address of a web page.".into());
+                    return Err(t!("app.errors.no_web_address").into());
                 }
                 // Named by its site until its page says what it is called.
                 let site = url.split_once("://").map_or(url.as_str(), |(_, rest)| rest);
@@ -1870,13 +1894,13 @@ impl MagnetiteApp {
             UiCommand::OpenDataDir => {
                 // A folder given relative to where Magnetite was started.
                 let folder = std::path::absolute(&self.data_dir)
-                    .map_err(|_| "The data folder could not be opened.".to_string())?;
+                    .map_err(|_| t!("app.errors.data_dir_open").to_string())?;
                 downloads::open(&folder, false)
-                    .map_err(|_| "The data folder could not be opened.".to_string())?;
+                    .map_err(|_| t!("app.errors.data_dir_open").to_string())?;
             }
             UiCommand::PinnedToBookmarks { space, remove } => {
                 if self.with_state(|s| s.space(&space).is_none() || s.is_private_space(&space)) {
-                    return Err("That space is gone.".into());
+                    return Err(t!("app.errors.space_gone").into());
                 }
                 let (added, pinned) = self.with_state(|s| {
                     let added = s.pinned_to_bookmarks(&space);
@@ -2039,6 +2063,8 @@ impl MagnetiteApp {
                         "repository": env!("CARGO_PKG_REPOSITORY"),
                         "engine": { "chromium": chromium, "cef": cef },
                         "data_dir": self.data_dir.display().to_string(),
+                        // What "Same as the system" is (Settings → General).
+                        "system_language": magnetite_ui::resolve(None, sys_locale::get_locales()),
                         // The chosen folder is not there: the page says so.
                         "download_folder_missing": !s.settings.downloads.folder.is_empty() && !std::path::Path::new(&s.settings.downloads.folder).is_dir(),
                         "adblock": adblock,
@@ -2203,7 +2229,7 @@ impl MagnetiteApp {
                 if let Some(id) = &profile
                     && self.with_state(|s| s.profile_for_context(id).is_none())
                 {
-                    return Err("That profile is gone.".into());
+                    return Err(t!("app.errors.profile_gone").into());
                 }
                 let context = profile.or_else(|| self.with_state(|s| Some(s.default_profile_id())));
                 // The extension pages open as a tab of that profile: a tab
@@ -2276,8 +2302,8 @@ impl MagnetiteApp {
                     let browser = installed.iter().find(|b| b.key == key);
                     let name = browser.map_or(key.as_str(), |b| b.name);
                     let result = browser
-                        .ok_or_else(|| "it is not on this computer".to_string())
-                        .and_then(|b| magnetite_importer::import(b).map_err(|e| e.to_string()));
+                        .ok_or_else(|| t!("app.errors.not_on_computer").to_string())
+                        .and_then(|b| magnetite_importer::import(b).map_err(import_error));
                     match result {
                         Ok(snap) => read.push(match spaces.get(key) {
                             Some(chosen) => choose_spaces(snap, chosen),
@@ -2347,7 +2373,7 @@ impl MagnetiteApp {
                 if let Some(p) = &profile
                     && self.with_state(|s| s.profile_for_context(p).is_none())
                 {
-                    return Err("That profile is gone.".into());
+                    return Err(t!("app.errors.profile_gone").into());
                 }
                 self.pin_extension(engine, &id, pinned, profile.as_deref());
                 self.tell_settings_pages(engine);
@@ -2376,7 +2402,7 @@ impl MagnetiteApp {
                     .ok_or(())
                     .and_then(|f| downloads::open(&f, reveal).map_err(|_| ()));
                 if opened.is_err() {
-                    let text = "That file was moved or deleted.";
+                    let text = t!("app.notices.file_gone");
                     Self::ui_call(engine, "notice", &json!({ "text": text }));
                     self.show_downloads(engine);
                 }
@@ -2388,9 +2414,9 @@ impl MagnetiteApp {
                 let link = self.with_state(|s| s.downloads.link(&id).map(str::to_string));
                 let copied = link.is_some_and(|link| engine.copy_text(&link));
                 let text = if copied {
-                    "Link copied"
+                    t!("app.notices.link_copied")
                 } else {
-                    "Could not copy"
+                    t!("app.notices.copy_failed")
                 };
                 Self::ui_call(engine, "notice", &json!({ "text": text }));
             }
@@ -2400,13 +2426,15 @@ impl MagnetiteApp {
                 let text = match (file.filter(|f| f.exists()), what) {
                     (None, _) => {
                         self.show_downloads(engine);
-                        "That file was moved or deleted."
+                        t!("app.notices.file_gone")
                     }
-                    (Some(f), DownloadCopy::File) if engine.copy_file(&f) => "File copied",
+                    (Some(f), DownloadCopy::File) if engine.copy_file(&f) => {
+                        t!("app.notices.file_copied")
+                    }
                     (Some(f), DownloadCopy::Path) if engine.copy_text(&f.to_string_lossy()) => {
-                        "Path copied"
+                        t!("app.notices.path_copied")
                     }
-                    (Some(_), _) => "Could not copy",
+                    (Some(_), _) => t!("app.notices.copy_failed"),
                 };
                 Self::ui_call(engine, "notice", &json!({ "text": text }));
             }
@@ -2434,7 +2462,7 @@ impl MagnetiteApp {
                 let file = self.with_state(|s| s.downloads.file(&id).map(Path::to_path_buf));
                 let trashed = file.is_some_and(|f| magnetite_engine::move_to_trash(&f).is_ok());
                 if !trashed {
-                    let text = "Could not move that file to the trash.";
+                    let text = t!("app.notices.trash_failed");
                     Self::ui_call(engine, "notice", &json!({ "text": text }));
                 }
                 // The entry stays and shows the file as deleted.
@@ -2468,7 +2496,7 @@ impl MagnetiteApp {
                         s.persist();
                     });
                 } else {
-                    let text = "Could not start that download again.";
+                    let text = t!("app.notices.retry_failed");
                     Self::ui_call(engine, "notice", &json!({ "text": text }));
                 }
                 self.show_downloads(engine);
@@ -2493,9 +2521,8 @@ impl MagnetiteApp {
                     s.bookmark(&bookmark).map(|(space, _)| space.title.clone())
                 });
                 let text = match &saved {
-                    Some(space) => format!("Saved to the bookmarks of {space}"),
-                    None => "Not saved: it is a bookmark already, or there is no page to keep"
-                        .to_string(),
+                    Some(space) => t!("app.notices.bookmark_saved", space = space),
+                    None => t!("app.notices.bookmark_not_saved").to_string(),
                 };
                 if saved.is_some() {
                     self.push_state(engine);
@@ -2579,6 +2606,7 @@ impl MagnetiteApp {
                 }
             }
             UiCommand::InstallUpdate => self.install_update(engine),
+            UiCommand::Restart => self.restart(engine)?,
             UiCommand::OpenUpdatePage => self.open_update_page(engine),
             UiCommand::OpenSoftwareCentre => self.open_software_centre()?,
             UiCommand::Media { id, action } => {
@@ -2625,8 +2653,8 @@ impl MagnetiteApp {
                 let browser = magnetite_importer::installed()
                     .into_iter()
                     .find(|b| b.key == key)
-                    .ok_or("That browser is not on this computer.")?;
-                let snap = magnetite_importer::import(&browser).map_err(|e| e.to_string())?;
+                    .ok_or(t!("app.errors.browser_missing"))?;
+                let snap = magnetite_importer::import(&browser).map_err(import_error)?;
                 let (spaces, favorites) = preview(snap);
                 return Ok(json!({ "spaces": spaces, "favorites": favorites }));
             }
@@ -2634,8 +2662,8 @@ impl MagnetiteApp {
                 let browser = magnetite_importer::installed()
                     .into_iter()
                     .find(|b| b.key == key)
-                    .ok_or("That browser is not on this computer.")?;
-                let snap = magnetite_importer::import(&browser).map_err(|e| e.to_string())?;
+                    .ok_or(t!("app.errors.browser_missing"))?;
+                let snap = magnetite_importer::import(&browser).map_err(import_error)?;
                 let added = self.with_state(|s| s.add_import(snap));
                 match &added.first {
                     Some(space) => self.activate_space(engine, space),
@@ -2649,17 +2677,17 @@ impl MagnetiteApp {
             }
             UiCommand::ImportBookmarks { html, space } => {
                 if html.len() > MAX_BOOKMARKS_FILE {
-                    return Err("That file is too large to be a bookmarks file.".into());
+                    return Err(t!("app.errors.bookmarks_file_too_large").into());
                 }
                 // The HTML file browsers write, or Magnetite's own JSON or CSV.
                 let found = magnetite_importer::bookmarks_file::bookmarks_any(&html)
-                    .map_err(|e| e.to_string())?;
+                    .map_err(file_import_error)?;
                 let added = self.with_state(|s| {
                     let space = match space {
                         // A space named and gone meanwhile, or the private
                         // one: not the space in front in its place.
                         Some(id) if s.space(&id).is_none() || s.is_private_space(&id) => {
-                            return Err("That space is gone.".to_string());
+                            return Err(t!("app.errors.space_gone").to_string());
                         }
                         Some(id) => id,
                         None => s.active_space.clone(),
@@ -2682,7 +2710,7 @@ impl MagnetiteApp {
                         .collect();
                     // Of several named, those that are still there count.
                     if spaces.is_empty() {
-                        return Err(if named.len() > 1 { "Those spaces are gone." } else { "That space is gone." }.to_string());
+                        return Err(if named.len() > 1 { t!("app.errors.spaces_gone") } else { t!("app.errors.space_gone") }.to_string());
                     }
                     let (text, ending) = match format {
                         BookmarkFormat::Html => (export::space_bookmarks_html(&spaces), "html"),
@@ -2738,9 +2766,9 @@ impl MagnetiteApp {
                     .is_some_and(|r| engine.copy_png(&r.png));
                 if notify {
                     let text = if copied {
-                        "Capture copied"
+                        t!("app.notices.capture_copied")
                     } else {
-                        "No capture to copy"
+                        t!("app.notices.no_capture")
                     };
                     Self::ui_call(engine, "notice", &json!({ "text": text }));
                 }
@@ -2796,7 +2824,7 @@ impl MagnetiteApp {
             } => {
                 let context = self.permission_logins(profile.as_deref())?;
                 if !engine.set_permission(context.as_ref(), &origin, kind, value) {
-                    return Err("That is no website's address.".into());
+                    return Err(t!("app.errors.no_website").into());
                 }
             }
             UiCommand::SitePermissions => {

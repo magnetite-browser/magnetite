@@ -1,0 +1,38 @@
+{
+  "space": {
+    "label": "Space",
+    "hint": "Every space has bookmarks of its own. They show in the sidebar's bookmarks view of that space.",
+    "pick_label": "Space whose bookmarks show"
+  },
+  "of_space": {
+    "title": "Bookmarks in {space}",
+    "hint": "Saved addresses of this space, apart from its tabs."
+  },
+  "none": "No bookmarks",
+  "count_one": "{count} bookmark",
+  "count_other": "{count} bookmarks",
+  "delete": {
+    "hint": "Deleting removes all of them, folders included. It cannot be undone.",
+    "confirm": "Click again to delete",
+    "button": "Delete bookmarks…",
+    "done_one": "{count} bookmark deleted.",
+    "done_other": "{count} bookmarks deleted."
+  },
+  "pinned": {
+    "label": "Add pinned tabs to bookmarks",
+    "hint": "{pinned} Copy keeps them pinned. Move closes them after: they are bookmarks then, and in the archive. Folders come along; smart folders do not.",
+    "none": "This space has no pinned tabs.",
+    "count_one": "{count} pinned tab.",
+    "count_other": "{count} pinned tabs.",
+    "move": "Move…",
+    "move_confirm": "Click again to move",
+    "added_one": "{count} bookmark added",
+    "added_other": "{count} bookmarks added",
+    "none_added": "Every pinned tab is a bookmark already",
+    "closed_one": "{count} pinned tab closed",
+    "closed_other": "{count} pinned tabs closed",
+    "copied": "{added}.",
+    "moved": "{added}; {closed}."
+  },
+  "as_file": "As a file"
+}

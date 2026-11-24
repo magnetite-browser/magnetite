@@ -1,0 +1,145 @@
+{
+  "profile_name": {
+    "gone": "A profile that is gone",
+    "main": "Main profile",
+    "private": "{name} (private)"
+  },
+  "profile_choice": {
+    "new": "A new profile",
+    "new_named": "named “{name}”",
+    "new_after_space": "named after the space",
+    "private": "Private",
+    "private_hint": "forgotten when Magnetite quits",
+    "new_after_site": "named after the site"
+  },
+  "profile_label": "Profile",
+  "profile_of": "Profile of {name}",
+  "everything_about": "Everything about {name}",
+  "sort": {
+    "title": "Drag to sort, or press the up and down arrow keys",
+    "space": "Sort {name}: space {position} of {total}. The up and down arrow keys move it.",
+    "favorite": "Sort {name}: favorite {position} of {total}. The up and down arrow keys move it.",
+    "favorite_alone": "The only favorite of its profile: there is nothing to sort"
+  },
+  "page": {
+    "name_icon": {
+      "title": "Name and icon",
+      "name": "Name",
+      "name_label": "Name of the space",
+      "icon": "Icon",
+      "icon_hint": "Shows on the space's button in the sidebar.",
+      "icons": "Icons",
+      "own_icon": "Your own icon",
+      "own_icon_hint": "A picture such as a PNG or an SVG, in place of the icons above. It syncs with the space, so it is kept small."
+    },
+    "look": "Look",
+    "profile": {
+      "title": "Profile",
+      "hint": "A profile is a set of logins of its own: cookies, site data and extensions. Spaces in one profile are signed in to the same accounts.",
+      "uses": "This space uses",
+      "private": "A private profile: what its pages store is gone when Magnetite quits.",
+      "shared": "Shared with {spaces}. Changing it loads this space's pages again, signed in as the other profile is.",
+      "change": "Changing it loads this space's pages again, signed in as the other profile is."
+    },
+    "bookmarks": {
+      "title": "Bookmarks",
+      "none": "No bookmarks",
+      "count_one": "{count} bookmark",
+      "count_other": "{count} bookmarks",
+      "hint": "Adding this space's pinned tabs to them, deleting, importing and exporting are in Bookmarks.",
+      "open": "Open Bookmarks"
+    },
+    "device": {
+      "title": "On this device",
+      "only": "Only on this device",
+      "only_hint": "Not synced: the space stays here, and devices that still sync it lose it with their next sync.",
+      "only_switch": "Keep {name} only on this device",
+      "keys": "Keys",
+      "keys_set": "{keys} goes straight to this space.",
+      "keys_none": "No keys go straight to this space.",
+      "keys_change": "Change in Shortcuts",
+      "links": "Links from other apps",
+      "links_set": "Open here for {sites}.",
+      "links_none": "No site's links are sent to this space.",
+      "links_change": "Change in Links"
+    },
+    "delete": {
+      "label": "Delete this space",
+      "last": "The last space cannot be deleted.",
+      "hint": "Its pinned and Today tabs move to the archive.",
+      "confirm": "Click again to delete",
+      "button": "Delete space…"
+    },
+    "current": "This is the space the window shows now."
+  },
+  "list": {
+    "title": "All spaces",
+    "hint": "A space is a sidebar of its own for one part of your day, with its own tabs. Their order here is their order in the sidebar: drag a space by its handle to sort. A private space forgets its logins, cookies and site data when Magnetite quits.",
+    "only_device": "only on this device",
+    "current": "current",
+    "new": {
+      "label": "A new space",
+      "hint": "It comes last in the sidebar. Its profile decides which logins its pages use.",
+      "name": "Name",
+      "name_label": "Name of the new space",
+      "profile_label": "Profile of the new space",
+      "add": "Add space"
+    },
+    "name_label": "Name of the space {name}",
+    "private_profile": "Private profile",
+    "private": {
+      "label": "Private",
+      "switch": "{name} is private",
+      "on_title": "Private: its logins, cookies and site data are gone when Magnetite quits. Turning it off loads its pages again in the profile it had before, or the main one.",
+      "off_title": "Make this space private: its pages load again in a profile of its own that is forgotten when Magnetite quits."
+    }
+  },
+  "profiles": {
+    "title": "Profiles",
+    "hint": "A profile is a set of logins of its own: cookies, site data and extensions. What uses the same profile is signed in to the same accounts; a second profile is how to use a second account of one site. A private profile is not listed: it is forgotten when Magnetite quits.",
+    "used_by_spaces": "Used by spaces",
+    "used_by_favorites": "Used by favorites",
+    "used_by_spaces_caption": "Used by spaces:",
+    "used_by_favorites_caption": "Used by favorites:",
+    "search_name": "{name} profile",
+    "name_label": "Name of the profile",
+    "delete_title": "Its logins, cookies and site data leave this computer the next time Magnetite starts",
+    "delete_confirm": "Click again",
+    "undeleted": "That profile was not deleted: {reason}.",
+    "new": {
+      "label": "A new profile",
+      "hint": "It starts empty: nothing is signed in. Give it to a space when adding the space or on its page, or to a favorite in Favorites.",
+      "name": "Name",
+      "name_label": "Name of the new profile",
+      "add": "Add profile"
+    },
+    "for_favorites": {
+      "title": "Profiles for favorites only",
+      "hint": "A profile needs no space. A favorite runs in its own profile whichever space is in front: its page stays signed in to that profile's accounts, and its cookies and site data stay apart from the space's. The history is one list for all profiles; only a private profile leaves nothing in it.",
+      "label": "Give a favorite a profile",
+      "label_hint": "In Favorites, each favorite has a list to choose its profile from.",
+      "open": "Open Favorites"
+    }
+  },
+  "favorites": {
+    "title": "Favorites",
+    "hint": "The sites at the top of the sidebar. A favorite shows in every space, or only in the spaces you choose. Each runs in a profile; a copy in another profile (right-click → Duplicate favorite) is a second account of the same site. As in the sidebar, every profile has a list of its own, and a favorite is sorted inside its list.",
+    "name_label": "Name of the favorite {name}",
+    "every_space": "Every space",
+    "shows_label": "Where {name} shows",
+    "remove_title": "Takes it out of the favorites; its page is in the archive afterwards",
+    "remove_confirm": "Click again",
+    "new": {
+      "label": "A new favorite",
+      "hint": "By its address. It comes last in the list of its profile and shows in every space. Its profile decides which logins its page uses.",
+      "address_label": "Address of the new favorite",
+      "add": "Add favorite",
+      "profile_label": "Profile of the new favorite"
+    },
+    "columns": {
+      "name": "Name",
+      "shows": "Shows in",
+      "profile": "Profile"
+    }
+  }
+}

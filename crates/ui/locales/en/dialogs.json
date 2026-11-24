@@ -1,0 +1,122 @@
+{
+  "space": {
+    "title": "Space settings",
+    "intro": "Changes apply as you make them.",
+    "name": "Name",
+    "icon": {
+      "label": "Icon",
+      "hint": "Or a picture of your own, such as a PNG or an SVG. It syncs with the space, so it is kept small."
+    },
+    "colour": "Color",
+    "strength": {
+      "label": "Strength",
+      "hint": "How much of the color the window takes."
+    },
+    "background": {
+      "label": "Background",
+      "hint": "An effect in the space color across the window, or a picture of your own under the sidebar's rows.",
+      "picture": "Picture"
+    },
+    "empty_window": {
+      "label": "Empty window",
+      "hint": "A picture behind the window while no tab is open in this space."
+    },
+    "all_settings": "All settings…"
+  },
+  "smart_folder": {
+    "title": {
+      "smart": "Smart folder",
+      "turn_into": "Turn into a smart folder",
+      "new": "New smart folder"
+    },
+    "updated": "Updated {when}",
+    "intro": "Fills itself from {service} and stays up to date.",
+    "default_name": {
+      "github": "Pull requests",
+      "gitlab": "Merge requests",
+      "jira": "Issues",
+      "youtrack": "Issues"
+    },
+    "name": "Name",
+    "source": "Source",
+    "server": {
+      "label": "Server",
+      "github_hint": "github.com, or your GitHub Enterprise address.",
+      "gitlab_hint": "gitlab.com, or your own GitLab."
+    },
+    "only": {
+      "label": "Only",
+      "hint": "Optional GitHub search terms, e.g. org:acme or -label:wip."
+    },
+    "group": {
+      "label": "Group",
+      "hint": "Optional: only this group and its subgroups, e.g. acme/platform."
+    },
+    "address": {
+      "label": "Address",
+      "jira_hint": "Jira Cloud (….atlassian.net) or your Jira Data Center."
+    },
+    "query": {
+      "label": "Query",
+      "jira_hint": "Any JQL; the folder shows what it finds.",
+      "youtrack_hint": "Any YouTrack search; the folder shows what it finds.",
+      "assigned_to_me": "Assigned to me",
+      "reported_by_me": "Reported by me",
+      "watching": "Watching",
+      "starred": "Starred"
+    },
+    "show": {
+      "label": "Show",
+      "github": {
+        "pull_requests": "My PRs + review requests",
+        "review_requests": "Review requests",
+        "my_pull_requests": "My pull requests",
+        "assigned_issues": "Issues assigned to me"
+      },
+      "gitlab": {
+        "pull_requests": "My MRs + review requests",
+        "review_requests": "Review requests",
+        "my_pull_requests": "My merge requests",
+        "assigned_issues": "Issues assigned to me"
+      }
+    },
+    "account": {
+      "label": "Account",
+      "add_another": "Add another"
+    },
+    "preview": {
+      "label": "Preview",
+      "no_account": "Connect an account to see what this folder will show.",
+      "empty": "Nothing matches right now. The folder fills as soon as something does."
+    },
+    "refresh": {
+      "label": "Refresh",
+      "minutes": "{minutes} min",
+      "hour": "1 h",
+      "up_to": "Up to",
+      "items_one": "{count} item",
+      "items_other": "{count} items"
+    },
+    "token_note": "Magnetite asks {service} directly from this computer. Your token stays on this device and is never synced.",
+    "stop": {
+      "label": "Stop updating",
+      "title": "The folder and its tabs stay as they are"
+    },
+    "create": "Create",
+    "token": {
+      "email": "Atlassian account email",
+      "api_token": "API token",
+      "paste": "Paste a {service} access token",
+      "checking": "Checking…",
+      "connect": "Connect",
+      "cloud_hint": "Your Atlassian email and an API token.",
+      "create": "Create a token",
+      "hint": {
+        "github": "Read access to pull requests and issues is enough.",
+        "gitlab": "A personal access token with the read_api scope.",
+        "jira": "A personal access token (Profile → Personal access tokens).",
+        "youtrack": "Profile → Account security → New token, scope YouTrack."
+      }
+    }
+  }
+}

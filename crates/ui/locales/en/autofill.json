@@ -1,0 +1,25 @@
+{
+  "profile": {
+    "label": "Profile",
+    "hint": "Each profile keeps its own passwords, addresses and cards. The buttons below open those of the profile chosen here; the switches count for all of them."
+  },
+  "passwords": {
+    "title": "Passwords",
+    "offer": "Offer to save passwords",
+    "offer_hint": "After you sign in, Magnetite asks whether to keep the password and fills it in the next time. Saved passwords stay on this computer, outside sync.",
+    "manage": "Saved passwords…",
+    "test_key": "This run uses Chromium's test key (--mock-keychain): what it saves is not protected by your keychain.",
+    "breach": "Warn about passwords from data breaches",
+    "breach_hint": "While this is on, Chromium asks a Google service at each sign-in whether the password appeared in a known breach. It sends an encrypted fragment, not the password."
+  },
+  "forms": {
+    "title": "Forms",
+    "addresses": "Save and fill in addresses",
+    "addresses_hint": "Names, addresses, phone numbers and email addresses for forms. Magnetite asks before it saves one.",
+    "addresses_manage": "Saved addresses…",
+    "cards": "Save and fill in payment cards",
+    "cards_hint": "Card details for checkout forms, kept on this computer. Magnetite asks before it saves one.",
+    "cards_manage": "Saved cards…"
+  },
+  "footer": "The lists are Chromium's own pages; they open over this one. The extension of a password manager such as Bitwarden works next to all this, or in its place."
+}

@@ -1,0 +1,21 @@
+{
+  "enabled": {
+    "label": "Block ads and trackers",
+    "hint": "Requests of web pages to ad and tracking servers are stopped before they load. Only with the lists you choose below."
+  },
+  "lists": {
+    "title": "Filter lists",
+    "hint": "Volunteers keep these lists. Each one you choose is downloaded from its publisher, who sees your IP address as any website does, and again every four days. What you browse is never sent.",
+    "none_chosen": "Choose at least one list: without one, nothing is blocked.",
+    "from": "From {host}.",
+    "downloading": "Downloading…",
+    "not_downloaded": "Not downloaded yet",
+    "updated": "Updated {when}"
+  },
+  "allowed": {
+    "title": "Sites where ads are not blocked",
+    "hint": "Turned off in the site panel (the button left of the address) for a site that does not work with blocking.",
+    "none": "None.",
+    "block_again": "Block again"
+  }
+}

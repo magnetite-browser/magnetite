@@ -15,6 +15,7 @@ dox = ["cef/dox"]
 
 [dependencies]
 magnetite-core.workspace = true
+magnetite-ui.workspace = true
 # Our fork of cef-rs: its bindings follow the CEF version magnetite-cef
 # builds, not the one upstream has published (docs/adr/0001-cef-bindings.md).
 cef = { git = "https://github.com/magnetite-browser/cef-rs", rev = "893437b069abfdae3b7b48be0458374d9ce30942", default-features = false }
@@ -23,7 +24,6 @@ cef = { git = "https://github.com/magnetite-browser/cef-rs", rev = "893437b069ab
 cef-dll-sys = { git = "https://github.com/magnetite-browser/cef-rs", rev = "893437b069abfdae3b7b48be0458374d9ce30942", default-features = false }
 serde.workspace = true
 serde_json.workspace = true
-thiserror.workspace = true
 base64.workspace = true
 libc = "0.2"
 psl = "2"

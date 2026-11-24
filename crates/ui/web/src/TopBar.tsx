@@ -10,6 +10,7 @@ import { Back, Close, Forward, Maximize, Minus, Reload, SidebarIcon, SplitIcon }
 import { PinnedExtensions, SLOT } from "./PinnedExtensions";
 import { windowBackground } from "./backgrounds";
 import { IS_MAC, accentCss, applyAppearance, dockedSide, findTab, hostOf, keyLabel, lookOf, onRecord, send, subscribe, type UiState } from "./bridge";
+import { rich, t } from "./i18n";
 import { keysHint } from "./settings/shortcutKeys";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 
@@ -61,20 +62,20 @@ export function TopBar() {
       onDoubleClick={(e) => e.target === e.currentTarget && send({ cmd: "window_maximize" })}
     >
       <div className={`flex shrink-0 items-center gap-0.5 ${IS_MAC ? "pl-[86px]" : "pl-2"}`}>
-        <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={`${state.sidebar_visible ? "Hide sidebar" : "Show sidebar"}${keysHint(state.keys, "toggle_sidebar")}`}><SidebarIcon /></button>
-        <button className="ib no-drag" disabled={!frontRt?.can_go_back} onClick={() => send({ cmd: "go_back" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: -1 })} title={`Back (${keyLabel("⌘[", "Alt+←")})`}><Back /></button>
-        <button className="ib no-drag" disabled={!frontRt?.can_go_forward} onClick={() => send({ cmd: "go_forward" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: 1 })} title={`Forward (${keyLabel("⌘]", "Alt+→")})`}><Forward /></button>
-        <button className="ib no-drag" disabled={!activeItem && !state.peek} onClick={() => send({ cmd: "reload" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: 0 })} title={`Reload (${keyLabel("⌘R")})`}><Reload /></button>
+        <button className="ib no-drag" onClick={() => send({ cmd: "toggle_sidebar" })} title={`${state.sidebar_visible ? t("page.top_bar.hide_sidebar") : t("page.top_bar.show_sidebar")}${keysHint(state.keys, "toggle_sidebar")}`}><SidebarIcon /></button>
+        <button className="ib no-drag" disabled={!frontRt?.can_go_back} onClick={() => send({ cmd: "go_back" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: -1 })} title={t("page.top_bar.back", { keys: keyLabel("⌘[", "Alt+←") })}><Back /></button>
+        <button className="ib no-drag" disabled={!frontRt?.can_go_forward} onClick={() => send({ cmd: "go_forward" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: 1 })} title={t("page.top_bar.forward", { keys: keyLabel("⌘]", "Alt+→") })}><Forward /></button>
+        <button className="ib no-drag" disabled={!activeItem && !state.peek} onClick={() => send({ cmd: "reload" })} onAuxClick={(e) => e.button === 1 && send({ cmd: "open_history_tab", step: 0 })} title={t("page.top_bar.reload", { keys: keyLabel("⌘R") })}><Reload /></button>
       </div>
 
       {/* The address, or the peek's controls in the same place so nothing moves. */}
       <div className="topbar-address">
         {state.peek ? (
           <div className="urlbar no-drag" data-peek>
-            <span className="min-w-0 flex-1 truncate"><span className="text-[var(--muted)]">Peek · </span>{state.peek.title || hostOf(state.peek.url)}</span>
-            <button className="h-6 shrink-0 rounded-md bg-white/10 px-2 text-[12px] font-medium hover:bg-white/15" title={`Keep as tab (${keyLabel("⌘O")})`} onClick={() => send({ cmd: "peek_to_tab" })}>Keep</button>
-            <button className="ib sm shrink-0" title="Open in split view" aria-label="Open in split view" onClick={() => send({ cmd: "peek_to_split" })}><SplitIcon width={14} height={14} /></button>
-            <button className="ib sm shrink-0" title="Close (Esc)" onClick={() => send({ cmd: "close_peek" })}><Close width={14} height={14} /></button>
+            <span className="min-w-0 flex-1 truncate">{rich("page.top_bar.peek", { muted: (s) => <span className="text-[var(--muted)]">{s}</span>, title: state.peek.title || hostOf(state.peek.url) })}</span>
+            <button className="h-6 shrink-0 rounded-md bg-white/10 px-2 text-[12px] font-medium hover:bg-white/15" title={t("page.top_bar.keep_title", { keys: keyLabel("⌘O") })} onClick={() => send({ cmd: "peek_to_tab" })}>{t("page.top_bar.keep")}</button>
+            <button className="ib sm shrink-0" title={t("page.top_bar.open_split")} aria-label={t("page.top_bar.open_split")} onClick={() => send({ cmd: "peek_to_split" })}><SplitIcon width={14} height={14} /></button>
+            <button className="ib sm shrink-0" title={t("page.top_bar.close_peek")} onClick={() => send({ cmd: "close_peek" })}><Close width={14} height={14} /></button>
           </div>
         ) : (
           <AddressRow state={state} item={activeItem} rt={activeRt} onEdit={() => send({ cmd: "open_palette", mode: activeItem ? "navigate" : "new" })} openMenu={openMenu} popups />
@@ -85,9 +86,9 @@ export function TopBar() {
         <PinnedExtensions state={state} openMenu={openMenu} room={room} />
         {!IS_MAC && (
           <div className="ml-2 flex items-center gap-0.5">
-            <button className="ib no-drag" onClick={() => send({ cmd: "window_minimize" })} title="Minimize" aria-label="Minimize"><Minus /></button>
-            <button className="ib no-drag" onClick={() => send({ cmd: "window_maximize" })} title="Maximize" aria-label="Maximize"><Maximize /></button>
-            <button className="ib no-drag window-close" onClick={() => send({ cmd: "window_close" })} title="Close" aria-label="Close"><Close /></button>
+            <button className="ib no-drag" onClick={() => send({ cmd: "window_minimize" })} title={t("page.top_bar.minimize")} aria-label={t("page.top_bar.minimize")}><Minus /></button>
+            <button className="ib no-drag" onClick={() => send({ cmd: "window_maximize" })} title={t("page.top_bar.maximize")} aria-label={t("page.top_bar.maximize")}><Maximize /></button>
+            <button className="ib no-drag window-close" onClick={() => send({ cmd: "window_close" })} title={t("common.close")} aria-label={t("common.close")}><Close /></button>
           </div>
         )}
       </div>

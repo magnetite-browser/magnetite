@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { CommandBar } from "./CommandBar";
 import { SpacePicker } from "./SpacePicker";
 import { PALETTE_MODES, applyAppearance, send, type UiState } from "./bridge";
+import { t } from "./i18n";
 
 export function CommandPalette() {
   const params = new URLSearchParams(location.search);
@@ -16,7 +17,7 @@ export function CommandPalette() {
   const [state, setState] = useState<UiState | null>(null);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    document.title = "Command";
+    document.title = t("commandBar.window_title");
     send({ cmd: "get_state" }).then((s) => {
       // Text size and density as saved, set before the bar shows.
       if (s.settings) applyAppearance(s.settings.appearance);

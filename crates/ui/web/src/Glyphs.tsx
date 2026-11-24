@@ -8,8 +8,9 @@ import type { LucideIcon, LucideProps } from "lucide-react";
 import { iconUrl } from "./backgrounds";
 import { pageZoom } from "./bridge";
 import { useDismiss } from "./dismiss";
+import { t } from "./i18n";
 
-const ICONS: Record<string, LucideIcon> = {
+const ICONS = {
   bolt: L.Zap,
   home: L.House,
   briefcase: L.Briefcase,
@@ -37,9 +38,12 @@ const ICONS: Record<string, LucideIcon> = {
   circle: L.Circle,
   square: L.Square,
   triangle: L.Triangle,
-};
+} satisfies Record<string, LucideIcon>;
 
-export const GLYPH_NAMES = Object.keys(ICONS);
+/** A glyph's name, as stored with spaces and folders; `sidebar.glyphs.<name>` is what it shows as. */
+export type GlyphName = keyof typeof ICONS;
+
+export const GLYPH_NAMES = Object.keys(ICONS) as GlyphName[];
 
 const EMOJI_TO_GLYPH: Record<string, string> = { "⚡": "bolt", "🏠": "home", "💼": "briefcase", "📚": "book", "🎨": "flame", "🎧": "music", "🛠️": "wrench", "🧪": "flask", "🌍": "globe", "🛒": "cart", "💬": "chat", "📷": "camera", "🎮": "gamepad", "✈️": "plane", "🌿": "leaf", "🔥": "flame", "💡": "bolt", "🧭": "compass", "🗂️": "folder", "✦": "star", "◆": "diamond", "●": "circle", "▲": "triangle", "■": "square", "🏥": "medical", "🐙": "github", "❤️": "heart", "⭐": "star" };
 const NAME_ALIASES: Record<string, string> = { flash: "bolt", work: "briefcase", terminal: "code", gamecontroller: "gamepad", paintbrush: "flame", graduationcap: "book", film: "camera", airplane: "plane" };
@@ -84,7 +88,7 @@ export function GlyphGrid({ current, onPick }: { current: string | null; onPick:
   return (
     <div className="space-glyphs">
       {GLYPH_NAMES.map((g) => (
-        <button key={g} type="button" title={g} aria-label={g} data-on={g === current || undefined} onClick={() => onPick(g)}>
+        <button key={g} type="button" title={t(`sidebar.glyphs.${g}`)} aria-label={t(`sidebar.glyphs.${g}`)} data-on={g === current || undefined} onClick={() => onPick(g)}>
           <Glyph name={g} size={15} />
         </button>
       ))}
@@ -108,13 +112,13 @@ export function IconPicker({ at, current, allowDefault, onPick, onClose }: { at:
       <div className="menu no-drag" style={{ left, top, minWidth: 0, maxWidth: "none", width: 232 }} onMouseDown={(e) => e.stopPropagation()}>
         <div className="grid grid-cols-8 gap-0.5">
           {GLYPH_NAMES.map((g) => (
-            <button key={g} className="justify-center rounded-md hover:bg-white/10" style={{ padding: 0, height: 28, width: 26, color: g === current ? "var(--space)" : "var(--secondary)" }} title={g} onClick={() => onPick(g)}><Glyph name={g} size={15} /></button>
+            <button key={g} className="justify-center rounded-md hover:bg-white/10" style={{ padding: 0, height: 28, width: 26, color: g === current ? "var(--space)" : "var(--secondary)" }} title={t(`sidebar.glyphs.${g}`)} onClick={() => onPick(g)}><Glyph name={g} size={15} /></button>
           ))}
         </div>
         {allowDefault && current && (
           <>
             <hr />
-            <button className="w-full text-left" onClick={() => onPick(null)}>Default icon</button>
+            <button className="w-full text-left" onClick={() => onPick(null)}>{t("sidebar.icon_picker.default")}</button>
           </>
         )}
       </div>

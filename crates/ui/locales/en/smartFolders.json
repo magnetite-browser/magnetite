@@ -1,0 +1,24 @@
+{
+  "show": {
+    "pull_requests": "Mine + review requests",
+    "review_requests": "Review requests",
+    "my_pull_requests": "Mine",
+    "assigned_issues": "Issues assigned to me"
+  },
+  "folders": {
+    "label": "Folders",
+    "hint": "Right-click any folder in the sidebar to turn it into a smart folder.",
+    "empty": "No smart folders yet.",
+    "updated": "updated {when}",
+    "refresh": "Refresh now",
+    "new": "New smart folder"
+  },
+  "accounts": {
+    "label": "Accounts",
+    "hint": "An account is an access token for one server. Disconnecting deletes the token here; revoke it on the server as well if you no longer need it.",
+    "empty": "No accounts connected.",
+    "disconnect": "Disconnect",
+    "disconnect_confirm": "Click again to disconnect",
+    "connect": "Connect an account"
+  }
+}

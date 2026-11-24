@@ -3,6 +3,7 @@ import { Favicon } from "./Favicon";
 import { Back, Close } from "./Icons";
 import { hostOf, send, type Visit } from "./bridge";
 import { groupByDay } from "./groupByDay";
+import { language, t } from "./i18n";
 
 /**
  * The history in place of the sidebar: visits by day, newest first. `count`
@@ -17,14 +18,14 @@ export function HistoryView({ count, onClose }: { count: number; onClose: () => 
   const [confirming, setConfirming] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       send({ cmd: "history", query }).then((r) => {
         if (!cancelled) setItems(r.items ?? []);
       });
     }, query ? 120 : 0);
     return () => {
       cancelled = true;
-      clearTimeout(t);
+      clearTimeout(timer);
     };
   }, [query, count]);
 
@@ -43,16 +44,16 @@ export function HistoryView({ count, onClose }: { count: number; onClose: () => 
     <div className="flex flex-col h-full">
       <div className="titlebar-drag h-[38px] shrink-0" />
       <div className="flex h-9 shrink-0 items-center gap-1 px-2">
-        <button className="ib no-drag" onClick={onClose} title="Back"><Back /></button>
-        <div className="flex-1 font-semibold">History</div>
+        <button className="ib no-drag" onClick={onClose} title={t("common.back")}><Back /></button>
+        <div className="flex-1 font-semibold">{t("library.history.title")}</div>
         {count > 0 && (
           <button className="btn sm no-drag" onClick={clear} onBlur={() => setConfirming(false)}>
-            {confirming ? "Clear all?" : "Clear"}
+            {confirming ? t("library.history.clear_confirm") : t("library.history.clear")}
           </button>
         )}
       </div>
       <div className="shrink-0 px-2 pb-1 no-drag">
-        <input className="field" placeholder="Search history" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus aria-label="Search history" />
+        <input className="field" placeholder={t("library.history.search")} value={query} onChange={(e) => setQuery(e.target.value)} autoFocus aria-label={t("library.history.search")} />
       </div>
       <div className="scroll flex-1 min-h-0 px-2 pb-3 no-drag">
         {groups.map(([day, list]) => (
@@ -70,11 +71,11 @@ export function HistoryView({ count, onClose }: { count: number; onClose: () => 
               >
                 <Favicon url={it.url} />
                 <span className="title text-left">{it.title || hostOf(it.url)}</span>
-                <span className="meta shrink-0">{new Date(it.visited_at * 1000).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</span>
+                <span className="meta shrink-0">{new Date(it.visited_at * 1000).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit" })}</span>
                 <button
                   className="close"
-                  title="Remove from history"
-                  aria-label="Remove from history"
+                  title={t("library.history.remove")}
+                  aria-label={t("library.history.remove")}
                   onClick={(e) => {
                     e.stopPropagation();
                     remove(it.id);
@@ -86,7 +87,7 @@ export function HistoryView({ count, onClose }: { count: number; onClose: () => 
             ))}
           </div>
         ))}
-        {items && items.length === 0 && <div className="px-2 py-6 text-[var(--muted)]">{query ? "No matching pages." : "No history yet."}</div>}
+        {items && items.length === 0 && <div className="px-2 py-6 text-[var(--muted)]">{query ? t("library.history.no_match") : t("library.history.empty")}</div>}
       </div>
     </div>
   );

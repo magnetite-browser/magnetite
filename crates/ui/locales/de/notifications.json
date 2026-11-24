@@ -1,0 +1,52 @@
+{
+  "title": "Mitteilungen",
+  "prompt": {
+    "wants_to": "{site} möchte",
+    "block": "Blockieren",
+    "allow": "Erlauben",
+    "ask_later": "Später fragen",
+    "kinds": {
+      "camera": "Deine Kamera verwenden",
+      "camera_control": "Deine Kamera bewegen",
+      "microphone": "Dein Mikrofon verwenden",
+      "location": "Deinen Standort abfragen",
+      "notifications": "Mitteilungen anzeigen",
+      "clipboard": "Kopierte Texte und Bilder sehen",
+      "downloads": "Mehrere Dateien herunterladen",
+      "midi": "Deine MIDI-Geräte steuern",
+      "fonts": "Die Schriften auf deinem Computer verwenden",
+      "idle": "Erkennen, wann du diesen Computer benutzt",
+      "windows": "Fenster auf all deinen Bildschirmen platzieren",
+      "local_network": "Sich mit Geräten in deinem Netzwerk verbinden",
+      "sensors": "Deine Bewegungssensoren verwenden",
+      "storage_access": "Eigene Cookies auf dieser Website verwenden",
+      "links": "Eine bestimmte Art von Links öffnen",
+      "keyboard_lock": "Deine Tastatur übernehmen",
+      "pointer_lock": "Deinen Mauszeiger übernehmen",
+      "other": "Eine andere Funktion verwenden"
+    }
+  },
+  "download": {
+    "canceled": "Download abgebrochen",
+    "failed": "Download fehlgeschlagen",
+    "progress": "{received} von {total}",
+    "so_far": "{received} bisher",
+    "paused": "Angehalten · {progress}",
+    "missing": "Verschoben oder gelöscht",
+    "done": "Heruntergeladen · {size}",
+    "dismiss": "{name} ausblenden"
+  },
+  "update": {
+    "not_installed": "Das Update wurde nicht installiert",
+    "download": "Herunterladen",
+    "dismiss": "Ausblenden",
+    "installing": "Magnetite {version} wird installiert …",
+    "installing_detail": "Magnetite startet neu, sobald es bereit ist. Deine Tabs bleiben.",
+    "available": "Magnetite {version} ist verfügbar",
+    "restart_detail": "Zum Verwenden neu starten. Deine Tabs bleiben.",
+    "download_detail": "Zum Herunterladen auf der Release-Seite.",
+    "restart": "Zum Aktualisieren neu starten",
+    "whats_new": "Neuerungen",
+    "later": "Später"
+  }
+}

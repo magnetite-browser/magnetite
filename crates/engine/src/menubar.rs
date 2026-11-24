@@ -30,8 +30,9 @@ use crate::engine::Engine;
 use crate::events::DevPanel;
 use crate::events::{EngineEvent, ExtensionMenuAction, Shortcut};
 use crate::keymap::{Action, Combo};
+use magnetite_ui::t;
 
-/// The product name in the app menu's items.
+/// The app menu's title (macOS shows the app's name there).
 const APP: &str = "Magnetite";
 
 define_class!(
@@ -154,7 +155,7 @@ fn fill_extensions(menu: &NSMenu, target: &MagnetiteMenuTarget) {
         item
     };
     if items.is_empty() {
-        add(menu, "No Extensions Installed", None, 0).setEnabled(false);
+        add(menu, t!("menu.extensions.none"), None, 0).setEnabled(false);
     }
     for (i, e) in items.iter().enumerate() {
         let item = add(menu, &e.name, Some(sel!(openExtension:)), i);
@@ -171,19 +172,31 @@ fn fill_extensions(menu: &NSMenu, target: &MagnetiteMenuTarget) {
     }
     if !items.is_empty() {
         menu.addItem(&NSMenuItem::separatorItem(mtm));
-        let pins =
-            NSMenu::initWithTitle(NSMenu::alloc(mtm), &NSString::from_str("Show in Sidebar"));
+        let pins = NSMenu::initWithTitle(
+            NSMenu::alloc(mtm),
+            &NSString::from_str(t!("menu.extensions.show_in_sidebar")),
+        );
         for (i, e) in items.iter().enumerate() {
             let item = add(&pins, &e.name, Some(sel!(pinExtension:)), i);
             if pinned.contains(&e.id) {
                 item.setState(NSControlStateValueOn);
             }
         }
-        add(menu, "Show in Sidebar", None, 0).setSubmenu(Some(&pins));
+        add(menu, t!("menu.extensions.show_in_sidebar"), None, 0).setSubmenu(Some(&pins));
     }
     menu.addItem(&NSMenuItem::separatorItem(mtm));
-    add(menu, "Manage Extensions…", Some(sel!(manageExtensions:)), 0);
-    add(menu, "Chrome Web Store…", Some(sel!(extensionStore:)), 0);
+    add(
+        menu,
+        t!("menu.extensions.manage"),
+        Some(sel!(manageExtensions:)),
+        0,
+    );
+    add(
+        menu,
+        t!("menu.extensions.store"),
+        Some(sel!(extensionStore:)),
+        0,
+    );
 }
 
 thread_local! {
@@ -313,117 +326,187 @@ pub fn install(mtm: MainThreadMarker) {
 
     b.menu(APP);
     b.standard(
-        &format!("About {APP}"),
+        t!("menu.app.about"),
         sel!(orderFrontStandardAboutPanel:),
         "",
         NONE,
     );
     b.separator();
-    b.command("Settings…", ",", CMD, S::Settings);
+    b.command(t!("menu.app.settings"), ",", CMD, S::Settings);
     b.separator();
-    let services = b.submenu("Services");
+    let services = b.submenu(t!("menu.app.services"));
     app.setServicesMenu(Some(&services));
     b.separator();
-    b.standard(&format!("Hide {APP}"), sel!(hide:), "h", CMD);
-    b.standard("Hide Others", sel!(hideOtherApplications:), "h", OPT_CMD);
-    b.standard("Show All", sel!(unhideAllApplications:), "", NONE);
-    b.separator();
-    b.standard(&format!("Quit {APP}"), sel!(terminate:), "q", CMD);
-
-    b.menu("File");
-    b.command("New Tab", "t", CMD, S::NewTab);
-    b.command("New Window", "n", CMD, S::NewWindow);
-    b.command("New Space…", "n", SHIFT_CMD, S::NewSpace);
-    b.command("Private Space", "p", SHIFT_CMD, S::PrivateSpace);
-    b.command("Hide Private Space", "d", SHIFT_CMD, S::HidePrivateSpace);
-    b.command("Close Private Space", "x", SHIFT_CMD, S::ClosePrivateSpace);
-    b.command("New Split View…", "=", SHIFT_CMD, S::NewSplit);
-    b.command("New Mini Window", "n", OPT_CMD, S::NewMini);
-    b.command("Open Location…", "l", CMD, S::FocusAddress);
-    b.separator();
-    b.command("Take Screenshot…", "2", SHIFT_CMD, S::Capture);
-    b.command("Print…", "p", CMD, S::Print);
-    b.separator();
-    b.command("Close Tab", "w", CMD, S::CloseTab);
-    b.command("Close Window", "w", SHIFT_CMD, S::CloseWindow);
-
-    b.menu("Edit");
-    b.standard("Undo", sel!(undo:), "z", CMD);
-    b.standard("Redo", sel!(redo:), "z", SHIFT_CMD);
-    b.separator();
-    b.standard("Cut", sel!(cut:), "x", CMD);
-    b.standard("Copy", sel!(copy:), "c", CMD);
-    b.standard("Paste", sel!(paste:), "v", CMD);
+    b.standard(t!("menu.app.hide"), sel!(hide:), "h", CMD);
     b.standard(
-        "Paste and Match Style",
+        t!("menu.app.hide_others"),
+        sel!(hideOtherApplications:),
+        "h",
+        OPT_CMD,
+    );
+    b.standard(
+        t!("menu.app.show_all"),
+        sel!(unhideAllApplications:),
+        "",
+        NONE,
+    );
+    b.separator();
+    b.standard(t!("menu.app.quit"), sel!(terminate:), "q", CMD);
+
+    b.menu(t!("menu.file.title"));
+    b.command(t!("menu.file.new_tab"), "t", CMD, S::NewTab);
+    b.command(t!("menu.file.new_window"), "n", CMD, S::NewWindow);
+    b.command(t!("menu.file.new_space"), "n", SHIFT_CMD, S::NewSpace);
+    b.command(
+        t!("menu.file.private_space"),
+        "p",
+        SHIFT_CMD,
+        S::PrivateSpace,
+    );
+    b.command(
+        t!("menu.file.hide_private_space"),
+        "d",
+        SHIFT_CMD,
+        S::HidePrivateSpace,
+    );
+    b.command(
+        t!("menu.file.close_private_space"),
+        "x",
+        SHIFT_CMD,
+        S::ClosePrivateSpace,
+    );
+    b.command(t!("menu.file.new_split"), "=", SHIFT_CMD, S::NewSplit);
+    b.command(t!("menu.file.new_mini"), "n", OPT_CMD, S::NewMini);
+    b.command(t!("menu.file.open_location"), "l", CMD, S::FocusAddress);
+    b.separator();
+    b.command(t!("menu.file.screenshot"), "2", SHIFT_CMD, S::Capture);
+    b.command(t!("menu.file.print"), "p", CMD, S::Print);
+    b.separator();
+    b.command(t!("menu.file.close_tab"), "w", CMD, S::CloseTab);
+    b.command(t!("menu.file.close_window"), "w", SHIFT_CMD, S::CloseWindow);
+
+    b.menu(t!("menu.edit.title"));
+    b.standard(t!("menu.edit.undo"), sel!(undo:), "z", CMD);
+    b.standard(t!("menu.edit.redo"), sel!(redo:), "z", SHIFT_CMD);
+    b.separator();
+    b.standard(t!("menu.edit.cut"), sel!(cut:), "x", CMD);
+    b.standard(t!("menu.edit.copy"), sel!(copy:), "c", CMD);
+    b.standard(t!("menu.edit.paste"), sel!(paste:), "v", CMD);
+    b.standard(
+        t!("menu.edit.paste_match_style"),
         sel!(pasteAndMatchStyle:),
         "v",
         OPT_SHIFT_CMD,
     );
-    b.standard("Delete", sel!(delete:), "", NONE);
-    b.standard("Select All", sel!(selectAll:), "a", CMD);
+    b.standard(t!("menu.edit.delete"), sel!(delete:), "", NONE);
+    b.standard(t!("menu.edit.select_all"), sel!(selectAll:), "a", CMD);
     b.separator();
-    b.command("Copy Link", "c", SHIFT_CMD, S::CopyLink);
+    b.command(t!("menu.edit.copy_link"), "c", SHIFT_CMD, S::CopyLink);
     b.separator();
-    b.command("Find…", "f", CMD, S::Find);
-    b.command("Find Next", "g", CMD, S::FindNext);
-    b.command("Find Previous", "g", SHIFT_CMD, S::FindPrevious);
-
-    b.menu("View");
-    b.command("Toggle Sidebar", "s", CMD, S::ToggleSidebar);
-    b.command("Toggle Web Panel", "p", OPT_CMD, S::WebPanel);
-    b.command("Reload Page", "r", CMD, S::Reload);
-    b.command("Reload Without Cache", "r", SHIFT_CMD, S::HardReload);
-    b.separator();
-    b.command("Zoom In", "+", CMD, S::ZoomIn);
-    b.command("Zoom Out", "-", CMD, S::ZoomOut);
-    b.command("Actual Size", "0", CMD, S::ZoomReset);
-    b.separator();
-    b.command("Developer Tools", "i", OPT_CMD, S::ToggleDevTools);
-    b.command("Console", "j", OPT_CMD, S::DevPanel(DevPanel::Console));
+    b.command(t!("menu.edit.find"), "f", CMD, S::Find);
+    b.command(t!("menu.edit.find_next"), "g", CMD, S::FindNext);
     b.command(
-        "Pick an Element",
+        t!("menu.edit.find_previous"),
+        "g",
+        SHIFT_CMD,
+        S::FindPrevious,
+    );
+
+    b.menu(t!("menu.view.title"));
+    b.command(t!("menu.view.toggle_sidebar"), "s", CMD, S::ToggleSidebar);
+    b.command(t!("menu.view.toggle_web_panel"), "p", OPT_CMD, S::WebPanel);
+    b.command(t!("menu.view.reload"), "r", CMD, S::Reload);
+    b.command(
+        t!("menu.view.reload_without_cache"),
+        "r",
+        SHIFT_CMD,
+        S::HardReload,
+    );
+    b.separator();
+    b.command(t!("menu.view.zoom_in"), "+", CMD, S::ZoomIn);
+    b.command(t!("menu.view.zoom_out"), "-", CMD, S::ZoomOut);
+    b.command(t!("menu.view.actual_size"), "0", CMD, S::ZoomReset);
+    b.separator();
+    b.command(
+        t!("menu.view.developer_tools"),
+        "i",
+        OPT_CMD,
+        S::ToggleDevTools,
+    );
+    b.command(
+        t!("menu.view.console"),
+        "j",
+        OPT_CMD,
+        S::DevPanel(DevPanel::Console),
+    );
+    b.command(
+        t!("menu.view.pick_element"),
         "c",
         OPT_CMD,
         S::DevPanel(DevPanel::Picker),
     );
-    b.command("Network", "e", OPT_CMD, S::DevPanel(DevPanel::Network));
-    b.command("Reset Page", "r", OPT_CMD, S::DevReset);
+    b.command(
+        t!("menu.view.network"),
+        "e",
+        OPT_CMD,
+        S::DevPanel(DevPanel::Network),
+    );
+    b.command(t!("menu.view.reset_page"), "r", OPT_CMD, S::DevReset);
 
-    b.menu("History");
-    b.command("Back", "[", CMD, S::Back);
-    b.command("Forward", "]", CMD, S::Forward);
+    b.menu(t!("menu.history.title"));
+    b.command(t!("menu.history.back"), "[", CMD, S::Back);
+    b.command(t!("menu.history.forward"), "]", CMD, S::Forward);
     b.separator();
-    b.command("Show History", "y", CMD, S::History);
-    b.command("Reopen Closed Tab", "t", SHIFT_CMD, S::ReopenClosed);
+    b.command(t!("menu.history.show_history"), "y", CMD, S::History);
+    b.command(
+        t!("menu.history.reopen_closed_tab"),
+        "t",
+        SHIFT_CMD,
+        S::ReopenClosed,
+    );
 
-    b.menu("Tabs");
-    b.command("Next Tab", "\t", CTRL, S::NextTab);
-    b.command("Previous Tab", "\t", CTRL_SHIFT, S::PrevTab);
+    b.menu(t!("menu.tabs.title"));
+    b.command(t!("menu.tabs.next_tab"), "\t", CTRL, S::NextTab);
+    b.command(t!("menu.tabs.previous_tab"), "\t", CTRL_SHIFT, S::PrevTab);
     b.separator();
-    b.command("Pin or Unpin Tab", "d", CMD, S::TogglePin);
-    b.command("Site Controls…", "o", SHIFT_CMD, S::SitePanel);
+    b.command(t!("menu.tabs.toggle_pin"), "d", CMD, S::TogglePin);
+    b.command(t!("menu.tabs.site_controls"), "o", SHIFT_CMD, S::SitePanel);
 
-    b.menu("Spaces");
-    b.command("Next Space", RIGHT, OPT_CMD, S::NextSpace);
-    b.command("Previous Space", LEFT, OPT_CMD, S::PrevSpace);
-    b.command("Show All Spaces…", "0", CTRL, S::SpacePicker);
+    b.menu(t!("menu.spaces.title"));
+    b.command(t!("menu.spaces.next_space"), RIGHT, OPT_CMD, S::NextSpace);
+    b.command(
+        t!("menu.spaces.previous_space"),
+        LEFT,
+        OPT_CMD,
+        S::PrevSpace,
+    );
+    b.command(t!("menu.spaces.show_all"), "0", CTRL, S::SpacePicker);
 
-    let extensions = b.menu("Extensions");
+    let extensions = b.menu(t!("menu.extensions.title"));
     extensions.setDelegate(Some(ProtocolObject::from_ref(&*target)));
     fill_extensions(&extensions, &target);
 
-    let window = b.menu("Window");
-    b.standard("Minimize", sel!(performMiniaturize:), "m", CMD);
-    b.standard("Zoom", sel!(performZoom:), "", NONE);
+    let window = b.menu(t!("menu.window.title"));
+    b.standard(
+        t!("menu.window.minimize"),
+        sel!(performMiniaturize:),
+        "m",
+        CMD,
+    );
+    b.standard(t!("menu.window.zoom"), sel!(performZoom:), "", NONE);
     b.separator();
-    b.standard("Bring All to Front", sel!(arrangeInFront:), "", NONE);
+    b.standard(
+        t!("menu.window.bring_all_to_front"),
+        sel!(arrangeInFront:),
+        "",
+        NONE,
+    );
     b.separator();
-    b.command("Downloads", "l", OPT_CMD, S::Downloads);
+    b.command(t!("menu.window.downloads"), "l", OPT_CMD, S::Downloads);
     app.setWindowsMenu(Some(&window));
 
     // AppKit adds its search field to the help menu.
-    let help = b.menu("Help");
+    let help = b.menu(t!("menu.help.title"));
     app.setHelpMenu(Some(&help));
 
     app.setMainMenu(Some(&b.bar));

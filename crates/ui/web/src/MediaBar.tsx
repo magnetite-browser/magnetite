@@ -1,6 +1,7 @@
 import { Favicon } from "./Favicon";
 import { Pause, PictureInPicture, Play, SkipBack, SkipForward, Speaker, SpeakerOff } from "./Icons";
 import { hostOf, send, type MediaState, type TabItem, type TabRuntime } from "./bridge";
+import { t } from "./i18n";
 
 export interface MediaEntry {
   tab: TabItem;
@@ -24,16 +25,16 @@ export function MediaBar({ entries }: { entries: MediaEntry[] }) {
               <Favicon url={tab.url} src={rt.favicon} />
               <span className="min-w-0 flex-1 truncate">{title}</span>
             </button>
-            <button className="ib sm" title="Previous" onClick={() => send({ cmd: "media", id: tab.id, action: "previous" })}><SkipBack width={14} height={14} /></button>
-            <button className="ib sm" title={media.playing ? "Pause" : "Play"} onClick={() => send({ cmd: "media", id: tab.id, action: media.playing ? "pause" : "play" })}>
+            <button className="ib sm" title={t("sidebar.media.previous")} onClick={() => send({ cmd: "media", id: tab.id, action: "previous" })}><SkipBack width={14} height={14} /></button>
+            <button className="ib sm" title={media.playing ? t("sidebar.media.pause") : t("sidebar.media.play")} onClick={() => send({ cmd: "media", id: tab.id, action: media.playing ? "pause" : "play" })}>
               {media.playing ? <Pause width={14} height={14} /> : <Play width={14} height={14} />}
             </button>
-            <button className="ib sm" title="Next" disabled={!media.can_next} onClick={() => send({ cmd: "media", id: tab.id, action: "next" })}><SkipForward width={14} height={14} /></button>
-            <button className="ib sm" title={rt.muted ? "Unmute" : "Mute"} onClick={() => send({ cmd: "set_muted", id: tab.id, muted: !rt.muted })}>
+            <button className="ib sm" title={t("sidebar.media.next")} disabled={!media.can_next} onClick={() => send({ cmd: "media", id: tab.id, action: "next" })}><SkipForward width={14} height={14} /></button>
+            <button className="ib sm" title={rt.muted ? t("sidebar.media.unmute") : t("sidebar.media.mute")} onClick={() => send({ cmd: "set_muted", id: tab.id, muted: !rt.muted })}>
               {rt.muted ? <SpeakerOff width={14} height={14} /> : <Speaker width={14} height={14} />}
             </button>
             {media.video && (
-              <button className="ib sm" title={media.pip ? "Back into the page" : "Picture in picture"} data-on={media.pip || undefined} onClick={() => send({ cmd: "picture_in_picture", id: tab.id })}>
+              <button className="ib sm" title={media.pip ? t("sidebar.media.back_into_page") : t("sidebar.media.picture_in_picture")} data-on={media.pip || undefined} onClick={() => send({ cmd: "picture_in_picture", id: tab.id })}>
                 <PictureInPicture width={14} height={14} />
               </button>
             )}

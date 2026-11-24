@@ -7,6 +7,7 @@ import { MaskIcon } from "./Icons";
 import { IS_MAC, accentCss, send, type Space, type UiState } from "./bridge";
 import { useDismiss } from "./dismiss";
 import { keysLabel } from "./settings/shortcutKeys";
+import { rich, t } from "./i18n";
 
 /**
  * The spaces whose name contains `query`, those first whose name starts with
@@ -83,9 +84,9 @@ export function SpacePicker({ state, onClose }: { state: UiState; onClose: () =>
           aria-controls="space-list"
           aria-activedescendant={found[sel] ? `space-${found[sel].id}` : undefined}
           aria-autocomplete="list"
-          aria-label="Go to space"
+          aria-label={t("sidebar.space_picker.label")}
           value={query}
-          placeholder="Go to space…"
+          placeholder={t("sidebar.space_picker.placeholder")}
           onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
           onKeyDown={onKey}
           spellCheck={false}
@@ -114,7 +115,7 @@ export function SpacePicker({ state, onClose }: { state: UiState; onClose: () =>
                 <div className="min-w-0 flex-1 truncate">{space.title}</div>
                 {(current || showProfile) && (
                   <span className="meta">
-                    {[current && "Current", showProfile && profiles.find((p) => p.id === space.profile_id)?.name].filter(Boolean).join(" · ")}
+                    {[current && t("sidebar.space_picker.current"), showProfile && profiles.find((p) => p.id === space.profile_id)?.name].filter(Boolean).join(" · ")}
                   </span>
                 )}
                 {keys && <kbd>{keysLabel(keys)}</kbd>}
@@ -124,8 +125,8 @@ export function SpacePicker({ state, onClose }: { state: UiState; onClose: () =>
         </div>
       )}
       <div className="hints">
-        {found.length > 0 ? <span><kbd>{IS_MAC ? "↵" : "Enter"}</kbd> Go to the space</span> : <span>No space with that name</span>}
-        <span>Keys for a space: Settings → Shortcuts</span>
+        {found.length > 0 ? <span>{rich("sidebar.space_picker.go_hint", { key: <kbd>{IS_MAC ? "↵" : "Enter"}</kbd> })}</span> : <span>{t("sidebar.space_picker.no_match")}</span>}
+        <span>{t("sidebar.space_picker.keys_hint")}</span>
       </div>
     </div>
   );

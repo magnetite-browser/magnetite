@@ -15,7 +15,6 @@ use std::time::{Duration, Instant};
 const AGAIN_WITHIN_MS: i64 = 1500;
 const AGAIN_WITHIN: Duration = Duration::from_millis(AGAIN_WITHIN_MS.unsigned_abs());
 
-const HINT: &str = "Press ⌘Q again to quit";
 /// Hint height, corner radius and side padding (DIP).
 const HEIGHT: f64 = 48.0;
 const RADIUS: f64 = 14.0;
@@ -97,7 +96,8 @@ fn hide_hint() {
 fn create_hint(mtm: MainThreadMarker) -> Retained<NSWindow> {
     use objc2_app_kit::{NSColor, NSFont, NSStatusWindowLevel, NSView, NSWindowCollectionBehavior};
     use objc2_foundation::NSString;
-    let label = NSTextField::labelWithString(&NSString::from_str(HINT), mtm);
+    let label =
+        NSTextField::labelWithString(&NSString::from_str(magnetite_ui::t!("app.quit_hint")), mtm);
     // SAFETY: a constant of AppKit's.
     let weight = unsafe { objc2_app_kit::NSFontWeightMedium };
     label.setFont(Some(&NSFont::systemFontOfSize_weight(17.0, weight)));

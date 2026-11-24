@@ -1,0 +1,43 @@
+{
+  "browsers": {
+    "label": "Import from another browser",
+    "hint": "Adds a space for each space or workspace of that browser, or for each profile that has neither, with its tabs, tab groups and bookmarks. Your sidebar stays as it is. Passwords, cookies and extensions are not copied, and nothing leaves this computer.",
+    "none_found": "No other browser found on this computer.",
+    "importing": "Importing {browser}…",
+    "added": "{browser}: added {spaces} with {tabs}.",
+    "added_bookmarks": "{browser}: added {spaces} with {tabs} and {bookmarks}.",
+    "spaces_one": "{count} space",
+    "spaces_other": "{count} spaces",
+    "tabs_one": "{count} tab",
+    "tabs_other": "{count} tabs",
+    "bookmarks_one": "{count} bookmark",
+    "bookmarks_other": "{count} bookmarks",
+    "failed": "{browser}: {error}"
+  },
+  "file": {
+    "label": "Import a bookmarks file",
+    "hint": "The file a browser writes with “Export Bookmarks” (Safari: File → Export → Bookmarks…), or a JSON or CSV file exported below. Its bookmarks join those of the space chosen; addresses already there are skipped.",
+    "into": "Into",
+    "space_label": "Space the bookmarks go to",
+    "importing": "Importing…",
+    "choose": "Choose file…",
+    "added_one": "Added {count} bookmark to {space}.",
+    "added_other": "Added {count} bookmarks to {space}.",
+    "added_current_one": "Added {count} bookmark to the current space.",
+    "added_current_other": "Added {count} bookmarks to the current space.",
+    "none_added": "Every bookmark of that file is in {space} already.",
+    "none_added_current": "Every bookmark of that file is in the current space already."
+  },
+  "export": {
+    "label": "Export bookmarks",
+    "hint": "The bookmarks of all your spaces, or of the ones you tick, as a file: HTML is what every browser imports, JSON and CSV are for your own use. Tabs and favorites are not bookmarks and are not in it.",
+    "all_spaces": "All spaces",
+    "spaces_label": "Spaces to export",
+    "format": "Format",
+    "html": "HTML, for another browser",
+    "csv": "CSV, for a spreadsheet",
+    "button": "Export…",
+    "done_one": "{count} bookmark written to {file}, where your downloads go.",
+    "done_other": "{count} bookmarks written to {file}, where your downloads go."
+  }
+}

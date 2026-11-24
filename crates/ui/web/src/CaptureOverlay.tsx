@@ -3,6 +3,7 @@
 // region, V takes the visible area, F the whole page, Esc cancels.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { send, type CaptureFrame } from "./bridge";
+import { t } from "./i18n";
 
 type Box = [number, number, number, number];
 
@@ -25,7 +26,7 @@ export function CaptureOverlay() {
   }, []);
 
   useEffect(() => {
-    document.title = "Capture";
+    document.title = t("page.capture.window_title");
     send({ cmd: "capture_frame" }).then((f) => (f.image ? setFrame(f) : send({ cmd: "capture_cancel" })));
   }, []);
 
@@ -97,13 +98,13 @@ export function CaptureOverlay() {
         </div>
       )}
       <div className="capture-hint" onMouseDown={(e) => e.stopPropagation()} onMouseUp={(e) => e.stopPropagation()}>
-        {frame.element_ok ? <span>Click an element</span> : <span title="The page moved while freezing; element picking is off for this capture">Element picking unavailable</span>}
-        <span>Drag a region</span>
-        <button onClick={() => send({ cmd: "capture_visible" })}><kbd>V</kbd> Visible</button>
-        <button onClick={() => send({ cmd: "capture_full" })}><kbd>F</kbd> Full page</button>
-        {frame.element_ok && <button onClick={() => setPadded((p) => !p)} aria-pressed={padded}><kbd>P</kbd> Padding {padded ? "on" : "off"}</button>}
-        {frame.element_ok && <button onClick={() => setContext((c) => !c)} aria-pressed={context} title="Also copy the element's selector, markup and styles as text, with the picture's file: for an issue or a coding agent"><kbd>C</kbd> Context {context ? "on" : "off"}</button>}
-        <button onClick={() => send({ cmd: "capture_cancel" })}><kbd>Esc</kbd> Cancel</button>
+        {frame.element_ok ? <span>{t("page.capture.click_element")}</span> : <span title={t("page.capture.element_off_hint")}>{t("page.capture.element_off")}</span>}
+        <span>{t("page.capture.drag_region")}</span>
+        <button onClick={() => send({ cmd: "capture_visible" })}><kbd>V</kbd> {t("page.capture.visible")}</button>
+        <button onClick={() => send({ cmd: "capture_full" })}><kbd>F</kbd> {t("page.capture.full_page")}</button>
+        {frame.element_ok && <button onClick={() => setPadded((p) => !p)} aria-pressed={padded}><kbd>P</kbd> {padded ? t("page.capture.padding_on") : t("page.capture.padding_off")}</button>}
+        {frame.element_ok && <button onClick={() => setContext((c) => !c)} aria-pressed={context} title={t("page.capture.context_hint")}><kbd>C</kbd> {context ? t("page.capture.context_on") : t("page.capture.context_off")}</button>}
+        <button onClick={() => send({ cmd: "capture_cancel" })}><kbd>Esc</kbd> {t("common.cancel")}</button>
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MenuItem } from "./ContextMenu";
 import { Check, LinkIcon, LockAlert, SiteIcon, SpeakerOff } from "./Icons";
 import { SitePanel } from "./SitePanel";
+import { t } from "./i18n";
 import { keysHint } from "./settings/shortcutKeys";
 import { hostOf, onCopied, onOpenSitePanel, send, type CopyResult, type LinkVariant, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
@@ -11,12 +12,12 @@ import { hostOf, onCopied, onOpenSitePanel, send, type CopyResult, type LinkVari
 export function siteStates(rt: TabRuntime | undefined): { key: string; label: string }[] {
   if (!rt) return [];
   const out: { key: string; label: string }[] = [];
-  if (rt.camera || rt.microphone) out.push({ key: "capture", label: rt.camera && rt.microphone ? "Using camera and microphone" : rt.camera ? "Using the camera" : "Using the microphone" });
-  if (rt.shared) out.push({ key: "capture", label: "This tab is being shared" });
-  if (rt.site?.cert_error) out.push({ key: "connection", label: "Certificate problem" });
-  else if (rt.site?.secure === false) out.push({ key: "connection", label: "Not encrypted" });
-  if (rt.site && rt.site.zoom !== (rt.site.base_zoom || 100)) out.push({ key: "zoom", label: `Zoom ${rt.site.zoom}%` });
-  if (rt.muted) out.push({ key: "muted", label: "Muted" });
+  if (rt.camera || rt.microphone) out.push({ key: "capture", label: rt.camera && rt.microphone ? t("page.site_state.camera_and_microphone") : rt.camera ? t("page.site_state.camera") : t("page.site_state.microphone") });
+  if (rt.shared) out.push({ key: "capture", label: t("page.site_state.shared") });
+  if (rt.site?.cert_error) out.push({ key: "connection", label: t("page.site_state.cert_problem") });
+  else if (rt.site?.secure === false) out.push({ key: "connection", label: t("page.site_state.not_encrypted") });
+  if (rt.site && rt.site.zoom !== (rt.site.base_zoom || 100)) out.push({ key: "zoom", label: t("page.site_state.zoom", { percent: rt.site.zoom }) });
+  if (rt.muted) out.push({ key: "muted", label: t("page.site_state.muted") });
   return out;
 }
 
@@ -40,11 +41,11 @@ export function shownAddress(url: string): string {
 const COPY_MENU = { width: 208, height: 8 + 3 * 28 };
 
 function statusText(r: CopyResult): string {
-  if (!r.copied) return "Could not copy";
-  if (r.variant === "original") return "Copied original link";
-  if (r.variant === "markdown") return "Copied as Markdown";
-  if (r.removed) return `Copied · ${r.removed} tracker${r.removed === 1 ? "" : "s"} removed`;
-  return "Copied";
+  if (!r.copied) return t("page.copy_status.failed");
+  if (r.variant === "original") return t("page.copy_status.original");
+  if (r.variant === "markdown") return t("page.copy_status.markdown");
+  if (r.removed) return t("page.copy_status.removed", { count: r.removed });
+  return t("common.copied");
 }
 
 /** The site panel's width as a window below the top bar. */
@@ -90,7 +91,7 @@ export function AddressRow({ state, item, rt, onEdit, openMenu, popups = false }
   if (!item) {
     return (
       <div className="addr">
-        <button type="button" className="addr-text no-drag" onClick={onEdit}><span data-empty>Search or enter address</span></button>
+        <button type="button" className="addr-text no-drag" onClick={onEdit}><span data-empty>{t("page.address.empty")}</span></button>
       </div>
     );
   }
@@ -102,22 +103,22 @@ export function AddressRow({ state, item, rt, onEdit, openMenu, popups = false }
           type="button"
           className="addr-chip no-drag"
           data-state={top}
-          aria-label={`Site controls${states.length ? `: ${states.map((s) => s.label).join(", ")}` : ""}`}
-          title={states.length ? states.map((s) => s.label).join(" · ") : `Site controls${keysHint(state.keys, "site_panel")}`}
+          aria-label={states.length ? t("page.address.site_controls_with", { states: states.map((s) => s.label).join(", ") }) : t("page.address.site_controls")}
+          title={states.length ? states.map((s) => s.label).join(" · ") : `${t("page.address.site_controls")}${keysHint(state.keys, "site_panel")}`}
           aria-expanded={panel}
           onClick={() => (popups ? openPanel() : setPanel((p) => !p))}
         >
           <ChipIcon state={top} />
         </button>
-        <button type="button" className="addr-text no-drag" onClick={onEdit} title={item.url} aria-label={`Address: ${item.url}. Edit${keysHint(state.keys, "focus_address")}`}>
+        <button type="button" className="addr-text no-drag" onClick={onEdit} title={item.url} aria-label={t("page.address.label", { url: item.url, keys: keysHint(state.keys, "focus_address") })}>
           {/* The top bar has room for the whole address. */}
           <span className="truncate">{popups ? shownAddress(item.url) : hostOf(item.url)}</span>
         </button>
         <button
           type="button"
           className="addr-copy no-drag"
-          aria-label={`Copy link${keysHint(state.keys, "copy_link")}. Right-click for more.`}
-          title={`Copy link${keysHint(state.keys, "copy_link")}`}
+          aria-label={t("page.address.copy_link_label", { keys: keysHint(state.keys, "copy_link") })}
+          title={`${t("page.copy_menu.link")}${keysHint(state.keys, "copy_link")}`}
           onClick={() => copy("clean")}
           onContextMenu={(e) => {
             e.preventDefault();
@@ -126,9 +127,9 @@ export function AddressRow({ state, item, rt, onEdit, openMenu, popups = false }
               return;
             }
             openMenu(e.clientX, e.clientY, [
-              { label: "Copy link", onClick: () => copy("clean") },
-              { label: "Copy original link", onClick: () => copy("original") },
-              { label: "Copy as Markdown", onClick: () => copy("markdown") },
+              { label: t("page.copy_menu.link"), onClick: () => copy("clean") },
+              { label: t("page.copy_menu.original"), onClick: () => copy("original") },
+              { label: t("page.copy_menu.markdown"), onClick: () => copy("markdown") },
             ]);
           }}
         >
@@ -139,7 +140,7 @@ export function AddressRow({ state, item, rt, onEdit, openMenu, popups = false }
         <div className="addr-status" role="status" aria-live="polite" onMouseEnter={() => window.clearTimeout(timer.current)} onMouseLeave={() => show(status)}>
           <span className="truncate">{statusText(status)}</span>
           {status.copied && status.variant === "clean" && !!status.removed && (
-            <button className="link" onClick={() => copy("original")}>Copy original</button>
+            <button className="link" onClick={() => copy("original")}>{t("page.address.copy_original_short")}</button>
           )}
         </div>
       )}

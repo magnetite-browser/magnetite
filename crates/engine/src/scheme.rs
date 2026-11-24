@@ -122,7 +122,10 @@ fn load_asset(ui_dir: &std::path::Path, path: &str) -> Option<(Vec<u8>, String)>
     } else {
         return None;
     };
-    let bytes = std::fs::read(&file).ok()?;
+    let mut bytes = std::fs::read(&file).ok()?;
+    if file.file_name().is_some_and(|n| n == "index.html") {
+        bytes = with_language(&bytes);
+    }
     let mime = match file.extension().and_then(|e| e.to_str()).unwrap_or("") {
         "html" => "text/html",
         "js" | "mjs" => "text/javascript",
@@ -137,6 +140,15 @@ fn load_asset(ui_dir: &std::path::Path, path: &str) -> Option<(Vec<u8>, String)>
         _ => "application/octet-stream",
     };
     Some((bytes, mime.to_string()))
+}
+
+/// The page with the language of Magnetite's texts in `<html lang>`: the
+/// pages show their texts in it (`crates/ui/web/src/i18n.tsx`).
+fn with_language(page: &[u8]) -> Vec<u8> {
+    let tag = magnetite_ui::language();
+    String::from_utf8_lossy(page)
+        .replacen(r#"<html lang="en">"#, &format!(r#"<html lang="{tag}">"#), 1)
+        .into_bytes()
 }
 
 /// A handler that answers a request with `bytes`, of type `mime`.

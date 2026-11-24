@@ -4,6 +4,7 @@
 use magnetite_core::smart::{Service, SmartFolder, SmartSource, item_key};
 use magnetite_core::{SidebarNode, UnixSeconds};
 use magnetite_engine::Engine;
+use magnetite_ui::t;
 use serde_json::json;
 
 use crate::state::{new_id, now};
@@ -44,7 +45,7 @@ impl MagnetiteApp {
                         };
                         let stored = app.with_state(|s| s.accounts.add(account.clone(), token));
                         stored
-                            .map_err(|e| format!("Cannot store the account: {e}"))
+                            .map_err(|e| t!("app.smart.store_failed", error = e))
                             .map(|()| {
                                 app.show_state(engine);
                                 // Folders waiting for this account fill now.
@@ -53,7 +54,7 @@ impl MagnetiteApp {
                             })
                     }
                     (Err(e), _) => Err(e),
-                    (Ok(_), None) => Err("Magnetite is closing.".into()),
+                    (Ok(_), None) => Err(t!("app.errors.closing").into()),
                 };
                 engine.finish_reply(ticket, reply);
             }));
@@ -70,9 +71,9 @@ impl MagnetiteApp {
         let (account, token) = self
             .with_state(|s| s.accounts.for_source(&source, account))
             .ok_or_else(|| {
-                format!(
-                    "Connect a {} account first.",
-                    service_name(source.service())
+                t!(
+                    "app.smart.connect_first",
+                    service = service_name(source.service())
                 )
             })?;
         let Some(ticket) = engine.defer_reply() else {
@@ -101,9 +102,9 @@ impl MagnetiteApp {
     ) -> Result<String, String> {
         let title = match title.trim() {
             "" => match smart.source.service() {
-                Service::GitHub => "Pull requests",
-                Service::GitLab => "Merge requests",
-                Service::Jira | Service::YouTrack => "Issues",
+                Service::GitHub => t!("app.names.pull_requests"),
+                Service::GitLab => t!("app.names.merge_requests"),
+                Service::Jira | Service::YouTrack => t!("app.names.issues"),
             },
             t => t,
         }
@@ -148,7 +149,7 @@ impl MagnetiteApp {
                 Some(id)
             }
         });
-        let folder_id = folder_id.ok_or("That folder no longer exists.")?;
+        let folder_id = folder_id.ok_or(t!("app.errors.folder_gone"))?;
         // Made or edited here: this device's accounts may fill it.
         self.with_state(|s| {
             s.smart_status.remove(&folder_id);
@@ -199,10 +200,7 @@ impl MagnetiteApp {
             let st = s.smart_status.entry(id.to_string()).or_default();
             st.needs_approval = !allowed;
             if !allowed {
-                st.error = Some(
-                    "Added or changed on another device. Turn it on here to fill it with this device's accounts."
-                        .into(),
-                );
+                st.error = Some(t!("app.smart.other_device").into());
                 return Some(None);
             }
             st.checked_at = Some(now());
@@ -211,9 +209,9 @@ impl MagnetiteApp {
                 None if st.needs_account => None,
                 None => {
                     st.needs_account = true;
-                    st.error = Some(format!(
-                        "Connect a {} account to fill this folder.",
-                        service_name(sf.source.service())
+                    st.error = Some(t!(
+                        "app.smart.connect_to_fill",
+                        service = service_name(sf.source.service())
                     ));
                     Some(None)
                 }

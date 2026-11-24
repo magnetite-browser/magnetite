@@ -1,5 +1,6 @@
 // Smart folder helpers shared by the sidebar, the dialog and Settings.
 import { normaliseHost, sourceHost, type Account, type Folder, type Service, type SidebarNode, type SmartSource, type UiState } from "./bridge";
+import { language, t } from "./i18n";
 
 export const SERVICES: readonly Service[] = ["github", "gitlab", "jira", "youtrack"];
 export const SERVICE_LABEL: Record<Service, string> = { github: "GitHub", gitlab: "GitLab", jira: "Jira", youtrack: "YouTrack" };
@@ -93,14 +94,13 @@ export function tokenPage(source: SmartSource): string | null {
   }
 }
 
-/** "just now", "5 min ago", "3 h ago", "2 days ago". */
+/** "just now", "5 min ago", "3 h ago", "2 days ago" (in the page's language). */
 export function ago(unixSeconds: number): string {
   const s = Math.max(0, Date.now() / 1000 - unixSeconds);
-  if (s < 60) return "just now";
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
-  const d = Math.floor(s / 86400);
-  return `${d} day${d === 1 ? "" : "s"} ago`;
+  if (s < 60) return t("sidebar.time.just_now");
+  if (s < 3600) return t("sidebar.time.minutes_ago", { minutes: Math.floor(s / 60) });
+  if (s < 86400) return t("sidebar.time.hours_ago", { hours: Math.floor(s / 3600) });
+  return t("sidebar.time.days_ago", { count: Math.floor(s / 86400) });
 }
 
 /** A plausible source for a plain folder being turned smart, from where its tabs live. */
@@ -133,8 +133,8 @@ export interface SnoozeChoice {
   until: number;
 }
 
-const clock = (d: Date) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-const weekday = (d: Date) => d.toLocaleDateString([], { weekday: "short" });
+const clock = (d: Date) => d.toLocaleTimeString(language, { hour: "numeric", minute: "2-digit" });
+const weekday = (d: Date) => d.toLocaleDateString(language, { weekday: "short" });
 
 /** `now` moved by `days`, at `hour` o'clock. */
 function dayAt(now: Date, days: number, hour: number): Date {
@@ -153,21 +153,21 @@ export function snoozeChoices(now: Date): SnoozeChoice[] {
   const monday = dayAt(now, ((8 - now.getDay()) % 7) || 7, 9);
   const choice = (label: string, at: Date, hint = clock(at)): SnoozeChoice => ({ label, hint, until: Math.floor(at.getTime() / 1000) });
   return [
-    choice("In 1 hour", inHours(1)),
-    choice("In 3 hours", inHours(3)),
-    ...(evening > now ? [choice("This evening", evening)] : []),
-    choice("Tomorrow", tomorrow),
-    choice("Next week", monday, `${weekday(monday)} ${clock(monday)}`),
+    choice(t("sidebar.snooze.in_hours", { count: 1 }), inHours(1)),
+    choice(t("sidebar.snooze.in_hours", { count: 3 }), inHours(3)),
+    ...(evening > now ? [choice(t("sidebar.snooze.this_evening"), evening)] : []),
+    choice(t("sidebar.snooze.tomorrow"), tomorrow),
+    choice(t("sidebar.snooze.next_week"), monday, `${weekday(monday)} ${clock(monday)}`),
   ];
 }
 
 /** When a snoozed item comes back: "14:35" today, "Mon 9:00" within a week, else "24 Nov"; without a time "Forever". */
 export function wakeLabel(until: number | undefined, now = new Date()): string {
-  if (until === undefined) return "Forever";
+  if (until === undefined) return t("sidebar.snooze.forever");
   const at = new Date(until * 1000);
   if (at.toDateString() === now.toDateString()) return clock(at);
   if (at.getTime() - now.getTime() < 7 * 86400_000) return `${weekday(at)} ${clock(at)}`;
-  return at.toLocaleDateString([], { day: "numeric", month: "short" });
+  return at.toLocaleDateString(language, { day: "numeric", month: "short" });
 }
 
 /** `d` as a `datetime-local` input takes it: local time, to the minute. */

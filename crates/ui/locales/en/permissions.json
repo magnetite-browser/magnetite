@@ -1,0 +1,34 @@
+{
+  "kind": {
+    "camera": "Camera",
+    "microphone": "Microphone",
+    "location": "Location",
+    "notifications": "Notifications",
+    "popups": "Pop-ups and redirects",
+    "clipboard": "Clipboard"
+  },
+  "profile": {
+    "label": "Profile",
+    "hint": "Each profile keeps its own choices."
+  },
+  "unread": {
+    "label": "The permissions could not be read",
+    "hint": "What shows below may be out of date."
+  },
+  "unchanged": {
+    "label": "{permission} for {site} could not be changed",
+    "hint": "Nothing was changed."
+  },
+  "empty": {
+    "label": "No website has a choice of its own",
+    "hint": "A website that wants the camera, the microphone, your location or notifications asks first. What you answer shows here, to change or take back."
+  },
+  "for_site": "{permission} for {site}",
+  "allow": "Allow",
+  "block": "Block",
+  "reset": {
+    "popups": "Back to blocked, as for every site",
+    "ask": "The site asks again",
+    "label": "Reset {permission} for {site}"
+  }
+}

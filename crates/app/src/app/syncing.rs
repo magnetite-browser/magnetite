@@ -32,12 +32,12 @@ impl MagnetiteApp {
     pub(super) fn sync_connect(&self, job: Job) -> Result<(), String> {
         use std::sync::atomic::Ordering;
         if self.sync_connecting.swap(true, Ordering::SeqCst) {
-            return Err("Still connecting to the sync server.".into());
+            return Err(magnetite_ui::t!("app.sync.still_connecting").into());
         }
         if sync::signed_in(&self.data_dir) {
             if self.with_state(|s| s.settings.sync.enabled) {
                 self.sync_connecting.store(false, Ordering::SeqCst);
-                return Err("This device is in a sync chain already. Leave it first.".into());
+                return Err(magnetite_ui::t!("app.sync.in_a_chain").into());
             }
             // A sync code without sync being on (the state was started
             // fresh, or the app closed in the middle of joining): nothing

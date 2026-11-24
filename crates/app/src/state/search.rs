@@ -81,7 +81,7 @@ impl AppState {
                     &t.id,
                     &t.title,
                     &t.url,
-                    Some("Favorites"),
+                    Some(magnetite_ui::t!("app.names.favorites")),
                 ));
             }
         }

@@ -1,0 +1,38 @@
+{
+  "space": {
+    "label": "Space",
+    "hint": "Jeder Space hat eigene Lesezeichen. Sie erscheinen in der Lesezeichenansicht dieses Spaces in der Seitenleiste.",
+    "pick_label": "Space, dessen Lesezeichen angezeigt werden"
+  },
+  "of_space": {
+    "title": "Lesezeichen in {space}",
+    "hint": "Gespeicherte Adressen dieses Spaces, getrennt von seinen Tabs."
+  },
+  "none": "Keine Lesezeichen",
+  "count_one": "{count} Lesezeichen",
+  "count_other": "{count} Lesezeichen",
+  "delete": {
+    "hint": "Löschen entfernt alle, samt Ordnern. Das lässt sich nicht widerrufen.",
+    "confirm": "Zum Löschen erneut klicken",
+    "button": "Lesezeichen löschen …",
+    "done_one": "{count} Lesezeichen gelöscht.",
+    "done_other": "{count} Lesezeichen gelöscht."
+  },
+  "pinned": {
+    "label": "Angeheftete Tabs als Lesezeichen sichern",
+    "hint": "{pinned} „Kopieren“ lässt sie angeheftet. „Verschieben“ schließt sie danach: Dann sind sie Lesezeichen und im Archiv. Ordner kommen mit, smarte Ordner nicht.",
+    "none": "Dieser Space hat keine angehefteten Tabs.",
+    "count_one": "{count} angehefteter Tab.",
+    "count_other": "{count} angeheftete Tabs.",
+    "move": "Verschieben …",
+    "move_confirm": "Zum Verschieben erneut klicken",
+    "added_one": "{count} Lesezeichen hinzugefügt",
+    "added_other": "{count} Lesezeichen hinzugefügt",
+    "none_added": "Jeder angeheftete Tab ist schon ein Lesezeichen",
+    "closed_one": "{count} angehefteter Tab geschlossen",
+    "closed_other": "{count} angeheftete Tabs geschlossen",
+    "copied": "{added}.",
+    "moved": "{added}; {closed}."
+  },
+  "as_file": "Als Datei"
+}

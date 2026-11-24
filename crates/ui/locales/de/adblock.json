@@ -1,0 +1,21 @@
+{
+  "enabled": {
+    "label": "Werbung und Tracker blockieren",
+    "hint": "Anfragen von Webseiten an Werbe- und Tracking-Server werden gestoppt, bevor sie laden. Nur mit den Listen, die du unten auswählst."
+  },
+  "lists": {
+    "title": "Filterlisten",
+    "hint": "Freiwillige pflegen diese Listen. Jede ausgewählte wird von ihrem Herausgeber heruntergeladen, der deine IP-Adresse sieht wie jede Website, und danach alle vier Tage erneut. Was du aufrufst, wird nie gesendet.",
+    "none_chosen": "Wähle mindestens eine Liste: Ohne Liste wird nichts blockiert.",
+    "from": "Von {host}.",
+    "downloading": "Wird heruntergeladen …",
+    "not_downloaded": "Noch nicht heruntergeladen",
+    "updated": "Aktualisiert: {when}"
+  },
+  "allowed": {
+    "title": "Websites, auf denen Werbung nicht blockiert wird",
+    "hint": "Im Website-Panel (die Taste links neben der Adresse) für eine Website ausgeschaltet, die mit Blockieren nicht funktioniert.",
+    "none": "Keine.",
+    "block_again": "Wieder blockieren"
+  }
+}

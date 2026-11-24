@@ -11,6 +11,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use base64::Engine as _;
 use magnetite_engine::{ContentId, Engine, ReplyTicket};
+use magnetite_ui::t;
 use serde_json::{Value, json};
 
 use crate::{capture, downloads, lock};
@@ -168,7 +169,7 @@ impl MagnetiteApp {
         let r = now.ok_or("that recording is over")?;
         if r.file.is_none() {
             let folder = downloads_folder().ok_or("there is no Downloads folder")?;
-            let name = capture::dated_name("recording", if mp4 { "mp4" } else { "webm" });
+            let name = capture::recording_name(if mp4 { "mp4" } else { "webm" });
             let path = folder.join(name);
             let file = File::options().write(true).create_new(true).open(&path);
             r.file = Some((path, file.map_err(|e| e.to_string())?));
@@ -241,11 +242,11 @@ impl MagnetiteApp {
                 Self::ui_call(engine, "recordingReady", &json!({ "name": name }));
             }
             Some(name) => {
-                let error = format!("the video could not be written to the end ({name})");
+                let error = magnetite_ui::t!("app.capture.video_cut", name = name);
                 Self::ui_call(engine, "captureFailed", &json!({ "error": error }));
             }
             None => {
-                let error = "the page showed nothing to record";
+                let error = magnetite_ui::t!("app.capture.nothing_recorded");
                 Self::ui_call(engine, "captureFailed", &json!({ "error": error }));
             }
         }
@@ -265,13 +266,13 @@ impl MagnetiteApp {
     pub(super) fn record_file(&self, engine: &Engine, reveal: bool) -> &'static str {
         let file = lock(&self.record).last.clone().filter(|f| f.exists());
         match file {
-            None => "That file was moved or deleted.",
+            None => t!("app.notices.file_gone"),
             Some(f) if reveal => match downloads::open(&f, true) {
                 Ok(()) => "",
-                Err(_) => "Could not show the file",
+                Err(_) => t!("app.notices.show_file_failed"),
             },
-            Some(f) if engine.copy_file(&f) => "File copied",
-            Some(_) => "Could not copy the file",
+            Some(f) if engine.copy_file(&f) => t!("app.notices.file_copied"),
+            Some(_) => t!("app.notices.copy_file_failed"),
         }
     }
 }

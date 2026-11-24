@@ -1,0 +1,94 @@
+{
+  "app": {
+    "about": "About Magnetite",
+    "settings": "Settings…",
+    "services": "Services",
+    "hide": "Hide Magnetite",
+    "hide_others": "Hide Others",
+    "show_all": "Show All",
+    "quit": "Quit Magnetite"
+  },
+  "file": {
+    "title": "File",
+    "new_tab": "New Tab",
+    "new_window": "New Window",
+    "new_space": "New Space…",
+    "private_space": "Private Space",
+    "hide_private_space": "Hide Private Space",
+    "close_private_space": "Close Private Space",
+    "new_split": "New Split View…",
+    "new_mini": "New Mini Window",
+    "open_location": "Open Location…",
+    "screenshot": "Take Screenshot…",
+    "print": "Print…",
+    "close_tab": "Close Tab",
+    "close_window": "Close Window"
+  },
+  "edit": {
+    "title": "Edit",
+    "undo": "Undo",
+    "redo": "Redo",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "paste_match_style": "Paste and Match Style",
+    "delete": "Delete",
+    "select_all": "Select All",
+    "copy_link": "Copy Link",
+    "find": "Find…",
+    "find_next": "Find Next",
+    "find_previous": "Find Previous"
+  },
+  "view": {
+    "title": "View",
+    "toggle_sidebar": "Toggle Sidebar",
+    "toggle_web_panel": "Toggle Web Panel",
+    "reload": "Reload Page",
+    "reload_without_cache": "Reload Without Cache",
+    "zoom_in": "Zoom In",
+    "zoom_out": "Zoom Out",
+    "actual_size": "Actual Size",
+    "developer_tools": "Developer Tools",
+    "console": "Console",
+    "pick_element": "Pick an Element",
+    "network": "Network",
+    "reset_page": "Reset Page"
+  },
+  "history": {
+    "title": "History",
+    "back": "Back",
+    "forward": "Forward",
+    "show_history": "Show History",
+    "reopen_closed_tab": "Reopen Closed Tab"
+  },
+  "tabs": {
+    "title": "Tabs",
+    "next_tab": "Next Tab",
+    "previous_tab": "Previous Tab",
+    "toggle_pin": "Pin or Unpin Tab",
+    "site_controls": "Site Controls…"
+  },
+  "spaces": {
+    "title": "Spaces",
+    "next_space": "Next Space",
+    "previous_space": "Previous Space",
+    "show_all": "Show All Spaces…"
+  },
+  "extensions": {
+    "title": "Extensions",
+    "none": "No Extensions Installed",
+    "show_in_sidebar": "Show in Sidebar",
+    "manage": "Manage Extensions…",
+    "store": "Chrome Web Store…"
+  },
+  "window": {
+    "title": "Window",
+    "minimize": "Minimize",
+    "zoom": "Zoom",
+    "bring_all_to_front": "Bring All to Front",
+    "downloads": "Downloads"
+  },
+  "help": {
+    "title": "Help"
+  }
+}

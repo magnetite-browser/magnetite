@@ -2,7 +2,9 @@
 Type=Application
 Name=Magnetite
 GenericName=Web Browser
+GenericName[de]=Webbrowser
 Comment=Browse the web with sidebar tabs and spaces
+Comment[de]=Im Web surfen mit Tabs und Spaces in der Seitenleiste
 Exec=magnetite %U
 Icon=magnetite
 Terminal=false

@@ -2,6 +2,7 @@
 // per setting with its name, a description and its control.
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { ChevronDown } from "../Icons";
+import { t } from "../i18n";
 
 /** Whether a setting is drawn inside a `Group`: then it is a row of it, else a card of its own. */
 const InGroup = createContext(false);
@@ -121,7 +122,7 @@ export function Slider({ value, min, max, step, unit, reset, onChange }: { value
     <div className="flex max-w-[460px] items-center gap-3">
       <input ref={input} className="range flex-1" type="range" min={min} max={max} step={step} value={value} style={{ ["--fill" as string]: `${((value - min) / (max - min)) * 100}%` }} onChange={(e) => onChange(Number(e.target.value), false)} />
       <span className="w-14 text-right tabular-nums text-[var(--secondary)]">{value}{unit}</span>
-      <button type="button" className="btn sm" disabled={value === reset} onClick={() => onChange(reset, true)}>Reset</button>
+      <button type="button" className="btn sm" disabled={value === reset} onClick={() => onChange(reset, true)}>{t("common.reset")}</button>
     </div>
   );
 }

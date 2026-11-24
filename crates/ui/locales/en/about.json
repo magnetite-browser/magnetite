@@ -1,0 +1,53 @@
+{
+  "version": "Version {version}",
+  "links": {
+    "website": "Website",
+    "source": "Source code",
+    "release_notes": "Release notes",
+    "report": "Report a problem",
+    "security": "Security policy"
+  },
+  "project": {
+    "label": "Project",
+    "unpublished": "The source repository is not published yet; its links follow once it is."
+  },
+  "licence": {
+    "label": "License",
+    "hint": "Magnetite is free software under the European Union Public Licence 1.2 (EUPL-1.2): use, study, share and change it; changed versions you share stay under the same license. It builds on open-source software whose licenses travel with it. This software uses code of FFmpeg licensed under the LGPLv2.1; how to get its source is in the open-source licenses.",
+    "eupl": "EUPL-1.2 license",
+    "open_source": "Open-source licenses",
+    "chromium": "Chromium licenses"
+  },
+  "copyright": "© the Magnetite contributors. Magnetite is an independent project, not affiliated with The Browser Company.",
+  "updates": {
+    "label": "Updates",
+    "idle": "Not checked yet.",
+    "unavailable": "This build does not update itself: it has no release key. Updates come with the next release from the project's page.",
+    "system": "Your system's updates bring new versions of Magnetite (dnf, apt or the software center). Magnetite offers a restart once one is installed.",
+    "checking": "Checking…",
+    "up_to_date": "Magnetite is up to date. Last checked {when}.",
+    "available": "Magnetite {version} is available.",
+    "system_update": "Magnetite {version} is available. Your system's updates install it.",
+    "installing": "Installing Magnetite {version}… Magnetite restarts when it is ready.",
+    "check_failed": "The last check failed: {error}",
+    "install_failed": "The update was not installed: {error}",
+    "whats_new": "What's new",
+    "restart": "Restart to update",
+    "download": "Download",
+    "how_to": "How to update",
+    "check_now": "Check now",
+    "auto": "Check for updates automatically",
+    "auto_hint": "At start and once a day Magnetite asks the project's release page on GitHub for a new version: no identifiers, no usage data. Before it installs an update, Magnetite checks it against the release manifest the project's key signed."
+  },
+  "system_dialog": {
+    "title": "Magnetite {version} is available",
+    "centre": "{centre} installs it with your system's other updates.",
+    "no_centre": "Your system installs it with its other updates.",
+    "again": "If it is not listed yet, let it look for updates again.",
+    "open": "Open {centre}",
+    "or_terminal": "Or in a terminal:",
+    "terminal": "In a terminal:",
+    "copy_failed": "Could not copy the command. Select it and copy it by hand.",
+    "restart": "Once it is installed, Magnetite offers a restart."
+  }
+}

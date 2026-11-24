@@ -1,0 +1,18 @@
+{
+  "problem": {
+    "host": "Give the site by its host, such as example.org.",
+    "listed": "This site is listed already.",
+    "too_much": "That is too much code for one site (256 KiB of CSS and of JavaScript at most)."
+  },
+  "site": "Site",
+  "code_for": "{kind} for {site}",
+  "code_for_this": "{kind} for this site",
+  "use_on": "Use on {site}",
+  "use_on_this": "Use on this site",
+  "remove": "Remove the code for {site}",
+  "remove_this": "Remove the code for this site",
+  "not_saved": "Not saved: {reason}",
+  "intro": "CSS reaches open pages of the site as soon as it is saved; JavaScript runs each time one of its pages has loaded. A site stands for its subdomains. The code runs as part of the page and can read and change everything on it: only add code you understand. It stays on this computer.",
+  "full": "No more than {max} sites are kept.",
+  "add": "Add site"
+}

@@ -96,8 +96,9 @@ impl Engine {
         button.set_ink_drop_enabled(0);
         // The keyboard stays in the page.
         button.set_focusable(0);
-        button.set_tooltip_text(Some(&CefString::from("Close the panel")));
-        button.set_accessible_name(Some(&CefString::from("Close the panel")));
+        let label = CefString::from(magnetite_ui::t!("app.panel.close"));
+        button.set_tooltip_text(Some(&label));
+        button.set_accessible_name(Some(&label));
         let overlay =
             window.add_overlay_view(Some(&mut View::from(&button)), DockingMode::TOP_LEFT, 0);
         let Some(overlay) = overlay else { return };

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { dockedSide, send, subscribe, type SidebarSide, type UiState } from "./bridge";
+import { t } from "./i18n";
 
 /** Where the strip's middle is on the screen with the pointer at `screenX`, taken `grab` points into the strip. */
 const middle = (screenX: number, grab: number) => Math.round(screenX - grab + window.innerWidth / 2);
@@ -51,8 +52,8 @@ export function PanelGrip() {
       style={background ? { background } : undefined}
       role="separator"
       aria-orientation="vertical"
-      aria-label="Web panel width"
-      title="Drag to resize the panel · double-click to reset"
+      aria-label={t("sidebar.panel_grip.label")}
+      title={t("sidebar.panel_grip.title")}
       onPointerDown={(e) => {
         e.preventDefault();
         if (drag.current) return;

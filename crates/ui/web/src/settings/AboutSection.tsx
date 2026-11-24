@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type MouseEvent } from "react";
 import appIcon from "../assets/icon.png?url";
 import { BugIcon, CodeIcon, ExternalIcon, GlobeIcon, NotesIcon, PrivacyIcon, type IconComponent } from "../Icons";
 import { onUpdate, send, type SystemPackage, type UpdateInfo } from "../bridge";
+import { language, t } from "../i18n";
 import { Field, Group, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
@@ -15,11 +16,11 @@ export function About({ info, update }: { info: Info; update: (patch: SettingsPa
   const repo = info.repository.replace(/\/$/, "") || null;
   const open = (url: string) => send({ cmd: "new_tab", url });
   const links: { label: string; url: string | null; Icon: IconComponent }[] = [
-    { label: "Website", url: WEBSITE, Icon: GlobeIcon },
-    { label: "Source code", url: repo, Icon: CodeIcon },
-    { label: "Release notes", url: repo && `${repo}/releases`, Icon: NotesIcon },
-    { label: "Report a problem", url: repo && `${repo}/issues/new/choose`, Icon: BugIcon },
-    { label: "Security policy", url: repo && `${repo}/security/policy`, Icon: PrivacyIcon },
+    { label: t("about.links.website"), url: WEBSITE, Icon: GlobeIcon },
+    { label: t("about.links.source"), url: repo, Icon: CodeIcon },
+    { label: t("about.links.release_notes"), url: repo && `${repo}/releases`, Icon: NotesIcon },
+    { label: t("about.links.report"), url: repo && `${repo}/issues/new/choose`, Icon: BugIcon },
+    { label: t("about.links.security"), url: repo && `${repo}/security/policy`, Icon: PrivacyIcon },
   ];
   return (
     <>
@@ -28,7 +29,7 @@ export function About({ info, update }: { info: Info; update: (patch: SettingsPa
         <div className="min-w-0 flex-1">
           <div className="text-[18px] font-semibold">Magnetite</div>
           <div className="set-hint">
-            Version {info.version}
+            {t("about.version", { version: info.version })}
             {info.commit && <> ({info.commit.slice(0, 7)})</>} · Chromium {info.engine.chromium} · CEF {info.engine.cef}
           </div>
         </div>
@@ -37,7 +38,7 @@ export function About({ info, update }: { info: Info; update: (patch: SettingsPa
       <Updates checkUpdates={info.settings.check_updates} update={update} />
 
       <Group>
-      <Field label="Project" hint={repo ? undefined : "The source repository is not published yet; its links follow once it is."}>
+      <Field label={t("about.project.label")} hint={repo ? undefined : t("about.project.unpublished")}>
         <div className="grid grid-cols-2 gap-2">
           {links.map(({ label, url, Icon }) => (
             <button key={label} className="link-tile" disabled={!url} onClick={() => url && open(url)}>
@@ -49,16 +50,16 @@ export function About({ info, update }: { info: Info; update: (patch: SettingsPa
         </div>
       </Field>
 
-      <Field label="License" hint="Magnetite is free software under the European Union Public Licence 1.2 (EUPL-1.2): use, study, share and change it; changed versions you share stay under the same license. It builds on open-source software whose licenses travel with it. This software uses code of FFmpeg licensed under the LGPLv2.1; how to get its source is in the open-source licenses.">
+      <Field label={t("about.licence.label")} hint={t("about.licence.hint")}>
         <div className="flex flex-wrap gap-2">
-          <button className="btn" data-search-name onClick={() => open("magnetite://ui/licenses#magnetite")}>EUPL-1.2 license</button>
-          <button className="btn" data-search-name onClick={() => open("magnetite://ui/licenses#notices")}>Open-source licenses</button>
-          <button className="btn" data-search-name onClick={() => open("chrome://credits")}>Chromium licenses</button>
+          <button className="btn" data-search-name onClick={() => open("magnetite://ui/licenses#magnetite")}>{t("about.licence.eupl")}</button>
+          <button className="btn" data-search-name onClick={() => open("magnetite://ui/licenses#notices")}>{t("about.licence.open_source")}</button>
+          <button className="btn" data-search-name onClick={() => open("chrome://credits")}>{t("about.licence.chromium")}</button>
         </div>
       </Field>
       </Group>
 
-      <p className="set-hint px-1 pt-2">© the Magnetite contributors. Magnetite is an independent project, not affiliated with The Browser Company.</p>
+      <p className="set-hint px-1 pt-2">{t("about.copyright")}</p>
     </>
   );
 }
@@ -84,38 +85,38 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
     });
   };
   const line =
-    !st || st.state === "idle" ? "Not checked yet."
-    : st.state === "unavailable" ? "This build does not update itself: it has no release key. Updates come with the next release from the project's page."
-    : st.state === "system" ? "Your system's updates bring new versions of Magnetite (dnf, apt or the software center). Magnetite offers a restart once one is installed."
-    : st.state === "checking" ? "Checking…"
-    : st.state === "up_to_date" ? `Magnetite is up to date. Last checked ${new Date(st.checked_at * 1000).toLocaleString()}.`
-    : st.state === "available" ? `Magnetite ${st.version} is available.`
-    : st.state === "system_update" ? `Magnetite ${st.version} is available. Your system's updates install it.`
-    : st.state === "installing" ? `Installing Magnetite ${st.version}… Magnetite restarts when it is ready.`
-    : st.state === "check_failed" ? `The last check failed: ${st.error}`
+    !st || st.state === "idle" ? t("about.updates.idle")
+    : st.state === "unavailable" ? t("about.updates.unavailable")
+    : st.state === "system" ? t("about.updates.system")
+    : st.state === "checking" ? t("about.updates.checking")
+    : st.state === "up_to_date" ? t("about.updates.up_to_date", { when: new Date(st.checked_at * 1000).toLocaleString(language) })
+    : st.state === "available" ? t("about.updates.available", { version: st.version })
+    : st.state === "system_update" ? t("about.updates.system_update", { version: st.version })
+    : st.state === "installing" ? t("about.updates.installing", { version: st.version })
+    : st.state === "check_failed" ? t("about.updates.check_failed", { error: st.error })
     // A system package's only failure is its restart, which says so.
     : u?.system ? st.error
-    : `The update was not installed: ${st.error}`;
+    : t("about.updates.install_failed", { error: st.error });
   return (
     <Group>
       <div className="set-row" data-search-row>
         <div className="flex items-start gap-4">
           <div className="min-w-0 flex-1" data-search-name>
-            <div className="set-label">Updates</div>
+            <div className="set-label">{t("about.updates.label")}</div>
             <p className="set-hint" role="status">{line}</p>
           </div>
           {st?.state === "available" ? (
             <div className="flex shrink-0 gap-2">
-              <button className="btn ghost" onClick={() => send({ cmd: "open_update_page" })}>What's new</button>
-              <button className="btn primary" onClick={() => send({ cmd: "install_update" })}>{st.installable ? "Restart to update" : "Download"}</button>
+              <button className="btn ghost" onClick={() => send({ cmd: "open_update_page" })}>{t("about.updates.whats_new")}</button>
+              <button className="btn primary" onClick={() => send({ cmd: "install_update" })}>{st.installable ? t("about.updates.restart") : t("about.updates.download")}</button>
             </div>
           ) : st?.state === "system_update" ? (
             <div className="flex shrink-0 gap-2">
-              <button className="btn ghost" onClick={() => send({ cmd: "open_update_page" })}>What's new</button>
-              <button ref={howTo} className="btn primary" onClick={() => setGuide(true)}>How to update</button>
+              <button className="btn ghost" onClick={() => send({ cmd: "open_update_page" })}>{t("about.updates.whats_new")}</button>
+              <button ref={howTo} className="btn primary" onClick={() => setGuide(true)}>{t("about.updates.how_to")}</button>
             </div>
           ) : (
-            <button className="btn shrink-0" disabled={st?.state === "checking" || st?.state === "installing" || st?.state === "unavailable"} onClick={checkNow}>Check now</button>
+            <button className="btn shrink-0" disabled={st?.state === "checking" || st?.state === "installing" || st?.state === "unavailable"} onClick={checkNow}>{t("about.updates.check_now")}</button>
           )}
         </div>
       </div>
@@ -131,8 +132,8 @@ function Updates({ checkUpdates, update }: { checkUpdates: boolean; update: (pat
       )}
       {/* A system package asks only on "Check now": the switch would do nothing. */}
       {!u?.system && <Toggle
-        label="Check for updates automatically"
-        hint="At start and once a day Magnetite asks the project's release page on GitHub for a new version: no identifiers, no usage data. Before it installs an update, Magnetite checks it against the release manifest the project's key signed."
+        label={t("about.updates.auto")}
+        hint={t("about.updates.auto_hint")}
         checked={checkUpdates}
         onChange={(v) => update({ check_updates: v })}
       />}
@@ -177,7 +178,7 @@ function SystemUpdateDialog({ version, system, onClose }: { version: string; sys
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       },
-      () => setError("Could not copy the command. Select it and copy it by hand."),
+      () => setError(t("about.system_dialog.copy_failed")),
     );
   };
   return (
@@ -196,30 +197,30 @@ function SystemUpdateDialog({ version, system, onClose }: { version: string; sys
     >
       <div className="set-dialog-body">
         <div>
-          <div className="set-label" id="system-update-title">Magnetite {version} is available</div>
+          <div className="set-label" id="system-update-title">{t("about.system_dialog.title", { version })}</div>
           <p className="set-hint">
-            {centre ? `${centre} installs it with your system's other updates.` : "Your system installs it with its other updates."} If it is not listed yet, let it look for updates again.
+            {centre ? t("about.system_dialog.centre", { centre }) : t("about.system_dialog.no_centre")} {t("about.system_dialog.again")}
           </p>
         </div>
         {centre && (
           <div>
-            <button className="btn primary" onClick={openCentre}>Open {centre}</button>
+            <button className="btn primary" onClick={openCentre}>{t("about.system_dialog.open", { centre })}</button>
           </div>
         )}
         {command && (
           <div>
             <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="set-hint">{centre ? "Or in a terminal:" : "In a terminal:"}</p>
-              <button className="btn sm ghost" onClick={copy}>{copied ? "Copied" : "Copy"}</button>
+              <p className="set-hint">{centre ? t("about.system_dialog.or_terminal") : t("about.system_dialog.terminal")}</p>
+              <button className="btn sm ghost" onClick={copy}>{copied ? t("common.copied") : t("common.copy")}</button>
             </div>
             <code className="set-command">{command}</code>
           </div>
         )}
         {error && <p className="set-hint" role="alert">{error}</p>}
-        <p className="set-hint">Once it is installed, Magnetite offers a restart.</p>
+        <p className="set-hint">{t("about.system_dialog.restart")}</p>
         <div className="flex justify-end gap-2">
-          <button className="btn ghost" onClick={() => send({ cmd: "open_update_page" })}>What's new</button>
-          <button ref={closeButton} className="btn" onClick={close}>Close</button>
+          <button className="btn ghost" onClick={() => send({ cmd: "open_update_page" })}>{t("about.updates.whats_new")}</button>
+          <button ref={closeButton} className="btn" onClick={close}>{t("common.close")}</button>
         </div>
       </div>
     </dialog>

@@ -165,6 +165,11 @@ pub fn run() -> i32 {
     let launch_urls = (cli.urls.iter().chain(&link))
         .map(|a| app::launch_url(a, &cwd))
         .collect();
+    // Before anything is named: a first start names its space.
+    magnetite_ui::set_language(magnetite_ui::resolve(
+        state::AppState::saved_language(&data_dir).as_deref(),
+        sys_locale::get_locales(),
+    ));
     let delegate = Arc::new(app::MagnetiteApp::new(
         data_dir,
         packaged_scriptlets(),

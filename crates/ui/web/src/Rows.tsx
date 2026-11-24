@@ -7,6 +7,7 @@ import { dragging, dropIndex, endDrag, indexAfterTaking, movedIds, overRowMiddle
 import { errorCount } from "./DevBar";
 import { findTab, hostOf, IS_MAC, send, splitGroup, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
+import { language, t } from "./i18n";
 
 export type Section = "favorites" | "pinned" | "today";
 
@@ -67,8 +68,8 @@ function snoozeMenu(tab: TabItem, onCustom: () => void): MenuItem[] {
   return [
     ...snoozeChoices(new Date()).map((c) => ({ label: c.label, hint: c.hint, onClick: () => snooze(c.until) })),
     SEPARATOR,
-    { label: "Custom…", title: "Pick a date and time", onClick: onCustom },
-    { label: "Forever", title: "Until you wake it from the folder's snoozed items", onClick: () => snooze() },
+    { label: t("sidebar.snooze.custom"), title: t("sidebar.snooze.custom_title"), onClick: onCustom },
+    { label: t("sidebar.snooze.forever"), title: t("sidebar.snooze.forever_title"), onClick: () => snooze() },
   ];
 }
 
@@ -85,42 +86,42 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   const onScreen = ctx.state.panes.includes(tab.id);
   const inSplit = ctx.inSplit.has(tab.id);
   const loaded = !!ctx.state.runtime[tab.id]?.loaded;
-  if (loaded) items.push({ label: "Reload", onClick: () => send({ cmd: "reload", id: tab.id }) });
+  if (loaded) items.push({ label: t("sidebar.tab_menu.reload"), onClick: () => send({ cmd: "reload", id: tab.id }) });
   // The system's share menu: only macOS has one here.
-  if (IS_MAC) items.push({ label: "Share…", onClick: () => send({ cmd: "share", id: tab.id, x: at.x, y: at.y }) });
-  items.push({ label: "Copy link", onClick: () => navigator.clipboard?.writeText(tab.url) });
+  if (IS_MAC) items.push({ label: t("sidebar.tab_menu.share"), onClick: () => send({ cmd: "share", id: tab.id, x: at.x, y: at.y }) });
+  items.push({ label: t("sidebar.tab_menu.copy_link"), onClick: () => navigator.clipboard?.writeText(tab.url) });
   items.push(SEPARATOR);
   // The private space has only Today tabs, and nothing of it is kept or moves out.
   const inPrivate = ctx.state.private_space === ctx.spaceId && section !== "favorites";
-  if (section === "today" && !inPrivate) items.push({ label: "Pin tab", onClick: () => send({ cmd: "pin", id: tab.id }) });
+  if (section === "today" && !inPrivate) items.push({ label: t("sidebar.tab_menu.pin"), onClick: () => send({ cmd: "pin", id: tab.id }) });
   if (section === "pinned") {
-    items.push({ label: "Unpin tab", onClick: () => send({ cmd: "unpin", id: tab.id }) });
-    if (tab.home_url && tab.home_url !== tab.url) items.push({ label: "Back to pinned page", title: tab.home_url, onClick: () => send({ cmd: "reset_tab", id: tab.id }) });
+    items.push({ label: t("sidebar.tab_menu.unpin"), onClick: () => send({ cmd: "unpin", id: tab.id }) });
+    if (tab.home_url && tab.home_url !== tab.url) items.push({ label: t("sidebar.tab_menu.back_to_pinned"), title: tab.home_url, onClick: () => send({ cmd: "reset_tab", id: tab.id }) });
   }
   if (inPrivate) {
     // Nothing to keep.
-  } else if (section !== "favorites") items.push({ label: "Add to favorites", onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "favorites", index: 999 }) });
-  else items.push({ label: "Remove from favorites", onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "today", index: 0 }) });
-  if (!inPrivate) items.push({ label: "Add to bookmarks", onClick: () => send({ cmd: "add_bookmark", id: tab.id }) });
+  } else if (section !== "favorites") items.push({ label: t("sidebar.tab_menu.add_to_favorites"), onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "favorites", index: 999 }) });
+  else items.push({ label: t("sidebar.tab_menu.remove_from_favorites"), onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "today", index: 0 }) });
+  if (!inPrivate) items.push({ label: t("sidebar.tab_menu.add_to_bookmarks"), onClick: () => send({ cmd: "add_bookmark", id: tab.id }) });
   // Spared from unloading and auto-archive until it is let go again.
   // Favorites and pinned tabs stay loaded anyway.
-  if (section === "today") items.push({ label: tab.keep_active ? "✓ Keep active" : "Keep active", onClick: () => send({ cmd: "set_keep_active", id: tab.id, keep: !tab.keep_active }) });
+  if (section === "today") items.push({ label: `${tab.keep_active ? "✓ " : ""}${t("sidebar.tab_menu.keep_active")}`, onClick: () => send({ cmd: "set_keep_active", id: tab.id, keep: !tab.keep_active }) });
   // Over the page in front instead of in its place (a translator, a password manager).
-  if (section !== "today") items.push({ label: tab.panel ? "✓ Open as panel" : "Open as panel", onClick: () => send({ cmd: "set_web_panel", id: tab.id, panel: !tab.panel }) });
+  if (section !== "today") items.push({ label: `${tab.panel ? "✓ " : ""}${t("sidebar.tab_menu.open_as_panel")}`, onClick: () => send({ cmd: "set_web_panel", id: tab.id, panel: !tab.panel }) });
   // Sites that have a page for phones serve the panel that one.
-  if (section !== "today" && tab.panel) items.push({ label: tab.panel_mobile ? "✓ Mobile view" : "Mobile view", onClick: () => send({ cmd: "set_panel_mobile", id: tab.id, mobile: !tab.panel_mobile }) });
+  if (section !== "today" && tab.panel) items.push({ label: `${tab.panel_mobile ? "✓ " : ""}${t("sidebar.tab_menu.mobile_view")}`, onClick: () => send({ cmd: "set_panel_mobile", id: tab.id, mobile: !tab.panel_mobile }) });
   if (ctx.state.active_tab && ctx.state.active_tab !== tab.id && !onScreen && !tab.panel && ctx.state.panes.length < MAX_PANES) {
-    items.push({ label: "Open in split view", onClick: () => send({ cmd: "add_split", id: tab.id }) });
+    items.push({ label: t("sidebar.tab_menu.open_in_split"), onClick: () => send({ cmd: "add_split", id: tab.id }) });
   }
   if (inSplit) {
-    items.push({ label: "Remove from split view", onClick: () => send({ cmd: "remove_split", id: tab.id }) });
-    items.push({ label: "Separate all tabs", onClick: () => send({ cmd: "separate_all", id: tab.id }) });
+    items.push({ label: t("sidebar.tab_menu.remove_from_split"), onClick: () => send({ cmd: "remove_split", id: tab.id }) });
+    items.push({ label: t("sidebar.tab_menu.separate_all"), onClick: () => send({ cmd: "separate_all", id: tab.id }) });
   }
   // The same address as a new Today tab (a private one in the private space),
   // as "Duplicate tab" in the command bar. A favorite has its own entry below.
-  if (section !== "favorites") items.push({ label: "Duplicate tab", onClick: () => send({ cmd: "new_tab", url: tab.url }) });
-  items.push({ label: "Rename", onClick: () => ctx.setRenaming(tab.id) });
-  if (tab.custom_title) items.push({ label: "Use page title", onClick: () => send({ cmd: "rename_tab", id: tab.id, title: "" }) });
+  if (section !== "favorites") items.push({ label: t("sidebar.tab_menu.duplicate"), onClick: () => send({ cmd: "new_tab", url: tab.url }) });
+  items.push({ label: t("common.rename"), onClick: () => ctx.setRenaming(tab.id) });
+  if (tab.custom_title) items.push({ label: t("sidebar.tab_menu.use_page_title"), onClick: () => send({ cmd: "rename_tab", id: tab.id, title: "" }) });
   if (section === "favorites") {
     // Each profile has its own cookies and logins: two favorites of the same
     // site in two profiles are two accounts side by side.
@@ -128,21 +129,21 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
     // A favorite runs in the profile of its list; choosing another moves it.
     const current = favorites.find((f) => f.items.some((t) => t.id === tab.id))?.profile_id;
     items.push(SEPARATOR);
-    items.push({ label: "Duplicate favorite", onClick: () => send({ cmd: "duplicate_favorite", id: tab.id }) });
+    items.push({ label: t("sidebar.tab_menu.duplicate_favorite"), onClick: () => send({ cmd: "duplicate_favorite", id: tab.id }) });
     for (const p of profiles) {
       items.push({
-        label: `${p.id === current ? "● " : "○ "}Profile: ${p.name}`,
+        label: `${p.id === current ? "● " : "○ "}${t("sidebar.profile.item", { name: p.name })}`,
         onClick: () => p.id !== current && send({ cmd: "set_tab_profile", id: tab.id, profile: p.is_default ? null : p.id }),
       });
     }
-    items.push({ label: "New profile for this favorite…", onClick: () => ctx.newProfileFor(tab.id) });
+    items.push({ label: t("sidebar.tab_menu.new_profile"), onClick: () => ctx.newProfileFor(tab.id) });
     // For every space, or for this one alone.
     const here = spaces.find((sp) => sp.id === ctx.spaceId);
     if (here && spaces.filter((sp) => sp.id !== ctx.state.private_space).length > 1) {
       const own = (tab.only_in ?? []).filter((id) => spaces.some((sp) => sp.id === id));
       items.push(SEPARATOR);
-      items.push({ label: `${own.length === 0 ? "● " : "○ "}Show in every space`, onClick: () => own.length > 0 && send({ cmd: "set_favorite_spaces", id: tab.id, spaces: [] }) });
-      items.push({ label: `${own.length > 0 ? "● " : "○ "}Show only in ${here.title}`, onClick: () => send({ cmd: "set_favorite_spaces", id: tab.id, spaces: [here.id] }) });
+      items.push({ label: `${own.length === 0 ? "● " : "○ "}${t("sidebar.tab_menu.show_in_every_space")}`, onClick: () => own.length > 0 && send({ cmd: "set_favorite_spaces", id: tab.id, spaces: [] }) });
+      items.push({ label: `${own.length > 0 ? "● " : "○ "}${t("sidebar.tab_menu.show_only_in", { space: here.title })}`, onClick: () => send({ cmd: "set_favorite_spaces", id: tab.id, spaces: [here.id] }) });
     }
   }
   const targets = inPrivate ? [] : spaces.filter((sp) => sp.id !== ctx.state.private_space);
@@ -150,7 +151,7 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
     items.push(SEPARATOR);
     for (const sp of targets) {
       if (sp.id === ctx.spaceId) continue;
-      items.push({ label: `Move to ${sp.title}`, onClick: () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 }) });
+      items.push({ label: t("sidebar.tab_menu.move_to", { space: sp.title }), onClick: () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 }) });
     }
   }
   const last: MenuItem[] = [];
@@ -159,9 +160,9 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   // something to close (a pinned tab has "Back to pinned page" above). A
   // smart folder's own item has snooze on its row, so Close is here for it.
   const awayFavorite = section === "favorites" && !!tab.home_url && tab.home_url !== tab.url;
-  if (section === "today" || loaded || awayFavorite) last.push({ label: section === "today" && !inPrivate ? "Archive" : "Close", danger: section === "today", onClick: () => send({ cmd: "close_tab", id: tab.id }) });
+  if (section === "today" || loaded || awayFavorite) last.push({ label: section === "today" && !inPrivate ? t("sidebar.tab_menu.archive") : t("common.close"), danger: section === "today", onClick: () => send({ cmd: "close_tab", id: tab.id }) });
   // Not a smart item: its source would bring it back at the next refresh.
-  if (section === "pinned" && !smart) last.push({ label: "Remove from pinned tabs", danger: true, onClick: () => send({ cmd: "remove_pinned", id: tab.id }) });
+  if (section === "pinned" && !smart) last.push({ label: t("sidebar.tab_menu.remove_from_pinned"), danger: true, onClick: () => send({ cmd: "remove_pinned", id: tab.id }) });
   if (last.length > 0) items.push(SEPARATOR, ...last);
   return items;
 }
@@ -176,7 +177,7 @@ export function FavoriteLists({ ctx, lists }: { ctx: RowContext; lists: Favorite
   const profile = (id: string) => profiles.find((p) => p.id === id);
   const titled = lists.length > 1 || lists.some((l) => !profile(l.profile_id)?.is_default);
   return lists.map((list) => (
-    <Favorites key={list.profile_id} ctx={ctx} list={list} title={titled ? (profile(list.profile_id)?.name ?? "Profile") : undefined} />
+    <Favorites key={list.profile_id} ctx={ctx} list={list} title={titled ? (profile(list.profile_id)?.name ?? t("sidebar.profile.fallback")) : undefined} />
   ));
 }
 
@@ -309,7 +310,7 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
       }}
     >
       {title && (
-        <button className="favs-title no-drag" aria-expanded={open} onClick={toggle} title={open ? "Collapse" : "Expand"}>
+        <button className="favs-title no-drag" aria-expanded={open} onClick={toggle} title={open ? t("sidebar.favorites.collapse") : t("sidebar.favorites.expand")}>
           <ChevronDown width={12} height={12} className="chevron" />
           <span className="truncate">{title}</span>
           {!open && <span className="count">{list.items.length}</span>}
@@ -318,43 +319,43 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
       {(open || !title) && (
         <div className="favs">
           {tiles.map((tile) => {
-            const page = (t: TabItem) => {
-              const rt = state.runtime[t.id];
+            const page = (fav: TabItem) => {
+              const rt = state.runtime[fav.id];
               return {
-                "data-active": state.active_tab === t.id || state.web_panel === t.id || undefined,
+                "data-active": state.active_tab === fav.id || state.web_panel === fav.id || undefined,
                 "data-unloaded": !rt?.loaded || undefined,
                 "data-shared": rt?.shared || undefined,
-                onClick: () => send(t.panel ? { cmd: "toggle_web_panel", id: t.id } : { cmd: "activate_tab", id: t.id }),
-                onContextMenu: (e: React.MouseEvent) => { e.preventDefault(); ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, t, "favorites", { x: e.screenX, y: e.screenY })); },
-                title: [t.title, title, t.panel && "panel", rt?.shared && "being shared"].filter(Boolean).join(" · "),
-                children: <Favicon url={t.url} src={rt?.favicon} loading={rt?.loading} />,
+                onClick: () => send(fav.panel ? { cmd: "toggle_web_panel", id: fav.id } : { cmd: "activate_tab", id: fav.id }),
+                onContextMenu: (e: React.MouseEvent) => { e.preventDefault(); ctx.openMenu(e.clientX, e.clientY, tabMenu(ctx, fav, "favorites", { x: e.screenX, y: e.screenY })); },
+                title: [fav.title, title, fav.panel && t("sidebar.favorites.panel"), rt?.shared && t("sidebar.favorites.shared")].filter(Boolean).join(" · "),
+                children: <Favicon url={fav.url} src={rt?.favicon} loading={rt?.loading} />,
               };
             };
-            const [t] = tile;
+            const [lead] = tile;
             const drag = {
-              "data-fav": t.id,
-              "data-carried": moved.includes(t.id) || undefined,
+              "data-fav": lead.id,
+              "data-carried": moved.includes(lead.id) || undefined,
               draggable: true,
               onDragEnd: () => { setPlace(null); setJoin(null); endDrag(); },
             };
-            const joined = joining?.tile === t.id ? joining : null;
+            const joined = joining?.tile === lead.id ? joining : null;
             const carried = joined && findTab(state, joined.id);
             // Where the carried tile would go: a line in the gap beside this one.
-            const line = mark?.tile === t.id && <span className="fav-insert" data-side={mark.side} />;
+            const line = mark?.tile === lead.id && <span className="fav-insert" data-side={mark.side} />;
             if (tile.length === 1 && !joined) {
-              const { children, ...props } = page(t);
-              return <button key={t.id} className="fav no-drag" data-panel={t.panel || undefined} {...drag} onDragStart={(e) => startDrag(e, { kind: "tab", id: t.id })} {...props}>{children}{line}</button>;
+              const { children, ...props } = page(lead);
+              return <button key={lead.id} className="fav no-drag" data-panel={lead.panel || undefined} {...drag} onDragStart={(e) => startDrag(e, { kind: "tab", id: lead.id })} {...props}>{children}{line}</button>;
             }
             // A split: one tile with a half per page. It drags as one item.
             const ids = tile.map((x) => x.id);
             return (
               <div
-                key={t.id}
+                key={lead.id}
                 className="fav fav-split no-drag"
                 data-on-screen={ids.includes(state.active_tab ?? "") || undefined}
                 data-wide={tile.length > 2 || undefined}
                 {...drag}
-                onDragStart={(e) => startDrag(e, tile.length === 1 ? { kind: "tab", id: t.id } : { kind: "tab", id: t.id, pair: true, group: ids })}
+                onDragStart={(e) => startDrag(e, tile.length === 1 ? { kind: "tab", id: lead.id } : { kind: "tab", id: lead.id, pair: true, group: ids })}
               >
                 {tile.map((x) => {
                   const own = <button key={x.id} className="fav-page" data-page={x.id} {...page(x)} />;
@@ -373,7 +374,7 @@ function Favorites({ ctx, list, title }: { ctx: RowContext; list: FavoriteList; 
           <Favicon url={renamed.url} src={state.runtime[renamed.id]?.favicon} />
           <RenameInput
             value={renamed.title}
-            label={`Name of the favorite ${renamed.title || hostOf(renamed.url)}`}
+            label={t("sidebar.favorites.rename_label", { name: renamed.title || hostOf(renamed.url) })}
             onCommit={(title, from) => {
               // Left as it was: no rename, so the title keeps following the page.
               if (title !== from) send({ cmd: "rename_tab", id: renamed.id, title });
@@ -541,8 +542,8 @@ const TabRowInner = memo(
             // A pinned tab away from its pinned page: hovering turns the icon into "back".
             <button
               className="home-btn"
-              title={`Back to ${hostOf(tab.home_url!)} (the pinned page)`}
-              aria-label={`Back to the pinned page, ${hostOf(tab.home_url!)}`}
+              title={t("sidebar.tab_row.back_to_home", { host: hostOf(tab.home_url!) })}
+              aria-label={t("sidebar.tab_row.back_to_home_label", { host: hostOf(tab.home_url!) })}
               onClick={(e) => { e.stopPropagation(); send({ cmd: "reset_tab", id: tab.id }); }}
             >
               <Favicon url={tab.url} src={rt?.favicon} loading={rt?.loading} />
@@ -576,23 +577,23 @@ const TabRowInner = memo(
             </span>
           )}
           {((rt?.media?.playing && !rt.media.silent) || rt?.muted) && (
-            <button className="slot" title={rt.muted ? "Unmute tab" : "Mute tab"} onClick={(e) => { e.stopPropagation(); send({ cmd: "set_muted", id: tab.id, muted: !rt.muted }); }}>
+            <button className="slot" title={rt.muted ? t("sidebar.tab_row.unmute") : t("sidebar.tab_row.mute")} onClick={(e) => { e.stopPropagation(); send({ cmd: "set_muted", id: tab.id, muted: !rt.muted }); }}>
               {rt.muted ? <SpeakerOff width={14} height={14} /> : <Speaker width={14} height={14} />}
             </button>
           )}
           {rt?.shared && (
-            <span className="shared" title="This tab is being shared" role="img" aria-label="Being shared">
+            <span className="shared" title={t("sidebar.tab_row.shared")} role="img" aria-label={t("sidebar.tab_row.shared_label")}>
               <ScreenShareIcon width={13} height={13} />
             </span>
           )}
           {!!rt?.dev?.errors && !active && (
-            <span className="dev-errors" title={`${rt.dev.errors} error${rt.dev.errors === 1 ? "" : "s"} in the console`} aria-label={`${rt.dev.errors} console errors`}>{errorCount(rt.dev.errors)}</span>
+            <span className="dev-errors" title={t("sidebar.tab_row.console_errors", { count: rt.dev.errors })} aria-label={t("sidebar.tab_row.console_errors_label", { count: rt.dev.errors })}>{errorCount(rt.dev.errors)}</span>
           )}
           {tab.panel && section === "pinned" && (
-            <span className="panel-mark" data-open={active || undefined} title="Opens as a web panel" aria-label="Opens as a web panel" />
+            <span className="panel-mark" data-open={active || undefined} title={t("sidebar.tab_row.web_panel")} aria-label={t("sidebar.tab_row.web_panel")} />
           )}
           {tab.keep_active && section === "today" && (
-            <span className="kept" title="Kept active: this tab is not unloaded" aria-label="Kept active">
+            <span className="kept" title={t("sidebar.tab_row.kept_active")} aria-label={t("sidebar.tab_row.kept_active_label")}>
               <KeepActiveIcon width={12} height={12} />
             </span>
           )}
@@ -600,8 +601,8 @@ const TabRowInner = memo(
             // Beside close, as Chromium's "Share this tab instead".
             <button
               className="close share-instead"
-              title="Share this tab instead"
-              aria-label="Share this tab instead"
+              title={t("sidebar.tab_row.share_instead")}
+              aria-label={t("sidebar.tab_row.share_instead")}
               onClick={(e) => { e.stopPropagation(); send({ cmd: "share_tab_instead", id: tab.id }); }}
             >
               <ScreenShareIcon width={14} height={14} />
@@ -612,8 +613,8 @@ const TabRowInner = memo(
             !pickingTime && (
               <button
                 className="close"
-                title="Snooze"
-                aria-label="Snooze"
+                title={t("sidebar.snooze.button")}
+                aria-label={t("sidebar.snooze.button")}
                 aria-haspopup="menu"
                 onClick={(e) => { e.stopPropagation(); openSnooze(e.currentTarget); }}
                 onDoubleClick={(e) => e.stopPropagation()}
@@ -631,8 +632,8 @@ const TabRowInner = memo(
             <button
               key="remove"
               className="close"
-              title="Remove from pinned tabs"
-              aria-label="Remove from pinned tabs"
+              title={t("sidebar.tab_menu.remove_from_pinned")}
+              aria-label={t("sidebar.tab_menu.remove_from_pinned")}
               onClick={(e) => { e.stopPropagation(); close(e); }}
             >
               <Minus width={14} height={14} />
@@ -642,7 +643,7 @@ const TabRowInner = memo(
               key="close"
               className="close"
               onClick={(e) => { e.stopPropagation(); close(e); }}
-              title={section === "today" ? "Archive" : "Close"}
+              title={section === "today" ? t("sidebar.tab_row.archive") : t("common.close")}
             >
               <Close width={14} height={14} />
             </button>
@@ -697,7 +698,7 @@ function SnoozeUntilInput({ onCommit, onCancel }: { onCommit: (until: number) =>
       autoFocus
       type="datetime-local"
       className="rename"
-      aria-label="Snooze until"
+      aria-label={t("sidebar.snooze.until_label")}
       defaultValue={localInputValue(start)}
       min={localInputValue(now)}
       onClick={(e) => e.stopPropagation()}
@@ -721,11 +722,11 @@ function SnoozeUntilInput({ onCommit, onCancel }: { onCommit: (until: number) =>
 function SnoozedRow({ folderId, item }: { folderId: string; item: Snoozed }) {
   const until = wakeLabel(item.until);
   return (
-    <div className="row snoozed" title={`${item.url}\nSnoozed${item.until === undefined ? "" : " until " + new Date(item.until * 1000).toLocaleString()}`}>
+    <div className="row snoozed" title={`${item.url}\n${item.until === undefined ? t("sidebar.snooze.snoozed") : t("sidebar.snooze.snoozed_until", { time: new Date(item.until * 1000).toLocaleString(language) })}`}>
       <Favicon url={item.url} />
       <span className="title">{item.title || hostOf(item.url)}</span>
       <span className="meta">{until}</span>
-      <button className="close" title="Wake now" aria-label="Wake now" onClick={(e) => !movedUnder(e) && send({ cmd: "smart_wake", id: folderId, url: item.url })}>
+      <button className="close" title={t("sidebar.snooze.wake_now")} aria-label={t("sidebar.snooze.wake_now")} onClick={(e) => !movedUnder(e) && send({ cmd: "smart_wake", id: folderId, url: item.url })}>
         <WakeIcon width={14} height={14} />
       </button>
     </div>
@@ -778,42 +779,42 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
   const glyph = glyphFor(folder.icon);
   const changeIcon = (x: number, y: number) =>
     ctx.pickIcon({ x, y }, glyph ?? undefined, (g) => send({ cmd: "set_folder_icon", id: folder.id, icon: g }), true);
-  const share: MenuItem = { label: "Copy link to share", onClick: () => send({ cmd: "share_folder", id: folder.id }) };
+  const share: MenuItem = { label: t("sidebar.folder_menu.copy_share_link"), onClick: () => send({ cmd: "share_folder", id: folder.id }) };
   const menu: MenuItem[] = smart
     ? [
         ...(status?.needs_approval
-          ? [{ label: "Turn on on this device", onClick: () => send({ cmd: "smart_allow", id: folder.id }) }, SEPARATOR]
+          ? [{ label: t("sidebar.folder_menu.turn_on"), onClick: () => send({ cmd: "smart_allow", id: folder.id }) }, SEPARATOR]
           : []),
-        { label: "Refresh now", onClick: () => send({ cmd: "smart_refresh", id: folder.id }) },
-        { label: "Smart folder settings…", onClick: settings },
+        { label: t("sidebar.folder_menu.refresh"), onClick: () => send({ cmd: "smart_refresh", id: folder.id }) },
+        { label: t("sidebar.folder_menu.smart_settings"), onClick: settings },
         SEPARATOR,
-        { label: "Rename folder", onClick: () => ctx.setRenaming(folder.id) },
-        { label: "Change icon…", onClick: () => changeIcon(menuAt.current.x, menuAt.current.y) },
-        { label: open ? "Collapse" : "Expand", onClick: toggle },
+        { label: t("sidebar.folder_menu.rename"), onClick: () => ctx.setRenaming(folder.id) },
+        { label: t("sidebar.folder_menu.change_icon"), onClick: () => changeIcon(menuAt.current.x, menuAt.current.y) },
+        { label: open ? t("sidebar.folder_menu.collapse") : t("sidebar.folder_menu.expand"), onClick: toggle },
         share,
         SEPARATOR,
-        { label: "Stop updating (keep tabs)", onClick: () => send({ cmd: "smart_unlink", id: folder.id }) },
-        { label: "Delete folder and its items", danger: true, onClick: () => send({ cmd: "delete_folder", id: folder.id }) },
+        { label: t("sidebar.folder_menu.stop_updating"), onClick: () => send({ cmd: "smart_unlink", id: folder.id }) },
+        { label: t("sidebar.folder_menu.delete_with_items"), danger: true, onClick: () => send({ cmd: "delete_folder", id: folder.id }) },
       ]
     : [
-        { label: "Rename folder", onClick: () => ctx.setRenaming(folder.id) },
-        { label: "Change icon…", onClick: () => changeIcon(menuAt.current.x, menuAt.current.y) },
-        { label: open ? "Collapse" : "Expand", onClick: toggle },
+        { label: t("sidebar.folder_menu.rename"), onClick: () => ctx.setRenaming(folder.id) },
+        { label: t("sidebar.folder_menu.change_icon"), onClick: () => changeIcon(menuAt.current.x, menuAt.current.y) },
+        { label: open ? t("sidebar.folder_menu.collapse") : t("sidebar.folder_menu.expand"), onClick: toggle },
         share,
         {
-          label: "New folder inside",
+          label: t("sidebar.folder_menu.new_folder_inside"),
           onClick: () => {
             send({ cmd: "new_folder", title: "", parent: folder.id });
             if (!open) toggle();
           },
         },
         SEPARATOR,
-        { label: "Turn into smart folder…", onClick: settings },
+        { label: t("sidebar.folder_menu.make_smart"), onClick: settings },
         SEPARATOR,
-        { label: "Delete folder (keep tabs)", onClick: () => send({ cmd: "delete_folder", id: folder.id }) },
+        { label: t("sidebar.folder_menu.delete_keep_tabs"), onClick: () => send({ cmd: "delete_folder", id: folder.id }) },
       ];
   const title = smart && status
-    ? status.error ?? (status.updated_at ? `Smart folder · updated ${ago(status.updated_at)}` : "Smart folder")
+    ? status.error ?? (status.updated_at ? t("sidebar.folder_row.smart_updated", { ago: ago(status.updated_at) }) : t("sidebar.folder_row.smart"))
     : undefined;
   return (
     <div>
@@ -878,21 +879,21 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
             onCancel={() => ctx.setRenaming(null)}
           />
         ) : (
-          <span className="title" style={{ fontWeight: 600 }}>{folder.title || "Untitled"}</span>
+          <span className="title" style={{ fontWeight: 600 }}>{folder.title || t("common.untitled")}</span>
         )}
-        {status?.fetching && <span className="spinner" title="Refreshing" />}
+        {status?.fetching && <span className="spinner" title={t("sidebar.folder_row.refreshing")} />}
         {smart && status?.error && !status.fetching && (
-          <button className="slot" title={`${status.error} Click for settings.`} aria-label="Smart folder problem" onClick={(e) => { e.stopPropagation(); if (!movedUnder(e)) settings(); }}>
+          <button className="slot" title={t("sidebar.folder_row.error", { error: status.error })} aria-label={t("sidebar.folder_row.error_label")} onClick={(e) => { e.stopPropagation(); if (!movedUnder(e)) settings(); }}>
             <WarningIcon width={14} height={14} />
           </button>
         )}
-        {unread && <span className="unread-dot" aria-label="New items" />}
+        {unread && <span className="unread-dot" aria-label={t("sidebar.folder_row.new_items")} />}
         {snoozed.length > 0 && (
           <button
             className="slot"
             data-on={showSnoozed || undefined}
             aria-pressed={showSnoozed}
-            title={`${showSnoozed ? "Hide" : "Show"} ${snoozed.length} snoozed item${snoozed.length === 1 ? "" : "s"}`}
+            title={showSnoozed ? t("sidebar.snooze.hide_snoozed", { count: snoozed.length }) : t("sidebar.snooze.show_snoozed", { count: snoozed.length })}
             onClick={(e) => {
               e.stopPropagation();
               if (movedUnder(e)) return;
@@ -967,19 +968,19 @@ export function SplitRow({ ctx, split, owner, index, onDropAt }: { ctx: RowConte
   // stand with the row; nothing of the private space is kept.
   const today = !!owner && ctx.state.sidebar.spaces.some((sp) => sp.id === ctx.spaceId && sp.today.some((t) => t.id === owner));
   const keep: MenuItem[] = !owner || ctx.state.private_space === ctx.spaceId ? [] : [
-    today ? { label: "Pin split", onClick: () => send({ cmd: "pin", id: owner }) } : { label: "Unpin split", onClick: () => send({ cmd: "unpin", id: owner }) },
-    { label: "Add split to favorites", onClick: () => send({ cmd: "move_tab", id: owner, space: ctx.spaceId, section: "favorites", index: 999, split: true }) },
+    today ? { label: t("sidebar.split_menu.pin"), onClick: () => send({ cmd: "pin", id: owner }) } : { label: t("sidebar.split_menu.unpin"), onClick: () => send({ cmd: "unpin", id: owner }) },
+    { label: t("sidebar.split_menu.add_to_favorites"), onClick: () => send({ cmd: "move_tab", id: owner, space: ctx.spaceId, section: "favorites", index: 999, split: true }) },
     SEPARATOR,
   ];
   const menu = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     ctx.openMenu(e.clientX, e.clientY, [
       ...keep,
-      { label: "Remove from split view", onClick: () => send({ cmd: "remove_split", id }) },
-      { label: "Separate all tabs", onClick: () => send({ cmd: "separate_all", id }) },
+      { label: t("sidebar.tab_menu.remove_from_split"), onClick: () => send({ cmd: "remove_split", id }) },
+      { label: t("sidebar.tab_menu.separate_all"), onClick: () => send({ cmd: "separate_all", id }) },
       ...(onScreen ? [
-        { label: "Even out sizes", onClick: () => send({ cmd: "split_equalize", path: [] }) },
-        { label: "Arrange as grid", onClick: () => send({ cmd: "split_grid" }) },
+        { label: t("sidebar.split_menu.even_out"), onClick: () => send({ cmd: "split_equalize", path: [] }) },
+        { label: t("sidebar.split_menu.grid"), onClick: () => send({ cmd: "split_grid" }) },
       ] : []),
     ]);
   };
@@ -1087,12 +1088,12 @@ function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
       <Favicon url={tab.url} src={rt?.favicon} loading={rt?.loading} />
       <span className="title">{tab.title || hostOf(tab.url)}</span>
       {!ghost && rt?.shared && (
-        <span className="shared" title="This tab is being shared" role="img" aria-label="Being shared">
+        <span className="shared" title={t("sidebar.tab_row.shared")} role="img" aria-label={t("sidebar.tab_row.shared_label")}>
           <ScreenShareIcon width={13} height={13} />
         </span>
       )}
       {onRemove && (
-        <button className="close" title="Remove from split view" aria-label="Remove from split view" onClick={(e) => { e.stopPropagation(); if (!movedUnder(e)) onRemove(); }}>
+        <button className="close" title={t("sidebar.tab_menu.remove_from_split")} aria-label={t("sidebar.tab_menu.remove_from_split")} onClick={(e) => { e.stopPropagation(); if (!movedUnder(e)) onRemove(); }}>
           <Close width={12} height={12} />
         </button>
       )}
@@ -1104,12 +1105,12 @@ function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
  *  icon on the right. A click takes it over: it opens here, and its device
  *  closes it at its next sync. */
 export function DeviceTabRow({ tab }: { tab: DeviceTab }) {
-  const hint = `Open on ${tab.device}. Click to continue here.`;
+  const hint = t("sidebar.device_tab.hint", { device: tab.device });
   return (
     <button className="row device-tab w-full" title={hint} onClick={(e) => !movedUnder(e) && send({ cmd: "take_device_tab", id: tab.id })}>
       <Favicon url={tab.url} />
       <span className="title text-left">{tab.title || hostOf(tab.url)}</span>
-      <span className="from-device" aria-label={`Open on ${tab.device}`}>
+      <span className="from-device" aria-label={t("sidebar.device_tab.label", { device: tab.device })}>
         <PhoneIcon width={13} height={13} />
       </span>
     </button>

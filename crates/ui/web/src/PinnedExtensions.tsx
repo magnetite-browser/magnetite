@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 import { PuzzleIcon } from "./Icons";
 import { IS_MAC, extensionIcon, send, type ExtensionInfo, type UiState } from "./bridge";
+import { t } from "./i18n";
 
 /** Longest wait for a popup before the button takes clicks again (CEF holds
  * each popup for 2 s, see docs/development/upstream.md). */
@@ -77,8 +78,8 @@ export function ExtensionBar({ state, openMenu }: { state: UiState; openMenu: Op
       <span className="flex-1" />
       <button
         className="ib no-drag"
-        title="Extensions"
-        aria-label="Extensions"
+        title={t("sidebar.extensions.title")}
+        aria-label={t("sidebar.extensions.title")}
         aria-haspopup="menu"
         onClick={(ev) => {
           const r = ev.currentTarget.getBoundingClientRect();
@@ -96,7 +97,7 @@ export function moreExtensionsMenu(rest: ExtensionInfo[]): MenuItem[] {
   return [
     ...rest.map((e) => ({ label: e.name, icon: <ExtensionIcon extension={e} />, onClick: () => void send({ cmd: "open_extension", id: e.id }) })),
     ...(rest.length > 0 ? [SEPARATOR] : []),
-    { label: "Manage extensions", onClick: () => void send({ cmd: "new_tab", url: "magnetite://ui/settings#extensions" }) },
+    { label: t("sidebar.extensions.manage"), onClick: () => void send({ cmd: "new_tab", url: "magnetite://ui/settings#extensions" }) },
   ];
 }
 
@@ -104,8 +105,8 @@ function MoreButton({ rest }: { rest: ExtensionInfo[] }) {
   return (
     <button
       className="ib no-drag"
-      title="More extensions"
-      aria-label="More extensions"
+      title={t("sidebar.extensions.more")}
+      aria-label={t("sidebar.extensions.more")}
       aria-haspopup="menu"
       onClick={(ev) => {
         const r = ev.currentTarget.getBoundingClientRect();
@@ -128,11 +129,11 @@ function ExtensionIcon({ extension: e }: { extension: ExtensionInfo }) {
   );
 }
 
-/** The items of extension `e`'s menu; `place` names where its icon sits. */
+/** The items of extension `e`'s menu; `place` is where its icon sits. */
 export function extensionMenu(e: ExtensionInfo, place: "Sidebar" | "Top Bar"): MenuItem[] {
   return [
-    ...(e.options_url ? [{ label: "Options", onClick: () => send({ cmd: "extension_options", id: e.id }) }] : []),
-    { label: `Remove from ${place}`, onClick: () => send({ cmd: "pin_extension", id: e.id, pinned: false }) },
+    ...(e.options_url ? [{ label: t("sidebar.extensions.options"), onClick: () => send({ cmd: "extension_options", id: e.id }) }] : []),
+    { label: place === "Top Bar" ? t("sidebar.extensions.remove_from_top_bar") : t("sidebar.extensions.remove_from_sidebar"), onClick: () => send({ cmd: "pin_extension", id: e.id, pinned: false }) },
   ];
 }
 

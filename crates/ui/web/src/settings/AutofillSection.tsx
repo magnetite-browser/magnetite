@@ -4,6 +4,7 @@
 import { ProfilePick } from "./SpacesSection";
 import { useState } from "react";
 import { send, type Settings } from "../bridge";
+import { t } from "../i18n";
 import { Field, Group, Switch, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
@@ -40,50 +41,50 @@ export function AutofillSection({ info, update }: { info: Info; update: (patch: 
     <>
       {logins.length > 1 && (
         <Group>
-        <Field side label="Profile" hint="Each profile keeps its own passwords, addresses and cards. The buttons below open those of the profile chosen here; the switches count for all of them.">
+        <Field side label={t("autofill.profile.label")} hint={t("autofill.profile.hint")}>
           <ProfilePick info={info} profiles={logins} value={profile} onChoose={setProfile} />
         </Field>
         </Group>
       )}
-      <Group title="Passwords">
+      <Group title={t("autofill.passwords.title")}>
       <Feature
-        label="Offer to save passwords"
-        hint="After you sign in, Magnetite asks whether to keep the password and fills it in the next time. Saved passwords stay on this computer, outside sync."
+        label={t("autofill.passwords.offer")}
+        hint={t("autofill.passwords.offer_hint")}
         checked={autofill.passwords}
         onChange={(passwords) => set({ passwords })}
-        manage="Saved passwords…"
+        manage={t("autofill.passwords.manage")}
         onManage={() => open("passwords")}
       >
         {info.keychain === "test" && (
-          <p className="set-hint" style={{ color: "var(--warn)" }}>This run uses Chromium's test key (--mock-keychain): what it saves is not protected by your keychain.</p>
+          <p className="set-hint" style={{ color: "var(--warn)" }}>{t("autofill.passwords.test_key")}</p>
         )}
       </Feature>
       <Toggle
-        label="Warn about passwords from data breaches"
-        hint="While this is on, Chromium asks a Google service at each sign-in whether the password appeared in a known breach. It sends an encrypted fragment, not the password."
+        label={t("autofill.passwords.breach")}
+        hint={t("autofill.passwords.breach_hint")}
         checked={autofill.breach_check}
         onChange={(breach_check) => set({ breach_check })}
       />
       </Group>
-      <Group title="Forms">
+      <Group title={t("autofill.forms.title")}>
       <Feature
-        label="Save and fill in addresses"
-        hint="Names, addresses, phone numbers and email addresses for forms. Magnetite asks before it saves one."
+        label={t("autofill.forms.addresses")}
+        hint={t("autofill.forms.addresses_hint")}
         checked={autofill.addresses}
         onChange={(addresses) => set({ addresses })}
-        manage="Saved addresses…"
+        manage={t("autofill.forms.addresses_manage")}
         onManage={() => open("addresses")}
       />
       <Feature
-        label="Save and fill in payment cards"
-        hint="Card details for checkout forms, kept on this computer. Magnetite asks before it saves one."
+        label={t("autofill.forms.cards")}
+        hint={t("autofill.forms.cards_hint")}
         checked={autofill.cards}
         onChange={(cards) => set({ cards })}
-        manage="Saved cards…"
+        manage={t("autofill.forms.cards_manage")}
         onManage={() => open("cards")}
       />
       </Group>
-      <p className="hint">The lists are Chromium's own pages; they open over this one. The extension of a password manager such as Bitwarden works next to all this, or in its place.</p>
+      <p className="hint">{t("autofill.footer")}</p>
     </>
   );
 }

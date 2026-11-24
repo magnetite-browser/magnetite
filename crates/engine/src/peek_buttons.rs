@@ -11,6 +11,7 @@ use crate::engine::Engine;
 use crate::events::{ContentId, EngineEvent, Shortcut};
 use crate::glyphs::Glyph;
 use crate::panel_close::SIZE;
+use magnetite_ui::t;
 
 /// Between the buttons, and between the column and the peek (as on macOS).
 const GAP: i32 = 8;
@@ -23,11 +24,17 @@ const DISC: u32 = 0xF01F_1F1F;
 const DISC_HOVERED: u32 = 0xFF3C_3C3E;
 
 /// The buttons from the top: picture, label, what a press does.
-const BUTTONS: [(Glyph, &str, Shortcut); 3] = [
-    (Glyph::Close, "Close (Esc)", Shortcut::ClosePeek),
-    (Glyph::Expand, "Open as tab (Ctrl+O)", Shortcut::PeekToTab),
-    (Glyph::Split, "Open in split view", Shortcut::PeekToSplit),
-];
+fn buttons() -> [(Glyph, &'static str, Shortcut); 3] {
+    [
+        (Glyph::Close, t!("app.peek.close"), Shortcut::ClosePeek),
+        (
+            Glyph::Expand,
+            t!("app.peek.open_as_tab"),
+            Shortcut::PeekToTab,
+        ),
+        (Glyph::Split, t!("app.peek.split"), Shortcut::PeekToSplit),
+    ]
+}
 
 impl Engine {
     /// Show the buttons beside the open peek, or remove them when there is
@@ -83,7 +90,7 @@ impl Engine {
             return;
         }
         let mut overlays = Vec::new();
-        for (i, (glyph, label, shortcut)) in (0..).zip(BUTTONS) {
+        for (i, (glyph, label, shortcut)) in (0..).zip(buttons()) {
             let Some(button) = label_button_create(
                 Some(&mut PeekButton::new(shortcut)),
                 Some(&CefString::from("")),

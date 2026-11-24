@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useDismiss } from "./dismiss";
 import type { IconComponent } from "./Icons";
+import { t } from "./i18n";
 
 export interface NewEntry {
   id: string;
@@ -32,7 +33,7 @@ export function NewMenu({ groups, onClose }: { groups: NewEntry[][]; onClose: ()
       className="new-menu no-drag"
       role="menu"
       tabIndex={-1}
-      aria-label="New"
+      aria-label={t("sidebar.new_menu.label")}
       onKeyDown={(e) => {
         if (e.key === "ArrowDown") setActive((a) => (a + 1) % entries.length);
         else if (e.key === "ArrowUp") setActive((a) => (a - 1 + entries.length) % entries.length);

@@ -31,7 +31,7 @@ impl MagnetiteApp {
                             Self::ui_call(
                                 engine,
                                 "captureFailed",
-                                &json!({ "error": "the page is not visible" }),
+                                &json!({ "error": magnetite_ui::t!("app.capture.not_visible") }),
                             );
                         }
                     }
@@ -104,7 +104,8 @@ impl MagnetiteApp {
         let Some((c, _)) = lock(&self.capture).session.take() else {
             return;
         };
-        Self::ui_call(engine, "captureBusy", &json!({ "what": "full page" }));
+        let what = magnetite_ui::t!("app.capture.full_page");
+        Self::ui_call(engine, "captureBusy", &json!({ "what": what }));
         // 100 megapixels: a long page at Retina resolution, well inside memory.
         engine.capture_full_page(
             c,
@@ -132,7 +133,7 @@ impl MagnetiteApp {
         if std::mem::replace(&mut lock(&self.capture).set_running, true) {
             return;
         }
-        let what = "light and dark at three sizes";
+        let what = magnetite_ui::t!("app.capture.set");
         Self::ui_call(engine, "captureBusy", &json!({ "what": what }));
         self.capture_set_next(engine, c, Vec::new());
     }

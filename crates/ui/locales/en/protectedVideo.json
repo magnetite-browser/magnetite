@@ -1,0 +1,31 @@
+{
+  "unavailable": "Magnetite can use a system's own web engine only on macOS 14 or newer and on Windows with a current WebView2 so far. On this computer every page is shown by Chromium, and services that ask for a verified browser do not play.",
+  "known": {
+    "label": "Open streaming services in {engine}",
+    "hint": "{services}. They play protected video only in a browser that Google has verified. Magnetite's Chromium is not verified yet; talks to get it there are under way. Until then {engine}, {about}, plays it."
+  },
+  "auto": {
+    "label": "Move sites whose protected video fails to {engine}",
+    "hint": "When a service refuses to play protected video in Chromium, its site opens in {engine} from then on and the page loads again there. Services that play in Chromium stay where they are. Turn the switch in the site panel off again to keep a site in Chromium."
+  },
+  "other": {
+    "label": "Other sites",
+    "hint": "Sites that open in {engine} too, one per line: a site's name stands for its subdomains. Sites that moved by themselves are listed here. The site panel (the button left of the address) has the same switch for the page in front."
+  },
+  "chromium": {
+    "label": "Kept in Chromium",
+    "hint": "Sites that never move by themselves, one per line: those you took back with the site panel's switch, and any you add."
+  },
+  "different": {
+    "title": "What is different in a {engine} page",
+    "hint": "It is a tab like any other: in the sidebar, in its space, in a split or a peek. Extensions cannot read or fill the page. It has no ad blocking or developer tools, sends no Global Privacy Control signal, and signs in on its own: a site you are signed in to in Chromium asks again. Open pages keep their engine until they load another address."
+  },
+  "data": {
+    "label": "{engine}'s website data",
+    "hint": "The cookies, site storage and cache of the pages {engine} showed, in every profile. Chromium's are deleted under Data and privacy.",
+    "failed": "It could not be deleted. Try again.",
+    "done": "Deleted. The sites there ask you to sign in again.",
+    "working": "Deleting…",
+    "delete": "Delete…"
+  }
+}

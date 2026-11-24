@@ -4,6 +4,8 @@ import { Favicon } from "./Favicon";
 import { Arrow, Command as CommandIcon } from "./Icons";
 import { IS_MAC, findTab, findTabInSpace, hostOf, send, type Command, type DevServer, type PaletteMode, type SearchResult, type Side, type SiteSearch, type UiState } from "./bridge";
 import { useDismiss } from "./dismiss";
+import { rich, t } from "./i18n";
+import type { English } from "./i18n/english.gen";
 
 /**
  * A row of the palette. `keepOpen`: the pick ends the palette itself, because
@@ -17,57 +19,71 @@ type Item =
 
 type Action = { id: string; title: string; keywords: string[]; cmd: Command };
 
+/** A command's keywords from its text ("space, switch, go"): typing the start of one finds the command. */
+const keywordsOf = (text: string) => text.split(",").map((k) => k.trim().toLowerCase()).filter(Boolean);
+
+/** A command of `ACTIONS`, its title and keywords as commandBar.json has them under `commands.<id>`. */
+const command = (id: keyof English["commandBar"]["commands"], cmd: Command): Action => ({
+  id,
+  title: t(`commandBar.commands.${id}.title`),
+  keywords: keywordsOf(t(`commandBar.commands.${id}.keywords`)),
+  cmd,
+});
+
+/** A tab command's keywords, as commandBar.json has them under `tab_commands.<id>`. */
+const tabKeywords = (id: keyof English["commandBar"]["tab_commands"]) => keywordsOf(t(`commandBar.tab_commands.${id}.keywords`));
+
 const ACTIONS: Action[] = [
-  { id: "new_space", title: "New space", keywords: ["space"], cmd: { cmd: "new_space", title: "" } },
-  { id: "spaces", title: "Show all spaces…", keywords: ["space", "switch", "go", "list"], cmd: { cmd: "open_palette", mode: "spaces" } },
-  { id: "private_space", title: "Open private space", keywords: ["private", "incognito", "anonymous", "space"], cmd: { cmd: "open_private_space" } },
-  { id: "new_folder", title: "New folder", keywords: ["folder"], cmd: { cmd: "new_folder", title: "" } },
-  { id: "archive_today", title: "Archive all Today tabs", keywords: ["clear", "archive"], cmd: { cmd: "archive_today" } },
-  { id: "reopen", title: "Reopen last archived tab", keywords: ["restore", "closed"], cmd: { cmd: "reopen_closed" } },
-  { id: "downloads", title: "Open downloads", keywords: ["downloads", "files"], cmd: { cmd: "show_downloads" } },
-  { id: "bookmarks", title: "Open bookmarks", keywords: ["bookmarks", "saved"], cmd: { cmd: "show_bookmarks" } },
-  { id: "bookmark_page", title: "Bookmark this page", keywords: ["bookmark", "save", "keep"], cmd: { cmd: "add_bookmark" } },
-  { id: "toggle_sidebar", title: "Toggle sidebar", keywords: ["hide", "show"], cmd: { cmd: "toggle_sidebar" } },
-  { id: "web_panel", title: "Open or close the web panel", keywords: ["panel", "side", "web"], cmd: { cmd: "shortcut", shortcut: "web_panel" } },
-  { id: "toggle_top_bar", title: "Toggle top bar", keywords: ["top", "bar", "address", "layout", "toolbar"], cmd: { cmd: "toggle_top_bar" } },
-  { id: "import", title: "Import from another browser…", keywords: ["import", "chrome", "firefox", "zen", "arc", "brave", "edge"], cmd: { cmd: "new_tab", url: "magnetite://ui/settings#data" } },
-  { id: "welcome", title: "Show the welcome page again", keywords: ["welcome", "setup", "wizard", "first", "start", "onboarding"], cmd: { cmd: "new_tab", url: "magnetite://ui/welcome" } },
-  { id: "copy_link", title: "Copy link without trackers", keywords: ["copy", "link", "url", "clean"], cmd: { cmd: "copy_link", variant: "clean", notify: true } },
-  { id: "copy_original", title: "Copy original link", keywords: ["copy", "link", "url", "raw"], cmd: { cmd: "copy_link", variant: "original", notify: true } },
-  { id: "copy_markdown", title: "Copy link as Markdown", keywords: ["copy", "markdown", "md"], cmd: { cmd: "copy_link", variant: "markdown", notify: true } },
-  { id: "zoom_reset", title: "Reset zoom", keywords: ["zoom", "100"], cmd: { cmd: "set_zoom", percent: 0 } },
-  { id: "split_right", title: "Add right split…", keywords: ["split", "right", "side"], cmd: { cmd: "open_palette", mode: "split", side: "right" } },
-  { id: "split_left", title: "Add left split…", keywords: ["split", "left", "side"], cmd: { cmd: "open_palette", mode: "split", side: "left" } },
-  { id: "split_top", title: "Add top split…", keywords: ["split", "top", "above"], cmd: { cmd: "open_palette", mode: "split", side: "top" } },
-  { id: "split_bottom", title: "Add bottom split…", keywords: ["split", "bottom", "below"], cmd: { cmd: "open_palette", mode: "split", side: "bottom" } },
-  { id: "split_even", title: "Even out split sizes", keywords: ["split", "equal", "even", "reset"], cmd: { cmd: "split_equalize", path: [] } },
-  { id: "split_grid", title: "Arrange split as grid", keywords: ["split", "grid", "tile", "2x2", "quarters"], cmd: { cmd: "split_grid" } },
-  { id: "separate", title: "Separate split tabs", keywords: ["split", "separate", "unsplit"], cmd: { cmd: "separate_all" } },
-  { id: "devtools", title: "Toggle developer tools", keywords: ["devtools", "developer", "console", "inspect", "f12"], cmd: { cmd: "toggle_devtools" } },
-  { id: "dev_console", title: "Open console", keywords: ["console", "devtools", "developer", "errors", "log"], cmd: { cmd: "dev_panel", panel: "console" } },
-  { id: "dev_picker", title: "Pick an element", keywords: ["inspect", "element", "picker", "devtools", "select"], cmd: { cmd: "dev_panel", panel: "picker" } },
-  { id: "dev_network", title: "Open network panel", keywords: ["network", "requests", "devtools", "xhr", "fetch"], cmd: { cmd: "dev_panel", panel: "network" } },
-  { id: "dev_application", title: "Open storage and service workers", keywords: ["application", "storage", "cookies", "service", "worker", "devtools"], cmd: { cmd: "dev_panel", panel: "application" } },
-  { id: "dev_reset", title: "Reset page (reload past the cache)", keywords: ["reset", "hard", "reload", "cache", "clear", "storage"], cmd: { cmd: "dev_reset" } },
-  { id: "emu_dark", title: "Show page in dark mode", keywords: ["dark", "emulate", "color", "scheme", "theme"], cmd: { cmd: "dev_emulate", patch: { color_scheme: "dark" } } },
-  { id: "emu_light", title: "Show page in light mode", keywords: ["light", "emulate", "color", "scheme", "theme"], cmd: { cmd: "dev_emulate", patch: { color_scheme: "light" } } },
-  { id: "emu_motion", title: "Show page with reduced motion", keywords: ["reduced", "motion", "animation", "emulate"], cmd: { cmd: "dev_emulate", patch: { reduced_motion: true } } },
-  { id: "emu_print", title: "Show page as it prints", keywords: ["print", "media", "emulate", "styles"], cmd: { cmd: "dev_emulate", patch: { print: true } } },
-  { id: "emu_offline", title: "Take page offline", keywords: ["offline", "network", "emulate"], cmd: { cmd: "dev_emulate", patch: { network: "offline" } } },
-  { id: "emu_slow", title: "Slow down page's network", keywords: ["slow", "network", "throttle", "3g", "4g", "emulate"], cmd: { cmd: "dev_emulate", patch: { network: "slow" } } },
-  { id: "emu_cpu", title: "Slow down page's processor", keywords: ["cpu", "slow", "throttle", "processor", "emulate"], cmd: { cmd: "dev_emulate", patch: { slow_cpu: true } } },
-  { id: "emu_cache", title: "Turn off cache for page", keywords: ["cache", "disable", "emulate"], cmd: { cmd: "dev_emulate", patch: { no_cache: true } } },
-  { id: "dev_responsive", title: "Responsive split (the page as a phone beside itself)", keywords: ["responsive", "phone", "mobile", "split", "beside", "viewport", "breakpoint"], cmd: { cmd: "dev_responsive" } },
-  { id: "dev_capture_set", title: "Capture set (light and dark at three sizes)", keywords: ["capture", "screenshot", "set", "light", "dark", "sizes", "widths", "responsive"], cmd: { cmd: "dev_capture_set" } },
-  { id: "dev_record", title: "Record page as a video (or end the recording)", keywords: ["record", "recording", "video", "screencast", "gif", "stop"], cmd: { cmd: "dev_record" } },
-  ...TIMEZONES.map(([zone, place]): Action => ({ id: `emu_zone_${zone}`, title: `Show page in ${place} time`, keywords: ["time", "zone", "timezone", "emulate", zone.toLowerCase()], cmd: { cmd: "dev_emulate", patch: { timezone: zone } } })),
-  { id: "emu_zone_off", title: "Show page in this computer's time zone", keywords: ["time", "zone", "timezone", "emulate", "system", "local"], cmd: { cmd: "dev_emulate", patch: { timezone: null } } },
-  { id: "emu_off", title: "Show page as it is", keywords: ["emulate", "reset", "online", "system", "normal"], cmd: { cmd: "dev_emulate", patch: { color_scheme: null, reduced_motion: false, print: false, network: "online", slow_cpu: false, no_cache: false, timezone: null } } },
-  { id: "capture", title: "Capture page…", keywords: ["capture", "screenshot", "snap"], cmd: { cmd: "capture_start" } },
-  { id: "capture_copy", title: "Copy last capture", keywords: ["capture", "screenshot", "copy"], cmd: { cmd: "capture_copy", notify: true } },
-  { id: "find", title: "Find in page…", keywords: ["find", "search", "text"], cmd: { cmd: "shortcut", shortcut: "find" } },
-  { id: "print", title: "Print page", keywords: ["print", "pdf"], cmd: { cmd: "shortcut", shortcut: "print" } },
-  { id: "history", title: "Open history", keywords: ["history", "visited"], cmd: { cmd: "show_history" } },
+  command("new_space", { cmd: "new_space", title: "" }),
+  command("spaces", { cmd: "open_palette", mode: "spaces" }),
+  command("private_space", { cmd: "open_private_space" }),
+  command("new_folder", { cmd: "new_folder", title: "" }),
+  command("archive_today", { cmd: "archive_today" }),
+  command("reopen", { cmd: "reopen_closed" }),
+  command("downloads", { cmd: "show_downloads" }),
+  command("bookmarks", { cmd: "show_bookmarks" }),
+  command("bookmark_page", { cmd: "add_bookmark" }),
+  command("toggle_sidebar", { cmd: "toggle_sidebar" }),
+  command("web_panel", { cmd: "shortcut", shortcut: "web_panel" }),
+  command("toggle_top_bar", { cmd: "toggle_top_bar" }),
+  command("import", { cmd: "new_tab", url: "magnetite://ui/settings#data" }),
+  command("welcome", { cmd: "new_tab", url: "magnetite://ui/welcome" }),
+  command("copy_link", { cmd: "copy_link", variant: "clean", notify: true }),
+  command("copy_original", { cmd: "copy_link", variant: "original", notify: true }),
+  command("copy_markdown", { cmd: "copy_link", variant: "markdown", notify: true }),
+  command("zoom_reset", { cmd: "set_zoom", percent: 0 }),
+  command("split_right", { cmd: "open_palette", mode: "split", side: "right" }),
+  command("split_left", { cmd: "open_palette", mode: "split", side: "left" }),
+  command("split_top", { cmd: "open_palette", mode: "split", side: "top" }),
+  command("split_bottom", { cmd: "open_palette", mode: "split", side: "bottom" }),
+  command("split_even", { cmd: "split_equalize", path: [] }),
+  command("split_grid", { cmd: "split_grid" }),
+  command("separate", { cmd: "separate_all" }),
+  command("devtools", { cmd: "toggle_devtools" }),
+  command("dev_console", { cmd: "dev_panel", panel: "console" }),
+  command("dev_picker", { cmd: "dev_panel", panel: "picker" }),
+  command("dev_network", { cmd: "dev_panel", panel: "network" }),
+  command("dev_application", { cmd: "dev_panel", panel: "application" }),
+  command("dev_reset", { cmd: "dev_reset" }),
+  command("emu_dark", { cmd: "dev_emulate", patch: { color_scheme: "dark" } }),
+  command("emu_light", { cmd: "dev_emulate", patch: { color_scheme: "light" } }),
+  command("emu_motion", { cmd: "dev_emulate", patch: { reduced_motion: true } }),
+  command("emu_print", { cmd: "dev_emulate", patch: { print: true } }),
+  command("emu_offline", { cmd: "dev_emulate", patch: { network: "offline" } }),
+  command("emu_slow", { cmd: "dev_emulate", patch: { network: "slow" } }),
+  command("emu_cpu", { cmd: "dev_emulate", patch: { slow_cpu: true } }),
+  command("emu_cache", { cmd: "dev_emulate", patch: { no_cache: true } }),
+  command("dev_responsive", { cmd: "dev_responsive" }),
+  command("dev_capture_set", { cmd: "dev_capture_set" }),
+  command("dev_record", { cmd: "dev_record" }),
+  ...TIMEZONES.map(([zone, place]): Action => ({ id: `emu_zone_${zone}`, title: t("commandBar.time_zone.title", { place }), keywords: [...keywordsOf(t("commandBar.time_zone.keywords")), zone.toLowerCase()], cmd: { cmd: "dev_emulate", patch: { timezone: zone } } })),
+  command("emu_zone_off", { cmd: "dev_emulate", patch: { timezone: null } }),
+  command("emu_off", { cmd: "dev_emulate", patch: { color_scheme: null, reduced_motion: false, print: false, network: "online", slow_cpu: false, no_cache: false, timezone: null } }),
+  command("capture", { cmd: "capture_start" }),
+  command("capture_copy", { cmd: "capture_copy", notify: true }),
+  command("find", { cmd: "shortcut", shortcut: "find" }),
+  command("print", { cmd: "shortcut", shortcut: "print" }),
+  command("history", { cmd: "show_history" }),
 ];
 
 /**
@@ -78,11 +94,11 @@ function tabActions(state: UiState): Action[] {
   const actions: Action[] = [];
   const spaces = state.sidebar.spaces;
   for (const sp of spaces) {
-    if (sp.id !== state.active_space) actions.push({ id: `switch_${sp.id}`, title: `Switch to ${sp.title}`, keywords: ["space", "switch", "go"], cmd: { cmd: "switch_space", id: sp.id } });
+    if (sp.id !== state.active_space) actions.push({ id: `switch_${sp.id}`, title: t("commandBar.tab_commands.switch_space.title", { space: sp.title }), keywords: tabKeywords("switch_space"), cmd: { cmd: "switch_space", id: sp.id } });
   }
   if (state.private_space) {
-    actions.push({ id: "close_private_space", title: "Close private space", keywords: ["private", "incognito", "close", "space"], cmd: { cmd: "close_private_space" } });
-    actions.push({ id: "hide_private_space", title: "Hide private space", keywords: ["private", "incognito", "hide", "space"], cmd: { cmd: "hide_private_space" } });
+    actions.push({ id: "close_private_space", title: t("commandBar.tab_commands.close_private_space.title"), keywords: tabKeywords("close_private_space"), cmd: { cmd: "close_private_space" } });
+    actions.push({ id: "hide_private_space", title: t("commandBar.tab_commands.hide_private_space.title"), keywords: tabKeywords("hide_private_space"), cmd: { cmd: "hide_private_space" } });
   }
   const id = state.active_tab;
   const tab = id ? findTab(state, id) : null;
@@ -92,35 +108,44 @@ function tabActions(state: UiState): Action[] {
   // at once. Every profile but the page's own (`profile_for_tab` in the app).
   if (state.active_space !== state.private_space) {
     const { profiles, favorites } = state.sidebar;
-    const home = owner ?? favorites.find((f) => f.items.some((t) => t.id === id));
+    const home = owner ?? favorites.find((f) => f.items.some((item) => item.id === id));
     const own = (profiles.find((p) => p.id === tab.profile_id) ?? profiles.find((p) => p.id === home?.profile_id))?.id;
     for (const p of profiles) {
-      if (p.id !== own && !p.ephemeral) actions.push({ id: `split_as_${p.id}`, title: `Open beside as ${p.name}`, keywords: ["split", "beside", "user", "profile", "second", "login", "account"], cmd: { cmd: "dev_split_as", profile: p.id } });
+      if (p.id !== own && !p.ephemeral) actions.push({ id: `split_as_${p.id}`, title: t("commandBar.tab_commands.split_as.title", { profile: p.name }), keywords: tabKeywords("split_as"), cmd: { cmd: "dev_split_as", profile: p.id } });
     }
   }
+  const duplicate = t("commandBar.tab_commands.duplicate.title");
   // A tab of the private space stays what and where it is.
   if (owner && owner.id === state.private_space) {
-    actions.push({ id: "duplicate", title: "Duplicate tab", keywords: ["duplicate", "copy", "clone"], cmd: { cmd: "new_tab", url: tab.url } });
+    actions.push({ id: "duplicate", title: duplicate, keywords: tabKeywords("duplicate"), cmd: { cmd: "new_tab", url: tab.url } });
     return actions;
   }
   const favorite = !owner;
-  const today = owner?.today.some((t) => t.id === id) ?? false;
-  if (owner && today) actions.push({ id: "pin", title: "Pin tab", keywords: ["pin"], cmd: { cmd: "pin", id } });
-  if (owner && !today) actions.push({ id: "unpin", title: "Unpin tab", keywords: ["unpin", "pin"], cmd: { cmd: "unpin", id } });
-  if (!today && tab.home_url && tab.home_url !== tab.url) actions.push({ id: "reset", title: `Back to pinned page (${hostOf(tab.home_url)})`, keywords: ["reset", "home", "pinned"], cmd: { cmd: "reset_tab", id } });
-  if (favorite) actions.push({ id: "unfavorite", title: "Remove tab from favorites", keywords: ["favorite", "unfavorite"], cmd: { cmd: "move_tab", id, space: state.active_space, section: "today", index: 0 } });
-  else actions.push({ id: "favorite", title: "Add tab to favorites", keywords: ["favorite"], cmd: { cmd: "move_tab", id, space: state.active_space, section: "favorites", index: 999 } });
-  if (today) actions.push({ id: "keep_active", title: tab.keep_active ? "Stop keeping tab active" : "Keep tab active", keywords: ["keep", "active", "awake"], cmd: { cmd: "set_keep_active", id, keep: !tab.keep_active } });
+  const today = owner?.today.some((item) => item.id === id) ?? false;
+  if (owner && today) actions.push({ id: "pin", title: t("commandBar.tab_commands.pin.title"), keywords: tabKeywords("pin"), cmd: { cmd: "pin", id } });
+  if (owner && !today) actions.push({ id: "unpin", title: t("commandBar.tab_commands.unpin.title"), keywords: tabKeywords("unpin"), cmd: { cmd: "unpin", id } });
+  if (!today && tab.home_url && tab.home_url !== tab.url) actions.push({ id: "reset", title: t("commandBar.tab_commands.reset.title", { host: hostOf(tab.home_url) }), keywords: tabKeywords("reset"), cmd: { cmd: "reset_tab", id } });
+  if (favorite) actions.push({ id: "unfavorite", title: t("commandBar.tab_commands.unfavorite.title"), keywords: tabKeywords("unfavorite"), cmd: { cmd: "move_tab", id, space: state.active_space, section: "today", index: 0 } });
+  else actions.push({ id: "favorite", title: t("commandBar.tab_commands.favorite.title"), keywords: tabKeywords("favorite"), cmd: { cmd: "move_tab", id, space: state.active_space, section: "favorites", index: 999 } });
+  if (today) actions.push({ id: "keep_active", title: tab.keep_active ? t("commandBar.tab_commands.keep_active.stop") : t("commandBar.tab_commands.keep_active.title"), keywords: tabKeywords("keep_active"), cmd: { cmd: "set_keep_active", id, keep: !tab.keep_active } });
   if (owner) {
     for (const sp of spaces) {
-      if (sp.id !== owner.id && sp.id !== state.private_space) actions.push({ id: `move_${sp.id}`, title: `Move tab to ${sp.title}`, keywords: ["move", "space"], cmd: { cmd: "move_tab", id, space: sp.id, section: "today", index: 0 } });
+      if (sp.id !== owner.id && sp.id !== state.private_space) actions.push({ id: `move_${sp.id}`, title: t("commandBar.tab_commands.move.title", { space: sp.title }), keywords: tabKeywords("move"), cmd: { cmd: "move_tab", id, space: sp.id, section: "today", index: 0 } });
     }
   }
   // A favorite's copy keeps its profile; a tab's opens as a new Today tab of this space.
-  actions.push({ id: "duplicate", title: "Duplicate tab", keywords: ["duplicate", "copy", "clone"], cmd: favorite ? { cmd: "duplicate_favorite", id } : { cmd: "new_tab", url: tab.url } });
+  actions.push({ id: "duplicate", title: duplicate, keywords: tabKeywords("duplicate"), cmd: favorite ? { cmd: "duplicate_favorite", id } : { cmd: "new_tab", url: tab.url } });
   const space = spaces.find((sp) => sp.id === state.active_space);
-  if (space?.today.some((t) => t.id !== id)) actions.push({ id: "close_others", title: "Close other Today tabs", keywords: ["close", "others", "archive"], cmd: { cmd: "archive_today", keep: id } });
+  if (space?.today.some((item) => item.id !== id)) actions.push({ id: "close_others", title: t("commandBar.tab_commands.close_others.title"), keywords: tabKeywords("close_others"), cmd: { cmd: "archive_today", keep: id } });
   return actions;
+}
+
+/** The split palette's prompt: where the pick opens, beside the current tab. */
+function splitPlaceholder(side: Side | undefined): string {
+  if (side === "left") return t("commandBar.input.split_left");
+  if (side === "top") return t("commandBar.input.split_top");
+  if (side === "bottom") return t("commandBar.input.split_bottom");
+  return t("commandBar.input.split_beside");
 }
 
 /** The keys of the hint line, as this platform writes them. */
@@ -204,14 +229,14 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
       return;
     }
     let cancelled = false;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       send({ cmd: "search", query: q }).then((r) => {
         if (!cancelled) setResults(r.results ?? []);
       });
     }, 120);
     return () => {
       cancelled = true;
-      clearTimeout(t);
+      clearTimeout(timer);
     };
   }, [query, naming, site]);
 
@@ -222,11 +247,11 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
   const open = (url: string) =>
     quick ? send({ cmd: "open_mini", url }) : mode === "navigate" ? send({ cmd: "navigate", url }) : send({ cmd: "new_tab", url, split: mode === "split", side: splitSide });
   if (mode === "new_space") {
-    items.push({ kind: "action", id: "create_space", title: q ? `Create space "${q}"` : "Create space", run: () => send({ cmd: "new_space", title: q }) });
+    items.push({ kind: "action", id: "create_space", title: q ? t("commandBar.results.create_space", { name: q }) : t("commandBar.results.create_space_unnamed"), run: () => send({ cmd: "new_space", title: q }) });
     groups.push({ label: "", items });
   } else if (mode === "new_profile") {
-    const target = profileFor ? "this favorite" : "this space";
-    items.push({ kind: "action", id: "create_profile", title: q ? `Create profile "${q}" and use it for ${target}` : "Name the profile", keepOpen: true, run: async () => {
+    const title = !q ? t("commandBar.results.name_profile") : profileFor ? t("commandBar.results.create_profile_favorite", { name: q }) : t("commandBar.results.create_profile_space", { name: q });
+    items.push({ kind: "action", id: "create_profile", title, keepOpen: true, run: async () => {
       // Closing ends this page, so it comes last: once the new profile's use is on its way.
       try {
         if (!q) return;
@@ -242,12 +267,12 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
   } else if (site) {
     // The app turns "keyword query" into the site's search address.
     const typed = `${site.keyword} ${q}`;
-    if (q) groups.push({ label: "", items: [{ kind: "url", title: `Search ${site.name} for "${q}"`, url: typed, peek: typed, run: () => open(typed) }] });
+    if (q) groups.push({ label: "", items: [{ kind: "url", title: t("commandBar.site_search.result", { site: site.name, query: q }), url: typed, peek: typed, run: () => open(typed) }] });
     for (const g of groups) items.push(...g.items);
   } else {
     const top: Item[] = [];
     if (q) {
-      top.push({ kind: "url", title: opensAsAddress(q) ? `Open ${q}` : `Search for "${q}"`, url: q, peek: q, run: () => open(q) });
+      top.push({ kind: "url", title: opensAsAddress(q) ? t("commandBar.results.open_address", { address: q }) : t("commandBar.results.search_for", { query: q }), url: q, peek: q, run: () => open(q) });
     }
     const actions: Item[] = [];
     // The quick search opens pages only: commands are for the main window.
@@ -257,8 +282,9 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
         // "Add … split…" opens the next palette in this one's place: closing after it would close that one.
         if (a.title.toLowerCase().includes(lower) || a.keywords.some((k) => k.startsWith(lower))) actions.push({ kind: "action", id: a.id, title: a.title, keepOpen: a.cmd.cmd === "open_palette", run: () => send(a.cmd) });
       }
-      if ("archive".startsWith(lower)) actions.push({ kind: "action", id: "open_archive", title: "Open archive", run: onOpenArchive });
-      if ("settings".startsWith(lower) || "preferences".startsWith(lower)) actions.push({ kind: "action", id: "open_settings", title: "Open settings", run: onOpenSettings });
+      const typed = (k: string) => k.startsWith(lower);
+      if (keywordsOf(t("commandBar.commands.open_archive.keywords")).some(typed)) actions.push({ kind: "action", id: "open_archive", title: t("commandBar.commands.open_archive.title"), run: onOpenArchive });
+      if (keywordsOf(t("commandBar.commands.open_settings.keywords")).some(typed)) actions.push({ kind: "action", id: "open_settings", title: t("commandBar.commands.open_settings.title"), run: onOpenSettings });
     }
     const tabs: Item[] = results.filter((r) => r.kind === "tab" && !quick).map((r) => ({ ...r, run: () => send(mode === "split" ? { cmd: "add_split", id: r.id, side: splitSide } : { cmd: "activate_tab", id: r.id }) }));
     const saved: Item[] = results.filter((r) => r.kind === "bookmark").map((r) => ({ ...r, peek: r.url, run: () => (quick ? open(r.url) : send({ cmd: "open_bookmark", id: r.id })) }));
@@ -267,20 +293,20 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
     // What listens on this computer's ports: by project, port, or "local".
     const lower = q.toLowerCase();
     const local: Item[] = !q ? [] : servers
-      .filter((s) => s.project?.toLowerCase().includes(lower) || String(s.port).startsWith(lower) || ["localhost", "servers", "ports"].some((w) => w.startsWith(lower)))
+      .filter((s) => s.project?.toLowerCase().includes(lower) || String(s.port).startsWith(lower) || keywordsOf(t("commandBar.local_servers_keywords")).some((w) => w.startsWith(lower)))
       .map((s) => {
         const url = `http://localhost:${s.port}/`;
         return { kind: "url", title: `${s.project ?? s.command} · localhost:${s.port}`, url, peek: url, run: () => open(url) };
       });
     if (top.length) groups.push({ label: "", items: top });
-    if (tabs.length) groups.push({ label: "Tabs", items: tabs });
-    if (actions.length) groups.push({ label: "Commands", items: actions });
-    if (saved.length) groups.push({ label: "Bookmarks", items: saved });
-    if (visited.length) groups.push({ label: "History", items: visited });
-    if (archived.length) groups.push({ label: "Archive", items: archived });
+    if (tabs.length) groups.push({ label: t("commandBar.groups.tabs"), items: tabs });
+    if (actions.length) groups.push({ label: t("commandBar.groups.commands"), items: actions });
+    if (saved.length) groups.push({ label: t("commandBar.groups.bookmarks"), items: saved });
+    if (visited.length) groups.push({ label: t("commandBar.groups.history"), items: visited });
+    if (archived.length) groups.push({ label: t("commandBar.groups.archive"), items: archived });
     // Last: the list arrives a moment after the bar opens, and rows added
     // here move none of the rows above, so the selected one stays selected.
-    if (local.length) groups.push({ label: "Local servers", items: local });
+    if (local.length) groups.push({ label: t("commandBar.groups.local_servers"), items: local });
     for (const g of groups) items.push(...g.items);
   }
   const sel = Math.min(selected, Math.max(0, items.length - 1));
@@ -351,33 +377,33 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
   const current = items[sel];
   const hints: [keys: string, does: string][] = [];
   if (current) {
-    const opens = quick ? "Open in a mini window" : mode === "navigate" ? "Open in this tab" : mode === "split" ? "Open in the split" : "Open in a new tab";
+    const opens = quick ? t("commandBar.hints.open_mini") : mode === "navigate" ? t("commandBar.hints.open_here") : mode === "split" ? t("commandBar.hints.open_split") : t("commandBar.hints.open_new_tab");
     const enter =
-      current.kind === "action" ? (naming ? "Create" : "Run")
-      : current.kind === "tab" ? (mode === "split" ? "Add to the split" : "Go to the tab")
-      : current.kind === "archived" ? "Restore"
-      : current.kind === "bookmark" && !quick ? "Open in a new tab"
+      current.kind === "action" ? (naming ? t("commandBar.hints.create") : t("commandBar.hints.run"))
+      : current.kind === "tab" ? (mode === "split" ? t("commandBar.hints.add_to_split") : t("commandBar.hints.go_to_tab"))
+      : current.kind === "archived" ? t("common.restore")
+      : current.kind === "bookmark" && !quick ? t("commandBar.hints.open_new_tab")
       : opens;
     hints.push([KEYS.enter, enter]);
-    if (!quick && current.kind !== "action" && current.peek) hints.push([KEYS.peek, "Peek"]);
+    if (!quick && current.kind !== "action" && current.peek) hints.push([KEYS.peek, t("commandBar.hints.peek")]);
     // Enter opens a new tab already when the bar was opened for one.
-    if (!quick && current.kind === "url" && mode !== "new") hints.push([KEYS.newTab, "New tab"]);
+    if (!quick && current.kind === "url" && mode !== "new") hints.push([KEYS.newTab, t("commandBar.hints.new_tab")]);
   }
   const keyword = site ? undefined : sites.find((s) => s.keyword === q.toLowerCase());
-  if (keyword) hints.push([KEYS.tab, `Search ${keyword.name}`]);
-  if (site && !query) hints.push([KEYS.back, "All results"]);
-  const idle = current ? null : site ? `Type what to search on ${site.name}` : quick ? "Finds bookmarks and visited pages" : "Finds tabs, bookmarks, visited pages and commands";
+  if (keyword) hints.push([KEYS.tab, t("commandBar.site_search.search", { site: keyword.name })]);
+  if (site && !query) hints.push([KEYS.back, t("commandBar.hints.all_results")]);
+  const idle = current ? null : site ? t("commandBar.site_search.idle", { site: site.name }) : quick ? t("commandBar.hints.idle_quick") : t("commandBar.hints.idle");
 
   let flat = -1;
   return (
     <div className="cmdbar" role="combobox" aria-expanded={items.length > 0}>
       <div className="flex items-center">
-        {site && <span className="site-chip" title={`Searches ${site.name}; Backspace goes back`}>{site.name}</span>}
+        {site && <span className="site-chip" title={t("commandBar.site_search.chip_title", { site: site.name })}>{site.name}</span>}
         <input
           ref={input}
-          aria-label="Command bar"
+          aria-label={t("commandBar.input.label")}
           value={query}
-          placeholder={site ? `Search ${site.name}` : mode === "new_space" ? "Name the new space" : mode === "new_profile" ? "Name the new profile" : mode === "split" ? `Open ${splitSide === "left" ? "left of" : splitSide === "top" ? "above" : splitSide === "bottom" ? "below" : "beside"} this tab…` : quick ? "Search or enter URL to open in a mini window" : "Search or enter URL"}
+          placeholder={site ? t("commandBar.site_search.search", { site: site.name }) : mode === "new_space" ? t("commandBar.input.name_space") : mode === "new_profile" ? t("commandBar.input.name_profile") : mode === "split" ? splitPlaceholder(splitSide) : quick ? t("commandBar.input.quick") : t("commandBar.input.default")}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKey}
           spellCheck={false}
@@ -395,7 +421,7 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
                     {it.kind === "action" ? <span className="icon-slot"><CommandIcon width={14} height={14} /></span> : it.kind === "url" ? <span className="icon-slot"><Arrow width={14} height={14} /></span> : <Favicon url={it.url} src={it.favicon} />}
                     <div className="min-w-0 flex-1">
                       <div className="truncate">{it.kind === "action" ? it.title : it.title || hostOf(it.url)}</div>
-                      {it.kind !== "action" && it.kind !== "url" && <div className="meta">{it.kind === "archived" ? "Archived · " : it.space ? `${it.space} · ` : ""}{hostOf(it.url)}</div>}
+                      {it.kind !== "action" && it.kind !== "url" && <div className="meta">{it.kind === "archived" ? t("commandBar.results.archived", { host: hostOf(it.url) }) : it.space ? `${it.space} · ${hostOf(it.url)}` : hostOf(it.url)}</div>}
                     </div>
                   </div>
                 );
@@ -406,7 +432,7 @@ export function CommandBar({ mode, state, profileFor, splitSide, onClose, onOpen
       )}
       <div className="hints">
         {idle && <span>{idle}</span>}
-        {idle && !site && example && <span><kbd>{example.keyword}</kbd> and a space searches {example.name}</span>}
+        {idle && !site && example && <span>{rich("commandBar.site_search.example", { keyword: <kbd>{example.keyword}</kbd>, site: example.name })}</span>}
         {hints.map(([keys, does]) => (
           <span key={keys}><kbd>{keys}</kbd> {does}</span>
         ))}

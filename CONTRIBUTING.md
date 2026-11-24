@@ -52,6 +52,10 @@ scripts/linux-container.sh test   # the Linux run, in Podman or Docker
   skipped locally (CI always runs it).
 - Tests should check behaviour. No smoke tests that check nothing in
   particular, and no tests for features that were removed.
+- Texts the user sees are never written into the code: they go into
+  `crates/ui/locales/en` and are shown with `t()` (web UI) or `t!` (Rust).
+  Add the German text too where you can. `docs/development/translating.md`
+  has the details, and how to add a language.
 
 ## Commits and pull requests
 

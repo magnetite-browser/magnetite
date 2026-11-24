@@ -10,6 +10,7 @@ use serde::de::IntoDeserializer as _;
 use serde::{Deserialize, Serialize};
 
 use crate::events::{DevPanel, Shortcut};
+use magnetite_ui::t;
 
 const MAC: bool = cfg!(target_os = "macos");
 
@@ -364,19 +365,30 @@ impl From<Combo> for String {
     }
 }
 
-/// Why keys cannot be a shortcut. Settings shows the text.
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+/// Why keys cannot be a shortcut. Settings shows the text, in the user's
+/// language.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KeysError {
     /// Not in `Combo`'s format, or a key without a name here.
-    #[error("not a key combination: {0}")]
     NotKeys(String),
     /// No Cmd, Ctrl or Alt: it would be typing.
-    #[error("A shortcut needs {}, or is a function key.", if MAC { "⌘, ⌃ or ⌥" } else { "Ctrl or Alt" })]
     NeedsModifier,
     /// The keys have a fixed meaning; whose, in a few words.
-    #[error("These keys are fixed: {0}.")]
     Fixed(&'static str),
 }
+
+impl fmt::Display for KeysError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::NotKeys(keys) => f.write_str(&t!("app.shortcuts.not_keys", keys = keys)),
+            Self::NeedsModifier if MAC => f.write_str(t!("app.shortcuts.needs_modifier_mac")),
+            Self::NeedsModifier => f.write_str(t!("app.shortcuts.needs_modifier")),
+            Self::Fixed(what) => f.write_str(&t!("app.shortcuts.fixed", what = what)),
+        }
+    }
+}
+
+impl std::error::Error for KeysError {}
 
 impl FromStr for Combo {
     type Err = KeysError;
@@ -416,57 +428,63 @@ impl TryFrom<String> for Combo {
 
 /// Keys with a fixed meaning on this system and what has them, so a
 /// shortcut cannot take them: the system's and Chromium's editing and page
-/// keys, and Magnetite's keys that cannot be changed.
+/// keys, and Magnetite's keys that cannot be changed. The menu items' own
+/// names where there is one.
 fn taken() -> impl Iterator<Item = (Combo, &'static str)> {
-    const EVERYWHERE: &[(&str, &str)] = &[
-        ("primary+C", "Copy"),
-        ("primary+X", "Cut"),
-        ("primary+V", "Paste"),
-        ("primary+A", "Select All"),
-        ("primary+Z", "Undo"),
-        ("primary+shift+Z", "Redo"),
-        ("primary+R", "Reload Page"),
-        ("primary+shift+R", "Reload Without Cache"),
-        ("primary+=", "Zoom In"),
-        ("primary+-", "Zoom Out"),
-        ("primary+0", "Actual Size"),
-        ("primary+O", "Keep a peek as a tab"),
-        ("F12", "Developer Tools"),
+    let everywhere = [
+        ("primary+C", t!("menu.edit.copy")),
+        ("primary+X", t!("menu.edit.cut")),
+        ("primary+V", t!("menu.edit.paste")),
+        ("primary+A", t!("menu.edit.select_all")),
+        ("primary+Z", t!("menu.edit.undo")),
+        ("primary+shift+Z", t!("menu.edit.redo")),
+        ("primary+R", t!("menu.view.reload")),
+        ("primary+shift+R", t!("menu.view.reload_without_cache")),
+        ("primary+=", t!("menu.view.zoom_in")),
+        ("primary+-", t!("menu.view.zoom_out")),
+        ("primary+0", t!("menu.view.actual_size")),
+        ("primary+O", t!("app.shortcuts.taken.keep_peek")),
+        ("F12", t!("menu.view.developer_tools")),
     ];
-    const MAC_ONLY: &[(&str, &str)] = &[
-        ("primary+Q", "Quit"),
-        ("primary+H", "Hide"),
-        ("primary+alt+H", "Hide Others"),
-        ("primary+M", "Minimize"),
-        ("primary+alt+shift+V", "Paste and Match Style"),
-        ("primary+[", "Back"),
-        ("primary+]", "Forward"),
-        ("primary+alt+N", "Quick search from anywhere"),
-        ("primary+Tab", "the system's app switcher"),
-        ("primary+Space", "the system's search"),
-    ];
-    const ELSEWHERE: &[(&str, &str)] = &[
-        ("primary+Y", "Redo"),
-        ("alt+Left", "Back"),
-        ("alt+Right", "Forward"),
-        ("F5", "Reload Page"),
-        ("primary+shift+V", "Paste and Match Style"),
-        ("alt+F4", "closing the window"),
-    ];
-    let own = if MAC { MAC_ONLY } else { ELSEWHERE };
+    let own: Vec<(&str, &str)> = if MAC {
+        vec![
+            ("primary+Q", t!("app.shortcuts.taken.quit")),
+            ("primary+H", t!("common.hide")),
+            ("primary+alt+H", t!("menu.app.hide_others")),
+            ("primary+M", t!("menu.window.minimize")),
+            ("primary+alt+shift+V", t!("menu.edit.paste_match_style")),
+            ("primary+[", t!("menu.history.back")),
+            ("primary+]", t!("menu.history.forward")),
+            ("primary+alt+N", t!("app.shortcuts.taken.quick_search")),
+            ("primary+Tab", t!("app.shortcuts.taken.app_switcher")),
+            ("primary+Space", t!("app.shortcuts.taken.system_search")),
+        ]
+    } else {
+        vec![
+            ("primary+Y", t!("menu.edit.redo")),
+            ("alt+Left", t!("menu.history.back")),
+            ("alt+Right", t!("menu.history.forward")),
+            ("F5", t!("menu.view.reload")),
+            ("primary+shift+V", t!("menu.edit.paste_match_style")),
+            ("alt+F4", t!("app.shortcuts.taken.close_window")),
+        ]
+    };
     // The digits choose a tab (Cmd or Ctrl) or a space (Ctrl; Alt outside macOS).
     let space_digits = if MAC { "ctrl" } else { "alt" };
     let digits = (1..=9).flat_map(move |n| {
         [
-            (format!("primary+{n}"), "choosing a tab by its place"),
+            (
+                format!("primary+{n}"),
+                t!("app.shortcuts.taken.tab_by_place"),
+            ),
             (
                 format!("{space_digits}+{n}"),
-                "choosing a space by its place",
+                t!("app.shortcuts.taken.space_by_place"),
             ),
         ]
     });
-    (EVERYWHERE.iter().chain(own))
-        .map(|(keys, by)| ((*keys).to_string(), *by))
+    (everywhere.into_iter().chain(own))
+        .map(|(keys, by)| (keys.to_string(), by))
         .chain(digits)
         .filter_map(|(keys, by)| Some((keys.parse::<Combo>().ok()?.here(), by)))
 }

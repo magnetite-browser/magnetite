@@ -1,0 +1,113 @@
+{
+  "emulation": {
+    "title": "Show the page as",
+    "colours": "Colors",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "network": "Network",
+    "online": "Online",
+    "slow": "Slow",
+    "offline": "Offline",
+    "reduced_motion": "Reduced motion",
+    "print": "Print styles",
+    "print_hint": "The page as it prints",
+    "slow_cpu": "Slow processor",
+    "slow_cpu_hint": "Four times slower",
+    "no_cache": "No cache",
+    "no_cache_hint": "Every request goes to the server",
+    "show_as_is": "Show the page as it is",
+    "labels": {
+      "dark": "Dark",
+      "light": "Light",
+      "reduced_motion": "Reduced motion",
+      "print": "Print",
+      "offline": "Offline",
+      "slow_network": "Slow network",
+      "slow_cpu": "Slow CPU",
+      "no_cache": "No cache",
+      "time_zone": "{place} time"
+    }
+  },
+  "time_zone": {
+    "title": "Time zone of the page",
+    "this_computer": "This computer's",
+    "places": {
+      "los_angeles": "Los Angeles",
+      "new_york": "New York",
+      "sao_paulo": "São Paulo",
+      "london": "London",
+      "berlin": "Berlin",
+      "dubai": "Dubai",
+      "kolkata": "Kolkata",
+      "shanghai": "Shanghai",
+      "tokyo": "Tokyo",
+      "sydney": "Sydney",
+      "auckland": "Auckland"
+    }
+  },
+  "bar": {
+    "waiting": "Waiting for {address}",
+    "waiting_hint": "The page loads by itself once something listens there",
+    "serves": "{project} serves {host}",
+    "picker": "Pick an element",
+    "console": "Console",
+    "console_errors_one": "{count} error in the console",
+    "console_errors_other": "{count} errors in the console",
+    "console_errors_label_one": "Console, {count} error",
+    "console_errors_label_other": "Console, {count} errors",
+    "network": "Network",
+    "shown_as": "Shown as: {list}",
+    "show_as": "Show the page as…",
+    "show_as_label": "Show the page as",
+    "time_zone_on": "The page sees {place} time ({zone})",
+    "time_zone_on_label": "Time zone: {place}",
+    "time_zone": "Time zone of the page…",
+    "time_zone_label": "Time zone of the page",
+    "responsive": "Responsive split",
+    "responsive_start": "Responsive split: this page as a phone beside itself, both at one address",
+    "responsive_end": "End the responsive split: the phone closes",
+    "capture_set": "Capture set",
+    "capture_set_hint": "Capture set: light and dark at a phone's, a tablet's and a computer's size, as one picture",
+    "record": "Record the page",
+    "record_hint": "Record the page as a video",
+    "record_end": "End the recording, {elapsed}",
+    "record_end_hint": "End the recording: the video goes to Downloads",
+    "clear": "Clear site data and reload",
+    "clear_hint": "Clear this site's cookies, storage, caches and service workers, then load the page again",
+    "reload": "Reload past the cache",
+    "reload_hint": "Load the page again past the cache; its cookies and storage stay"
+  },
+  "device": {
+    "window_title": "Device",
+    "responsive": "Responsive",
+    "groups": {
+      "phones": "Phones",
+      "tablets": "Tablets",
+      "computers": "Computers"
+    },
+    "presets": {
+      "laptop": "Laptop",
+      "desktop": "Desktop"
+    },
+    "dimensions": "Dimensions",
+    "size_hint": "Width × height in CSS pixels",
+    "size_fixed_hint": "A device has its own size; Responsive takes any",
+    "width": "Width",
+    "height": "Height",
+    "rotate": "Rotate",
+    "zoom": "Zoom",
+    "fit": "Fit",
+    "network": "Network",
+    "throttle": {
+      "none": "No throttling",
+      "fast4g": "Fast 4G",
+      "slow4g": "Slow 4G",
+      "offline": "Offline"
+    },
+    "save_data_hint": "The Save-Data hint sites get",
+    "save_data_on": "Save-Data: on",
+    "save_data_off": "Save-Data: off",
+    "end": "End device mode"
+  }
+}

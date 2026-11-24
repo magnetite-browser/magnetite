@@ -19,35 +19,38 @@ import { keysLabel, SHORTCUT_LABEL, type ShortcutAction } from "./settings/short
 import { ARCHIVE_AFTER, NEVER_ARCHIVE, UNLOAD_AFTER } from "./settings/tabTimes";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
 import type { Info, SettingsPatch } from "./settings/types";
+import { rich, t } from "./i18n";
 
 type Step = "welcome" | "sync" | "import" | "privacy" | "look" | "habits" | "done";
 
 /** The steps by name, as the list on the left shows them. */
 const STEP: Record<Step, { name: string; icon: IconComponent }> = {
-  welcome: { name: "Welcome", icon: Forward },
-  sync: { name: "Your devices", icon: DevicesIcon },
-  import: { name: "Your tabs", icon: DownloadIcon },
-  privacy: { name: "Search and ads", icon: PrivacyIcon },
-  look: { name: "Look", icon: PaletteIcon },
-  habits: { name: "Tabs and links", icon: SiteIcon },
-  done: { name: "Ready", icon: Check },
+  welcome: { name: t("welcome.steps.welcome"), icon: Forward },
+  sync: { name: t("welcome.steps.sync"), icon: DevicesIcon },
+  import: { name: t("welcome.steps.import"), icon: DownloadIcon },
+  privacy: { name: t("welcome.steps.privacy"), icon: PrivacyIcon },
+  look: { name: t("welcome.steps.look"), icon: PaletteIcon },
+  habits: { name: t("welcome.steps.habits"), icon: SiteIcon },
+  done: { name: t("welcome.steps.done"), icon: Check },
 };
 
 /** The shortcuts worth knowing on the first day. */
 const FIRST_KEYS: ShortcutAction[] = ["new_tab", "focus_address", "toggle_sidebar"];
 
-/** The text sizes offered here, of those Settings → Appearance has (percent). */
-const TEXT_SIZES = [["Small", 90], ["Normal", 100], ["Large", 115], ["Largest", 130]] as const;
-const DENSITIES = [["Compact", "compact"], ["Comfortable", "comfortable"], ["Spacious", "spacious"]] as const;
+/** The text sizes offered here, of those Settings → Appearance has (percent), and how the last step names them. */
+const TEXT_SIZES = [
+  { size: 90, label: t("welcome.look.text_size.small"), chosen: t("welcome.done.look.small") },
+  { size: 100, label: t("welcome.look.text_size.normal"), chosen: t("welcome.done.look.normal") },
+  { size: 115, label: t("welcome.look.text_size.large"), chosen: t("welcome.done.look.large") },
+  { size: 130, label: t("welcome.look.text_size.largest"), chosen: t("welcome.done.look.largest") },
+] as const;
+const DENSITIES = [[t("welcome.look.density.compact"), "compact"], [t("welcome.look.density.comfortable"), "comfortable"], [t("welcome.look.density.spacious"), "spacious"]] as const;
 
 /** What the app found in a chosen browser, while it reads, or why it could not. */
 type Preview = { state: "reading" } | { state: "read"; found: ImportPreview } | { state: "failed"; error: string };
 
-/** "1 space", "42 tabs". */
-const count = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
-
 /** "A", "A and B", "A, B and C". */
-const listed = (names: string[]) => (names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`);
+const listed = (names: string[]) => (names.length < 2 ? names.join("") : t("welcome.done.tabs.and", { rest: names.slice(0, -1).join(", "), last: names[names.length - 1]! }));
 
 export function Welcome() {
   const [info, setInfo] = useState<Info | null>(null);
@@ -74,7 +77,7 @@ export function Welcome() {
     [],
   );
   useEffect(() => {
-    document.title = "Welcome";
+    document.title = t("welcome.title");
     void reload().then((first) => {
       setSyncedBefore(first.settings.sync.enabled && first.sync_signed_in);
       applyAppearance(first.settings.appearance);
@@ -239,7 +242,7 @@ export function Welcome() {
       await reload();
       return true;
     } catch (e: unknown) {
-      setProblem(`Ad blocking could not be set: ${e instanceof Error ? e.message : String(e)}`);
+      setProblem(t("welcome.privacy.ads.failed", { error: e instanceof Error ? e.message : String(e) }));
       // Part of it may be set: the step shows what is, if that can be read.
       await reload().catch(() => undefined);
       return false;
@@ -269,16 +272,19 @@ export function Welcome() {
     if (failed.length === 0) return;
     setChosen((now) => now.filter((k) => !failed.some((f) => f.key === k)));
     setPreviews((all) => ({ ...all, ...Object.fromEntries(failed.map((f) => [f.key, { state: "failed", error: f.error }])) }));
-    setProblem(`${failed.map((f) => `${f.name}: ${f.error}`).join(" ")} Nothing was imported. Start again to go on without ${failed.length === 1 ? "it" : "them"}.`);
+    const failures = failed.map((f) => t("welcome.import.browser.error", { browser: f.name, error: f.error })).join(" ");
+    setProblem(t("welcome.done.import_failed", { count: failed.length, failures }));
     setStarting(false);
   };
 
-  const searchName = SEARCH_ENGINES.find((e) => e.template === info.settings.search_template)?.label ?? "Your own";
+  const searchName = SEARCH_ENGINES.find((e) => e.template === info.settings.search_template)?.label ?? t("welcome.done.search.own");
   const importSummary = importing.map((key) => {
     const coming = found(key)!.spaces.filter((_, index) => !isLeft(key, index));
     const tabs = coming.reduce((n, s) => n + s.tabs, 0);
-    return `${sourceName(key)} (${count(coming.length, "space")}, ${count(tabs, "tab")})`;
+    return t("welcome.done.tabs.browser", { browser: sourceName(key), spaces: t("welcome.count.spaces", { count: coming.length }), tabs: t("welcome.count.tabs", { count: tabs }) });
   });
+  const unloadAfter = UNLOAD_AFTER.find((o) => o.minutes === info.settings.unload_minutes)?.label ?? t("welcome.done.tabs_left.a_while");
+  const archiveAfter = ARCHIVE_AFTER.find((o) => o.hours === info.settings.auto_archive_hours)?.label ?? t("welcome.done.tabs_left.a_while");
 
   return (
     <div className="wel">
@@ -287,7 +293,7 @@ export function Welcome() {
           <img src={appIcon} alt="" width={28} height={28} />
           <span className="text-[15px] font-semibold">Magnetite</span>
         </div>
-        <ol className="mt-8 flex flex-col gap-1" aria-label={`Step ${at + 1} of ${steps.length}`}>
+        <ol className="mt-8 flex flex-col gap-1" aria-label={t("welcome.steps.position", { step: at + 1, total: steps.length })}>
           {steps.map((s, i) => {
             const Icon = STEP[s].icon;
             return (
@@ -302,7 +308,7 @@ export function Welcome() {
           })}
         </ol>
         <p className="mt-auto px-2 text-[12.5px] leading-[18px] text-[var(--muted)]">
-          No account, no telemetry. Everything asked here is in Settings as well.
+          {t("welcome.rail_note")}
         </p>
       </aside>
 
@@ -313,33 +319,32 @@ export function Welcome() {
               <div className="flex flex-col gap-6">
                 <div>
                   <img src={appIcon} alt="" width={72} height={72} />
-                  <h1 className="mt-6 text-[32px] font-semibold leading-[38px] tracking-[-0.01em]">Welcome to Magnetite</h1>
+                  <h1 className="mt-6 text-[32px] font-semibold leading-[38px] tracking-[-0.01em]">{t("welcome.start.title")}</h1>
                   <p className="mt-3 max-w-[520px] text-[15.5px] leading-6 text-[var(--secondary)]">
-                    A browser built around a sidebar: spaces for the things you do, tabs that tidy themselves up, and nothing
-                    about you collected anywhere.
+                    {t("welcome.start.intro")}
                   </p>
                 </div>
                 {syncedBefore ? (
                   <p className="max-w-[520px] text-[14px] leading-[21px] text-[var(--muted)]">
-                    The questions of the first start, once more. Nothing you have set changes until you choose something.
+                    {t("welcome.start.again")}
                   </p>
                 ) : (
                   <div className="grid gap-3">
                     <button className="wel-pick" onClick={() => { setJoining(false); go(joined ? "privacy" : "import"); }}>
                       <span className="set-icon"><DownloadIcon size={20} /></span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[15px] font-semibold">I am new here</span>
+                        <span className="block text-[15px] font-semibold">{t("welcome.start.new.title")}</span>
                         <span className="mt-1 block text-[13px] leading-[19px] text-[var(--muted)]">
-                          Bring your tabs along from another browser and answer a few short questions.
+                          {t("welcome.start.new.hint")}
                         </span>
                       </span>
                     </button>
                     <button className="wel-pick" onClick={() => { setJoining(true); go("sync"); }}>
                       <span className="set-icon"><DevicesIcon size={20} /></span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[15px] font-semibold">I use Magnetite already</span>
+                        <span className="block text-[15px] font-semibold">{t("welcome.start.join.title")}</span>
                         <span className="mt-1 block text-[13px] leading-[19px] text-[var(--muted)]">
-                          Enter the sync code of another device: your spaces and tabs come from there.
+                          {t("welcome.start.join.hint")}
                         </span>
                       </span>
                     </button>
@@ -352,10 +357,8 @@ export function Welcome() {
 
           {step === "sync" && joining && (
             <>
-              <Heading title={syncing ? "This device syncs" : "Join your other devices"}>
-                {syncing
-                  ? "Your spaces, pinned tabs and favorites arrive from the chain, and with them when tabs are tidied up, where links open and your shortcuts. There is nothing to import."
-                  : "Enter the 24 words that Settings → Sync shows on a device that syncs already. This device then takes the sidebar of the others, encrypted all the way; the server never sees what is in it."}
+              <Heading title={syncing ? t("welcome.sync.syncing_title") : t("welcome.sync.join.title")}>
+                {syncing ? t("welcome.sync.join.syncing") : t("welcome.sync.join.intro")}
               </Heading>
               <SyncSection info={info} reload={reload} job={syncJob} setJob={setJob} spaces={false} only="join" />
             </>
@@ -363,10 +366,8 @@ export function Welcome() {
 
           {step === "sync" && !joining && (
             <>
-              <Heading title={syncing ? "This device syncs" : "Sync with your other devices"}>
-                {syncing
-                  ? "Enter the 24 words below on your other devices, under Settings → Sync or on their welcome page. They take the sidebar of this one."
-                  : "Optional. With sync, your spaces, pinned tabs and favorites are the same on all your computers, encrypted before they leave this one. No account. It can wait: Settings → Sync has the same."}
+              <Heading title={syncing ? t("welcome.sync.syncing_title") : t("welcome.sync.create.title")}>
+                {syncing ? t("welcome.sync.create.syncing") : t("welcome.sync.create.intro")}
               </Heading>
               <SyncSection info={info} reload={reload} job={syncJob} setJob={setJob} spaces={false} only="create" />
             </>
@@ -374,11 +375,8 @@ export function Welcome() {
 
           {step === "import" && (
             <>
-              <Heading title="Bring your tabs along">
-                Choose a browser to see what it has. Magnetite reads its open and pinned tabs, tab groups and bookmarks, never
-                passwords, cookies or history, and nothing leaves this computer. It all comes in when you start browsing.
-              </Heading>
-              {sources?.length === 0 && <div className="set-card set-hint">No other browser found on this computer.</div>}
+              <Heading title={t("welcome.import.title")}>{t("welcome.import.intro")}</Heading>
+              {sources?.length === 0 && <div className="set-card set-hint">{t("welcome.import.none_found")}</div>}
               {sources && sources.length > 0 && (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {sources.map((s) => {
@@ -390,10 +388,10 @@ export function Welcome() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-medium">{s.name}</span>
                           <span className="block truncate text-[12.5px] text-[var(--muted)]" style={p?.state === "failed" ? { color: "var(--warn)" } : undefined}>
-                            {p?.state === "reading" && "Reading…"}
-                            {p?.state === "failed" && "Could not be read"}
-                            {p?.state === "read" && (p.found.spaces.length === 0 ? "Nothing to bring along" : !on ? "Not coming along" : importing.includes(s.key) ? "Coming along" : "All spaces switched off")}
-                            {!p && "Show what it has"}
+                            {p?.state === "reading" && t("welcome.import.browser.reading")}
+                            {p?.state === "failed" && t("welcome.import.browser.failed")}
+                            {p?.state === "read" && (p.found.spaces.length === 0 ? t("welcome.import.browser.empty") : !on ? t("welcome.import.browser.not_coming") : importing.includes(s.key) ? t("welcome.import.browser.coming") : t("welcome.import.browser.all_off"))}
+                            {!p && t("welcome.import.browser.unread")}
                           </span>
                         </span>
                       </button>
@@ -403,16 +401,12 @@ export function Welcome() {
               )}
               {sources?.map((s) => {
                 const p = previews[s.key];
-                return p?.state === "failed" ? <Notice key={s.key}>{s.name}: {p.error}</Notice> : null;
+                return p?.state === "failed" ? <Notice key={s.key}>{t("welcome.import.browser.error", { browser: s.name, error: p.error })}</Notice> : null;
               })}
               {shown.length > 0 && (
                 <div className="set-card">
-                  <div className="set-label">Your sidebar, as it will start</div>
-                  <p className="set-hint">
-                    Each line is a space: a sidebar of its own for one part of your day, such as work or private, with its
-                    own tabs. You switch between spaces in the sidebar. Change a name or an icon here, or switch off a space you
-                    do not want.
-                  </p>
+                  <div className="set-label">{t("welcome.import.sidebar.title")}</div>
+                  <p className="set-hint">{t("welcome.import.sidebar.hint")}</p>
                   <div className="wel-side">
                     {shown.map((key) => {
                       const f = found(key)!;
@@ -422,9 +416,9 @@ export function Welcome() {
                       return (
                         <div key={key}>
                           <div className="wel-side-from">
-                            From {from}
-                            {plain && ": it has no spaces, so everything comes in as one. Give it the name you want."}
-                            {f.favorites > 0 && `${plain ? " " : ", with "}${count(f.favorites, "favorite")}${plain ? ` ${f.favorites === 1 ? "comes" : "come"} along too.` : ""}`}
+                            {plain
+                              ? f.favorites > 0 ? t("welcome.import.from.plain_favorites", { browser: from, count: f.favorites }) : t("welcome.import.from.plain", { browser: from })
+                              : f.favorites > 0 ? t("welcome.import.from.spaces_favorites", { browser: from, count: f.favorites }) : t("welcome.import.from.spaces", { browser: from })}
                           </div>
                           {f.spaces.map((sp, i) => {
                             const out = isLeft(key, i);
@@ -435,8 +429,8 @@ export function Welcome() {
                               <div key={i} className="wel-space" data-out={out || undefined}>
                                 <button
                                   className="wel-space-icon"
-                                  title="Choose an icon"
-                                  aria-label={`Icon of the space ${typed}`}
+                                  title={t("welcome.import.space.choose_icon")}
+                                  aria-label={t("welcome.import.space.icon_of", { name: typed })}
                                   disabled={out}
                                   aria-expanded={picking}
                                   onClick={() => setPicker(picking ? null : { key, index: i })}
@@ -445,7 +439,7 @@ export function Welcome() {
                                 </button>
                                 <input
                                   className="wel-name"
-                                  aria-label={`Name of the space ${sp.title}`}
+                                  aria-label={t("welcome.import.space.name_of", { name: sp.title })}
                                   value={names[key]?.[i] ?? sp.title}
                                   placeholder={sp.title}
                                   maxLength={80}
@@ -454,10 +448,14 @@ export function Welcome() {
                                   onChange={(e) => setNames((all) => ({ ...all, [key]: { ...all[key], [i]: e.target.value } }))}
                                 />
                                 <span className="shrink-0 text-[12.5px] text-[var(--muted)]">
-                                  {out ? "Stays behind" : <>{count(sp.tabs, "tab")}{sp.bookmarks > 0 && `, ${count(sp.bookmarks, "bookmark")}`}</>}
+                                  {out
+                                    ? t("welcome.import.space.stays_behind")
+                                    : sp.bookmarks > 0
+                                      ? t("welcome.import.space.contents", { tabs: t("welcome.count.tabs", { count: sp.tabs }), bookmarks: t("welcome.count.bookmarks", { count: sp.bookmarks }) })
+                                      : t("welcome.count.tabs", { count: sp.tabs })}
                                 </span>
                                 <Switch
-                                  label={`Bring ${typed} along`}
+                                  label={t("welcome.import.space.bring_along", { name: typed })}
                                   checked={!out}
                                   onChange={(on) => setLeft((all) => ({ ...all, [key]: on ? (all[key] ?? []).filter((n) => n !== i) : [...(all[key] ?? []), i] }))}
                                 />
@@ -466,8 +464,8 @@ export function Welcome() {
                                     {GLYPH_NAMES.map((g) => (
                                       <button
                                         key={g}
-                                        title={g}
-                                        aria-label={g}
+                                        title={t(`sidebar.glyphs.${g}`)}
+                                        aria-label={t(`sidebar.glyphs.${g}`)}
                                         data-active={icons[key]?.[i] === g || undefined}
                                         onClick={() => {
                                           setIcons((all) => ({ ...all, [key]: { ...all[key], [i]: g } }));
@@ -481,7 +479,7 @@ export function Welcome() {
                                 )}
                                 {!out && final !== typed && (
                                   <span className="w-full text-[12.5px]" style={{ color: "var(--warn)" }}>
-                                    Another space coming in is called "{typed}": this one stays a space of its own, as "{final}".
+                                    {t("welcome.import.space.same_name", { name: typed, final })}
                                   </span>
                                 )}
                               </div>
@@ -494,27 +492,18 @@ export function Welcome() {
                 </div>
               )}
               <ul className="flex flex-col gap-2 text-[13px] leading-[19px] text-[var(--muted)]">
-                <li>
-                  <b>Passwords and extensions</b> are not read. Magnetite offers to save a password the next time you sign
-                  in somewhere, and Chrome extensions, a password manager among them, install from the Chrome Web Store
-                  (Settings → Extensions).
-                </li>
-                <li>
-                  <b>Coming from Safari?</b> macOS keeps its tabs from other apps. Export its bookmarks there (File →
-                  Export → Bookmarks…) and import the file later under Settings → Bookmarks.
-                </li>
+                <li>{rich("welcome.import.passwords", { b: (s) => <b>{s}</b> })}</li>
+                <li>{rich("welcome.import.safari", { b: (s) => <b>{s}</b> })}</li>
               </ul>
             </>
           )}
 
           {step === "privacy" && (
             <>
-              <Heading title="Search and ads">
-                Two choices about what leaves this computer. Magnetite itself sends nothing anywhere.
-              </Heading>
+              <Heading title={t("welcome.privacy.title")}>{t("welcome.privacy.intro")}</Heading>
               <section className="set-card">
-                <div className="flex items-center gap-2 set-label"><Search size={15} /> Search with</div>
-                <p className="set-hint">Used when what you type in the command bar is not a web address. Nothing goes to it until you search; more are in Settings → Search.</p>
+                <div className="flex items-center gap-2 set-label"><Search size={15} /> {t("welcome.privacy.search.label")}</div>
+                <p className="set-hint">{t("welcome.privacy.search.hint")}</p>
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {SEARCH_ENGINES.map((e) => {
                     const on = info.settings.search_template === e.template;
@@ -528,44 +517,40 @@ export function Welcome() {
               </section>
               {/* While "Continue" sets an answer, it is the answer: no other one until the app is done. */}
               <section className="set-card" inert={applying} aria-busy={applying}>
-                <div className="flex items-center gap-2 set-label"><AdblockIcon size={15} /> Ads and trackers</div>
-                <p className="set-hint">
-                  Websites load ads and trackers from known addresses. A filter list names those addresses, and Magnetite
-                  stops what is on it before it loads. Each list is downloaded from its publisher, who sees your IP
-                  address as any website does; what you browse is never sent.
-                </p>
+                <div className="flex items-center gap-2 set-label"><AdblockIcon size={15} /> {t("welcome.privacy.ads.label")}</div>
+                <p className="set-hint">{t("welcome.privacy.ads.hint")}</p>
                 <div className="mt-3 flex flex-col gap-2">
-                  <Answer on={ads === "recommended"} title="Block with the recommended lists" onClick={() => setAdsAnswer("recommended")}>
-                    {count(recommended.length, "list")} against ads, trackers and "turn off your ad blocker" walls.
+                  <Answer on={ads === "recommended"} title={t("welcome.privacy.ads.recommended.title")} onClick={() => setAdsAnswer("recommended")}>
+                    {t("welcome.privacy.ads.recommended.hint", { count: recommended.length })}
                   </Answer>
                   {ads === "recommended" && (
                     <ul className="wel-lists">
                       {offered.filter((l) => recommended.includes(l.id)).map((l) => (
-                        <li key={l.id}><b>{l.name}</b> {l.about} <span className="text-[var(--muted)]">From {l.host}.</span></li>
+                        <li key={l.id}><b>{l.name}</b> {l.about} <span className="text-[var(--muted)]">{t("welcome.privacy.ads.list_from", { host: l.host })}</span></li>
                       ))}
                     </ul>
                   )}
-                  <Answer on={ads === "own"} title="Choose the lists myself" onClick={() => setAdsAnswer("own")}>All {offered.length} lists, to turn on one by one.</Answer>
+                  <Answer on={ads === "own"} title={t("welcome.privacy.ads.own.title")} onClick={() => setAdsAnswer("own")}>{t("welcome.privacy.ads.own.hint", { count: offered.length })}</Answer>
                   {ads === "own" && (
                     <ul className="wel-lists">
                       {offered.map((l) => (
                         <li key={l.id} className="flex items-center gap-4">
-                          <span className="min-w-0 flex-1"><b>{l.name}</b> {l.about} <span className="text-[var(--muted)]">From {l.host}.</span></span>
+                          <span className="min-w-0 flex-1"><b>{l.name}</b> {l.about} <span className="text-[var(--muted)]">{t("welcome.privacy.ads.list_from", { host: l.host })}</span></span>
                           <Switch label={l.name} checked={own.includes(l.id)} onChange={(on) => setOwnLists(on ? [...own, l.id] : own.filter((id) => id !== l.id))} />
                         </li>
                       ))}
-                      {own.length === 0 && <li className="set-hint" style={{ color: "var(--warn)" }}>Choose at least one list: without one, nothing is blocked.</li>}
+                      {own.length === 0 && <li className="set-hint" style={{ color: "var(--warn)" }}>{t("welcome.privacy.ads.own.none")}</li>}
                     </ul>
                   )}
-                  <Answer on={ads === "off"} title="Do not block" onClick={() => setAdsAnswer("off")}>Nothing is downloaded. You can turn it on later in Settings → Content blocking.</Answer>
+                  <Answer on={ads === "off"} title={t("welcome.privacy.ads.off.title")} onClick={() => setAdsAnswer("off")}>{t("welcome.privacy.ads.off.hint")}</Answer>
                 </div>
                 {wanted && wanted.length > 0 && (
                   <p className="set-hint">
                     {info.adblock.held
-                      ? `Nothing is downloaded yet: ${wanted.length === 1 ? "the list is" : "the lists are"} fetched when you open your first website.`
+                      ? t("welcome.privacy.ads.fetched_first_site", { count: wanted.length })
                       : wanted.every((id) => adblock.enabled && adblock.lists.includes(id)) && wanted.length === adblock.lists.length
-                        ? "These lists are on."
-                        : `Nothing is downloaded yet: ${wanted.length === 1 ? "the list is" : "the lists are"} fetched when you continue.`}
+                        ? t("welcome.privacy.ads.lists_on")
+                        : t("welcome.privacy.ads.fetched_on_continue", { count: wanted.length })}
                   </p>
                 )}
               </section>
@@ -574,18 +559,12 @@ export function Welcome() {
 
           {step === "look" && (
             <>
-              <Heading title="How it looks">
-                The sidebar and Magnetite's own pages; web pages keep their own design. This page follows what you choose.
-                Each space can have a color and a background of its own later, in Settings → Appearance.
-              </Heading>
+              <Heading title={t("welcome.look.title")}>{t("welcome.look.intro")}</Heading>
               <section className="set-card">
-                <div className="set-label">Back, forward and the address</div>
-                <p className="set-hint">
-                  At the top of the sidebar, which leaves the whole height of the window to the page, or in a bar across
-                  the window, where most browsers have them. With the bar, the sidebar can also sit on the right.
-                </p>
+                <div className="set-label">{t("welcome.look.layout.label")}</div>
+                <p className="set-hint">{t("welcome.look.layout.hint")}</p>
                 <div className="mt-3 grid grid-cols-3 gap-3">
-                  {([["In the sidebar", "sidebar"], ["In a bar on top", "top_bar"], ["On top, sidebar right", "top_bar_right"]] as const).map(([label, layout]) => (
+                  {([[t("welcome.look.layout.sidebar"), "sidebar"], [t("welcome.look.layout.top_bar"), "top_bar"], [t("welcome.look.layout.top_bar_right"), "top_bar_right"]] as const).map(([label, layout]) => (
                     <button key={layout} className="wel-layout" aria-pressed={layoutOf(look) === layout} data-active={layoutOf(look) === layout || undefined} onClick={() => setLook(LAYOUTS[layout])}>
                       {layout === "sidebar" && <span className="wel-mini" aria-hidden><span><b data-bar /><b /></span><b /></span>}
                       {layout === "top_bar" && <span className="wel-mini" data-top aria-hidden><b data-bar /><span><b /></span><b /></span>}
@@ -596,18 +575,18 @@ export function Welcome() {
                 </div>
               </section>
               <section className="set-card">
-                <div className="set-label">Text size</div>
-                <p className="set-hint">Of the sidebar, the command bar and pages like this one. Web pages zoom on their own.</p>
+                <div className="set-label">{t("welcome.look.text_size.label")}</div>
+                <p className="set-hint">{t("welcome.look.text_size.hint")}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {TEXT_SIZES.map(([label, size]) => (
-                    <button key={label} className="wel-option" aria-pressed={look.text_scale === size} data-active={look.text_scale === size || undefined} onClick={() => setLook({ text_scale: size })}>{label}</button>
+                  {TEXT_SIZES.map(({ label, size }) => (
+                    <button key={size} className="wel-option" aria-pressed={look.text_scale === size} data-active={look.text_scale === size || undefined} onClick={() => setLook({ text_scale: size })}>{label}</button>
                   ))}
                 </div>
-                <div className="set-label mt-5">Rows in the sidebar</div>
-                <p className="set-hint">How high the rows of tabs are and how far apart.</p>
+                <div className="set-label mt-5">{t("welcome.look.density.label")}</div>
+                <p className="set-hint">{t("welcome.look.density.hint")}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {DENSITIES.map(([label, density]) => (
-                    <button key={label} className="wel-option" aria-pressed={look.density === density} data-active={look.density === density || undefined} onClick={() => setLook({ density })}>{label}</button>
+                    <button key={density} className="wel-option" aria-pressed={look.density === density} data-active={look.density === density || undefined} onClick={() => setLook({ density })}>{label}</button>
                   ))}
                 </div>
               </section>
@@ -616,25 +595,23 @@ export function Welcome() {
 
           {step === "habits" && (
             <>
-              <Heading title="Tabs and links">
-                Magnetite tidies up behind you: pages you are not looking at stop using memory, and tabs you forgot leave the sidebar. This is how it starts, and most people leave it so.
-              </Heading>
+              <Heading title={t("welcome.habits.title")}>{t("welcome.habits.intro")}</Heading>
                 <div className="set-card">
                   <Choices
-                    title="Unload a page that is off screen for"
-                    hint="An unloaded page uses no memory. Its tab stays, and the page loads again when you open it. Favorites stay loaded."
-                    options={UNLOAD_AFTER.map((t) => ({ label: t.label, on: info.settings.unload_minutes === t.minutes, patch: { unload_minutes: t.minutes } }))}
+                    title={t("welcome.habits.unload.title")}
+                    hint={t("welcome.habits.unload.hint")}
+                    options={UNLOAD_AFTER.map((o) => ({ label: o.label, on: info.settings.unload_minutes === o.minutes, patch: { unload_minutes: o.minutes } }))}
                     choose={choose}
                   />
                   <Choices
-                    title="Archive a Today tab not used for"
-                    hint="Today tabs are the ones you open as you go. Left alone this long, a tab moves from the sidebar to the archive, where you find it again. Pinned tabs and favorites stay."
-                    options={ARCHIVE_AFTER.map((t) => ({ label: t.label, on: info.settings.auto_archive_hours === t.hours, patch: { auto_archive_hours: t.hours } }))}
+                    title={t("welcome.habits.archive.title")}
+                    hint={t("welcome.habits.archive.hint")}
+                    options={ARCHIVE_AFTER.map((o) => ({ label: o.label, on: info.settings.auto_archive_hours === o.hours, patch: { auto_archive_hours: o.hours } }))}
                     choose={choose}
                   />
                   <Choices
-                    title="Open links from other apps in"
-                    hint="Links from Mail, Slack and other apps, when Magnetite is your default browser. A mini window is a small window of its own; one click moves its page into a space."
+                    title={t("welcome.habits.links.title")}
+                    hint={t("welcome.habits.links.hint")}
                     options={EXTERNAL_LINKS.map((o) => ({ label: o.label, on: info.settings.external_links === o.value, patch: { external_links: o.value } }))}
                     choose={choose}
                   />
@@ -644,33 +621,33 @@ export function Welcome() {
 
           {step === "done" && (
             <>
-              <Heading title="Ready when you are">
-                {importing.length > 0 ? "Your tabs come in when you start browsing. " : ""}This is what you chose; all of it can be changed in Settings.
-              </Heading>
+              <Heading title={t("welcome.done.title")}>{importing.length > 0 ? t("welcome.done.intro_importing") : t("welcome.done.intro")}</Heading>
               {/* While the app imports, the page stays here: a browser it cannot read is said here. */}
               <div className="set-card flex flex-col" inert={busy}>
                 {!joined && (
-                  <Chosen label="Tabs" change={() => go("import")}>
-                    {importSummary.length > 0 ? `From ${listed(importSummary)}` : "A fresh start, nothing imported"}
+                  <Chosen label={t("welcome.done.tabs.label")} change={() => go("import")}>
+                    {importSummary.length > 0 ? t("welcome.done.tabs.from", { browsers: listed(importSummary) }) : t("welcome.done.tabs.fresh")}
                   </Chosen>
                 )}
-                <Chosen label="Search" change={() => go("privacy")}>{searchName}</Chosen>
-                <Chosen label="Ads and trackers" change={() => go("privacy")}>
-                  {!adblock.enabled || adblock.lists.length === 0 ? "Not blocked" : `Blocked with ${count(adblock.lists.length, "list")}`}
+                <Chosen label={t("welcome.done.search.label")} change={() => go("privacy")}>{searchName}</Chosen>
+                <Chosen label={t("welcome.done.ads.label")} change={() => go("privacy")}>
+                  {!adblock.enabled || adblock.lists.length === 0 ? t("welcome.done.ads.off") : t("welcome.done.ads.on", { count: adblock.lists.length })}
                 </Chosen>
                 {steps.includes("habits") && !joined && (
-                  <Chosen label="Tabs left alone" change={() => go("habits")}>
-                    Unloaded after {UNLOAD_AFTER.find((t) => t.minutes === info.settings.unload_minutes)?.label ?? "a while"},{" "}
+                  <Chosen label={t("welcome.done.tabs_left.label")} change={() => go("habits")}>
                     {info.settings.auto_archive_hours === NEVER_ARCHIVE
-                      ? "never archived"
-                      : `archived after ${ARCHIVE_AFTER.find((t) => t.hours === info.settings.auto_archive_hours)?.label ?? "a while"}`}
+                      ? t("welcome.done.tabs_left.never_archived", { unload: unloadAfter })
+                      : t("welcome.done.tabs_left.archived", { unload: unloadAfter, archive: archiveAfter })}
                   </Chosen>
                 )}
-                <Chosen label="Look" change={() => go("look")}>
-                  {{ sidebar: "Everything in the sidebar", top_bar: "A bar on top", top_bar_right: "A bar on top, the sidebar on the right" }[layoutOf(look)]}, {TEXT_SIZES.find(([, size]) => size === look.text_scale)?.[0].toLowerCase() ?? `${look.text_scale}%`} text
+                <Chosen label={t("welcome.done.look.label")} change={() => go("look")}>
+                  {t("welcome.done.look.summary", {
+                    layout: { sidebar: t("welcome.done.look.sidebar"), top_bar: t("welcome.done.look.top_bar"), top_bar_right: t("welcome.done.look.top_bar_right") }[layoutOf(look)],
+                    text: TEXT_SIZES.find(({ size }) => size === look.text_scale)?.chosen ?? t("welcome.done.look.percent", { percent: look.text_scale }),
+                  })}
                 </Chosen>
-                <Chosen label="Sync" change={steps.includes("sync") ? () => go("sync") : undefined}>
-                  {syncing ? "With your other devices" : "Only on this computer"}
+                <Chosen label={t("welcome.done.sync.label")} change={steps.includes("sync") ? () => go("sync") : undefined}>
+                  {syncing ? t("welcome.done.sync.on") : t("welcome.done.sync.off")}
                 </Chosen>
               </div>
               <p className="wel-keys">
@@ -678,12 +655,12 @@ export function Welcome() {
                   const keys = info.shortcuts.find((s) => s.action === action)?.keys;
                   return keys ? <span key={action}><kbd>{keysLabel(keys)}</kbd> {SHORTCUT_LABEL[action]}</span> : null;
                 })}
-                <span className="text-[var(--muted)]">More in Settings → Shortcuts.</span>
+                <span className="text-[var(--muted)]">{t("welcome.done.more_keys")}</span>
               </p>
               {askDefault && (
                 <Toggle
-                  label="Make Magnetite the default browser"
-                  hint="Links from Mail, Slack and other apps then open here. macOS asks you to confirm right after you start browsing."
+                  label={t("welcome.done.default_browser.label")}
+                  hint={t("welcome.done.default_browser.hint")}
                   checked={makeDefault}
                   onChange={setMakeDefault}
                 />
@@ -694,17 +671,17 @@ export function Welcome() {
           {problem && <Notice>{problem}</Notice>}
 
           <div className="flex items-center gap-2 pt-2">
-            {step === "welcome" && !syncedBefore && <button className="btn ghost lg" disabled={busy} onClick={() => void finish([])}>Skip the questions</button>}
-            {step !== "welcome" && <button className="btn ghost lg inline-flex items-center" disabled={busy} onClick={back}><Back size={15} className="-ml-1 mr-1" />Back</button>}
+            {step === "welcome" && !syncedBefore && <button className="btn ghost lg" disabled={busy} onClick={() => void finish([])}>{t("welcome.actions.skip")}</button>}
+            {step !== "welcome" && <button className="btn ghost lg inline-flex items-center" disabled={busy} onClick={back}><Back size={15} className="-ml-1 mr-1" />{t("common.back")}</button>}
             <span className="flex-1" />
-            {step === "welcome" && syncedBefore && <button className="btn primary lg" onClick={next}>Go through them</button>}
-            {step === "sync" && <button className="btn primary lg" disabled={syncJob !== null} onClick={next}>{syncing ? "Continue" : joining ? "Go on without" : "Not now"}</button>}
-            {step === "import" && <button className="btn primary lg" disabled={reading} onClick={next}>{reading ? "Reading…" : importing.length > 0 ? "Continue" : "Start fresh"}</button>}
-            {step === "privacy" && <button className="btn primary lg" disabled={applying} onClick={() => void applyAds().then((set) => set && next())}>Continue</button>}
-            {(step === "look" || step === "habits") && <button className="btn primary lg" onClick={next}>Continue</button>}
+            {step === "welcome" && syncedBefore && <button className="btn primary lg" onClick={next}>{t("welcome.actions.go_through")}</button>}
+            {step === "sync" && <button className="btn primary lg" disabled={syncJob !== null} onClick={next}>{syncing ? t("common.continue") : joining ? t("welcome.actions.go_on_without") : t("welcome.actions.not_now")}</button>}
+            {step === "import" && <button className="btn primary lg" disabled={reading} onClick={next}>{reading ? t("welcome.import.browser.reading") : importing.length > 0 ? t("common.continue") : t("welcome.actions.start_fresh")}</button>}
+            {step === "privacy" && <button className="btn primary lg" disabled={applying} onClick={() => void applyAds().then((set) => set && next())}>{t("common.continue")}</button>}
+            {(step === "look" || step === "habits") && <button className="btn primary lg" onClick={next}>{t("common.continue")}</button>}
             {step === "done" && (
               <button className="btn primary lg" disabled={starting || syncJob !== null} onClick={() => void finish(importing)}>
-                {starting && importing.length > 0 ? "Importing…" : "Start browsing"}
+                {starting && importing.length > 0 ? t("welcome.actions.importing") : t("welcome.actions.start")}
               </button>
             )}
           </div>
@@ -724,8 +701,8 @@ function Choices({ title, hint, options, choose }: { title: string; hint: string
     <div className="wel-setting">
       <div className="flex items-center gap-3">
         <span className="set-label min-w-0 flex-1">{title}</span>
-        <span className="font-medium">{options.find((o) => o.on)?.label ?? "Something else"}</span>
-        <button className="btn sm ghost" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Done" : "Change"}</button>
+        <span className="font-medium">{options.find((o) => o.on)?.label ?? t("welcome.habits.something_else")}</span>
+        <button className="btn sm ghost" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? t("common.done") : t("common.change")}</button>
       </div>
       <p className="set-hint">{hint}</p>
       {open && (
@@ -750,16 +727,16 @@ function Sketch() {
       <div className="wel-sk-side">
         <div className="wel-sk-lights"><b /><b /><b /></div>
         <div className="wel-sk-addr" />
-        <span>Favorites</span>
+        <span>{t("welcome.sketch.favorites")}</span>
         <div className="wel-sk-favs"><b /><b /><b /><b /></div>
-        <span>Pinned</span>
+        <span>{t("welcome.sketch.pinned")}</span>
         <div className="wel-sk-row">{bar(62)}</div>
         <div className="wel-sk-row">{bar(46)}</div>
-        <span>Today</span>
+        <span>{t("welcome.sketch.today")}</span>
         <div className="wel-sk-row" data-now>{bar(70)}</div>
         <div className="wel-sk-row">{bar(52)}</div>
         <div className="wel-sk-row">{bar(64)}</div>
-        <span className="wel-sk-end">Spaces</span>
+        <span className="wel-sk-end">{t("welcome.sketch.spaces")}</span>
         <div className="wel-sk-spaces"><b data-now /><b /><b /></div>
       </div>
       <div className="wel-sk-page">{bar(46)}{bar(88)}{bar(80)}{bar(84)}{bar(58)}</div>
@@ -781,7 +758,7 @@ function Answer({ on, title, onClick, children }: { on: boolean; title: string; 
 }
 
 /** One line of the last step's summary, with the way back to its step. */
-function Chosen({ label, change, changeLabel = "Change", children }: { label: string; change?: () => void; changeLabel?: string; children: React.ReactNode }) {
+function Chosen({ label, change, changeLabel = t("common.change"), children }: { label: string; change?: () => void; changeLabel?: string; children: React.ReactNode }) {
   return (
     <div className="wel-chosen">
       <span className="w-[132px] shrink-0 text-[13px] text-[var(--muted)]">{label}</span>

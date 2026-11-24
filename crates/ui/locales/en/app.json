@@ -1,0 +1,251 @@
+{
+  "mini": {
+    "back": "Back",
+    "forward": "Forward",
+    "reload": "Reload",
+    "address": "Address",
+    "address_placeholder": "Search or enter URL",
+    "copy_link": "Copy link",
+    "open_as_tab": "Open as tab",
+    "open_as_tab_tip": "Open as a tab (⌘O)",
+    "open_in": "Open in {space}",
+    "other_space": "Open in another space",
+    "close": "Close (⌘W)"
+  },
+  "peek": {
+    "close": "Close (Esc)",
+    "open_as_tab": "Open as tab (Ctrl+O)",
+    "open_as_tab_mac": "Open as tab (⌘O)",
+    "split": "Open in split view",
+    "open_link": "Open Link in Peek"
+  },
+  "panel": {
+    "close": "Close the panel"
+  },
+  "window_buttons": {
+    "minimize": "Minimize",
+    "maximize": "Maximize or restore"
+  },
+  "pip": {
+    "back_to_tab": "Back to Tab",
+    "minimize": "Minimize",
+    "back": "Back 15 seconds",
+    "play": "Play",
+    "pause": "Pause",
+    "forward": "Forward 15 seconds"
+  },
+  "quit_hint": "Press ⌘Q again to quit",
+  "devtools": {
+    "dock_side": "Dock side",
+    "separate": "Separate window",
+    "dock_bottom": "Dock to the bottom",
+    "dock_right": "Dock to the right",
+    "close": "Close DevTools",
+    "device_toolbar": "Toggle device toolbar"
+  },
+  "shortcuts": {
+    "not_keys": "not a key combination: {keys}",
+    "needs_modifier": "A shortcut needs Ctrl or Alt, or is a function key.",
+    "needs_modifier_mac": "A shortcut needs ⌘, ⌃ or ⌥, or is a function key.",
+    "fixed": "These keys are fixed: {what}.",
+    "taken": {
+      "keep_peek": "Keep a peek as a tab",
+      "quit": "Quit",
+      "quick_search": "Quick search from anywhere",
+      "app_switcher": "the system's app switcher",
+      "system_search": "the system's search",
+      "close_window": "closing the window",
+      "tab_by_place": "choosing a tab by its place",
+      "space_by_place": "choosing a space by its place"
+    }
+  },
+  "system_engine": {
+    "webkit_about": "the Mac's own web engine",
+    "webview2_about": "Microsoft Edge's engine, which comes with Windows",
+    "stores_unreadable": "The list of {engine}'s data stores could not be read.",
+    "moved": "Protected video did not play on {site}: it opens in {engine} from now on.",
+    "set_in_settings": "Settings → Protected video opens this site in {engine}. Change it there.",
+    "list_full": "The list holds {max} sites already. Remove one in Settings → Protected video first."
+  },
+  "screen_share": {
+    "tab_hint": "Only loaded tabs of this profile are listed."
+  },
+  "names": {
+    "first_space": "Personal",
+    "default_profile": "Default",
+    "private": "Private",
+    "private_profile": "{name} (private)",
+    "new_space": "New space",
+    "new_folder": "New folder",
+    "new_profile": "New profile",
+    "shared_folder": "Shared folder",
+    "favorites": "Favorites",
+    "pull_requests": "Pull requests",
+    "merge_requests": "Merge requests",
+    "issues": "Issues"
+  },
+  "pages": {
+    "welcome": "Welcome",
+    "downloads": "Downloads"
+  },
+  "files": {
+    "capture": "Magnetite capture {date} at {time}",
+    "recording": "Magnetite recording {date} at {time}"
+  },
+  "capture": {
+    "full_page": "full page",
+    "set": "light and dark at three sizes",
+    "not_visible": "the page is not visible",
+    "too_large": "the page is too large to capture",
+    "video_cut": "the video could not be written to the end ({name})",
+    "nothing_recorded": "the page showed nothing to record"
+  },
+  "notices": {
+    "folder_link_copied": "Link to folder copied",
+    "copy_failed": "Could not copy",
+    "added": "Added “{title}”",
+    "link_copied": "Link copied",
+    "file_copied": "File copied",
+    "path_copied": "Path copied",
+    "file_gone": "That file was moved or deleted.",
+    "show_file_failed": "Could not show the file",
+    "copy_file_failed": "Could not copy the file",
+    "trash_failed": "Could not move that file to the trash.",
+    "retry_failed": "Could not start that download again.",
+    "bookmark_saved": "Saved to the bookmarks of {space}",
+    "bookmark_not_saved": "Not saved: it is a bookmark already, or there is no page to keep",
+    "capture_copied": "Capture copied",
+    "no_capture": "No capture to copy",
+    "split_full": "Split view holds up to four pages",
+    "extension_needs_page": "Open a page first: extensions act on the page in front."
+  },
+  "errors": {
+    "profile_gone": "That profile is gone.",
+    "space_gone": "That space is gone.",
+    "spaces_gone": "Those spaces are gone.",
+    "folder_gone": "That folder no longer exists.",
+    "no_extension": "That is no extension.",
+    "no_web_address": "That is no address of a web page.",
+    "no_website": "That is no website's address.",
+    "dialog_failed": "The dialog could not be opened.",
+    "closing": "Magnetite is closing.",
+    "folder_unusable": "That folder cannot be used.",
+    "browser_missing": "That browser is not on this computer.",
+    "not_on_computer": "it is not on this computer",
+    "nothing_to_import": "{name} has nothing to import",
+    "file_nothing_to_import": "The file has nothing to import",
+    "bookmarks_file_too_large": "That file is too large to be a bookmarks file.",
+    "download_broke_off": "The download broke off: {error}",
+    "data_dir_open": "The data folder could not be opened."
+  },
+  "share": {
+    "empty": "This folder has no tabs to share",
+    "too_much": "Too much for one link",
+    "unreadable": "This link could not be read",
+    "private": "The private space keeps no folders"
+  },
+  "downloads": {
+    "choose_folder": "Save downloads to"
+  },
+  "adblock": {
+    "about": {
+      "easylist": "Ads on most international websites.",
+      "easyprivacy": "Trackers and analytics.",
+      "easylist_germany": "Ads on German-language websites. Use with EasyList.",
+      "peter_lowe": "Servers of ad and tracking companies.",
+      "ublock": "Ads, trackers and \"turn off your ad blocker\" walls, with fixes for sites the other lists break."
+    },
+    "unreachable": "Cannot download it: {error}",
+    "too_large": "The list is larger than expected.",
+    "not_a_list": "The download is no filter list."
+  },
+  "smart": {
+    "store_failed": "Cannot store the account: {error}",
+    "remove_failed": "Cannot remove the account: {error}",
+    "connect_first": "Connect a {service} account first.",
+    "connect_to_fill": "Connect a {service} account to fill this folder.",
+    "other_device": "Added or changed on another device. Turn it on here to fill it with this device's accounts.",
+    "no_login": "The server did not say who the token belongs to.",
+    "enter_server": "Enter the server address.",
+    "bad_server": "That is not a server address.",
+    "no_user_name": "Leave the user name out of the address.",
+    "https_only": "Use an https:// address.",
+    "unreachable": "Cannot reach {host}: {error}",
+    "unexpected": "Unexpected answer: {error}",
+    "too_much": "The server sent more than a list of items can be.",
+    "token_rejected": "The token was rejected. Create a new one and connect again.",
+    "denied": "Access denied or too many requests. Try again later, or check the token's permissions.",
+    "not_found": "Not found. Check the server address.",
+    "status": "The server answered {code}."
+  },
+  "sync": {
+    "still_connecting": "Still connecting to the sync server.",
+    "in_a_chain": "This device is in a sync chain already. Leave it first.",
+    "ignored_empty": "Ignored a synced sidebar without spaces; waiting for a usable one.",
+    "bad_address": "not a sync server address: {url}",
+    "user_name": "the sync server address must not contain a user name",
+    "https_only": "the sync server needs an https:// address (plain http only for this computer): {url}",
+    "remember_deletion": "cannot remember the deletion: {error}",
+    "unreadable_answer": "the sync server sent an answer this version cannot read",
+    "status_400": "the sync server did not understand the request",
+    "status_401": "the sync server did not accept this device's signature (is the clock right?)",
+    "status_403": "the sync server refused: it takes no new sync chains, the invite code is wrong, or the chain is full",
+    "status_404": "the sync server does not know this sync chain",
+    "status_408": "the request took too long to reach the sync server",
+    "status_409": "another device wrote first; trying again",
+    "status_410": "this sync chain was deleted a moment ago",
+    "status_413": "this sync chain has used up its storage on the server",
+    "busy": "the sync server is busy; trying again later",
+    "server_error": "the sync server had an error; trying again later",
+    "status": "the sync server answered {status}",
+    "unreachable": "cannot reach the sync server: {error}",
+    "too_much": "the sync server sent more data than a collection can hold",
+    "store_code": "cannot store the sync code: {error}",
+    "already_in_chain": "this device is in a sync chain already; leave it first",
+    "no_chain": "No sync chain with this code on {server}",
+    "not_in_chain": "this device is not in a sync chain",
+    "going_back": "{name}: the server has version {remote} but this device has {seen}; not going back",
+    "unreadable": "cannot read it; is Magnetite up to date?",
+    "no_spaces": "it has no spaces",
+    "version_failed": "{name} version {version}: {error}",
+    "no_data_yet": "{name}: this sync chain holds no data yet; sync the device that started it first",
+    "overflow": "{name}: version overflow",
+    "wrong_version": "{name}: the server acknowledged version {acked} for a write of version {next}; ignored",
+    "wrote_first": "{name}: another device wrote first; will retry",
+    "devices_unreadable": "devices: cannot read them; is Magnetite up to date?",
+    "devices_going_back": "devices: the server has version {remote} but this device has version {seen}; not going back",
+    "devices_gone": "devices: the server has none but this device has version {seen}; not going back",
+    "devices_busy": "devices: other devices kept writing first; trying again later",
+    "delete_pending": "Left the sync chain, but the server has not deleted it yet ({error}). Magnetite tries again at its next start."
+  },
+  "update": {
+    "bad_signature": "The update signature is malformed.",
+    "not_release_key": "The update is not signed with Magnetite's release key.",
+    "bad_description": "The update description is malformed.",
+    "unreachable": "Cannot reach the update server: {error}",
+    "too_much": "The update server sent more than expected.",
+    "restart_failed": "Cannot restart: {error}",
+    "place_failed": "Cannot put the update in place: {error}",
+    "no_file": "No file for the update.",
+    "no_folder": "No folder for the update.",
+    "stranded": "Your Magnetite is still at {path}; move it back by hand before updating.",
+    "prepare_failed": "Cannot prepare the update: {error}",
+    "mismatch": "The download does not match the signed update.",
+    "save_failed": "Cannot save the update: {error}",
+    "start_failed": "Cannot start the update: {error}",
+    "not_installed": "The update was not installed. Try again, and allow the installer to make changes when Windows asks.",
+    "did_not_start": "The update did not start.",
+    "no_app": "The update holds no app.",
+    "other_app": "The update is a different app.",
+    "no_team": "This Magnetite is not signed by a developer team. Download the update from the release page.",
+    "not_ours": "The update is not signed by Magnetite's developers.",
+    "not_notarized": "macOS does not accept this update (not notarized). Download it from the release page.",
+    "move_aside_failed": "Cannot move the old app aside: {error}",
+    "swap_failed": "Cannot put the new app in place: {error}",
+    "swap_failed_stranded": "Cannot put the new app in place: {error}. Your Magnetite is now at {path}; move it back by hand.",
+    "still_marked": "Cannot prepare the update (it stays marked as a download). Download it from the release page.",
+    "no_identifier": "The update's app has no identifier.",
+    "no_software_centre": "No software center found.",
+    "open_failed": "Cannot open {name}: {error}"
+  }
+}

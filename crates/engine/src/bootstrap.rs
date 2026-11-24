@@ -94,6 +94,9 @@ pub fn run(config: EngineConfig, delegate: Arc<dyn EngineDelegate>) -> i32 {
         cache_path: CefString::from(default_cache.to_string_lossy().as_ref()),
         log_severity: LogSeverity::WARNING,
         accept_language_list: accept_languages,
+        // Chromium's own texts (dialogs, prompts) in the language of ours
+        // (`magnetite_ui::set_language`). Linux: CEF goes by the system's.
+        locale: CefString::from(magnetite_ui::language()),
         // Development builds only: Chrome DevTools Protocol on localhost, so
         // tests can drive pages without synthetic input. Any local program
         // could drive it, so release builds ignore the variable.

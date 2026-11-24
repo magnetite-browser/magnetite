@@ -223,7 +223,7 @@ impl MagnetiteApp {
                 json!({
                     "id": l.id,
                     "name": l.name,
-                    "about": l.about,
+                    "about": (l.about)(),
                     "host": l.urls.first().and_then(|u| url::Url::parse(u).ok()).and_then(|u| u.host_str().map(str::to_string)),
                     "fetched_at": fetched,
                     "error": errors.get(l.id),

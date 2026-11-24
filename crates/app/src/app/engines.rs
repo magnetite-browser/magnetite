@@ -69,8 +69,7 @@ impl MagnetiteApp {
         engine.set_system_engine_sites(self.system_engine_sites());
         engine.content_load_url(id, url);
         let name = Engine::system_engine_name().0;
-        let text =
-            format!("Protected video did not play on {site}: it opens in {name} from now on.");
+        let text = magnetite_ui::t!("app.system_engine.moved", site = site, engine = name);
         Self::ui_call(engine, "notice", &json!({ "text": text }));
     }
 
@@ -123,8 +122,9 @@ impl MagnetiteApp {
         if private {
             if !system && named {
                 let name = Engine::system_engine_name().0;
-                return Err(format!(
-                    "Settings → Protected video opens this site in {name}. Change it there."
+                return Err(magnetite_ui::t!(
+                    "app.system_engine.set_in_settings",
+                    engine = name
                 ));
             }
             lock(&self.private_engines).set_site(&host, site, system)?;

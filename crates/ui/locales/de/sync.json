@@ -1,0 +1,59 @@
+{
+  "spaces": {
+    "label": "Spaces",
+    "hint": "Ein Space, der nur auf diesem Gerät ist, wird nicht synchronisiert: Geräte, die ihn noch synchronisieren, verlieren ihn beim nächsten Sync. Profile und Favoriten, die nur solche Spaces nutzen, bleiben ebenfalls hier.",
+    "only": "Nur auf diesem Gerät",
+    "only_switch": "{space} nur auf diesem Gerät behalten"
+  },
+  "status": {
+    "syncing": "Synchronisiert mit <b>{server}</b>",
+    "last": "Letzter Sync: {when}",
+    "not_yet": "noch keiner",
+    "sync_now": "Jetzt synchronisieren"
+  },
+  "code": {
+    "label": "Dein Sync-Code",
+    "hint": "Gib diese 24 Wörter auf einem anderen Gerät ein, um es zu synchronisieren. Auf einem Telefon liest „QR-Code scannen“ in Magnetite stattdessen den QR-Code; ein Telefon ohne diesen Schritt nimmt die Wörter. Die Wörter sind der einzige Schlüssel zu deinen synchronisierten Daten, und der QR-Code enthält sie ebenfalls: Der Server kann die Daten nicht lesen, und niemand kann die Wörter für dich wiederherstellen.",
+    "write_down": "Schreib diese Wörter jetzt auf oder bewahre sie in deinem Passwortmanager auf.",
+    "qr_label": "Dein Sync-Code als QR-Code",
+    "qr_caption": "Für „QR-Code scannen“ in Magnetite auf einem Telefon",
+    "copy": "Wörter kopieren",
+    "show": "Sync-Code anzeigen"
+  },
+  "stop": {
+    "label": "Sync beenden",
+    "hint": "Verlassen lässt die Kette und deine anderen Geräte, wie sie sind. Löschen entfernt die Kette und all ihre Daten vom Server, für jedes Gerät.",
+    "leave": "Auf diesem Gerät verlassen",
+    "delete": "Sync-Kette löschen …",
+    "delete_confirm": "Erneut klicken, um sie vom Server zu löschen"
+  },
+  "server": {
+    "label": "Server",
+    "own_hint": "Dein eigener magnetite-sync-Server. github.com/magnetite-browser/magnetite-sync zeigt, wie man einen betreibt.",
+    "public_hint": "Kostenlos, betrieben von StackForge auf Servern in Deutschland. Eine Kette zu starten braucht kein Konto.",
+    "own": "Eigener Server",
+    "address": "Adresse deines Servers"
+  },
+  "create": {
+    "label": "Erstes Gerät",
+    "label_only": "Sync-Kette starten",
+    "hint": "Magnetite erstellt einen Sync-Code für deine anderen Geräte.",
+    "hint_only": "Magnetite gibt dir 24 Wörter, deinen Sync-Code. Gib sie auf deinen anderen Computern ein, und sie zeigen dieselbe Seitenleiste.",
+    "invite": "Einladungscode, falls der Server einen braucht",
+    "starting": "Wird gestartet …",
+    "start": "Sync starten"
+  },
+  "join": {
+    "label": "Weiteres Gerät",
+    "label_only": "Dein Sync-Code",
+    "hint": "Gib die 24 Wörter aus Einstellungen → Sync eines Geräts ein, das schon synchronisiert.",
+    "hint_only": "Die 24 Wörter, die Einstellungen → Sync auf einem Gerät zeigt, das schon synchronisiert.",
+    "placeholder": "24 Wörter",
+    "joining": "Beitritt läuft …",
+    "typed": "{typed} von 24 Wörtern",
+    "join": "Beitreten"
+  },
+  "zero_knowledge": "Zero-Knowledge: Der Server sieht immer nur einen anonymen Schlüssel und verschlüsselte Daten, aufgefüllt auf feste Größen. Keine E-Mail, kein Passwort, keine Gerätenamen, keine Inhalte.",
+  "kept_own": "Wie lange eine ungenutzte Kette aufbewahrt wird, entscheidet der Betreiber des Servers.",
+  "kept_public": "Ketten, die 400 Tage niemand nutzt, werden gelöscht."
+}

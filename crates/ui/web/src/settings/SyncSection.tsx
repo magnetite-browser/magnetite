@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { SpaceIcon } from "../Glyphs";
 import { send } from "../bridge";
 import { useArmed } from "../dismiss";
+import { language, rich, t } from "../i18n";
 import { Field, Group, Switch } from "./fields";
 import type { Info } from "./types";
 
@@ -22,15 +23,15 @@ const POLL_MS = 500;
  */
 function SpacesOnThisDevice({ info, reload }: { info: Info; reload: () => Promise<Info> }) {
   return (
-    <Field label="Spaces" hint="A space that is only on this device is not synced: devices that still sync it lose it with their next sync. Profiles and favorites that only such spaces use stay here too.">
+    <Field label={t("sync.spaces.label")} hint={t("sync.spaces.hint")}>
       <div className="iso-list">
         {info.spaces.map((sp) => (
           <label key={sp.id} className="iso-row" data-search-row>
             <span className="icon-slot" style={{ color: "var(--accent)" }}><SpaceIcon space={sp} size={15} /></span>
             <span className="min-w-0 flex-1 truncate" data-search-name>{sp.title}</span>
-            <span className="shrink-0 text-[13px] text-[var(--secondary)]">Only on this device</span>
+            <span className="shrink-0 text-[13px] text-[var(--secondary)]">{t("sync.spaces.only")}</span>
             <Switch
-              label={`Keep ${sp.title} only on this device`}
+              label={t("sync.spaces.only_switch", { space: sp.title })}
               checked={!sp.synced}
               onChange={(only) => void send({ cmd: "set_space_synced", id: sp.id, synced: !only }).then(reload)}
             />
@@ -127,7 +128,7 @@ export function SyncSection({ info, reload, job, setJob, spaces = true, only }: 
   }, [job, reload, setJob]);
   // Leaving takes effect in the app at once; the page follows shortly after.
   const afterLeave = () => setTimeout(reload, 1500);
-  const when = sy.last_sync_at ? new Date(sy.last_sync_at * 1000).toLocaleString() : "not yet";
+  const when = sy.last_sync_at ? new Date(sy.last_sync_at * 1000).toLocaleString(language) : t("sync.status.not_yet");
   const wordCount = words.trim().split(/\s+/).filter(Boolean).length;
 
   if (sy.enabled && info.sync_signed_in) {
@@ -137,48 +138,48 @@ export function SyncSection({ info, reload, job, setJob, spaces = true, only }: 
           <div className="flex items-center gap-3">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: sy.last_error ? "var(--danger)" : "#7fc98f" }} />
             <div className="min-w-0 flex-1">
-              <div className="truncate">Syncing with <b>{sy.server_url}</b></div>
-              <div className="hint" style={{ marginTop: 2 }}>Last sync {when}</div>
+              <div className="truncate">{rich("sync.status.syncing", { b: (s) => <b>{s}</b>, server: sy.server_url })}</div>
+              <div className="hint" style={{ marginTop: 2 }}>{t("sync.status.last", { when })}</div>
               {sy.last_error && <div className="hint" style={{ color: "var(--danger)" }}>{sy.last_error}</div>}
             </div>
-            <button className="btn" onClick={() => { send({ cmd: "sync_now" }); setTimeout(reload, 2000); }}>Sync now</button>
+            <button className="btn" onClick={() => { send({ cmd: "sync_now" }); setTimeout(reload, 2000); }}>{t("sync.status.sync_now")}</button>
           </div>
         </div>
 
         <Group>
         {spaces && <SpacesOnThisDevice info={info} reload={reload} />}
 
-        <Field label="Your sync code" hint="Enter these 24 words on another device to sync it. On a phone, “Scan QR Code” in Magnetite reads the QR code instead; a phone without that step takes the words. The words are the only key to your synced data, and the QR code holds them too: the server cannot read the data, and nobody can recover the words for you.">
+        <Field label={t("sync.code.label")} hint={t("sync.code.hint")}>
           {/* Found by the buttons that lead here, also once the code shows and they are gone. */}
-          <span hidden data-search-name>Show sync code Start syncing</span>
+          <span hidden data-search-name>{t("sync.code.show")} {t("sync.create.start")}</span>
           {code ? (
             <div className="rounded-xl border p-4" style={{ borderColor: justCreated ? "var(--accent)" : "var(--line)" }}>
-              {justCreated && <p className="mb-3 text-[14px]" style={{ color: "var(--accent)" }}>Write these words down or keep them in your password manager now.</p>}
+              {justCreated && <p className="mb-3 text-[14px]" style={{ color: "var(--accent)" }}>{t("sync.code.write_down")}</p>}
               <div className="flex flex-wrap items-center gap-5">
                 <ol className="grid min-w-[300px] flex-1 grid-cols-3 gap-x-4 gap-y-1.5 font-mono text-[13px]">
                   {code.words.map((w, i) => <li key={i}><span className="inline-block w-6 text-right text-[var(--muted)]">{i + 1}</span> {w}</li>)}
                 </ol>
                 {code.qr && (
                   <figure className="w-[216px]">
-                    <QrCode rows={code.qr} label="Your sync code as a QR code" />
-                    <figcaption className="hint text-center">For “Scan QR Code” in Magnetite on a phone</figcaption>
+                    <QrCode rows={code.qr} label={t("sync.code.qr_label")} />
+                    <figcaption className="hint text-center">{t("sync.code.qr_caption")}</figcaption>
                   </figure>
                 )}
               </div>
               <div className="mt-4 flex gap-2">
-                <button className="btn" onClick={() => { navigator.clipboard?.writeText(code.words.join(" ")); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? "Copied" : "Copy words"}</button>
-                <button className="btn" onClick={() => { setCode(null); setJustCreated(false); }}>Hide</button>
+                <button className="btn" onClick={() => { navigator.clipboard?.writeText(code.words.join(" ")); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? t("common.copied") : t("sync.code.copy")}</button>
+                <button className="btn" onClick={() => { setCode(null); setJustCreated(false); }}>{t("common.hide")}</button>
               </div>
             </div>
           ) : (
-            <button className="btn" onClick={showCode}>Show sync code</button>
+            <button className="btn" onClick={showCode}>{t("sync.code.show")}</button>
           )}
         </Field>
 
-        <Field side label="Stop syncing" hint="Leaving keeps the chain and your other devices as they are. Deleting removes the chain and all its data from the server for every device.">
+        <Field side label={t("sync.stop.label")} hint={t("sync.stop.hint")}>
           <div className="flex gap-2">
-            <button className="btn" onClick={() => { send({ cmd: "sync_leave" }); setCode(null); afterLeave(); }}>Leave on this device</button>
-            <button className="btn" data-danger={armed === "del" || undefined} onClick={() => arm("del", () => { send({ cmd: "sync_delete_chain" }); setCode(null); afterLeave(); })}>{armed === "del" ? "Click again to delete it from the server" : "Delete sync chain…"}</button>
+            <button className="btn" onClick={() => { send({ cmd: "sync_leave" }); setCode(null); afterLeave(); }}>{t("sync.stop.leave")}</button>
+            <button className="btn" data-danger={armed === "del" || undefined} onClick={() => arm("del", () => { send({ cmd: "sync_delete_chain" }); setCode(null); afterLeave(); })}>{armed === "del" ? t("sync.stop.delete_confirm") : t("sync.stop.delete")}</button>
           </div>
         </Field>
         </Group>
@@ -190,41 +191,39 @@ export function SyncSection({ info, reload, job, setJob, spaces = true, only }: 
       <Group>
         <Field
           side
-          label="Server"
-          hint={own
-            ? "Your own magnetite-sync server. github.com/magnetite-browser/magnetite-sync shows how to run one."
-            : "Free to use, run by StackForge on servers in Germany. Starting a chain needs no account."}
+          label={t("sync.server.label")}
+          hint={own ? t("sync.server.own_hint") : t("sync.server.public_hint")}
         >
           <div className="seg">
             <button data-on={!own || undefined} aria-pressed={!own} onClick={() => setOwn(false)}>Magnetite Sync</button>
-            <button data-on={own || undefined} aria-pressed={own} onClick={() => setOwn(true)}>Your own server</button>
+            <button data-on={own || undefined} aria-pressed={own} onClick={() => setOwn(true)}>{t("sync.server.own")}</button>
           </div>
         </Field>
         {own && (
-          <Field label="Address of your server">
-            <input className="field" value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="https://sync.example.org" aria-label="Address of your server" spellCheck={false} />
+          <Field label={t("sync.server.address")}>
+            <input className="field" value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="https://sync.example.org" aria-label={t("sync.server.address")} spellCheck={false} />
           </Field>
         )}
         {only !== "join" && (
-          <Field label={only ? "Start a sync chain" : "First device"} hint={only ? "Magnetite gives you 24 words, your sync code. Enter them on your other computers and they show the same sidebar." : "Magnetite creates a sync code for you to use on your other devices."}>
-            {own && <input className="field mb-3" value={invite} onChange={(e) => setInvite(e.target.value)} placeholder="Invite code, if the server needs one" spellCheck={false} />}
-            <button data-search-name className="btn" disabled={job !== null || !server} onClick={() => begin("create", send({ cmd: "sync_create", server, invite: (own && invite) || undefined }))}>{job === "create" ? "Starting…" : "Start syncing"}</button>
+          <Field label={only ? t("sync.create.label_only") : t("sync.create.label")} hint={only ? t("sync.create.hint_only") : t("sync.create.hint")}>
+            {own && <input className="field mb-3" value={invite} onChange={(e) => setInvite(e.target.value)} placeholder={t("sync.create.invite")} spellCheck={false} />}
+            <button data-search-name className="btn" disabled={job !== null || !server} onClick={() => begin("create", send({ cmd: "sync_create", server, invite: (own && invite) || undefined }))}>{job === "create" ? t("sync.create.starting") : t("sync.create.start")}</button>
             {/* Found as "Start syncing" also while it starts. */}
-            <span hidden data-search-name>Start syncing</span>
+            <span hidden data-search-name>{t("sync.create.start")}</span>
           </Field>
         )}
         {only !== "create" && (
-          <Field label={only ? "Your sync code" : "Another device"} hint={only ? "The 24 words that Settings → Sync shows on a device that already syncs." : "Enter the 24 words from Settings → Sync on a device that already syncs."}>
-            <textarea className="field mono resize-none" style={{ height: 72, padding: 8 }} value={words} onChange={(e) => setWords(e.target.value)} placeholder="24 words" spellCheck={false} autoComplete="off" />
-            <button data-search-name className="btn mt-3" disabled={job !== null || !server || wordCount !== 24} onClick={() => { begin("join", send({ cmd: "sync_join", server, words })); setWords(""); }}>{job === "join" ? "Joining…" : wordCount > 0 && wordCount !== 24 ? `${wordCount} of 24 words` : "Join"}</button>
+          <Field label={only ? t("sync.join.label_only") : t("sync.join.label")} hint={only ? t("sync.join.hint_only") : t("sync.join.hint")}>
+            <textarea className="field mono resize-none" style={{ height: 72, padding: 8 }} value={words} onChange={(e) => setWords(e.target.value)} placeholder={t("sync.join.placeholder")} spellCheck={false} autoComplete="off" />
+            <button data-search-name className="btn mt-3" disabled={job !== null || !server || wordCount !== 24} onClick={() => { begin("join", send({ cmd: "sync_join", server, words })); setWords(""); }}>{job === "join" ? t("sync.join.joining") : wordCount > 0 && wordCount !== 24 ? t("sync.join.typed", { typed: wordCount }) : t("sync.join.join")}</button>
             {/* Found as "Join" also while the button counts the words. */}
-            <span hidden data-search-name>Join</span>
+            <span hidden data-search-name>{t("sync.join.join")}</span>
           </Field>
         )}
       </Group>
       {(refused ?? sy.last_error) && <div className="hint" style={{ color: "var(--danger)" }}>{refused ?? sy.last_error}</div>}
       {spaces && <Group><SpacesOnThisDevice info={info} reload={reload} /></Group>}
-      <p className="hint">Zero knowledge: the server only ever sees an anonymous key and encrypted data padded to fixed sizes. No email, no password, no device names, no content. {own ? "How long an unused chain is kept is up to the server's operator." : "Chains nobody uses for 400 days are deleted."}</p>
+      <p className="hint">{t("sync.zero_knowledge")} {own ? t("sync.kept_own") : t("sync.kept_public")}</p>
     </div>
   );
 }

@@ -6,6 +6,7 @@
 // They sit in a bar of their own across the top of the page area (`DevBar`).
 import { useEffect, useLayoutEffect, useState } from "react";
 import { windowBackground } from "./backgrounds";
+import { t } from "./i18n";
 import { record } from "./recorder";
 import { useDismiss } from "./dismiss";
 import { CaptureSetIcon, Check, ClearDataIcon, ConsoleIcon, EmulateIcon, PickerIcon, RecordIcon, RequestsIcon, Reset, ResponsiveIcon, StopIcon, TimezoneIcon } from "./Icons";
@@ -15,18 +16,18 @@ import { IS_MAC, accentCss, applyAppearance, dockedSide, findTab, hostOf, lookOf
 
 /** The time zones offered, west to east; any other is set from the command bar. */
 export const TIMEZONES: [zone: string, place: string][] = [
-  ["America/Los_Angeles", "Los Angeles"],
-  ["America/New_York", "New York"],
-  ["America/Sao_Paulo", "São Paulo"],
+  ["America/Los_Angeles", t("developer.time_zone.places.los_angeles")],
+  ["America/New_York", t("developer.time_zone.places.new_york")],
+  ["America/Sao_Paulo", t("developer.time_zone.places.sao_paulo")],
   ["UTC", "UTC"],
-  ["Europe/London", "London"],
-  ["Europe/Berlin", "Berlin"],
-  ["Asia/Dubai", "Dubai"],
-  ["Asia/Kolkata", "Kolkata"],
-  ["Asia/Shanghai", "Shanghai"],
-  ["Asia/Tokyo", "Tokyo"],
-  ["Australia/Sydney", "Sydney"],
-  ["Pacific/Auckland", "Auckland"],
+  ["Europe/London", t("developer.time_zone.places.london")],
+  ["Europe/Berlin", t("developer.time_zone.places.berlin")],
+  ["Asia/Dubai", t("developer.time_zone.places.dubai")],
+  ["Asia/Kolkata", t("developer.time_zone.places.kolkata")],
+  ["Asia/Shanghai", t("developer.time_zone.places.shanghai")],
+  ["Asia/Tokyo", t("developer.time_zone.places.tokyo")],
+  ["Australia/Sydney", t("developer.time_zone.places.sydney")],
+  ["Pacific/Auckland", t("developer.time_zone.places.auckland")],
 ];
 
 /** A time zone by its place: "Tokyo" for `Asia/Tokyo`. */
@@ -44,13 +45,13 @@ function timeIn(zone: string | undefined): string {
 /** What the page is shown as, in a few words each; empty when as it is. */
 export function emulationLabels(e: Emulation): string[] {
   const out: string[] = [];
-  if (e.color_scheme) out.push(e.color_scheme === "dark" ? "Dark" : "Light");
-  if (e.reduced_motion) out.push("Reduced motion");
-  if (e.print) out.push("Print");
-  if (e.network !== "online") out.push(e.network === "offline" ? "Offline" : "Slow network");
-  if (e.slow_cpu) out.push("Slow CPU");
-  if (e.no_cache) out.push("No cache");
-  if (e.timezone) out.push(`${placeOf(e.timezone)} time`);
+  if (e.color_scheme) out.push(e.color_scheme === "dark" ? t("developer.emulation.labels.dark") : t("developer.emulation.labels.light"));
+  if (e.reduced_motion) out.push(t("developer.emulation.labels.reduced_motion"));
+  if (e.print) out.push(t("developer.emulation.labels.print"));
+  if (e.network !== "online") out.push(e.network === "offline" ? t("developer.emulation.labels.offline") : t("developer.emulation.labels.slow_network"));
+  if (e.slow_cpu) out.push(t("developer.emulation.labels.slow_cpu"));
+  if (e.no_cache) out.push(t("developer.emulation.labels.no_cache"));
+  if (e.timezone) out.push(t("developer.emulation.labels.time_zone", { place: placeOf(e.timezone) }));
   return out;
 }
 
@@ -73,30 +74,30 @@ export function EmulationPanel({ emulation, onClose }: { emulation: Emulation; o
   // The time zone has a panel of its own.
   const on = emulationLabels({ ...emulation, timezone: null }).length > 0;
   return (
-    <div className="site-panel dev-panel" role="dialog" aria-label="Show the page as" tabIndex={-1}>
+    <div className="site-panel dev-panel" role="dialog" aria-label={t("developer.emulation.title")} tabIndex={-1}>
       <div className="panel-group" style={{ borderTop: 0 }}>
-        <div className="panel-label">Show the page as</div>
+        <div className="panel-label">{t("developer.emulation.title")}</div>
         <div className="panel-row">
-          <span className="flex-1">Colors</span>
+          <span className="flex-1">{t("developer.emulation.colours")}</span>
           <div className="seg sm">
-            {([[null, "System"], ["light", "Light"], ["dark", "Dark"]] as const).map(([v, label]) => (
-              <button key={label} data-on={emulation.color_scheme === v || undefined} onClick={() => set({ color_scheme: v })}>{label}</button>
+            {([[null, t("developer.emulation.system")], ["light", t("developer.emulation.light")], ["dark", t("developer.emulation.dark")]] as const).map(([v, label]) => (
+              <button key={v ?? "system"} data-on={emulation.color_scheme === v || undefined} onClick={() => set({ color_scheme: v })}>{label}</button>
             ))}
           </div>
         </div>
         <div className="panel-row">
-          <span className="flex-1">Network</span>
+          <span className="flex-1">{t("developer.emulation.network")}</span>
           <div className="seg sm">
-            {([["online", "Online"], ["slow", "Slow"], ["offline", "Offline"]] as const).map(([v, label]) => (
+            {([["online", t("developer.emulation.online")], ["slow", t("developer.emulation.slow")], ["offline", t("developer.emulation.offline")]] as const).map(([v, label]) => (
               <button key={v} data-on={emulation.network === v || undefined} onClick={() => set({ network: v })}>{label}</button>
             ))}
           </div>
         </div>
         {([
-          ["reduced_motion", "Reduced motion", "prefers-reduced-motion: reduce"],
-          ["print", "Print styles", "The page as it prints"],
-          ["slow_cpu", "Slow processor", "Four times slower"],
-          ["no_cache", "No cache", "Every request goes to the server"],
+          ["reduced_motion", t("developer.emulation.reduced_motion"), "prefers-reduced-motion: reduce"],
+          ["print", t("developer.emulation.print"), t("developer.emulation.print_hint")],
+          ["slow_cpu", t("developer.emulation.slow_cpu"), t("developer.emulation.slow_cpu_hint")],
+          ["no_cache", t("developer.emulation.no_cache"), t("developer.emulation.no_cache_hint")],
         ] as const).map(([key, label, hint]) => (
           <label key={key} className="panel-row" title={hint}>
             <span className="flex-1">{label}</span>
@@ -107,7 +108,7 @@ export function EmulationPanel({ emulation, onClose }: { emulation: Emulation; o
       {on && (
         <div className="panel-group">
           <button className="panel-row w-full" onClick={() => set({ color_scheme: null, reduced_motion: false, print: false, network: "online", slow_cpu: false, no_cache: false })}>
-            <span className="flex-1 text-left">Show the page as it is</span>
+            <span className="flex-1 text-left">{t("developer.emulation.show_as_is")}</span>
           </button>
         </div>
       )}
@@ -123,17 +124,17 @@ export function TimezonePanel({ emulation, onClose }: { emulation: Emulation; on
     onClose();
   };
   const row = (zone: string | null, place: string) => (
-    <button key={place} className="panel-row w-full" role="menuitemradio" aria-checked={emulation.timezone === zone} onClick={() => pick(zone)}>
+    <button key={zone ?? "system"} className="panel-row w-full" role="menuitemradio" aria-checked={emulation.timezone === zone} onClick={() => pick(zone)}>
       <span className="w-4 shrink-0">{emulation.timezone === zone && <Check width={14} height={14} />}</span>
       <span className="flex-1 truncate text-left">{place}</span>
       <span className="shrink-0 text-[12px] tabular-nums text-[var(--muted)]">{timeIn(zone ?? undefined)}</span>
     </button>
   );
   return (
-    <div className="site-panel dev-panel" role="menu" aria-label="Time zone of the page" tabIndex={-1}>
+    <div className="site-panel dev-panel" role="menu" aria-label={t("developer.time_zone.title")} tabIndex={-1}>
       <div className="panel-group" style={{ borderTop: 0 }}>
-        <div className="panel-label">Time zone of the page</div>
-        {row(null, "This computer's")}
+        <div className="panel-label">{t("developer.time_zone.title")}</div>
+        {row(null, t("developer.time_zone.this_computer"))}
         {TIMEZONES.map(([zone, place]) => row(zone, place))}
       </div>
     </div>
@@ -162,28 +163,28 @@ function DevTools({ state, dev, clears, onPanel }: { state: UiState; dev: DevSta
   const elapsed = useElapsed(state.recording?.since);
   return (
     <>
-      <button className="dev-btn no-drag" title={`Pick an element${keysHint(state.keys, "dev_picker")}`} aria-label="Pick an element" onClick={() => send({ cmd: "dev_panel", panel: "picker" })}>
+      <button className="dev-btn no-drag" title={`${t("developer.bar.picker")}${keysHint(state.keys, "dev_picker")}`} aria-label={t("developer.bar.picker")} onClick={() => send({ cmd: "dev_panel", panel: "picker" })}>
         <PickerIcon width={14} height={14} />
       </button>
       <button
         className="dev-btn no-drag"
         data-errors={dev.errors > 0 || undefined}
-        title={`${dev.errors > 0 ? `${dev.errors} error${dev.errors === 1 ? "" : "s"} in the console` : "Console"}${keysHint(state.keys, "dev_console")}`}
-        aria-label={dev.errors > 0 ? `Console, ${dev.errors} errors` : "Console"}
+        title={`${dev.errors > 0 ? t("developer.bar.console_errors", { count: dev.errors }) : t("developer.bar.console")}${keysHint(state.keys, "dev_console")}`}
+        aria-label={dev.errors > 0 ? t("developer.bar.console_errors_label", { count: dev.errors }) : t("developer.bar.console")}
         onClick={() => send({ cmd: "dev_panel", panel: "console" })}
       >
         <ConsoleIcon width={14} height={14} />
         {dev.errors > 0 && <span className="dev-count">{errorCount(dev.errors)}</span>}
       </button>
-      <button className="dev-btn no-drag" title={`Network${keysHint(state.keys, "dev_network")}`} aria-label="Network" onClick={() => send({ cmd: "dev_panel", panel: "network" })}>
+      <button className="dev-btn no-drag" title={`${t("developer.bar.network")}${keysHint(state.keys, "dev_network")}`} aria-label={t("developer.bar.network")} onClick={() => send({ cmd: "dev_panel", panel: "network" })}>
         <RequestsIcon width={14} height={14} />
       </button>
       <span className="dev-sep" aria-hidden />
       <button
         className="dev-btn no-drag"
         data-on={shown.length > 0 || undefined}
-        title={shown.length ? `Shown as: ${shown.join(", ")}` : "Show the page as…"}
-        aria-label={shown.length ? `Shown as: ${shown.join(", ")}` : "Show the page as"}
+        title={shown.length ? t("developer.bar.shown_as", { list: shown.join(", ") }) : t("developer.bar.show_as")}
+        aria-label={shown.length ? t("developer.bar.shown_as", { list: shown.join(", ") }) : t("developer.bar.show_as_label")}
         onClick={(e) => onPanel("emulate", e.currentTarget)}
       >
         <EmulateIcon width={14} height={14} />
@@ -191,8 +192,8 @@ function DevTools({ state, dev, clears, onPanel }: { state: UiState; dev: DevSta
       <button
         className="dev-btn no-drag"
         data-on={zone ? true : undefined}
-        title={zone ? `The page sees ${placeOf(zone)} time (${zone})` : "Time zone of the page…"}
-        aria-label={zone ? `Time zone: ${placeOf(zone)}` : "Time zone of the page"}
+        title={zone ? t("developer.bar.time_zone_on", { place: placeOf(zone), zone }) : t("developer.bar.time_zone")}
+        aria-label={zone ? t("developer.bar.time_zone_on_label", { place: placeOf(zone) }) : t("developer.bar.time_zone_label")}
         onClick={(e) => onPanel("timezone", e.currentTarget)}
       >
         <TimezoneIcon width={14} height={14} />
@@ -202,21 +203,21 @@ function DevTools({ state, dev, clears, onPanel }: { state: UiState; dev: DevSta
       <button
         className="dev-btn no-drag"
         data-on={dev.responsive || undefined}
-        title={dev.responsive ? "End the responsive split: the phone closes" : "Responsive split: this page as a phone beside itself, both at one address"}
-        aria-label="Responsive split"
+        title={dev.responsive ? t("developer.bar.responsive_end") : t("developer.bar.responsive_start")}
+        aria-label={t("developer.bar.responsive")}
         aria-pressed={dev.responsive}
         onClick={() => send({ cmd: "dev_responsive" })}
       >
         <ResponsiveIcon width={14} height={14} />
       </button>
-      <button className="dev-btn no-drag" title="Capture set: light and dark at a phone's, a tablet's and a computer's size, as one picture" aria-label="Capture set" onClick={() => send({ cmd: "dev_capture_set" })}>
+      <button className="dev-btn no-drag" title={t("developer.bar.capture_set_hint")} aria-label={t("developer.bar.capture_set")} onClick={() => send({ cmd: "dev_capture_set" })}>
         <CaptureSetIcon width={14} height={14} />
       </button>
       <button
         className="dev-btn no-drag"
         data-recording={state.recording ? true : undefined}
-        title={state.recording ? "End the recording: the video goes to Downloads" : "Record the page as a video"}
-        aria-label={state.recording ? `End the recording, ${elapsed}` : "Record the page"}
+        title={state.recording ? t("developer.bar.record_end_hint") : t("developer.bar.record_hint")}
+        aria-label={state.recording ? t("developer.bar.record_end", { elapsed }) : t("developer.bar.record")}
         onClick={() => send({ cmd: "dev_record" })}
       >
         {state.recording ? <StopIcon width={11} height={11} fill="currentColor" /> : <RecordIcon width={14} height={14} />}
@@ -225,11 +226,11 @@ function DevTools({ state, dev, clears, onPanel }: { state: UiState; dev: DevSta
       <span className="dev-sep" aria-hidden />
       {/* A page this computer serves starts from nothing; any other is only loaded again. */}
       {clears ? (
-        <button className="dev-btn no-drag" title={`Clear this site's cookies, storage, caches and service workers, then load the page again${keysHint(state.keys, "dev_reset")}`} aria-label="Clear site data and reload" onClick={() => send({ cmd: "dev_reset" })}>
+        <button className="dev-btn no-drag" title={`${t("developer.bar.clear_hint")}${keysHint(state.keys, "dev_reset")}`} aria-label={t("developer.bar.clear")} onClick={() => send({ cmd: "dev_reset" })}>
           <ClearDataIcon width={14} height={14} />
         </button>
       ) : (
-        <button className="dev-btn no-drag" title={`Load the page again past the cache; its cookies and storage stay${keysHint(state.keys, "dev_reset")}`} aria-label="Reload past the cache" onClick={() => send({ cmd: "dev_reset" })}>
+        <button className="dev-btn no-drag" title={`${t("developer.bar.reload_hint")}${keysHint(state.keys, "dev_reset")}`} aria-label={t("developer.bar.reload")} onClick={() => send({ cmd: "dev_reset" })}>
           <Reset width={14} height={14} />
         </button>
       )}
@@ -242,12 +243,12 @@ function DevName({ item, dev }: { item: TabItem; dev: DevState }) {
   return (
     <>
       {dev.waiting ? (
-        <span className="dev-name" role="status" title="The page loads by itself once something listens there">
+        <span className="dev-name" role="status" title={t("developer.bar.waiting_hint")}>
           <span className="dev-pulse" aria-hidden />
-          <span className="truncate">Waiting for {dev.waiting}</span>
+          <span className="truncate">{t("developer.bar.waiting", { address: dev.waiting })}</span>
         </span>
       ) : (
-        <span className="dev-name" title={dev.project ? `${dev.project} serves ${hostOf(item.url)}` : item.url}>
+        <span className="dev-name" title={dev.project ? t("developer.bar.serves", { project: dev.project, host: hostOf(item.url) }) : item.url}>
           <span className="truncate">{dev.project ?? hostOf(item.url)}</span>
         </span>
       )}

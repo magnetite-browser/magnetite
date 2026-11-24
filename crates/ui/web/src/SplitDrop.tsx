@@ -5,6 +5,7 @@
 // trades places with the page whose middle it is dropped on.
 import { useEffect, useState } from "react";
 import { send, type Side, type SplitDropFrame as Frame, type SplitDropPane as Pane } from "./bridge";
+import { t } from "./i18n";
 
 /** The half of a pane nearest to the pointer; with `swap`, `null` over its middle. */
 function sideAt(p: Pane, x: number, y: number, swap: boolean): Side | null {
@@ -30,7 +31,7 @@ export function SplitDrop() {
   const [frame, setFrame] = useState<Frame | null>(null);
   const [target, setTarget] = useState<{ pane: Pane; side: Side | null } | null>(null);
   useEffect(() => {
-    document.title = "Split";
+    document.title = t("sidebar.split_drop.window_title");
     send({ cmd: "split_drop_frame" }).then((f) => f.tab && setFrame(f));
   }, []);
   if (!frame) return <div className="splitdrop" />;
@@ -51,15 +52,15 @@ export function SplitDrop() {
       className="splitdrop"
       onDragOver={(e) => {
         if (frame.full) return;
-        const t = at(e);
-        setTarget(t);
-        if (t) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }
+        const over = at(e);
+        setTarget(over);
+        if (over) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }
       }}
       onDragLeave={() => setTarget(null)}
       onDrop={(e) => {
         e.preventDefault();
-        const t = at(e);
-        if (t) send({ cmd: "split_drop", target: t.pane.tab, side: t.side ?? undefined });
+        const drop = at(e);
+        if (drop) send({ cmd: "split_drop", target: drop.pane.tab, side: drop.side ?? undefined });
       }}
     >
       {frame.panes.map((p) => (
@@ -69,13 +70,18 @@ export function SplitDrop() {
       ))}
       {target && (() => {
         const [x, y, w, h] = half(target.pane, target.side);
+        const title = frame.title || t("sidebar.split_drop.tab");
+        const other = target.pane.title;
+        const label = target.side
+          ? t(shown ? "sidebar.split_drop.move_here" : "sidebar.split_drop.open_here", { title })
+          : other ? t("sidebar.split_drop.swap_with", { title, other }) : t("sidebar.split_drop.swap_with_this_page", { title });
         return (
           <div className="splitdrop-target" style={{ left: x, top: y, width: w, height: h }}>
-            <span>{target.side ? (shown ? "Move" : "Open") : "Swap"} {frame.title || "tab"} {target.side ? "here" : `with ${target.pane.title || "this page"}`}</span>
+            <span>{label}</span>
           </div>
         );
       })()}
-      {frame.full && <div className="splitdrop-note">Split view holds up to four pages</div>}
+      {frame.full && <div className="splitdrop-note">{t("sidebar.split_drop.full")}</div>}
     </div>
   );
 }

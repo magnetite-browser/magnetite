@@ -1,2 +1,4 @@
 node_modules
 dist
+# Written by scripts/locales.mjs from crates/ui/locales/en.
+src/i18n/english.gen.ts

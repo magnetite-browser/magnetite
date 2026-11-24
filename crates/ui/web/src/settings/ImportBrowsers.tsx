@@ -1,6 +1,7 @@
 // The browsers on this computer to import from, each at a click (Settings → Data and privacy), and the bookmarks as a file, to import and export (Settings → Bookmarks).
 import { useEffect, useRef, useState } from "react";
 import { type BookmarkFormat, type ImportSource, send } from "../bridge";
+import { t } from "../i18n";
 import { Field } from "./fields";
 import { PickList } from "./PickList";
 import { spaceOptions } from "./SpacesSection";
@@ -18,21 +19,24 @@ export function ImportBrowsers() {
     setBusy(source.key);
     setResult(null);
     send({ cmd: "import_from", key: source.key })
-      .then((r) => setResult({ text: `${source.name}: added ${count(r.spaces, "space")} with ${count(r.tabs, "tab")}${r.bookmarks ? ` and ${count(r.bookmarks, "bookmark")}` : ""}.`, failed: false }))
-      .catch((e: unknown) => setResult({ text: `${source.name}: ${e instanceof Error ? e.message : String(e)}`, failed: true }))
+      .then((r) => {
+        const added = { browser: source.name, spaces: t("import.browsers.spaces", { count: r.spaces }), tabs: t("import.browsers.tabs", { count: r.tabs }) };
+        setResult({ text: r.bookmarks ? t("import.browsers.added_bookmarks", { ...added, bookmarks: t("import.browsers.bookmarks", { count: r.bookmarks }) }) : t("import.browsers.added", added), failed: false });
+      })
+      .catch((e: unknown) => setResult({ text: t("import.browsers.failed", { browser: source.name, error: e instanceof Error ? e.message : String(e) }), failed: true }))
       .finally(() => setBusy(null));
   };
   return (
     <Field
-      label="Import from another browser"
-      hint="Adds a space for each space or workspace of that browser, or for each profile that has neither, with its tabs, tab groups and bookmarks. Your sidebar stays as it is. Passwords, cookies and extensions are not copied, and nothing leaves this computer."
+      label={t("import.browsers.label")}
+      hint={t("import.browsers.hint")}
     >
-      {sources?.length === 0 && <p className="set-hint">No other browser found on this computer.</p>}
+      {sources?.length === 0 && <p className="set-hint">{t("import.browsers.none_found")}</p>}
       {sources && sources.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {sources.map((s) => (
             <button key={s.key} className="btn" disabled={busy !== null} onClick={() => run(s)}>
-              {busy === s.key ? `Importing ${s.name}…` : s.name}
+              {busy === s.key ? t("import.browsers.importing", { browser: s.name }) : s.name}
             </button>
           ))}
         </div>
@@ -57,8 +61,10 @@ export function ImportBookmarksFile({ spaces, current, imported }: { spaces: Spa
     setResult(null);
     try {
       const r = await send({ cmd: "import_bookmarks", html: await file.text(), space: space?.id });
-      const where = space ? space.title : "the current space";
-      setResult({ text: r.bookmarks ? `Added ${count(r.bookmarks, "bookmark")} to ${where}.` : `Every bookmark of that file is in ${where} already.`, failed: false });
+      const text = space
+        ? (r.bookmarks ? t("import.file.added", { count: r.bookmarks, space: space.title }) : t("import.file.none_added", { space: space.title }))
+        : (r.bookmarks ? t("import.file.added_current", { count: r.bookmarks }) : t("import.file.none_added_current"));
+      setResult({ text, failed: false });
       // The page counts the bookmarks of its space: it reads them again.
       void imported?.().catch(() => undefined);
     } catch (e: unknown) {
@@ -69,8 +75,8 @@ export function ImportBookmarksFile({ spaces, current, imported }: { spaces: Spa
   };
   return (
     <Field
-      label="Import a bookmarks file"
-      hint="The file a browser writes with “Export Bookmarks” (Safari: File → Export → Bookmarks…), or a JSON or CSV file exported below. Its bookmarks join those of the space chosen; addresses already there are skipped."
+      label={t("import.file.label")}
+      hint={t("import.file.hint")}
     >
       <input
         ref={input}
@@ -87,11 +93,11 @@ export function ImportBookmarksFile({ spaces, current, imported }: { spaces: Spa
       <div className="flex flex-wrap items-center gap-2">
         {spaces.length > 1 && (
           <>
-            <span className="text-[13px] text-[var(--muted)]">Into</span>
-            <PickList options={spaceOptions(spaces)} chosen={space ? [space.id] : []} label="Space the bookmarks go to" width={200} onChoose={([to]) => to && setChosen(to)} />
+            <span className="text-[13px] text-[var(--muted)]">{t("import.file.into")}</span>
+            <PickList options={spaceOptions(spaces)} chosen={space ? [space.id] : []} label={t("import.file.space_label")} width={200} onChoose={([to]) => to && setChosen(to)} />
           </>
         )}
-        <button className="btn" disabled={busy} onClick={() => input.current?.click()}>{busy ? "Importing…" : "Choose file…"}</button>
+        <button className="btn" disabled={busy} onClick={() => input.current?.click()}>{busy ? t("import.file.importing") : t("import.file.choose")}</button>
       </div>
       {result && <p className="set-hint" role="status" style={result.failed ? { color: "var(--danger)" } : undefined}>{result.text}</p>}
     </Field>
@@ -99,9 +105,9 @@ export function ImportBookmarksFile({ spaces, current, imported }: { spaces: Spa
 }
 
 const FORMATS: readonly { format: BookmarkFormat; label: string; type: string }[] = [
-  { format: "html", label: "HTML, for another browser", type: "text/html" },
+  { format: "html", label: t("import.export.html"), type: "text/html" },
   { format: "json", label: "JSON", type: "application/json" },
-  { format: "csv", label: "CSV, for a spreadsheet", type: "text/csv" },
+  { format: "csv", label: t("import.export.csv"), type: "text/csv" },
 ];
 
 /**
@@ -125,25 +131,23 @@ export function ExportBookmarks({ spaces }: { spaces: Space[] }) {
       link.download = r.name;
       link.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      setResult({ text: `${count(r.bookmarks, "bookmark")} written to ${r.name}, where your downloads go.`, failed: false });
+      setResult({ text: t("import.export.done", { count: r.bookmarks, file: r.name }), failed: false });
     } catch (e: unknown) {
       setResult({ text: e instanceof Error ? e.message : String(e), failed: true });
     }
   };
   return (
-    <Field label="Export bookmarks" hint="The bookmarks of all your spaces, or of the ones you tick, as a file: HTML is what every browser imports, JSON and CSV are for your own use. Tabs and favorites are not bookmarks and are not in it.">
+    <Field label={t("import.export.label")} hint={t("import.export.hint")}>
       <div className="flex flex-wrap items-center gap-2">
         {spaces.length > 1 && (
-          <PickList several none="All spaces" options={spaceOptions(spaces)} chosen={from} label="Spaces to export" width={200} onChoose={setChosen} />
+          <PickList several none={t("import.export.all_spaces")} options={spaceOptions(spaces)} chosen={from} label={t("import.export.spaces_label")} width={200} onChoose={setChosen} />
         )}
-        <select className="field" style={{ width: 220 }} value={format} aria-label="Format" onChange={(e) => setFormat(e.target.value as BookmarkFormat)}>
+        <select className="field" style={{ width: 220 }} value={format} aria-label={t("import.export.format")} onChange={(e) => setFormat(e.target.value as BookmarkFormat)}>
           {FORMATS.map((f) => <option key={f.format} value={f.format}>{f.label}</option>)}
         </select>
-        <button className="btn" onClick={() => void run()}>Export…</button>
+        <button className="btn" onClick={() => void run()}>{t("import.export.button")}</button>
       </div>
       {result && <p className="set-hint" role="status" style={result.failed ? { color: "var(--danger)" } : undefined}>{result.text}</p>}
     </Field>
   );
 }
-
-const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;

@@ -4,13 +4,14 @@
 // start not before the first website is opened.
 import { useEffect } from "react";
 import { send } from "../bridge";
+import { language, t } from "../i18n";
 import { Group, Switch, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
 /** When a list was downloaded, in words. */
 function fetchedText(at: number | null): string {
-  if (at === null) return "Not downloaded yet";
-  return `Updated ${new Date(at * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`;
+  if (at === null) return t("adblock.lists.not_downloaded");
+  return t("adblock.lists.updated", { when: new Date(at * 1000).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" }) });
 }
 
 /**
@@ -32,25 +33,25 @@ export function AdblockChoice({ info, reload }: { info: Info; reload: () => void
     <>
       <Group>
       <Toggle
-        label="Block ads and trackers"
-        hint="Requests of web pages to ad and tracking servers are stopped before they load. Only with the lists you choose below."
+        label={t("adblock.enabled.label")}
+        hint={t("adblock.enabled.hint")}
         checked={adblock.enabled}
         onChange={(enabled) => change({ cmd: "set_adblock_enabled", enabled })}
       />
       </Group>
       {adblock.enabled && (
-        <Group title="Filter lists" hint="Volunteers keep these lists. Each one you choose is downloaded from its publisher, who sees your IP address as any website does, and again every four days. What you browse is never sent.">
-          {adblock.lists.length === 0 && <p className="set-row set-hint" style={{ color: "var(--warn)", marginTop: 0 }}>Choose at least one list: without one, nothing is blocked.</p>}
+        <Group title={t("adblock.lists.title")} hint={t("adblock.lists.hint")}>
+          {adblock.lists.length === 0 && <p className="set-row set-hint" style={{ color: "var(--warn)", marginTop: 0 }}>{t("adblock.lists.none_chosen")}</p>}
           {info.adblock.lists.map((l) => {
             const on = adblock.lists.includes(l.id);
             return (
               <label key={l.id} className="set-row flex cursor-default items-start gap-4" data-search-row>
                 <span className="min-w-0 flex-1" data-search-name>
                   <span className="set-label block">{l.name}</span>
-                  <span className="set-hint block">{l.about} From {l.host}.</span>
+                  <span className="set-hint block">{l.about} {t("adblock.lists.from", { host: l.host })}</span>
                   {on && (
                     <span className="set-hint block" style={l.error ? { color: "var(--warn)" } : undefined}>
-                      {l.error ?? (info.adblock.working && l.fetched_at === null ? "Downloading…" : fetchedText(l.fetched_at))}
+                      {l.error ?? (info.adblock.working && l.fetched_at === null ? t("adblock.lists.downloading") : fetchedText(l.fetched_at))}
                     </span>
                   )}
                 </span>
@@ -70,15 +71,15 @@ export function AdblockSection({ info, update, reload }: { info: Info; update: (
     <>
       <AdblockChoice info={info} reload={reload} />
       {adblock.enabled && (
-        <Group title="Sites where ads are not blocked" hint="Turned off in the site panel (the button left of the address) for a site that does not work with blocking.">
+        <Group title={t("adblock.allowed.title")} hint={t("adblock.allowed.hint")}>
           {adblock.allowed_sites.length === 0 ? (
-            <p className="set-row set-hint" style={{ marginTop: 0 }}>None.</p>
+            <p className="set-row set-hint" style={{ marginTop: 0 }}>{t("adblock.allowed.none")}</p>
           ) : (
             <ul>
               {adblock.allowed_sites.map((site) => (
                 <li key={site} className="set-row flex items-center gap-3" data-search-row>
                   <span className="flex-1 truncate">{site}</span>
-                  <button className="btn sm" onClick={() => update({ adblock: { ...adblock, allowed_sites: adblock.allowed_sites.filter((s) => s !== site) } })}>Block again</button>
+                  <button className="btn sm" onClick={() => update({ adblock: { ...adblock, allowed_sites: adblock.allowed_sites.filter((s) => s !== site) } })}>{t("adblock.allowed.block_again")}</button>
                 </li>
               ))}
             </ul>

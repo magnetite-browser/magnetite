@@ -327,7 +327,7 @@ fn next_tile(
                     // The page ends here for the picture; a first tile that
                     // is too large alone leaves nothing to show.
                     return done(if tiles.is_empty() {
-                        Err("the page is too large to capture".into())
+                        Err(magnetite_ui::t!("app.capture.too_large").into())
                     } else {
                         Ok(PageTiles {
                             tiles,

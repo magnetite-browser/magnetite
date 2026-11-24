@@ -1,0 +1,643 @@
+{
+  "language": {
+    "label": "Language",
+    "hint": "Magnetite's menus, pages and dialogs. Websites keep their own language. A change counts from the next start.",
+    "system": "Same as the system ({language})",
+    "restart": "Restart now",
+    "after_restart": "Magnetite shows {language} after a restart."
+  },
+  "page": {
+    "search": "Search settings",
+    "section": "Section",
+    "search_results": "Search results",
+    "all_spaces": "All spaces",
+    "space_intro": "The settings of this space alone: its name, icon, look and profile. “All spaces” leads back to the list.",
+    "back_to_results": "Back to everything the search found",
+    "everything_for": "Everything for “{query}”",
+    "open_section": "Open {section}",
+    "no_match": "No setting matches “{query}”."
+  },
+  "groups": {
+    "browsing": "Browsing",
+    "organization": "Organization",
+    "services": "Services",
+    "advanced": "Advanced"
+  },
+  "sections": {
+    "general": {
+      "label": "General",
+      "intro": "Windows, the command bar and the first start. No account is needed."
+    },
+    "appearance": {
+      "label": "Appearance",
+      "intro": "How the sidebar and Magnetite's own pages look. Web pages keep their own design."
+    },
+    "shortcuts": {
+      "label": "Shortcuts",
+      "intro": "The keys that run Magnetite's commands. Give any of them other keys, or none."
+    },
+    "tabs": {
+      "label": "Tabs and archive",
+      "intro": "A closed tab goes to the archive, and Today tabs you stop using move there on their own. It can be opened again for as long as the archive keeps it."
+    },
+    "links": {
+      "label": "Links",
+      "intro": "What happens to a link you click in another app, to a link a page opens in a new tab, and to a link you copy."
+    },
+    "search": {
+      "label": "Search",
+      "intro": "Used when what you type in the command bar is not a web address. A keyword and a space search one site instead."
+    },
+    "adblock": {
+      "label": "Content blocking",
+      "intro": "Magnetite can stop ads and trackers before they load, with filter lists you choose. Off until you turn it on."
+    },
+    "video": {
+      "label": "Protected video",
+      "intro": "Some streaming services do not play in Magnetite's Chromium engine yet. Their pages open in your system's own web engine instead."
+    },
+    "permissions": {
+      "label": "Permissions",
+      "intro": "The websites that may, or may not, use your camera, microphone or location, send notifications, open pop-ups or read the clipboard. A website asks first; this is what you answered."
+    },
+    "autofill": {
+      "label": "Passwords and autofill",
+      "intro": "Magnetite can keep your passwords, addresses and cards and fill them in for you. What it saves stays on this computer."
+    },
+    "code": {
+      "label": "User scripts and styles",
+      "intro": "Change how a site looks or behaves with CSS and JavaScript of your own: hide a part of a page, change its fonts or colors, or run a small script on it. They are for web pages, not for Magnetite's own."
+    },
+    "spaces": {
+      "label": "Spaces",
+      "intro": "Your spaces: their names, order and look, and the profile each one signs in with."
+    },
+    "profiles": {
+      "label": "Profiles",
+      "intro": "The sets of logins your spaces and favorites sign in with, and what uses each of them."
+    },
+    "favorites": {
+      "label": "Favorites",
+      "intro": "The sites at the top of the sidebar: their names and order, the spaces each one shows in, and its profile."
+    },
+    "bookmarks": {
+      "label": "Bookmarks",
+      "intro": "The saved addresses of each space: adding its pinned tabs, deleting, and importing and exporting them as a file."
+    },
+    "smart": {
+      "label": "Smart folders",
+      "intro": "Folders that fill themselves with your pull requests, issues or tickets. Magnetite asks the service from this computer; tokens stay here and are never synced."
+    },
+    "sync": {
+      "label": "Sync",
+      "intro": "Optional, zero-knowledge sync between your devices, through Magnetite's free server or one you host yourself. No account: a 24-word sync code is the only key."
+    },
+    "extensions": {
+      "label": "Extensions",
+      "intro": "Chrome extensions install from the Chrome Web Store, right here in Magnetite. Choose which ones sit in the sidebar; all of them are in the menu bar under Extensions."
+    },
+    "developer": {
+      "label": "Developer tools",
+      "intro": "Tools for building and debugging websites."
+    },
+    "data": {
+      "label": "Data and privacy",
+      "intro": "No telemetry, no Magnetite account. What Magnetite keeps on this computer, and the few servers it talks to."
+    },
+    "about": {
+      "label": "About",
+      "title": "About Magnetite",
+      "intro": "A free, open-source browser built around a sidebar, on a Chromium engine, made in Europe."
+    }
+  },
+  "not_saved": "Not saved: {reason}",
+  "general": {
+    "windows": {
+      "title": "Windows",
+      "several": {
+        "label": "Several windows",
+        "hint": "New Window opens another window on the same sidebar; choosing a tab in one window moves it there. Windows open again after a restart. New, and untested on macOS and Windows."
+      },
+      "private_window": {
+        "label": "Private space in its own window",
+        "hint": "The private space opens in a new window that shows it alone, instead of in the sidebar of the window you open it from. Closing that window closes the private space."
+      },
+      "panel_autoclose": {
+        "label": "Web panels close by themselves",
+        "hint": "A web panel (a favorite with \"Open as panel\") closes when you click into the page behind it. Off: it stays until you close it."
+      },
+      "auto_pip": {
+        "label": "Pop out playing videos",
+        "hint": "When you leave a tab with a playing video, it continues in a floating picture-in-picture window. Coming back puts it into the page again."
+      }
+    },
+    "downloads": {
+      "title": "Downloads",
+      "folder": {
+        "label": "Save downloads to",
+        "system": "The Downloads folder of your system.",
+        "missing": "This folder is not there right now.",
+        "failed": "That did not work. What shows here may be out of date; try again."
+      },
+      "ask": {
+        "label": "Ask where to save each file",
+        "hint": "A dialog for every download, to name the file and its folder."
+      }
+    },
+    "languages": {
+      "title": "Text and languages",
+      "spellcheck": {
+        "label": "Check spelling as you type",
+        "hint": "Marks words the spell checker does not know, in the text fields of web pages."
+      },
+      "web": {
+        "label": "Languages websites are asked for",
+        "hint": "In the order you prefer them, as language codes: de, en-US, en. A website with several languages can choose by them. Empty: the languages of your system. A change counts from the next start of Magnetite.",
+        "not_codes_one": "Not saved: {codes} is no language code.",
+        "not_codes_other": "Not saved: {codes} are no language codes.",
+        "over_max": "Not saved: no more than {max} languages.",
+        "refused": "Not saved: that did not work. Leave the field again to try once more."
+      }
+    },
+    "command_bar": {
+      "title": "Command bar",
+      "quick_search": {
+        "label": "Quick search from anywhere ({keys})",
+        "hint": "Opens the command bar over any app; what you pick opens in a mini window. Only that key combination reaches Magnetite, no other typing."
+      }
+    },
+    "first_start": {
+      "title": "First start",
+      "welcome": {
+        "label": "Welcome page",
+        "hint": "The questions of the first start, once more. Nothing you have set changes until you choose something there.",
+        "show": "Show it again"
+      }
+    }
+  },
+  "links": {
+    "other_apps": {
+      "title": "From other apps",
+      "default_browser": {
+        "label": "Default browser",
+        "yes": "Magnetite opens links from other apps.",
+        "no": "Links from other apps open in another browser.",
+        "waiting_mac": "Waiting for macOS…",
+        "opening_settings": "Opening Settings…",
+        "make_default": "Make default"
+      },
+      "open_in": {
+        "label": "Open links from other apps in",
+        "hint": "Links from Mail, Slack and other apps, when Magnetite is your default browser.",
+        "mini": "a mini window",
+        "tab": "a new tab in the current space",
+        "peek": "a peek window"
+      },
+      "rules": {
+        "label": "Links to these sites open in a space of their own",
+        "hint": "A link from another app to a site listed here opens in its space, in that space's profile. A site stands for its subdomains; github.com/acme is only that part of GitHub. The most exact rule counts.",
+        "site": "Site",
+        "opens_in": "opens in",
+        "choose_space": "a space…",
+        "space_for": "Space the links to {site} open in",
+        "this_site": "this site",
+        "remove": "Remove the rule for {site}",
+        "a_site": "a site",
+        "no_site": "Give a site, such as github.com or github.com/acme.",
+        "taken": "Another rule has this site.",
+        "space_gone": "Choose a space; the one this rule had is gone.",
+        "max": "No more than {max} rules are kept.",
+        "add": "Add rule"
+      }
+    },
+    "pages": {
+      "title": "From pages",
+      "new_tab": {
+        "label": "Links opened in a new tab",
+        "hint": "Open Link in New Tab, {key}-click and middle click. Waiting keeps the memory free until you open the tab.",
+        "inactive": "wait until opened",
+        "load": "load in the background",
+        "switch": "switch to the new tab"
+      }
+    },
+    "copied": {
+      "title": "Copied links",
+      "strip_trackers": {
+        "label": "Remove trackers from copied links",
+        "hint": "Copy Link drops tracking parameters such as utm_source and fbclid."
+      }
+    }
+  },
+  "tabs": {
+    "tidying": {
+      "title": "Tidying up",
+      "hint": "What Magnetite does with tabs you leave alone. An archived tab can be opened again for as long as the archive keeps it.",
+      "archive_after": {
+        "label": "Archive Today tabs after",
+        "hint": "Pinned tabs and favorites are left where they are."
+      },
+      "keep_archived": {
+        "label": "Keep archived tabs for",
+        "hint": "Older ones are deleted from the archive for good. A tab can also be removed by hand in the archive view.",
+        "forever": "Forever"
+      },
+      "unload_after": {
+        "label": "Suspend inactive tabs after",
+        "hint": "Suspended tabs keep their place and reload when opened. This is what keeps hundreds of tabs cheap."
+      },
+      "load_pinned": {
+        "label": "Load pinned tabs at start",
+        "hint": "Favorites and pinned tabs of every space load when Magnetite starts, so they are ready on the first click. Off: each one loads when you first open it."
+      },
+      "archived": {
+        "label": "Archived tabs",
+        "hint": "{number} so far. Search them from the command bar or the archive view in the sidebar.",
+        "reopen": "Reopen last archived tab"
+      }
+    },
+    "getting_around": {
+      "title": "Getting around",
+      "ctrl_tab": {
+        "label": "{ctrl}+Tab goes through the tabs",
+        "hint": "By last use: one press goes to the tab used before this one; hold {ctrl} and press Tab again to go further back. In sidebar order: down the sidebar, row by row.",
+        "recent": "By last use",
+        "sidebar": "In sidebar order"
+      },
+      "library": {
+        "label": "Clicking the archive button opens",
+        "hint": "The button at the bottom left of the sidebar; resting on it shows bookmarks, history, downloads and the archive. While a download runs, a click opens downloads.",
+        "archive": "the archive",
+        "downloads": "downloads",
+        "bookmarks": "bookmarks",
+        "history": "history"
+      }
+    }
+  },
+  "times": {
+    "minutes_one": "{count} minute",
+    "minutes_other": "{count} minutes",
+    "hours_one": "{count} hour",
+    "hours_other": "{count} hours",
+    "days_one": "{count} day",
+    "days_other": "{count} days",
+    "years_one": "{count} year",
+    "years_other": "{count} years",
+    "never": "Never"
+  },
+  "retention": {
+    "custom": "Custom…",
+    "days": "Days",
+    "days_unit": "days",
+    "invalid": "Not saved: enter 1 to {max} days."
+  },
+  "search": {
+    "engine": {
+      "label": "Search engine",
+      "hint": "Nothing goes to it until you search.",
+      "own": "Your own address"
+    },
+    "custom": {
+      "label": "Custom search address",
+      "hint": "Use %s where the query goes. Takes effect when it starts with https:// and contains %s.",
+      "invalid": "Not saved: the address must start with https:// and contain %s."
+    },
+    "sites": {
+      "label": "Site search",
+      "hint": "Type a keyword and a space (or Tab) in the command bar, then what to look for: “gh rust” searches GitHub. Use %s where the query goes.",
+      "keyword_placeholder": "keyword",
+      "keyword": "Keyword",
+      "name": "Name",
+      "address": "Search address",
+      "remove": "Remove {name}",
+      "site_search": "site search",
+      "bad_keyword": "The keyword is one word of letters, digits, - or _ (up to 20).",
+      "keyword_taken": "Another site has this keyword.",
+      "no_name": "Give it a name.",
+      "bad_address": "The address must start with https:// and contain %s.",
+      "add": "Add site"
+    }
+  },
+  "extensions": {
+    "inside_pages": {
+      "title": "Inside pages",
+      "chrome_toolbar": {
+        "label": "Show the Chrome toolbar inside pages",
+        "hint": "Chromium's own toolbar row above every page, with its extension buttons. Applies to tabs loaded from now on."
+      }
+    },
+    "unpacked": {
+      "title": "Unpacked extensions",
+      "keep": {
+        "label": "Keep unpacked extensions on when Developer mode is off",
+        "hint": "Manifest V2 extensions can only be loaded unpacked, and Chromium switches unpacked extensions off while Developer mode is off. With this on, an extension another program put into your profile stays on too. Applies after Magnetite restarts."
+      }
+    }
+  },
+  "developer": {
+    "dock": {
+      "label": "Developer tools open",
+      "hint": "With F12 or from the site panel. Docked tools sit next to the page inside the window.",
+      "right": "Right of the page",
+      "bottom": "Below the page",
+      "window": "In a separate window"
+    },
+    "bar": {
+      "label": "Developer bar for local pages",
+      "hint": "A page served from this computer (localhost, 127.0.0.1) gets a row under its address: its project, its console errors, and the console, element picker, network panel and a reset a click away."
+    },
+    "hosts": {
+      "label": "Also local",
+      "hint": "Hosts that get the developer bar too, one per line: staging.example.org, or *.test for every name under one. The reset never clears their data by a key press."
+    }
+  },
+  "data": {
+    "browsing": {
+      "title": "Browsing data",
+      "history": {
+        "label": "Keep history for",
+        "hint": "The pages you visit, with title and time, to find them again: the newest {limit} at most. Kept on this computer only, never synced; private profiles leave none.",
+        "none": "Don't keep history"
+      },
+      "visited": {
+        "label": "Visited pages",
+        "hint": "{number} so far. Single pages can be removed in the history view.",
+        "clear": "Clear history…",
+        "clear_all": "Clear all history",
+        "show": "Show history"
+      },
+      "site_data": {
+        "label": "Cookies, site data and cache",
+        "hint": "Delete what websites have stored on this computer, for the last hour or for all time. Deleting cookies signs you out of websites. The dialog is Chromium's own; the history it names is not the one above.",
+        "delete": "Delete…",
+        "failed": "The dialog could not be opened for that profile. Choose again."
+      }
+    },
+    "import": {
+      "title": "Import",
+      "bookmarks": {
+        "label": "Bookmarks as a file",
+        "hint": "Importing a bookmarks file and exporting your bookmarks are in Bookmarks.",
+        "open": "Open Bookmarks"
+      }
+    },
+    "told": {
+      "title": "What websites are told",
+      "gpc": {
+        "label": "Tell websites not to sell or share my data",
+        "hint": "Global Privacy Control: every request to a website carries the signal, and a page can read it in its scripts. Some laws oblige a website to honor it; whether one does is up to the website."
+      }
+    },
+    "talks": {
+      "title": "What Magnetite talks to",
+      "hint": "Nothing else leaves this computer: no telemetry, no usage data, no account.",
+      "sites": {
+        "name": "The sites you open",
+        "what": "and what their pages load, less what ad blocking stops."
+      },
+      "services": {
+        "name": "Services you connect",
+        "what": "your sync server, and the servers of your smart folders."
+      },
+      "filter_lists": {
+        "name": "Publishers of filter lists",
+        "what": "for the ad blocking lists you choose, every four days."
+      },
+      "github": {
+        "what": "for update checks, at start and once a day, unless turned off in About. Not where your system's packages bring the updates."
+      },
+      "components": {
+        "name": "Google's component server",
+        "what": "from which Chromium fetches the Widevine module for protected video and its certificate lists."
+      },
+      "password_check": {
+        "name": "Google's password check",
+        "what": "only while \"Warn about passwords from data breaches\" is on: an encrypted fragment of a password you sign in with."
+      }
+    },
+    "computer": {
+      "title": "On this computer",
+      "where": {
+        "label": "Where your data lives",
+        "hint": "The sidebar, archive and settings are in state.json, the history in history.json; Chromium's profile data (cookies, cache, extensions) in the cef folder next to it.",
+        "copy_failed": "Could not copy",
+        "open_failed": "Could not open",
+        "open_hint": "Shows the folder in your file manager"
+      },
+      "mock_keychain": {
+        "label": "Development mode: cookies use a fixed key",
+        "hint": "This data folder runs with --mock-keychain: Chromium encrypts cookies and saved passwords with its built-in test key instead of one in your macOS Keychain, so any program that can read the folder can read them. Fine while developing; a signed release build uses the Keychain."
+      }
+    }
+  },
+  "appearance": {
+    "colours": {
+      "indigo": "Indigo",
+      "blue": "Blue",
+      "teal": "Teal",
+      "green": "Green",
+      "lime": "Lime",
+      "yellow": "Yellow",
+      "orange": "Orange",
+      "red": "Red",
+      "pink": "Pink",
+      "purple": "Purple",
+      "graphite": "Graphite",
+      "any": "Any color"
+    },
+    "effects": {
+      "none": "None",
+      "grain": "Grain",
+      "glow": "Glow",
+      "aurora": "Aurora",
+      "fade": "Fade"
+    },
+    "picture": {
+      "choose": "Choose picture…",
+      "change": "Change…",
+      "unreadable": "That picture could not be read",
+      "too_detailed": "That picture has too much detail for an icon"
+    },
+    "space": {
+      "colour": {
+        "label": "Color",
+        "hint": "Tints the sidebar and outlines the focused page in split view. It syncs with the space."
+      },
+      "strength": {
+        "label": "Color strength",
+        "hint": "How much of the space color the window takes."
+      },
+      "background": {
+        "label": "Background",
+        "hint": "An effect in the space color across the window, or a picture of your own under the sidebar's rows.",
+        "yours": "Your picture"
+      },
+      "empty": {
+        "label": "Empty window",
+        "hint": "A picture behind the window while no tab is open in this space. Without one, the logo shows there."
+      }
+    },
+    "text_sample": {
+      "text": "Text in this size",
+      "now": "Now",
+      "new": "New"
+    },
+    "window": {
+      "title": "Window",
+      "hint": "The same in every space."
+    },
+    "layout": {
+      "label": "Layout",
+      "hint": "Where back, forward, the address and the extensions sit: at the top of the sidebar, or in a bar across the window. With the bar, the sidebar can also sit on the right.",
+      "sidebar": "Sidebar",
+      "top_bar": "Top bar",
+      "top_bar_right": "Top bar, sidebar right"
+    },
+    "extension_bar": {
+      "label": "Extension bar",
+      "hint": "A row of pinned extensions below the address, with a button that lists the rest. The icons leave the row above it."
+    },
+    "frame": {
+      "label": "Frame around the page",
+      "hint": "The gap between a page and the window's edges, and the page's round corners. Without it a page reaches the edges of the window.",
+      "always": "Always",
+      "windowed": "Not in full screen",
+      "never": "Never"
+    },
+    "text_size": {
+      "label": "Text size",
+      "hint": "The sidebar, the command bar and these pages. Web pages zoom on their own with {zoom_in} and {zoom_out}."
+    },
+    "page_zoom": {
+      "label": "Page zoom",
+      "hint": "The zoom a website has until you zoom it yourself. A change counts from the next start of Magnetite."
+    },
+    "density": {
+      "label": "Density",
+      "hint": "Height and spacing of the sidebar rows.",
+      "compact": "Compact",
+      "comfortable": "Comfortable",
+      "spacious": "Spacious"
+    },
+    "sidebar_width": {
+      "label": "Sidebar width",
+      "hint": "The pages take the rest of the window."
+    },
+    "colours_link": {
+      "label": "Colors and backgrounds",
+      "hint": "Each space has a color and a background of its own. They are with the space, in Settings → Spaces.",
+      "open": "Open Spaces"
+    }
+  },
+  "shortcuts": {
+    "groups": {
+      "tabs": "Tabs",
+      "windows": "Windows and spaces",
+      "page": "The page",
+      "magnetite": "Magnetite",
+      "developer": "Developer"
+    },
+    "actions": {
+      "new_tab": "New tab, search, commands",
+      "focus_address": "Change the address",
+      "close_tab": "Close the tab (it moves to the archive)",
+      "reopen_closed": "Reopen the last closed tab",
+      "next_tab": "Next tab",
+      "prev_tab": "Previous tab",
+      "toggle_pin": "Pin or unpin the tab",
+      "new_split": "Split view",
+      "new_window": "New window",
+      "close_window": "Close the window",
+      "new_space": "New space",
+      "private_space": "Private space",
+      "close_private_space": "Close the private space",
+      "hide_private_space": "Hide the private space",
+      "next_space": "Next space",
+      "prev_space": "Previous space",
+      "space_picker": "Show all spaces, to go to one",
+      "toggle_sidebar": "Show or hide the sidebar",
+      "web_panel": "Open or close the web panel",
+      "site_panel": "Site controls",
+      "copy_link": "Copy the link",
+      "capture": "Capture the page",
+      "find": "Find in the page",
+      "find_next": "Next match",
+      "find_previous": "Previous match",
+      "print": "Print the page",
+      "history": "History",
+      "downloads": "Downloads",
+      "settings": "Settings",
+      "toggle_dev_tools": "Developer tools",
+      "dev_console": "Console",
+      "dev_picker": "Pick an element",
+      "dev_network": "Network",
+      "dev_reset": "Reset the page (reload past the cache)"
+    },
+    "conflict": {
+      "label": "When a page uses the same keys",
+      "hint": "Each shortcut says who gets its keys first while a page is in focus. “Magnetite first”: the page never sees them. “Page first”: a web app may use them itself, and the shortcut runs only if it does not."
+    },
+    "first": {
+      "label": "Who gets the keys of “{action}” first",
+      "magnetite": "Magnetite first",
+      "page": "Page first",
+      "magnetite_hint": "A page never sees these keys",
+      "page_hint": "A page may use these keys itself; the shortcut runs if it does not"
+    },
+    "reset": {
+      "title": "Back to {keys}, {first}",
+      "no_keys": "no keys",
+      "page_first": "page first"
+    },
+    "go_to_space": "Go to {space}",
+    "the_space": "the space",
+    "recording": "Press the new keys · Esc cancels",
+    "unused": "{keys}, not used here",
+    "unused_hint": "These keys are fixed on this device, or something else has them",
+    "no_keys": "No keys",
+    "remove_hint": "No keys from now on",
+    "taken": "{keys} is used by “{name}”, which would lose its keys.",
+    "use_here": "Use here",
+    "commands_one": "{count} command",
+    "commands_other": "{count} commands",
+    "sites": {
+      "title": "Sites that get every shortcut's keys first",
+      "hint": "For a web app with many shortcuts of its own, such as an editor: each shortcut's own choice does not count there. Add a site here, or turn it on in the site panel (the button left of the address) for the page in front.",
+      "add_label": "Site to add",
+      "add": "Add site",
+      "remove_hint": "Each shortcut's own choice counts on this site again"
+    },
+    "spaces": {
+      "title": "Spaces",
+      "hint": "Keys that go straight to one space. The first nine also have the digits of their place.",
+      "count_one": "{count} space",
+      "count_other": "{count} spaces"
+    },
+    "reset_all": {
+      "label": "Reset all shortcuts",
+      "hint": "Changed shortcuts sync to your other devices, a space's keys with the space. Reload, back, forward, zoom, the digits that choose a tab or a space, and the quick search from anywhere keep their keys.",
+      "title": "Every shortcut gets its default keys back and goes first to whom it did, on every site; the spaces have no keys of their own",
+      "button": "Reset all"
+    }
+  },
+  "keys": {
+    "ctrl": "Ctrl",
+    "alt": "Alt",
+    "shift": "Shift",
+    "space": "Space",
+    "tab": "Tab",
+    "enter": "Enter",
+    "backspace": "Backspace",
+    "delete": "Delete",
+    "left": "Left",
+    "right": "Right",
+    "up": "Up",
+    "down": "Down",
+    "page_up": "PageUp",
+    "page_down": "PageDown",
+    "home": "Home",
+    "end": "End"
+  },
+  "pick": {
+    "nothing": "nothing chosen"
+  }
+}

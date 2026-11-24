@@ -1,0 +1,122 @@
+{
+  "space": {
+    "title": "Space-Einstellungen",
+    "intro": "Änderungen gelten sofort.",
+    "name": "Name",
+    "icon": {
+      "label": "Symbol",
+      "hint": "Oder ein eigenes Bild, etwa ein PNG oder SVG. Es wird mit dem Space synchronisiert und deshalb klein gehalten."
+    },
+    "colour": "Farbe",
+    "strength": {
+      "label": "Stärke",
+      "hint": "Wie viel von der Farbe das Fenster annimmt."
+    },
+    "background": {
+      "label": "Hintergrund",
+      "hint": "Ein Effekt in der Farbe des Space über das ganze Fenster oder ein eigenes Bild unter den Zeilen der Seitenleiste.",
+      "picture": "Bild"
+    },
+    "empty_window": {
+      "label": "Leeres Fenster",
+      "hint": "Ein Bild hinter dem Fenster, solange in diesem Space kein Tab offen ist."
+    },
+    "all_settings": "Alle Einstellungen …"
+  },
+  "smart_folder": {
+    "title": {
+      "smart": "Smarter Ordner",
+      "turn_into": "In smarten Ordner umwandeln",
+      "new": "Neuer smarter Ordner"
+    },
+    "updated": "Aktualisiert {when}",
+    "intro": "Füllt sich selbst aus {service} und bleibt aktuell.",
+    "default_name": {
+      "github": "Pull-Requests",
+      "gitlab": "Merge-Requests",
+      "jira": "Issues",
+      "youtrack": "Issues"
+    },
+    "name": "Name",
+    "source": "Quelle",
+    "server": {
+      "label": "Server",
+      "github_hint": "github.com oder deine GitHub-Enterprise-Adresse.",
+      "gitlab_hint": "gitlab.com oder dein eigenes GitLab."
+    },
+    "only": {
+      "label": "Nur",
+      "hint": "Optionale GitHub-Suchbegriffe, z. B. org:acme oder -label:wip."
+    },
+    "group": {
+      "label": "Gruppe",
+      "hint": "Optional: nur diese Gruppe und ihre Untergruppen, z. B. acme/platform."
+    },
+    "address": {
+      "label": "Adresse",
+      "jira_hint": "Jira Cloud (….atlassian.net) oder dein Jira Data Center."
+    },
+    "query": {
+      "label": "Abfrage",
+      "jira_hint": "Beliebiges JQL; der Ordner zeigt, was es findet.",
+      "youtrack_hint": "Beliebige YouTrack-Suche; der Ordner zeigt, was sie findet.",
+      "assigned_to_me": "Mir zugewiesen",
+      "reported_by_me": "Von mir gemeldet",
+      "watching": "Beobachtet",
+      "starred": "Mit Stern"
+    },
+    "show": {
+      "label": "Anzeigen",
+      "github": {
+        "pull_requests": "Meine PRs + Review-Anfragen",
+        "review_requests": "Review-Anfragen",
+        "my_pull_requests": "Meine Pull-Requests",
+        "assigned_issues": "Mir zugewiesene Issues"
+      },
+      "gitlab": {
+        "pull_requests": "Meine MRs + Review-Anfragen",
+        "review_requests": "Review-Anfragen",
+        "my_pull_requests": "Meine Merge-Requests",
+        "assigned_issues": "Mir zugewiesene Issues"
+      }
+    },
+    "account": {
+      "label": "Konto",
+      "add_another": "Weiteres hinzufügen"
+    },
+    "preview": {
+      "label": "Vorschau",
+      "no_account": "Verbinde ein Konto, um zu sehen, was dieser Ordner zeigen wird.",
+      "empty": "Gerade passt nichts. Der Ordner füllt sich, sobald etwas passt."
+    },
+    "refresh": {
+      "label": "Aktualisieren",
+      "minutes": "{minutes} Min.",
+      "hour": "1 Std.",
+      "up_to": "Höchstens",
+      "items_one": "{count} Eintrag",
+      "items_other": "{count} Einträge"
+    },
+    "token_note": "Magnetite fragt {service} direkt von diesem Computer aus. Dein Token bleibt auf diesem Gerät und wird nie synchronisiert.",
+    "stop": {
+      "label": "Nicht mehr aktualisieren",
+      "title": "Der Ordner und seine Tabs bleiben, wie sie sind"
+    },
+    "create": "Erstellen",
+    "token": {
+      "email": "E-Mail-Adresse des Atlassian-Kontos",
+      "api_token": "API-Token",
+      "paste": "{service}-Zugriffstoken einfügen",
+      "checking": "Wird geprüft …",
+      "connect": "Verbinden",
+      "cloud_hint": "Deine Atlassian-E-Mail-Adresse und ein API-Token.",
+      "create": "Token erstellen",
+      "hint": {
+        "github": "Lesezugriff auf Pull-Requests und Issues genügt.",
+        "gitlab": "Ein persönliches Zugriffstoken mit dem Scope read_api.",
+        "jira": "Ein persönliches Zugriffstoken (Profil → Persönliche Zugriffstoken).",
+        "youtrack": "Profil → Kontosicherheit → Neues Token, Scope YouTrack."
+      }
+    }
+  }
+}

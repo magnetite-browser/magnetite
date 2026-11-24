@@ -6,17 +6,24 @@ import { useEffect, useRef, useState } from "react";
 import { useDismiss } from "./dismiss";
 import { Favicon } from "./Favicon";
 import { BracesIcon, CaptureIcon, CodeIcon, Minus, Plus, ShareIcon, Speaker, SpeakerOff } from "./Icons";
+import { rich, t } from "./i18n";
 import { Switch } from "./settings/fields";
 import { keysHint, keysLabel } from "./settings/shortcutKeys";
 import { findTabInSpace, hostOf, IS_MAC, onSiteDataCleared, screenPoint, send, ZOOM_STEPS, type ClearReport, type PermissionKind, type PermissionRow, type PermissionValue, type Reply, type TabItem, type TabRuntime, type UiState } from "./bridge";
 
 const PERMISSION_LABEL: Record<PermissionKind, string> = {
-  camera: "Camera",
-  microphone: "Microphone",
-  location: "Location",
-  notifications: "Notifications",
-  popups: "Pop-ups and redirects",
-  clipboard: "Clipboard",
+  camera: t("page.site_panel.permissions.kinds.camera"),
+  microphone: t("page.site_panel.permissions.kinds.microphone"),
+  location: t("page.site_panel.permissions.kinds.location"),
+  notifications: t("page.site_panel.permissions.kinds.notifications"),
+  popups: t("page.site_panel.permissions.kinds.popups"),
+  clipboard: t("page.site_panel.permissions.kinds.clipboard"),
+};
+
+const CHOICE_LABEL: Record<PermissionValue, string> = {
+  allow: t("page.site_panel.permissions.allow"),
+  ask: t("page.site_panel.permissions.ask"),
+  block: t("page.site_panel.permissions.block"),
 };
 
 /** Ad blocking on this site, while the ad blocker is on (Settings → Content blocking). */
@@ -31,9 +38,9 @@ function BlockAds({ url }: { url: string }) {
     send({ cmd: "set_site_ads", url, blocking });
   };
   return (
-    <label className="panel-row" title={`For all of ${ads.site}. The page loads again.`}>
-      <span className="flex-1">Block ads</span>
-      <Switch label="Block ads on this site" checked={ads.blocking} onChange={set} />
+    <label className="panel-row" title={t("page.site_panel.block_ads.hint", { site: ads.site ?? "" })}>
+      <span className="flex-1">{t("page.site_panel.block_ads.label")}</span>
+      <Switch label={t("page.site_panel.block_ads.switch")} checked={ads.blocking} onChange={set} />
     </label>
   );
 }
@@ -52,9 +59,9 @@ function SiteShortcuts({ url, saved }: { url: string; saved: string[] }) {
     send({ cmd: "set_site_shortcuts", url, page_first });
   };
   return (
-    <label className="panel-row" title={`For all of ${keys.site}: the site may use the keys of Magnetite's shortcuts itself, and a shortcut runs only if the site leaves its keys alone. The digits that choose a tab or a space stay Magnetite's.`}>
-      <span className="flex-1">Site's shortcuts first</span>
-      <Switch label="This site gets the keys of shortcuts first" checked={keys.page_first} onChange={set} />
+    <label className="panel-row" title={t("page.site_panel.site_shortcuts.hint", { site: keys.site })}>
+      <span className="flex-1">{t("page.site_panel.site_shortcuts.label")}</span>
+      <Switch label={t("page.site_panel.site_shortcuts.switch")} checked={keys.page_first} onChange={set} />
     </label>
   );
 }
@@ -87,9 +94,9 @@ function SystemEngine({ url }: { url: string }) {
   };
   return (
     <>
-      <label className="panel-row" title={`For all of ${engine.site}: its pages open in ${engine.name}, ${engine.about}, which plays protected video. Extensions cannot read or fill its pages, there is no ad blocking, and the site asks you to sign in again. The page loads again.`}>
-        <span className="flex-1">Open in {engine.name}</span>
-        {engine.known ? <span className="text-[12px] text-[var(--muted)]">Always, for its video</span> : <Switch label={`Open this site in ${engine.name}`} checked={engine.system} onChange={set} />}
+      <label className="panel-row" title={t("page.site_panel.system_engine.open_hint", { site: engine.site, engine: engine.name, about: engine.about })}>
+        <span className="flex-1">{t("page.site_panel.system_engine.open_in", { engine: engine.name })}</span>
+        {engine.known ? <span className="text-[12px] text-[var(--muted)]">{t("page.site_panel.system_engine.always")}</span> : <Switch label={t("page.site_panel.system_engine.open_switch", { engine: engine.name })} checked={engine.system} onChange={set} />}
       </label>
       {refused && <div className="panel-note" role="alert">{refused}</div>}
     </>
@@ -110,21 +117,21 @@ function Permissions({ pageHost }: { pageHost: string }) {
   };
   return (
     <div className="panel-group">
-      <div className="panel-label">Permissions</div>
-      {rows === null && <div className="panel-note">Loading…</div>}
-      {rows?.length === 0 && <div className="panel-note">This site has not asked for any permissions.</div>}
+      <div className="panel-label">{t("page.site_panel.permissions.title")}</div>
+      {rows === null && <div className="panel-note">{t("common.loading")}</div>}
+      {rows?.length === 0 && <div className="panel-note">{t("page.site_panel.permissions.none")}</div>}
       {rows?.map((row) => {
         const via = hostOf(row.origin) !== pageHost ? hostOf(row.origin) : null;
         return (
           <div key={row.kind + row.origin} className="panel-row perm">
             <span className="min-w-0 flex-1">
               <span className="block truncate">{PERMISSION_LABEL[row.kind]}</span>
-              {via && <span className="block truncate text-[11.5px] text-[var(--muted)]">via {via}</span>}
+              {via && <span className="block truncate text-[11.5px] text-[var(--muted)]">{t("page.site_panel.permissions.via", { host: via })}</span>}
             </span>
             <span className="seg sm" role="radiogroup" aria-label={PERMISSION_LABEL[row.kind]}>
               {CHOICES(row.kind).map((v) => (
                 <button key={v} role="radio" aria-checked={row.value === v} data-on={row.value === v || undefined} onClick={() => set(row, v)}>
-                  {v === "allow" ? "Allow" : v === "ask" ? "Ask" : "Block"}
+                  {CHOICE_LABEL[v]}
                 </button>
               ))}
             </span>
@@ -167,12 +174,12 @@ function ClearData({ profileName, noSite }: { profileName: string | null; noSite
   if (step === "confirm" && scope?.domain) {
     return (
       <div className="confirm">
-        <p>Remove the cookies of <b>{scope.domain}</b> and its subdomains{profileName ? <> in profile <b>{profileName}</b></> : null}, and the site storage of:</p>
+        <p>{profileName ? rich("page.site_panel.clear_data.confirm_profile", { b: (s) => <b>{s}</b>, domain: scope.domain, profile: profileName }) : rich("page.site_panel.clear_data.confirm", { b: (s) => <b>{s}</b>, domain: scope.domain })}</p>
         <ul>{scope.origins.map((o) => <li key={o}>{hostOf(o)}</li>)}</ul>
-        <p className="text-[var(--muted)]">You will be signed out. Storage of parts of the site you did not open this session may remain.</p>
+        <p className="text-[var(--muted)]">{t("page.site_panel.clear_data.signed_out")}</p>
         <div className="flex justify-end gap-2">
-          <button className="btn" onClick={() => setStep("idle")}>Cancel</button>
-          <button className="btn" data-danger onClick={() => clear(scope.domain)}>Clear</button>
+          <button className="btn" onClick={() => setStep("idle")}>{t("common.cancel")}</button>
+          <button className="btn" data-danger onClick={() => clear(scope.domain)}>{t("page.site_panel.clear_data.clear")}</button>
         </div>
       </div>
     );
@@ -181,19 +188,19 @@ function ClearData({ profileName, noSite }: { profileName: string | null; noSite
   return (
     <>
       <button className="panel-row w-full" disabled={noSite || step === "working"} onClick={() => ask()}>
-        <span className="flex-1 text-left">{step === "working" ? "Clearing…" : "Clear cookies and site storage…"}</span>
+        <span className="flex-1 text-left">{step === "working" ? t("page.site_panel.clear_data.working") : t("page.site_panel.clear_data.button")}</span>
       </button>
-      {(noSite || empty) && <div className="panel-note">Nothing to clear here: this works for websites only.</div>}
+      {(noSite || empty) && <div className="panel-note">{t("page.site_panel.clear_data.nothing")}</div>}
       {report?.moved && (
         <div className="panel-note" role="status" style={{ color: "var(--warn)" }}>
-          Nothing was removed: the page is no longer on {report.domain}.
+          {t("page.site_panel.clear_data.moved", { domain: report.domain })}
         </div>
       )}
       {report && !report.moved && (
         <div className="panel-note" role="status" style={{ color: failed ? "var(--warn)" : undefined }}>
-          {report.cookies === null ? "Cookies could not be removed" : `Cookies: ${report.cookies} removed`}
-          {" · "}Storage: {report.origins.length - report.failed_origins.length} of {report.origins.length} origins
-          {failed && <> · <button className="link" onClick={() => ask(report.domain)}>Retry</button></>}
+          {report.cookies === null ? t("page.site_panel.clear_data.cookies_failed") : t("page.site_panel.clear_data.cookies", { removed: report.cookies })}
+          {" · "}{t("page.site_panel.clear_data.storage", { done: report.origins.length - report.failed_origins.length, count: report.origins.length })}
+          {failed && <> · <button className="link" onClick={() => ask(report.domain)}>{t("page.site_panel.clear_data.retry")}</button></>}
         </div>
       )}
     </>
@@ -201,13 +208,13 @@ function ClearData({ profileName, noSite }: { profileName: string | null; noSite
 }
 
 function connection(item: TabItem, rt: TabRuntime | undefined): { text: string; tone?: "warn" | "bad" } {
-  if (item.url.startsWith("magnetite://")) return { text: "Magnetite page" };
-  if (item.url.startsWith("file://")) return { text: "Local file" };
-  if (!rt?.site) return { text: "Loading…" };
-  if (rt.site.cert_error) return { text: "Certificate problem", tone: "bad" };
-  if (rt.site.secure === false) return { text: "Not encrypted", tone: "warn" };
-  if (rt.site.secure) return { text: "Encrypted connection" };
-  return { text: "Unavailable" };
+  if (item.url.startsWith("magnetite://")) return { text: t("page.site_panel.connection.magnetite_page") };
+  if (item.url.startsWith("file://")) return { text: t("page.site_panel.connection.local_file") };
+  if (!rt?.site) return { text: t("common.loading") };
+  if (rt.site.cert_error) return { text: t("page.site_state.cert_problem"), tone: "bad" };
+  if (rt.site.secure === false) return { text: t("page.site_state.not_encrypted"), tone: "warn" };
+  if (rt.site.secure) return { text: t("page.site_panel.connection.encrypted") };
+  return { text: t("page.site_panel.connection.unavailable") };
 }
 
 /**
@@ -224,12 +231,12 @@ function DevSwitch({ state, url, own }: { state: UiState; url: string; own: bool
   const named = dev.hosts.includes(host);
   // On whatever the switch says: this computer's page, or a name under a
   // pattern (`*.test`), which taking the host out would not turn off.
-  const always = own ? "Always, on this computer" : dev.hosts.some((h) => h.startsWith("*.") && host.endsWith(h.slice(1))) ? "On for its domain" : null;
+  const always = own ? t("page.site_panel.dev_mode.always_local") : dev.hosts.some((h) => h.startsWith("*.") && host.endsWith(h.slice(1))) ? t("page.site_panel.dev_mode.on_for_domain") : null;
   const set = (checked: boolean) => send({ cmd: "set_settings", settings: { developer: { ...dev, hosts: checked ? [...dev.hosts, host] : dev.hosts.filter((h) => h !== host) } } });
   return (
-    <label className="panel-row" title="The developer bar, a caution border on the tab and the console error count for this site">
-      <span className="flex-1">Developer mode</span>
-      {always ? <span className="text-[12px] text-[var(--muted)]">{always}</span> : <Switch label="Developer mode" checked={named} onChange={set} />}
+    <label className="panel-row" title={t("page.site_panel.dev_mode.hint")}>
+      <span className="flex-1">{t("page.site_panel.dev_mode.label")}</span>
+      {always ? <span className="text-[12px] text-[var(--muted)]">{always}</span> : <Switch label={t("page.site_panel.dev_mode.label")} checked={named} onChange={set} />}
     </label>
   );
 }
@@ -269,42 +276,42 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
   return (
     <>
       {!inWindow && <div className="fixed inset-0 z-40" onMouseDown={onClose} />}
-      <div ref={box} tabIndex={-1} className="site-panel no-drag" role="dialog" aria-label={`Site controls for ${host}`}>
+      <div ref={box} tabIndex={-1} className="site-panel no-drag" role="dialog" aria-label={t("page.site_panel.label", { host })}>
         <div className="flex items-center gap-2.5 px-3 pt-3 pb-2">
           <Favicon url={item.url} src={rt?.favicon} />
           <div className="min-w-0">
             <div className="truncate font-semibold">{host}</div>
             <div className="truncate text-[12px]" style={{ color: conn.tone === "bad" ? "var(--danger)" : conn.tone === "warn" ? "var(--warn)" : "var(--muted)" }}>
-              {conn.text}{system && engine ? ` · ${engine.name}` : ""}{profile && !profile.is_default ? ` · Profile: ${profile.name}` : ""}
+              {conn.text}{system && engine ? ` · ${engine.name}` : ""}{profile && !profile.is_default ? ` · ${t("page.site_panel.profile", { name: profile.name })}` : ""}
             </div>
           </div>
         </div>
 
         <div className="panel-tools">
           {!internal && !system && (
-            <button title={`Capture${keysHint(state.keys, "capture")}`} onClick={() => { send({ cmd: "capture_start" }); onClose(); }}>
+            <button title={`${t("page.site_panel.tools.capture")}${keysHint(state.keys, "capture")}`} onClick={() => { send({ cmd: "capture_start" }); onClose(); }}>
               <CaptureIcon width={16} height={16} />
-              <span>Capture</span>
+              <span>{t("page.site_panel.tools.capture")}</span>
               <kbd>{keysLabel(state.keys.capture)}</kbd>
             </button>
           )}
           {/* The system's share menu: only macOS has one here. */}
           {IS_MAC && (
-            <button title="Share" onClick={(e) => { send({ cmd: "share", id: item.id, ...screenPoint(e) }); onClose(); }}>
+            <button title={t("page.site_panel.tools.share")} onClick={(e) => { send({ cmd: "share", id: item.id, ...screenPoint(e) }); onClose(); }}>
               <ShareIcon width={16} height={16} />
-              <span>Share</span>
+              <span>{t("page.site_panel.tools.share")}</span>
             </button>
           )}
           {!internal && !system && (
-            <button title={`Your own CSS and JavaScript for ${host}`} onClick={() => { send({ cmd: "new_tab", url: `magnetite://ui/settings#code=${encodeURIComponent(host)}` }); onClose(); }}>
+            <button title={t("page.site_panel.tools.user_code_hint", { host })} onClick={() => { send({ cmd: "new_tab", url: `magnetite://ui/settings#code=${encodeURIComponent(host)}` }); onClose(); }}>
               <BracesIcon width={16} height={16} />
-              <span>User scripts and styles</span>
+              <span>{t("page.site_panel.tools.user_code")}</span>
             </button>
           )}
           {!internal && !system && (
-            <button title={`Developer tools${keysHint(state.keys, "toggle_dev_tools")}`} onClick={() => { send({ cmd: "toggle_devtools" }); onClose(); }}>
+            <button title={`${t("page.site_panel.tools.devtools")}${keysHint(state.keys, "toggle_dev_tools")}`} onClick={() => { send({ cmd: "toggle_devtools" }); onClose(); }}>
               <CodeIcon width={16} height={16} />
-              <span>Developer tools</span>
+              <span>{t("page.site_panel.tools.devtools")}</span>
               <kbd>{keysLabel(state.keys.toggle_dev_tools)}</kbd>
             </button>
           )}
@@ -315,24 +322,24 @@ export function SitePanel({ state, item, rt, onClose, inWindow = false }: { stat
         {!internal && !system && <Permissions key={`${item.id} ${host}`} pageHost={host} />}
         {system && (
           <div className="panel-group">
-            <div className="panel-note">{engine ? `${engine.name}, ${engine.about},` : "The system's own web engine"} shows this page. Extensions cannot read or fill it; ad blocking, Global Privacy Control and developer tools do not work here, and the site signs in apart from your other pages.</div>
+            <div className="panel-note">{engine ? t("page.site_panel.system_engine.note_named", { engine: engine.name, about: engine.about }) : t("page.site_panel.system_engine.note")}</div>
           </div>
         )}
 
         {!internal && (
           <div className="panel-group">
-            <div className="panel-label">This site</div>
+            <div className="panel-label">{t("page.site_panel.this_site")}</div>
             <div className="panel-row">
-              <span className="flex-1">Zoom</span>
-              <button className="ib sm" aria-label="Zoom out" disabled={zoom <= ZOOM_STEPS[0]!} onClick={() => step(-1)}><Minus width={14} height={14} /></button>
-              <button className="zoom-value" aria-label={`Reset zoom to ${baseZoom}%`} title={`Reset to ${baseZoom}%`} onClick={() => send({ cmd: "set_zoom", percent: 0 })}>{zoom}%</button>
-              <button className="ib sm" aria-label="Zoom in" disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]!} onClick={() => step(1)}><Plus width={14} height={14} /></button>
+              <span className="flex-1">{t("page.site_panel.zoom")}</span>
+              <button className="ib sm" aria-label={t("page.site_panel.zoom_out")} disabled={zoom <= ZOOM_STEPS[0]!} onClick={() => step(-1)}><Minus width={14} height={14} /></button>
+              <button className="zoom-value" aria-label={t("page.site_panel.zoom_reset_label", { percent: baseZoom })} title={t("page.site_panel.zoom_reset_title", { percent: baseZoom })} onClick={() => send({ cmd: "set_zoom", percent: 0 })}>{zoom}%</button>
+              <button className="ib sm" aria-label={t("page.site_panel.zoom_in")} disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]!} onClick={() => step(1)}><Plus width={14} height={14} /></button>
             </div>
             {/* Asked again when the tab goes to another site; the app takes the host from the address (without port). */}
             {!system && <BlockAds key={`${item.id} ${host}`} url={item.url} />}
             {!system && (
               <button className="panel-row w-full" disabled={!rt?.loaded} onClick={() => send({ cmd: "set_muted", id: item.id, muted: !rt?.muted })}>
-                <span className="flex-1 text-left">{rt?.muted ? "Unmute tab" : "Mute tab"}</span>
+                <span className="flex-1 text-left">{rt?.muted ? t("page.site_panel.unmute") : t("page.site_panel.mute")}</span>
                 {rt?.muted ? <SpeakerOff width={15} height={15} /> : <Speaker width={15} height={15} />}
               </button>
             )}

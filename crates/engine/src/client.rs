@@ -939,7 +939,7 @@ fn add_open_link_in_peek(m: &MenuModel, browser: Option<&Browser>) {
     m.insert_item_at(
         at + 1,
         OPEN_LINK_IN_PEEK,
-        Some(&CefString::from("Open Link in Peek")),
+        Some(&CefString::from(magnetite_ui::t!("app.peek.open_link"))),
     );
 }
 

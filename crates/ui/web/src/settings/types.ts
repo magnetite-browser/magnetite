@@ -24,6 +24,8 @@ export interface Info {
   repository: string;
   engine: { chromium: string; cef: string };
   data_dir: string;
+  /** The language "Same as the system" is: the first of the system's languages Magnetite has. */
+  system_language: string;
   /** The chosen download folder is not there (any more). */
   download_folder_missing: boolean;
   /** Installed extensions of the page in front's profile. */

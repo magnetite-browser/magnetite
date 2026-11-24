@@ -68,10 +68,25 @@ pub(crate) struct DockedDevTools {
     pub view: BrowserView,
 }
 
-/// Script that adds the dock choices and close to `DevTools`' main menu.
+/// Function that adds the dock choices and close to `DevTools`' main menu,
+/// called with its texts (`menu_script`).
 const MENU_JS: &str = include_str!("devtools_menu.js");
 /// Console messages from that menu start with this.
 const MENU_MARK: &str = "__magnetite_devtools__:";
+
+/// `MENU_JS` called with its labels in the user's language.
+fn menu_script() -> String {
+    use magnetite_ui::t;
+    let texts = serde_json::json!({
+        "dockSide": t!("app.devtools.dock_side"),
+        "separate": t!("app.devtools.separate"),
+        "dockBottom": t!("app.devtools.dock_bottom"),
+        "dockRight": t!("app.devtools.dock_right"),
+        "close": t!("app.devtools.close"),
+        "deviceToolbar": t!("app.devtools.device_toolbar"),
+    });
+    format!("({})({texts});", MENU_JS.trim_end())
+}
 
 /// Space between the page and its DevTools, like between split panes.
 const GAP: i32 = 8;
@@ -201,7 +216,7 @@ impl Engine {
             (view, inner.devtools_dock)
         };
         if let (Some(view), Some(frame)) = (view, browser.main_frame()) {
-            frame.execute_java_script(Some(&CefString::from(MENU_JS)), None, 0);
+            frame.execute_java_script(Some(&CefString::from(menu_script().as_str())), None, 0);
             tell_dock(&view, dock);
             let panel = owner.and_then(|id| self.lock().pending_panels.remove(&id));
             if let Some(panel) = panel {

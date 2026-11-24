@@ -14,6 +14,7 @@ use cef::*;
 use crate::engine::Engine;
 use crate::events::{ContentId, EngineEvent};
 use crate::glyphs::Glyph;
+use magnetite_ui::t;
 
 /// The row above a mini window's page, and the widgets that change.
 pub(crate) struct MiniChrome {
@@ -117,8 +118,8 @@ fn show_address(field: &Textfield, url: &str) {
 /// "Open in <space>" for the space shown first.
 fn open_label(spaces: &[(String, String)]) -> String {
     spaces.first().map_or_else(
-        || "Open as tab".to_string(),
-        |(_, t)| format!("Open in {t}"),
+        || t!("app.mini.open_as_tab").to_string(),
+        |(_, title)| t!("app.mini.open_in", space = title),
     )
 }
 
@@ -159,12 +160,17 @@ impl MiniChrome {
             iconed(&button, glyph);
             Some(button)
         };
-        let back = icon(&row, Action::Back, Glyph::Back, "Back")?;
-        let forward = icon(&row, Action::Forward, Glyph::Forward, "Forward")?;
-        icon(&row, Action::Reload, Glyph::Reload, "Reload")?;
+        let back = icon(&row, Action::Back, Glyph::Back, t!("app.mini.back"))?;
+        let forward = icon(
+            &row,
+            Action::Forward,
+            Glyph::Forward,
+            t!("app.mini.forward"),
+        )?;
+        icon(&row, Action::Reload, Glyph::Reload, t!("app.mini.reload"))?;
         let address = textfield_create(Some(&mut AddressField::new(id)))?;
-        address.set_accessible_name(Some(&CefString::from("Address")));
-        address.set_placeholder_text(Some(&CefString::from("Search or enter URL")));
+        address.set_accessible_name(Some(&CefString::from(t!("app.mini.address"))));
+        address.set_placeholder_text(Some(&CefString::from(t!("app.mini.address_placeholder"))));
         // The address bar: the field and, laid over its right end, the
         // copy button, as in the main window's address row. The field keeps
         // its text clear of the button.
@@ -182,7 +188,7 @@ impl MiniChrome {
         }))?;
         bar.add_child_view(Some(&mut View::from(&address)));
         bar_layout.set_flex_for_view(Some(&mut View::from(&address)), 1);
-        let copy = icon(&bar, Action::Copy, Glyph::Link, "Copy link")?;
+        let copy = icon(&bar, Action::Copy, Glyph::Link, t!("app.mini.copy_link"))?;
         row.add_child_view(Some(&mut View::from(&bar)));
         layout.set_flex_for_view(Some(&mut View::from(&bar)), 1);
         // The gap after the bar: the window is dragged by it.
@@ -192,16 +198,16 @@ impl MiniChrome {
             &row,
             Action::Open,
             &open_label(spaces),
-            "Open as a tab (⌘O)",
+            t!("app.mini.open_as_tab_tip"),
         )?;
         let menu = menu_button_create(
             Some(&mut SpaceMenuButton::new(id)),
             Some(&CefString::from("")),
         )?;
         iconed(&LabelButton::from(&menu), Glyph::Down);
-        menu.set_tooltip_text(Some(&CefString::from("Open in another space")));
+        menu.set_tooltip_text(Some(&CefString::from(t!("app.mini.other_space"))));
         row.add_child_view(Some(&mut View::from(&menu)));
-        icon(&row, Action::Close, Glyph::Close, "Close (⌘W)")?;
+        icon(&row, Action::Close, Glyph::Close, t!("app.mini.close"))?;
         back.set_enabled(0);
         forward.set_enabled(0);
         Some(Self {
@@ -639,7 +645,7 @@ wrap_menu_button_delegate! {
                 return;
             };
             for (i, (_, title)) in spaces.iter().enumerate() {
-                let label = format!("Open in {title}");
+                let label = t!("app.mini.open_in", space = title);
                 model.add_item(i32::try_from(i).unwrap_or(i32::MAX), Some(&CefString::from(label.as_str())));
             }
             button.show_menu(Some(&mut model), screen_point, MenuAnchorPosition::TOPRIGHT);

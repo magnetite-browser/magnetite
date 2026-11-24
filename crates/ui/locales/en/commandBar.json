@@ -1,0 +1,320 @@
+{
+  "window_title": "Command",
+  "input": {
+    "label": "Command bar",
+    "default": "Search or enter URL",
+    "quick": "Search or enter URL to open in a mini window",
+    "name_space": "Name the new space",
+    "name_profile": "Name the new profile",
+    "split_left": "Open left of this tab…",
+    "split_top": "Open above this tab…",
+    "split_bottom": "Open below this tab…",
+    "split_beside": "Open beside this tab…"
+  },
+  "site_search": {
+    "search": "Search {site}",
+    "chip_title": "Searches {site}; Backspace goes back",
+    "result": "Search {site} for \"{query}\"",
+    "idle": "Type what to search on {site}",
+    "example": "{keyword} and a space searches {site}"
+  },
+  "results": {
+    "open_address": "Open {address}",
+    "search_for": "Search for \"{query}\"",
+    "create_space": "Create space \"{name}\"",
+    "create_space_unnamed": "Create space",
+    "create_profile_favorite": "Create profile \"{name}\" and use it for this favorite",
+    "create_profile_space": "Create profile \"{name}\" and use it for this space",
+    "name_profile": "Name the profile",
+    "archived": "Archived · {host}"
+  },
+  "groups": {
+    "tabs": "Tabs",
+    "commands": "Commands",
+    "bookmarks": "Bookmarks",
+    "history": "History",
+    "archive": "Archive",
+    "local_servers": "Local servers"
+  },
+  "local_servers_keywords": "localhost, servers, ports",
+  "hints": {
+    "idle": "Finds tabs, bookmarks, visited pages and commands",
+    "idle_quick": "Finds bookmarks and visited pages",
+    "open_mini": "Open in a mini window",
+    "open_here": "Open in this tab",
+    "open_split": "Open in the split",
+    "open_new_tab": "Open in a new tab",
+    "create": "Create",
+    "run": "Run",
+    "add_to_split": "Add to the split",
+    "go_to_tab": "Go to the tab",
+    "peek": "Peek",
+    "new_tab": "New tab",
+    "all_results": "All results"
+  },
+  "commands": {
+    "new_space": {
+      "title": "New space",
+      "keywords": "space"
+    },
+    "spaces": {
+      "title": "Show all spaces…",
+      "keywords": "space, switch, go, list"
+    },
+    "private_space": {
+      "title": "Open private space",
+      "keywords": "private, incognito, anonymous, space"
+    },
+    "new_folder": {
+      "title": "New folder",
+      "keywords": "folder"
+    },
+    "archive_today": {
+      "title": "Archive all Today tabs",
+      "keywords": "clear, archive"
+    },
+    "reopen": {
+      "title": "Reopen last archived tab",
+      "keywords": "restore, closed"
+    },
+    "downloads": {
+      "title": "Open downloads",
+      "keywords": "downloads, files"
+    },
+    "bookmarks": {
+      "title": "Open bookmarks",
+      "keywords": "bookmarks, saved"
+    },
+    "bookmark_page": {
+      "title": "Bookmark this page",
+      "keywords": "bookmark, save, keep"
+    },
+    "toggle_sidebar": {
+      "title": "Toggle sidebar",
+      "keywords": "hide, show"
+    },
+    "web_panel": {
+      "title": "Open or close the web panel",
+      "keywords": "panel, side, web"
+    },
+    "toggle_top_bar": {
+      "title": "Toggle top bar",
+      "keywords": "top, bar, address, layout, toolbar"
+    },
+    "import": {
+      "title": "Import from another browser…",
+      "keywords": "import, chrome, firefox, zen, arc, brave, edge"
+    },
+    "welcome": {
+      "title": "Show the welcome page again",
+      "keywords": "welcome, setup, wizard, first, start, onboarding"
+    },
+    "copy_link": {
+      "title": "Copy link without trackers",
+      "keywords": "copy, link, url, clean"
+    },
+    "copy_original": {
+      "title": "Copy original link",
+      "keywords": "copy, link, url, raw"
+    },
+    "copy_markdown": {
+      "title": "Copy link as Markdown",
+      "keywords": "copy, markdown, md"
+    },
+    "zoom_reset": {
+      "title": "Reset zoom",
+      "keywords": "zoom, 100"
+    },
+    "split_right": {
+      "title": "Add right split…",
+      "keywords": "split, right, side"
+    },
+    "split_left": {
+      "title": "Add left split…",
+      "keywords": "split, left, side"
+    },
+    "split_top": {
+      "title": "Add top split…",
+      "keywords": "split, top, above"
+    },
+    "split_bottom": {
+      "title": "Add bottom split…",
+      "keywords": "split, bottom, below"
+    },
+    "split_even": {
+      "title": "Even out split sizes",
+      "keywords": "split, equal, even, reset"
+    },
+    "split_grid": {
+      "title": "Arrange split as grid",
+      "keywords": "split, grid, tile, 2x2, quarters"
+    },
+    "separate": {
+      "title": "Separate split tabs",
+      "keywords": "split, separate, unsplit"
+    },
+    "devtools": {
+      "title": "Toggle developer tools",
+      "keywords": "devtools, developer, console, inspect, f12"
+    },
+    "dev_console": {
+      "title": "Open console",
+      "keywords": "console, devtools, developer, errors, log"
+    },
+    "dev_picker": {
+      "title": "Pick an element",
+      "keywords": "inspect, element, picker, devtools, select"
+    },
+    "dev_network": {
+      "title": "Open network panel",
+      "keywords": "network, requests, devtools, xhr, fetch"
+    },
+    "dev_application": {
+      "title": "Open storage and service workers",
+      "keywords": "application, storage, cookies, service, worker, devtools"
+    },
+    "dev_reset": {
+      "title": "Reset page (reload past the cache)",
+      "keywords": "reset, hard, reload, cache, clear, storage"
+    },
+    "emu_dark": {
+      "title": "Show page in dark mode",
+      "keywords": "dark, emulate, color, scheme, theme"
+    },
+    "emu_light": {
+      "title": "Show page in light mode",
+      "keywords": "light, emulate, color, scheme, theme"
+    },
+    "emu_motion": {
+      "title": "Show page with reduced motion",
+      "keywords": "reduced, motion, animation, emulate"
+    },
+    "emu_print": {
+      "title": "Show page as it prints",
+      "keywords": "print, media, emulate, styles"
+    },
+    "emu_offline": {
+      "title": "Take page offline",
+      "keywords": "offline, network, emulate"
+    },
+    "emu_slow": {
+      "title": "Slow down page's network",
+      "keywords": "slow, network, throttle, 3g, 4g, emulate"
+    },
+    "emu_cpu": {
+      "title": "Slow down page's processor",
+      "keywords": "cpu, slow, throttle, processor, emulate"
+    },
+    "emu_cache": {
+      "title": "Turn off cache for page",
+      "keywords": "cache, disable, emulate"
+    },
+    "dev_responsive": {
+      "title": "Responsive split (the page as a phone beside itself)",
+      "keywords": "responsive, phone, mobile, split, beside, viewport, breakpoint"
+    },
+    "dev_capture_set": {
+      "title": "Capture set (light and dark at three sizes)",
+      "keywords": "capture, screenshot, set, light, dark, sizes, widths, responsive"
+    },
+    "dev_record": {
+      "title": "Record page as a video (or end the recording)",
+      "keywords": "record, recording, video, screencast, gif, stop"
+    },
+    "emu_zone_off": {
+      "title": "Show page in this computer's time zone",
+      "keywords": "time, zone, timezone, emulate, system, local"
+    },
+    "emu_off": {
+      "title": "Show page as it is",
+      "keywords": "emulate, reset, online, system, normal"
+    },
+    "capture": {
+      "title": "Capture page…",
+      "keywords": "capture, screenshot, snap"
+    },
+    "capture_copy": {
+      "title": "Copy last capture",
+      "keywords": "capture, screenshot, copy"
+    },
+    "find": {
+      "title": "Find in page…",
+      "keywords": "find, search, text"
+    },
+    "print": {
+      "title": "Print page",
+      "keywords": "print, pdf"
+    },
+    "history": {
+      "title": "Open history",
+      "keywords": "history, visited"
+    },
+    "open_archive": {
+      "title": "Open archive",
+      "keywords": "archive"
+    },
+    "open_settings": {
+      "title": "Open settings",
+      "keywords": "settings, preferences"
+    }
+  },
+  "time_zone": {
+    "title": "Show page in {place} time",
+    "keywords": "time, zone, timezone, emulate"
+  },
+  "tab_commands": {
+    "switch_space": {
+      "title": "Switch to {space}",
+      "keywords": "space, switch, go"
+    },
+    "close_private_space": {
+      "title": "Close private space",
+      "keywords": "private, incognito, close, space"
+    },
+    "hide_private_space": {
+      "title": "Hide private space",
+      "keywords": "private, incognito, hide, space"
+    },
+    "split_as": {
+      "title": "Open beside as {profile}",
+      "keywords": "split, beside, user, profile, second, login, account"
+    },
+    "duplicate": {
+      "title": "Duplicate tab",
+      "keywords": "duplicate, copy, clone"
+    },
+    "pin": {
+      "title": "Pin tab",
+      "keywords": "pin"
+    },
+    "unpin": {
+      "title": "Unpin tab",
+      "keywords": "unpin, pin"
+    },
+    "reset": {
+      "title": "Back to pinned page ({host})",
+      "keywords": "reset, home, pinned"
+    },
+    "favorite": {
+      "title": "Add tab to favorites",
+      "keywords": "favorite"
+    },
+    "unfavorite": {
+      "title": "Remove tab from favorites",
+      "keywords": "favorite, unfavorite"
+    },
+    "keep_active": {
+      "title": "Keep tab active",
+      "stop": "Stop keeping tab active",
+      "keywords": "keep, active, awake"
+    },
+    "move": {
+      "title": "Move tab to {space}",
+      "keywords": "move, space"
+    },
+    "close_others": {
+      "title": "Close other Today tabs",
+      "keywords": "close, others, archive"
+    }
+  }
+}

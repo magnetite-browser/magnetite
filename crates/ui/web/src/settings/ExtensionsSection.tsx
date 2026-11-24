@@ -7,6 +7,7 @@
 // page in the profile chosen.
 import { useEffect, useState } from "react";
 import { send, type ExtensionInfo } from "../bridge";
+import { language, t } from "../i18n";
 import { Field, Group, Switch } from "./fields";
 import { ProfilePick, profileName } from "./SpacesSection";
 import type { Info } from "./types";
@@ -46,41 +47,41 @@ export function ExtensionsSection({ info, reload }: { info: Info; reload: () => 
       elsewhere.set(extension.id, entry);
     }
   }
-  const missing = [...elsewhere.values()].sort((a, b) => a.extension.name.localeCompare(b.extension.name));
+  const missing = [...elsewhere.values()].sort((a, b) => a.extension.name.localeCompare(b.extension.name, language));
   return (
     <Group>
       {several && (
-        <Field side label="Profile" hint="Each profile has its own extensions, with their own data. Everything below is about the profile chosen here.">
+        <Field side label={t("extensions.profile.label")} hint={t("extensions.profile.hint")}>
           <ProfilePick info={info} profiles={profiles} value={profile} onChoose={setChosen} />
         </Field>
       )}
-      <Field label={several ? `Extensions of ${name}` : "Your extensions"} hint={several ? `The switch puts an extension into the sidebar, above your tabs, in the spaces of ${name}. Chromium's own “Pin” on its extensions page works too.` : "The switch puts an extension into the sidebar, above your tabs. Chromium's own “Pin” on its extensions page works too."}>
+      <Field label={several ? t("extensions.list.label_of", { profile: name }) : t("extensions.list.label")} hint={several ? t("extensions.list.hint_of", { profile: name }) : t("extensions.list.hint")}>
         {here.length === 0 ? (
-          <p className="text-[13px] text-[var(--muted)]">{several ? `No extensions installed in ${name} yet.` : "No extensions installed yet."}</p>
+          <p className="text-[13px] text-[var(--muted)]">{several ? t("extensions.list.empty_of", { profile: name }) : t("extensions.list.empty")}</p>
         ) : (
           <div className="list">
             {here.map((e) => (
               <label key={e.id} className="list-row" data-search-row>
                 <span className="min-w-0 flex-1 truncate" data-search-name>{e.name}</span>
-                <Switch label={`${e.name} in the sidebar`} checked={pinned.includes(e.id)} onChange={(v) => pin(e.id, v)} />
+                <Switch label={t("extensions.list.in_sidebar", { extension: e.name })} checked={pinned.includes(e.id)} onChange={(v) => pin(e.id, v)} />
               </label>
             ))}
           </div>
         )}
       </Field>
       {missing.length > 0 && (
-        <Field label="In your other profiles" hint={`Not installed in ${name}. An extension is installed profile by profile: “Add” opens its page in the Chrome Web Store, in a tab that runs in ${name}, where you confirm it.`}>
+        <Field label={t("extensions.elsewhere.label")} hint={t("extensions.elsewhere.hint", { profile: name })}>
           <div className="list">
             {missing.map(({ extension: e, inProfiles }) => (
               <div key={e.id} className="list-row" data-search-row>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate" data-search-name>{e.name}</span>
-                  <span className="set-hint block truncate" style={{ marginTop: 0 }}>In {inProfiles.join(", ")}</span>
+                  <span className="set-hint block truncate" style={{ marginTop: 0 }}>{t("extensions.elsewhere.in", { profiles: inProfiles.join(", ") })}</span>
                 </span>
                 {e.from_store && profile ? (
-                  <button className="btn" onClick={() => void send({ cmd: "open_extension_store", id: e.id, profile })}>Add to {name}</button>
+                  <button className="btn" onClick={() => void send({ cmd: "open_extension_store", id: e.id, profile })}>{t("extensions.elsewhere.add", { profile: name })}</button>
                 ) : (
-                  <span className="set-hint" style={{ marginTop: 0 }}>Not from the store</span>
+                  <span className="set-hint" style={{ marginTop: 0 }}>{t("extensions.elsewhere.not_from_store")}</span>
                 )}
               </div>
             ))}
@@ -89,16 +90,16 @@ export function ExtensionsSection({ info, reload }: { info: Info; reload: () => 
       )}
       <Field
         side
-        label="Install and manage"
+        label={t("extensions.manage.label")}
         hint={several
-          ? `Installing, removing, turning off and site access live on Chromium's pages. They open in a tab that runs in ${name}.`
+          ? t("extensions.manage.hint_of", { profile: name })
           : info.spaces.length > 1
-            ? "Removing, turning off and site access live on Chromium's extensions page. All your spaces use the main profile, so they share these extensions."
-            : "Removing, turning off and site access live on Chromium's extensions page."}
+            ? t("extensions.manage.hint_shared")
+            : t("extensions.manage.hint")}
       >
         <div className="flex gap-2">
           <button className="btn" onClick={() => void send({ cmd: "open_engine_page", page: "web_store", profile })}>Chrome Web Store</button>
-          <button className="btn" onClick={() => void send({ cmd: "open_engine_page", page: "extensions", profile })}>Manage extensions</button>
+          <button className="btn" onClick={() => void send({ cmd: "open_engine_page", page: "extensions", profile })}>{t("extensions.manage.button")}</button>
         </div>
       </Field>
     </Group>

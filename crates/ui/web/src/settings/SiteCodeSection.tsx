@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Close } from "../Icons";
 import type { SiteCode } from "../bridge";
+import { t } from "../i18n";
 import { Switch } from "./fields";
 
 /** The most sites the app keeps (`MAX_CODE_SITES`). */
@@ -21,9 +22,9 @@ function siteHost(typed: string): string | null {
 
 function problem(entry: SiteCode, all: SiteCode[]): string | null {
   const site = siteHost(entry.site);
-  if (!site) return "Give the site by its host, such as example.org.";
-  if (all.find((c) => siteHost(c.site) === site) !== entry) return "This site is listed already.";
-  if (bytes(entry.css) > MAX_CODE || bytes(entry.js) > MAX_CODE) return "That is too much code for one site (256 KiB of CSS and of JavaScript at most).";
+  if (!site) return t("siteCode.problem.host");
+  if (all.find((c) => siteHost(c.site) === site) !== entry) return t("siteCode.problem.listed");
+  if (bytes(entry.css) > MAX_CODE || bytes(entry.js) > MAX_CODE) return t("siteCode.problem.too_much");
   return null;
 }
 
@@ -59,7 +60,7 @@ export function SiteCodeSection({ saved, open, save }: { saved: SiteCode[]; open
   const area = (i: number, key: "css" | "js", label: string, placeholder: string) => (
     <label className="block">
       <span className="set-hint block">{label}</span>
-      <textarea className="field mono code mt-1" rows={5} value={rows[i]![key]} placeholder={placeholder} aria-label={`${label} for ${rows[i]!.site || "this site"}`} spellCheck={false} autoComplete="off" autoCapitalize="off" onChange={(e) => change(i, { [key]: e.target.value })} onBlur={() => commit(rows)} />
+      <textarea className="field mono code mt-1" rows={5} value={rows[i]![key]} placeholder={placeholder} aria-label={rows[i]!.site ? t("siteCode.code_for", { kind: label, site: rows[i]!.site }) : t("siteCode.code_for_this", { kind: label })} spellCheck={false} autoComplete="off" autoCapitalize="off" onChange={(e) => change(i, { [key]: e.target.value })} onBlur={() => commit(rows)} />
     </label>
   );
   return (
@@ -69,11 +70,11 @@ export function SiteCodeSection({ saved, open, save }: { saved: SiteCode[]; open
         return (
           <div key={i} className="set-card set-group"><div className="set-row space-y-3">
             <div className="flex items-center gap-3">
-              <input className="field mono" style={{ flex: 1, minWidth: 0 }} value={c.site} placeholder="example.org" aria-label="Site" aria-invalid={!!why || undefined} autoFocus={!c.site} onChange={(e) => change(i, { site: e.target.value })} onBlur={() => commit(rows)} />
-              <Switch label={`Use on ${c.site || "this site"}`} checked={c.enabled} onChange={(on) => commit(change(i, { enabled: on }))} />
-              <button className="ib" title="Remove" aria-label={`Remove the code for ${c.site || "this site"}`} onClick={() => { const next = rows.filter((_, j) => j !== i); setRows(next); commit(next); }}><Close width={14} height={14} /></button>
+              <input className="field mono" style={{ flex: 1, minWidth: 0 }} value={c.site} placeholder="example.org" aria-label={t("siteCode.site")} aria-invalid={!!why || undefined} autoFocus={!c.site} onChange={(e) => change(i, { site: e.target.value })} onBlur={() => commit(rows)} />
+              <Switch label={c.site ? t("siteCode.use_on", { site: c.site }) : t("siteCode.use_on_this")} checked={c.enabled} onChange={(on) => commit(change(i, { enabled: on }))} />
+              <button className="ib" title={t("common.remove")} aria-label={c.site ? t("siteCode.remove", { site: c.site }) : t("siteCode.remove_this")} onClick={() => { const next = rows.filter((_, j) => j !== i); setRows(next); commit(next); }}><Close width={14} height={14} /></button>
             </div>
-            {why && <p className="set-hint" style={{ color: "var(--danger)" }}>Not saved: {why}</p>}
+            {why && <p className="set-hint" style={{ color: "var(--danger)" }}>{t("siteCode.not_saved", { reason: why })}</p>}
             {area(i, "css", "CSS", "header { position: static; }")}
             {area(i, "js", "JavaScript", "document.title = document.title.toLowerCase();")}
           </div></div>
@@ -81,9 +82,9 @@ export function SiteCodeSection({ saved, open, save }: { saved: SiteCode[]; open
       })}
       <div className="set-card set-group"><div className="set-row flex items-center gap-4" data-search-row>
         <p className="set-hint min-w-0 flex-1" style={{ marginTop: 0 }} data-search-name>
-          CSS reaches open pages of the site as soon as it is saved; JavaScript runs each time one of its pages has loaded. A site stands for its subdomains. The code runs as part of the page and can read and change everything on it: only add code you understand. It stays on this computer.
+          {t("siteCode.intro")}
         </p>
-        <button className="btn" data-search-name disabled={rows.length >= MAX_SITES} title={rows.length >= MAX_SITES ? `No more than ${MAX_SITES} sites are kept.` : undefined} onClick={() => setRows((list) => [...list, { site: "", css: "", js: "", enabled: true }])}>Add site</button>
+        <button className="btn" data-search-name disabled={rows.length >= MAX_SITES} title={rows.length >= MAX_SITES ? t("siteCode.full", { max: MAX_SITES }) : undefined} onClick={() => setRows((list) => [...list, { site: "", css: "", js: "", enabled: true }])}>{t("siteCode.add")}</button>
       </div></div>
     </>
   );

@@ -225,13 +225,26 @@ fn finish(img: &Image, cut_at: Option<u32>) -> Result<Capture, String> {
     })
 }
 
-/// "Magnetite capture 2026-11-06 at 16.20.11.png" in local time.
+/// "Magnetite capture 2026-11-06 at 16.20.11.png" in local time, in the
+/// user's language.
 pub fn file_name() -> String {
-    dated_name("capture", "png")
+    let (date, time) = local_stamp();
+    format!(
+        "{}.png",
+        magnetite_ui::t!("app.files.capture", date = date, time = time)
+    )
 }
 
-/// "Magnetite `what` 2026-11-06 at 16.20.11.`ext`" in local time.
-pub fn dated_name(what: &str, ext: &str) -> String {
+/// "Magnetite recording 2026-11-06 at 16.20.11.`ext`" in local time, in
+/// the user's language.
+pub fn recording_name(ext: &str) -> String {
+    let (date, time) = local_stamp();
+    let name = magnetite_ui::t!("app.files.recording", date = date, time = time);
+    format!("{name}.{ext}")
+}
+
+/// The local date and time as "2026-11-06" and "16.20.11".
+fn local_stamp() -> (String, String) {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
@@ -246,14 +259,14 @@ pub fn dated_name(what: &str, ext: &str) -> String {
     unsafe {
         libc::localtime_s(&raw mut tm, &raw const t)
     };
-    format!(
-        "Magnetite {what} {:04}-{:02}-{:02} at {:02}.{:02}.{:02}.{ext}",
-        tm.tm_year + 1900,
-        tm.tm_mon + 1,
-        tm.tm_mday,
-        tm.tm_hour,
-        tm.tm_min,
-        tm.tm_sec
+    (
+        format!(
+            "{:04}-{:02}-{:02}",
+            tm.tm_year + 1900,
+            tm.tm_mon + 1,
+            tm.tm_mday
+        ),
+        format!("{:02}.{:02}.{:02}", tm.tm_hour, tm.tm_min, tm.tm_sec),
     )
 }
 

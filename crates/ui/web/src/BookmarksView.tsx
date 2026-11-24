@@ -8,6 +8,7 @@ import { Back, ChevronDown, FolderIcon, Plus } from "./Icons";
 import { RenameInput } from "./Rows";
 import { hostOf, send, type Folder, type SidebarNode, type Space, type TabItem, type UiState } from "./bridge";
 import { dropIndex, indexAfterTaking } from "./dnd";
+import { t } from "./i18n";
 
 /** The bookmark or folder being dragged (this view only; tabs have `dnd.ts`). */
 let dragged: string | null = null;
@@ -74,24 +75,24 @@ export function BookmarksView({ state, onClose }: { state: UiState; onClose: () 
     <div className="flex flex-col h-full">
       <div className="titlebar-drag h-[38px] shrink-0" />
       <div className="flex h-9 shrink-0 items-center gap-1 px-2">
-        <button className="ib no-drag" onClick={onClose} title="Back"><Back /></button>
-        <div className="flex-1 font-semibold">Bookmarks</div>
+        <button className="ib no-drag" onClick={onClose} title={t("common.back")}><Back /></button>
+        <div className="flex-1 font-semibold">{t("library.bookmarks.title")}</div>
         {state.active_tab && (
-          <button className="ib no-drag" title="Bookmark the page in front" aria-label="Bookmark the page in front" onClick={() => send({ cmd: "add_bookmark" })}><Plus /></button>
+          <button className="ib no-drag" title={t("library.bookmarks.add")} aria-label={t("library.bookmarks.add")} onClick={() => send({ cmd: "add_bookmark" })}><Plus /></button>
         )}
       </div>
       <div className="shrink-0 px-2 pb-1 no-drag">
-        <input className="field" placeholder="Search bookmarks" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus aria-label="Search bookmarks" />
+        <input className="field" placeholder={t("library.bookmarks.search")} value={query} onChange={(e) => setQuery(e.target.value)} autoFocus aria-label={t("library.bookmarks.search")} />
       </div>
       <div className="scroll flex-1 min-h-0 px-2 pb-3 no-drag">
         {spaces.map((space) => (q ? <Found key={space.id} space={space} query={q} /> : <SpaceSection key={space.id} space={space} ctx={ctx} />))}
         {total === 0 && (
           <div className="px-2 py-6 text-[var(--muted)]">
-            No bookmarks yet. Right-click a tab and choose "Add to bookmarks", or import them from another browser in Settings.
+            {t("library.bookmarks.empty", { item: t("sidebar.tab_menu.add_to_bookmarks") })}
           </div>
         )}
         {total > 0 && q && !spaces.some((sp) => flatten(sp.bookmarks ?? []).some(({ bookmark }) => matches(bookmark, q))) && (
-          <div className="px-2 py-6 text-[var(--muted)]">No matching bookmarks.</div>
+          <div className="px-2 py-6 text-[var(--muted)]">{t("library.bookmarks.no_match")}</div>
         )}
       </div>
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} takeFocus />}
@@ -146,7 +147,7 @@ function SpaceSection({ space, ctx }: { space: Space; ctx: Ctx }) {
         open={open}
         count={countBookmarks(list)}
         toggle={toggle}
-        onContextMenu={(e) => ctx.openMenu(e, [{ label: "New folder", onClick: newFolder }])}
+        onContextMenu={(e) => ctx.openMenu(e, [{ label: t("library.bookmarks.new_folder"), onClick: newFolder }])}
         onDrop={() => dropAt(place, list.length)}
       />
       {open && <Nodes place={place} depth={0} ctx={ctx} />}
@@ -211,11 +212,11 @@ function BookmarkRow({ bookmark, index, place, ctx }: { bookmark: TabItem; index
       onKeyDown={(e) => e.key === "Enter" && e.target === e.currentTarget && open(false)}
       onContextMenu={(e) =>
         ctx.openMenu(e, [
-          { label: `Open in ${place.space.title}`, onClick: () => open(false) },
-          { label: "Open in the background", onClick: () => open(true) },
+          { label: t("library.bookmarks.open_in", { space: place.space.title }), onClick: () => open(false) },
+          { label: t("library.bookmarks.open_in_background"), onClick: () => open(true) },
           SEPARATOR,
-          { label: "Rename", onClick: () => ctx.setRenaming(bookmark.id) },
-          { label: "Remove bookmark", danger: true, onClick: () => send({ cmd: "remove_bookmark", id: bookmark.id }) },
+          { label: t("common.rename"), onClick: () => ctx.setRenaming(bookmark.id) },
+          { label: t("library.bookmarks.remove"), danger: true, onClick: () => send({ cmd: "remove_bookmark", id: bookmark.id }) },
         ])
       }
     >
@@ -275,10 +276,10 @@ function FolderRow({ folder, place, depth, ctx }: { folder: Folder; place: Place
         onKeyDown={(e) => e.key === "Enter" && e.target === e.currentTarget && toggle()}
         onContextMenu={(e) =>
           ctx.openMenu(e, [
-            { label: "New folder inside", onClick: newFolder },
-            { label: "Rename folder", onClick: () => ctx.setRenaming(folder.id) },
+            { label: t("library.bookmarks.new_folder_inside"), onClick: newFolder },
+            { label: t("library.bookmarks.rename_folder"), onClick: () => ctx.setRenaming(folder.id) },
             SEPARATOR,
-            { label: count ? `Remove folder and its ${count} bookmark${count === 1 ? "" : "s"}` : "Remove folder", danger: true, confirm: count ? "Click again to remove them" : undefined, onClick: () => send({ cmd: "remove_bookmark", id: folder.id }) },
+            { label: count ? t("library.bookmarks.remove_folder_with", { count }) : t("library.bookmarks.remove_folder"), danger: true, confirm: count ? t("library.bookmarks.remove_folder_confirm") : undefined, onClick: () => send({ cmd: "remove_bookmark", id: folder.id }) },
           ])
         }
       >
@@ -293,7 +294,7 @@ function FolderRow({ folder, place, depth, ctx }: { folder: Folder; place: Place
             onCancel={() => ctx.setRenaming(null)}
           />
         ) : (
-          <span className="title text-left" style={{ fontWeight: 600 }}>{folder.title || "Untitled"}</span>
+          <span className="title text-left" style={{ fontWeight: 600 }}>{folder.title || t("common.untitled")}</span>
         )}
         {!open && count > 0 && <span className="meta">{count}</span>}
       </div>

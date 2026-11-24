@@ -655,7 +655,9 @@ fn read_store_ids(data_dir: &Path) -> std::io::Result<BTreeMap<String, String>> 
 }
 
 /// What a caller hears when the file of identifiers cannot be read.
-const STORES_UNREADABLE: &str = "The list of WebKit's data stores could not be read.";
+fn stores_unreadable() -> String {
+    magnetite_ui::t!("app.system_engine.stores_unreadable", engine = "WebKit")
+}
 
 /// Keep `ids` in the file. False if they could not be written.
 fn write_store_ids(data_dir: &Path, ids: &BTreeMap<String, String>) -> bool {
@@ -796,7 +798,7 @@ pub(crate) fn clear_data(
     let mut stores: Vec<Retained<WKWebsiteDataStore>> = in_use.iter().cloned().collect();
     if !ephemeral {
         let Ok(ids) = read_store_ids(data_dir) else {
-            return done(Err(STORES_UNREADABLE.to_string()));
+            return done(Err(stores_unreadable()));
         };
         // SAFETY: on the main thread, where the stores live.
         let on_disk = in_use.is_some_and(|store| unsafe { store.isPersistent() });

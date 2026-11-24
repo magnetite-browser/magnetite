@@ -127,12 +127,13 @@ You need [Rust](https://rustup.rs), CMake, Ninja, Node 22 and pnpm 10. The first
 - [Architecture](docs/architecture.md) and the [decisions](docs/adr/) behind it
 - [Security rules](docs/design/security.md) of Magnetite's own code
 - [Building and testing](docs/development/building.md)
+- [Translating](docs/development/translating.md), and adding a language
 - [Releases](docs/development/release.md), how they are made and signed
 - [Licence compatibility](docs/legal/license-compatibility.md), how third-party code fits with the EUPL
 
 ## Contributing
 
-Bug reports, ideas and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the ground rules and the checks to run (there is no CLA), and everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md). To report a security issue, see [SECURITY.md](SECURITY.md).
+Bug reports, ideas, translations and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) has the ground rules and the checks to run (there is no CLA), and everyone taking part follows the [code of conduct](CODE_OF_CONDUCT.md). To report a security issue, see [SECURITY.md](SECURITY.md).
 
 ## License
 

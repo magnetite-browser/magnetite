@@ -7,6 +7,7 @@ import { useEffect, useId, useState } from "react";
 import { Archive, BookmarkIcon, DownloadIcon, HistoryIcon, SettingsIcon } from "./Icons";
 import { onDownloads, send, type DownloadEntry, type LibraryView } from "./bridge";
 import { keysLabel, type ShortcutKeys } from "./settings/shortcutKeys";
+import { t } from "./i18n";
 
 
 /**
@@ -51,7 +52,7 @@ export function LibraryButton({ opens, keys, onOpen }: { opens: LibraryView; key
   // Several downloads: one ring for all of them; unknown sizes spin.
   const share = sized.length === running.length && total > 0 ? sized.reduce((n, d) => n + d.received, 0) / total : null;
   const busy = running.length > 0;
-  const label = !busy ? "Bookmarks, history, downloads, archive and settings" : running.length === 1 ? `Downloading ${running[0]!.name}` : `Downloading ${running.length} files`;
+  const label = !busy ? t("sidebar.library_button.label") : running.length === 1 ? t("sidebar.library_button.downloading", { name: running[0]!.name }) : t("sidebar.library_button.downloading_files", { count: running.length });
   return (
     <div className="library">
       <button className="ib lg" aria-label={label} onClick={() => onOpen(busy ? "downloads" : opens)}>
@@ -69,26 +70,26 @@ export function LibraryButton({ opens, keys, onOpen }: { opens: LibraryView; key
       <div className="library-pop" role="menu">
         <button role="menuitem" onClick={() => onOpen("bookmarks")}>
           <BookmarkIcon width={18} height={18} />
-          Bookmarks
+          {t("sidebar.library_button.bookmarks")}
         </button>
         <button role="menuitem" onClick={() => onOpen("history")}>
           <HistoryIcon width={18} height={18} />
-          History
+          {t("sidebar.library_button.history")}
           <span className="hint">{keysLabel(keys.history)}</span>
         </button>
         <button role="menuitem" onClick={() => onOpen("downloads")}>
           <DownloadIcon width={18} height={18} />
-          Downloads
-          <span className="hint">{busy ? (share === null ? `${running.length} running` : `${Math.round(share * 100)} %`) : keysLabel(keys.downloads)}</span>
+          {t("sidebar.library_button.downloads")}
+          <span className="hint">{busy ? (share === null ? t("sidebar.library_button.running", { count: running.length }) : `${Math.round(share * 100)} %`) : keysLabel(keys.downloads)}</span>
         </button>
         <button role="menuitem" onClick={() => onOpen("archive")}>
           <Archive width={18} height={18} />
-          Archive
+          {t("sidebar.library_button.archive")}
         </button>
         <hr />
         <button role="menuitem" onClick={() => send({ cmd: "new_tab", url: "magnetite://ui/settings" })}>
           <SettingsIcon width={18} height={18} />
-          Settings
+          {t("common.settings")}
           <span className="hint">{keysLabel(keys.settings)}</span>
         </button>
       </div>

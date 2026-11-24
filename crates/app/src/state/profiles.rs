@@ -25,8 +25,8 @@ pub enum ChosenProfile {
 impl AppState {
     /// The id of the profile `chosen` for something new named `name`; a
     /// profile it asks for is made now (a private one is named
-    /// "`name` (private)"). Errs, making nothing, when the profile chosen is
-    /// gone or is one of the private space's.
+    /// "`name` (private)", in the user's language). Errs, making nothing,
+    /// when the profile chosen is gone or is one of the private space's.
     pub(super) fn chosen_profile(
         &mut self,
         chosen: Option<ChosenProfile>,
@@ -38,12 +38,15 @@ impl AppState {
                 let known = self.sidebar.profiles.iter().any(|p| p.id == id);
                 // The private space's profiles are for nothing else.
                 if !known || self.private_profiles.contains(&id) {
-                    return Err("That profile is gone.");
+                    return Err(magnetite_ui::t!("app.errors.profile_gone"));
                 }
                 id
             }
             Some(ChosenProfile::New(name)) => self.add_profile(&name, false),
-            Some(ChosenProfile::Private) => self.add_profile(&format!("{name} (private)"), true),
+            Some(ChosenProfile::Private) => self.add_profile(
+                &magnetite_ui::t!("app.names.private_profile", name = name),
+                true,
+            ),
         })
     }
 
@@ -203,7 +206,7 @@ impl AppState {
     pub fn add_profile(&mut self, name: &str, ephemeral: bool) -> Id {
         let id = new_id();
         let name = match name.trim() {
-            "" => "New profile",
+            "" => magnetite_ui::t!("app.names.new_profile"),
             name => name,
         };
         self.sidebar.profiles.push(magnetite_core::Profile {

@@ -349,7 +349,7 @@ wrap_download_handler! {
             engine.emit(EngineEvent::Download(DownloadReport {
                 id: item.id(),
                 context,
-                name: display_name(&full, &suggested),
+                name: display_name(&full, &suggested, crate::strings::unconfirmed_download()),
                 path: (state == DownloadState::Finished && !full.is_empty()).then(|| PathBuf::from(&full)),
                 received,
                 total,
@@ -387,15 +387,19 @@ fn retryable(url: &str) -> bool {
 }
 
 /// The name to show for a download at `full` (Chromium's current path):
-/// while it runs that is `<name>.crdownload`, or `Unconfirmed <n>.crdownload`
-/// before Chromium has picked the file; then the `suggested` name.
-fn display_name(full: &str, suggested: &str) -> String {
+/// while it runs that is `<name>.crdownload`, or `<unconfirmed> <n>.crdownload`
+/// before Chromium has picked the file (`Unconfirmed` in Chromium's
+/// language); then the `suggested` name.
+fn display_name(full: &str, suggested: &str, unconfirmed: &str) -> String {
     let file = std::path::Path::new(full)
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_default();
     let file = file.strip_suffix(".crdownload").unwrap_or(&file);
-    if !file.is_empty() && !file.starts_with("Unconfirmed ") {
+    let picked = file
+        .strip_prefix(unconfirmed)
+        .is_none_or(|n| !n.starts_with(' '));
+    if !file.is_empty() && picked {
         return file.to_string();
     }
     if suggested.is_empty() {
@@ -527,19 +531,20 @@ mod tests {
 
     #[test]
     fn names_come_from_the_path_without_chromiums_temporary_suffix() {
+        let name = |full, suggested| display_name(full, suggested, "Unconfirmed");
+        assert_eq!(name("/d/report (1).pdf", "report.pdf"), "report (1).pdf");
+        assert_eq!(name("/d/report.pdf.crdownload", "x.pdf"), "report.pdf");
+        assert_eq!(name("/d/Unconfirmed 4711.crdownload", "a.zip"), "a.zip");
+        assert_eq!(name("", "a.zip"), "a.zip");
+        assert_eq!(name("", ""), "download");
+        // Chromium names it in its own language.
         assert_eq!(
-            display_name("/d/report (1).pdf", "report.pdf"),
-            "report (1).pdf"
-        );
-        assert_eq!(
-            display_name("/d/report.pdf.crdownload", "x.pdf"),
-            "report.pdf"
-        );
-        assert_eq!(
-            display_name("/d/Unconfirmed 4711.crdownload", "a.zip"),
+            display_name(
+                "/d/Nicht bestätigt 4711.crdownload",
+                "a.zip",
+                "Nicht bestätigt"
+            ),
             "a.zip"
         );
-        assert_eq!(display_name("", "a.zip"), "a.zip");
-        assert_eq!(display_name("", ""), "download");
     }
 }

@@ -664,7 +664,7 @@ impl AppState {
         profile: Option<ChosenProfile>,
     ) -> Result<Id, &'static str> {
         let title = match title.trim() {
-            "" => "New space",
+            "" => magnetite_ui::t!("app.names.new_space"),
             title => title,
         };
         // A private one is named like the one a space's page makes.

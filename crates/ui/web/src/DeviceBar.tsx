@@ -6,15 +6,18 @@
 import { useEffect, useState } from "react";
 import { Close } from "./Icons";
 import { send, type DeviceConfig } from "./bridge";
+import { t } from "./i18n";
 
-type Preset = { name: string; width: number; height: number; dpr: number; mobile: boolean; ua: DeviceConfig["ua"] };
+/** `name`: the engine's name for the choice; `label`: what the bar shows, where that is not the device's own name. */
+type Preset = { name: string; label?: string; width: number; height: number; dpr: number; mobile: boolean; ua: DeviceConfig["ua"] };
 
+/** The engine's name for a size of one's own (`device.rs`). */
 const RESPONSIVE = "Responsive";
 
 /** The devices offered, in groups, as held upright (CSS pixels). */
 const GROUPS: { label: string; presets: Preset[] }[] = [
   {
-    label: "Phones",
+    label: t("developer.device.groups.phones"),
     presets: [
       { name: "iPhone SE", width: 375, height: 667, dpr: 2, mobile: true, ua: "iphone" },
       { name: "iPhone 16", width: 393, height: 852, dpr: 3, mobile: true, ua: "iphone" },
@@ -24,17 +27,17 @@ const GROUPS: { label: string; presets: Preset[] }[] = [
     ],
   },
   {
-    label: "Tablets",
+    label: t("developer.device.groups.tablets"),
     presets: [
       { name: "iPad Mini", width: 768, height: 1024, dpr: 2, mobile: true, ua: "ipad" },
       { name: "iPad Pro 13", width: 1032, height: 1376, dpr: 2, mobile: true, ua: "ipad" },
     ],
   },
   {
-    label: "Computers",
+    label: t("developer.device.groups.computers"),
     presets: [
-      { name: "Laptop", width: 1440, height: 900, dpr: 2, mobile: false, ua: null },
-      { name: "Desktop", width: 1920, height: 1080, dpr: 1, mobile: false, ua: null },
+      { name: "Laptop", label: t("developer.device.presets.laptop"), width: 1440, height: 900, dpr: 2, mobile: false, ua: null },
+      { name: "Desktop", label: t("developer.device.presets.desktop"), width: 1920, height: 1080, dpr: 1, mobile: false, ua: null },
     ],
   },
 ];
@@ -43,11 +46,11 @@ const PRESETS = GROUPS.flatMap((g) => g.presets);
 const ZOOMS = [50, 75, 100, 125, 150];
 
 const THROTTLES: [DeviceConfig["throttle"], string][] = [
-  ["none", "No throttling"],
-  ["fast4g", "Fast 4G"],
-  ["slow4g", "Slow 4G"],
+  ["none", t("developer.device.throttle.none")],
+  ["fast4g", t("developer.device.throttle.fast4g")],
+  ["slow4g", t("developer.device.throttle.slow4g")],
   ["3g", "3G"],
-  ["offline", "Offline"],
+  ["offline", t("developer.device.throttle.offline")],
 ];
 
 /** A size typed into the bar, kept within what the engine takes. */
@@ -68,7 +71,7 @@ function SizeField({ label, value, disabled, onChange }: { label: string; value:
       aria-label={label}
       inputMode="numeric"
       disabled={disabled}
-      title={disabled ? "A device has its own size; Responsive takes any" : undefined}
+      title={disabled ? t("developer.device.size_fixed_hint") : undefined}
       value={text}
       onChange={(e) => setText(e.target.value.replace(/\D/g, ""))}
       onBlur={take}
@@ -81,7 +84,7 @@ export function DeviceBar() {
   const page = Number(new URLSearchParams(location.search).get("page"));
   const [config, setConfig] = useState<DeviceConfig | null>(null);
   useEffect(() => {
-    document.title = "Device";
+    document.title = t("developer.device.window_title");
     void send({ cmd: "device_get", page }).then(setConfig);
     // The engine shows sizes dragged with the handles here.
     window.__magnetiteDevice = setConfig;
@@ -110,21 +113,21 @@ export function DeviceBar() {
   return (
     <div className="device-bar">
       <label className="device-group">
-        <select className="field sm device-preset" aria-label="Dimensions" value={config.preset} onChange={(e) => pick(e.target.value)}>
-          <option value={RESPONSIVE}>{RESPONSIVE}</option>
+        <select className="field sm device-preset" aria-label={t("developer.device.dimensions")} value={config.preset} onChange={(e) => pick(e.target.value)}>
+          <option value={RESPONSIVE}>{t("developer.device.responsive")}</option>
           {GROUPS.map((g) => (
             <optgroup key={g.label} label={g.label}>
-              {g.presets.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
+              {g.presets.map((p) => <option key={p.name} value={p.name}>{p.label ?? p.name}</option>)}
             </optgroup>
           ))}
         </select>
       </label>
-      <span className="device-group" title="Width × height in CSS pixels">
-        <SizeField label="Width" value={config.width} disabled={fixed} onChange={(width) => resize({ width })} />
+      <span className="device-group" title={t("developer.device.size_hint")}>
+        <SizeField label={t("developer.device.width")} value={config.width} disabled={fixed} onChange={(width) => resize({ width })} />
         <span aria-hidden>×</span>
-        <SizeField label="Height" value={config.height} disabled={fixed} onChange={(height) => resize({ height })} />
+        <SizeField label={t("developer.device.height")} value={config.height} disabled={fixed} onChange={(height) => resize({ height })} />
       </span>
-      <button className="ib sm" title="Rotate" aria-label="Rotate" onClick={() => change({ width: config.height, height: config.width })}>
+      <button className="ib sm" title={t("developer.device.rotate")} aria-label={t("developer.device.rotate")} onClick={() => change({ width: config.height, height: config.width })}>
         {/* A phone turning, with two arrows (as Chrome's "screen rotation"). */}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <rect x="9" y="4" width="6" height="16" rx="1.5" transform="rotate(45 12 12)" />
@@ -132,25 +135,25 @@ export function DeviceBar() {
           <path d="M21.5 14a9.5 9.5 0 0 1-7.5 7.5M16.8 21.8 14 21.5l.6-2.7" />
         </svg>
       </button>
-      <select className="field sm" aria-label="Zoom" value={config.zoom ?? "fit"} onChange={(e) => change({ zoom: e.target.value === "fit" ? null : Number(e.target.value) })}>
-        <option value="fit">Fit</option>
+      <select className="field sm" aria-label={t("developer.device.zoom")} value={config.zoom ?? "fit"} onChange={(e) => change({ zoom: e.target.value === "fit" ? null : Number(e.target.value) })}>
+        <option value="fit">{t("developer.device.fit")}</option>
         {ZOOMS.map((z) => <option key={z} value={z}>{z}%</option>)}
       </select>
-      <select className="field sm" aria-label="Network" value={config.throttle} onChange={(e) => change({ throttle: e.target.value as DeviceConfig["throttle"] })}>
+      <select className="field sm" aria-label={t("developer.device.network")} value={config.throttle} onChange={(e) => change({ throttle: e.target.value as DeviceConfig["throttle"] })}>
         {THROTTLES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select>
       <select
         className="field sm"
         aria-label="Save-Data"
-        title="The Save-Data hint sites get"
+        title={t("developer.device.save_data_hint")}
         value={config.save_data === null ? "default" : config.save_data ? "on" : "off"}
         onChange={(e) => change({ save_data: e.target.value === "default" ? null : e.target.value === "on" })}
       >
         <option value="default">Save-Data</option>
-        <option value="on">Save-Data: on</option>
-        <option value="off">Save-Data: off</option>
+        <option value="on">{t("developer.device.save_data_on")}</option>
+        <option value="off">{t("developer.device.save_data_off")}</option>
       </select>
-      <button className="ib sm" title="End device mode" aria-label="End device mode" onClick={() => send({ cmd: "device_set", page, config: null })}>
+      <button className="ib sm" title={t("developer.device.end")} aria-label={t("developer.device.end")} onClick={() => send({ cmd: "device_set", page, config: null })}>
         <Close width={14} height={14} />
       </button>
     </div>

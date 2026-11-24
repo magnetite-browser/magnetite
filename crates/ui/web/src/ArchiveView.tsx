@@ -3,6 +3,7 @@ import { Favicon } from "./Favicon";
 import { Back, Close } from "./Icons";
 import { hostOf, send, type ArchiveItem } from "./bridge";
 import { groupByDay } from "./groupByDay";
+import { t } from "./i18n";
 
 /**
  * The archive in place of the sidebar. `count` is the archive's size in the
@@ -14,14 +15,14 @@ export function ArchiveView({ count, onClose }: { count: number; onClose: () => 
   const [items, setItems] = useState<ArchiveItem[] | null>(null);
   useEffect(() => {
     let cancelled = false;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       send({ cmd: "archive", query }).then((r) => {
         if (!cancelled) setItems(r.items ?? []);
       });
     }, query ? 120 : 0);
     return () => {
       cancelled = true;
-      clearTimeout(t);
+      clearTimeout(timer);
     };
   }, [query, count]);
 
@@ -35,11 +36,11 @@ export function ArchiveView({ count, onClose }: { count: number; onClose: () => 
     <div className="flex flex-col h-full">
       <div className="titlebar-drag h-[38px] shrink-0" />
       <div className="flex h-9 shrink-0 items-center gap-1 px-2">
-        <button className="ib no-drag" onClick={onClose} title="Back"><Back /></button>
-        <div className="font-semibold">Archive</div>
+        <button className="ib no-drag" onClick={onClose} title={t("common.back")}><Back /></button>
+        <div className="font-semibold">{t("library.archive.title")}</div>
       </div>
       <div className="shrink-0 px-2 pb-1 no-drag">
-        <input className="field" placeholder="Search archived tabs" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus aria-label="Search archived tabs" />
+        <input className="field" placeholder={t("library.archive.search")} value={query} onChange={(e) => setQuery(e.target.value)} autoFocus aria-label={t("library.archive.search")} />
       </div>
       <div className="scroll flex-1 min-h-0 px-2 pb-3 no-drag">
         {groups.map(([day, list]) => (
@@ -60,8 +61,8 @@ export function ArchiveView({ count, onClose }: { count: number; onClose: () => 
                 {it.space && <span className="meta max-w-[72px] truncate">{it.space}</span>}
                 <button
                   className="close"
-                  title="Remove from archive"
-                  aria-label="Remove from archive"
+                  title={t("library.archive.remove")}
+                  aria-label={t("library.archive.remove")}
                   onClick={(e) => {
                     e.stopPropagation();
                     remove(it.id);
@@ -73,7 +74,7 @@ export function ArchiveView({ count, onClose }: { count: number; onClose: () => 
             ))}
           </div>
         ))}
-        {items && items.length === 0 && <div className="px-2 py-6 text-[var(--muted)]">{query ? "No matching archived tabs." : "Nothing archived yet."}</div>}
+        {items && items.length === 0 && <div className="px-2 py-6 text-[var(--muted)]">{query ? t("library.archive.no_match") : t("library.archive.empty")}</div>}
       </div>
     </div>
   );

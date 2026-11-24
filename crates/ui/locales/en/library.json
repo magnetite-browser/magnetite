@@ -1,0 +1,59 @@
+{
+  "archive": {
+    "title": "Archive",
+    "search": "Search archived tabs",
+    "remove": "Remove from archive",
+    "no_match": "No matching archived tabs.",
+    "empty": "Nothing archived yet."
+  },
+  "history": {
+    "title": "History",
+    "clear": "Clear",
+    "clear_confirm": "Clear all?",
+    "search": "Search history",
+    "remove": "Remove from history",
+    "no_match": "No matching pages.",
+    "empty": "No history yet."
+  },
+  "bookmarks": {
+    "title": "Bookmarks",
+    "add": "Bookmark the page in front",
+    "search": "Search bookmarks",
+    "empty": "No bookmarks yet. Right-click a tab and choose \"{item}\", or import them from another browser in Settings.",
+    "no_match": "No matching bookmarks.",
+    "new_folder": "New folder",
+    "open_in": "Open in {space}",
+    "open_in_background": "Open in the background",
+    "remove": "Remove bookmark",
+    "new_folder_inside": "New folder inside",
+    "rename_folder": "Rename folder",
+    "remove_folder": "Remove folder",
+    "remove_folder_with_one": "Remove folder and its 1 bookmark",
+    "remove_folder_with_other": "Remove folder and its {count} bookmarks",
+    "remove_folder_confirm": "Click again to remove them"
+  },
+  "downloads": {
+    "title": "Downloads",
+    "clear_title": "Remove finished and failed downloads from this list (the files stay)",
+    "all": "All downloads…",
+    "all_title": "The whole list as a page, with search",
+    "search": "Search downloads",
+    "empty": "No downloads yet.",
+    "no_match": "No download with that name.",
+    "open_file": "Open {name}",
+    "canceled": "Canceled",
+    "failed": "Failed",
+    "paused": "Paused · {progress}",
+    "deleted": "Deleted",
+    "reveal_finder": "Show in Finder",
+    "reveal_folder": "Show in folder",
+    "trash": "Move to Trash",
+    "recycle_bin": "Move to Recycle Bin",
+    "copy_link": "Copy download link",
+    "copy_file": "Copy file",
+    "copy_path": "Copy file path",
+    "remove": "Remove from list",
+    "pause": "Pause",
+    "resume": "Resume"
+  }
+}

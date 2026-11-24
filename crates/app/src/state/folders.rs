@@ -116,7 +116,7 @@ impl AppState {
     /// `MAX_DEPTH` deep). An empty `title` gives "Untitled".
     pub fn new_folder(&mut self, title: &str, parent: Option<&str>) {
         let title = match title.trim() {
-            "" => "Untitled",
+            "" => magnetite_ui::t!("common.untitled"),
             title => title,
         };
         let folder = SidebarNode::Folder(Folder {

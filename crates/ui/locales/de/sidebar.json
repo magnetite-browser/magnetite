@@ -1,0 +1,254 @@
+{
+  "header": {
+    "keep_open": "Seitenleiste offen lassen",
+    "hide": "Seitenleiste ausblenden",
+    "forward": "Vorwärts",
+    "reload": "Neu laden"
+  },
+  "window": {
+    "minimize": "Minimieren",
+    "full_screen": "Vollbild"
+  },
+  "peek": {
+    "label": "Vorschau",
+    "keep": "Behalten",
+    "keep_as_tab": "Als Tab behalten",
+    "open_in_split": "In Split View öffnen"
+  },
+  "space": {
+    "change_icon": "Symbol ändern",
+    "options": "Space-Optionen",
+    "hide_private": "Privaten Space ausblenden",
+    "close_private": "Privaten Space schließen"
+  },
+  "space_menu": {
+    "settings": "Space-Einstellungen …",
+    "new_folder": "Neuer Ordner",
+    "new_profile": "Neues Profil für diesen Space …",
+    "delete": "Space löschen …",
+    "delete_confirm": "Zum Löschen erneut klicken"
+  },
+  "profile": {
+    "item": "Profil: {name}",
+    "fallback": "Profil"
+  },
+  "today": {
+    "clear_title": "Alle Heute-Tabs archivieren",
+    "clear_private_title": "Alle privaten Tabs schließen",
+    "new_tab_title": "Neuer Tab",
+    "new_private_tab_title": "Neuer privater Tab",
+    "new_private_tab": "Neuer privater Tab"
+  },
+  "new_menu": {
+    "label": "Neu",
+    "open": "Neu …",
+    "close": "Menü schließen",
+    "space": "Neuer Space",
+    "private_space": "Privater Space",
+    "folder": "Neuer Ordner",
+    "smart_folder": "Neuer smarter Ordner",
+    "split": "Neuer Split",
+    "private_tab": "Neuer privater Tab"
+  },
+  "tab_menu": {
+    "reload": "Neu laden",
+    "share": "Teilen …",
+    "copy_link": "Link kopieren",
+    "pin": "Tab anheften",
+    "unpin": "Tab lösen",
+    "back_to_pinned": "Zurück zur angehefteten Seite",
+    "add_to_favorites": "Zu Favoriten hinzufügen",
+    "remove_from_favorites": "Aus Favoriten entfernen",
+    "add_to_bookmarks": "Zu Lesezeichen hinzufügen",
+    "keep_active": "Aktiv halten",
+    "open_as_panel": "Als Panel öffnen",
+    "mobile_view": "Mobile Ansicht",
+    "open_in_split": "In Split View öffnen",
+    "remove_from_split": "Aus Split View entfernen",
+    "separate_all": "Alle Tabs trennen",
+    "duplicate": "Tab duplizieren",
+    "use_page_title": "Seitentitel verwenden",
+    "duplicate_favorite": "Favorit duplizieren",
+    "new_profile": "Neues Profil für diesen Favoriten …",
+    "show_in_every_space": "In jedem Space zeigen",
+    "show_only_in": "Nur in {space} zeigen",
+    "move_to": "Nach {space} verschieben",
+    "archive": "Archivieren",
+    "remove_from_pinned": "Aus angehefteten Tabs entfernen"
+  },
+  "tab_row": {
+    "back_to_home": "Zurück zu {host} (angeheftete Seite)",
+    "back_to_home_label": "Zurück zur angehefteten Seite, {host}",
+    "mute": "Tab stummschalten",
+    "unmute": "Stummschaltung aufheben",
+    "shared": "Dieser Tab wird geteilt",
+    "shared_label": "Wird geteilt",
+    "console_errors_one": "{count} Fehler in der Konsole",
+    "console_errors_other": "{count} Fehler in der Konsole",
+    "console_errors_label_one": "{count} Konsolenfehler",
+    "console_errors_label_other": "{count} Konsolenfehler",
+    "web_panel": "Öffnet als Web-Panel",
+    "kept_active": "Aktiv gehalten: Dieser Tab wird nicht entladen",
+    "kept_active_label": "Aktiv gehalten",
+    "share_instead": "Stattdessen diesen Tab teilen",
+    "archive": "Archivieren"
+  },
+  "favorites": {
+    "collapse": "Einklappen",
+    "expand": "Ausklappen",
+    "panel": "Panel",
+    "shared": "wird geteilt",
+    "rename_label": "Name des Favoriten {name}"
+  },
+  "snooze": {
+    "button": "Zurückstellen",
+    "in_hours_one": "In einer Stunde",
+    "in_hours_other": "In {count} Stunden",
+    "this_evening": "Heute Abend",
+    "tomorrow": "Morgen",
+    "next_week": "Nächste Woche",
+    "custom": "Eigene Zeit …",
+    "custom_title": "Datum und Uhrzeit wählen",
+    "forever": "Unbegrenzt",
+    "forever_title": "Bis du es aus den zurückgestellten Einträgen des Ordners zurückholst",
+    "until_label": "Zurückstellen bis",
+    "snoozed": "Zurückgestellt",
+    "snoozed_until": "Zurückgestellt bis {time}",
+    "wake_now": "Jetzt zurückholen",
+    "show_snoozed_one": "Einen zurückgestellten Eintrag zeigen",
+    "show_snoozed_other": "{count} zurückgestellte Einträge zeigen",
+    "hide_snoozed_one": "Einen zurückgestellten Eintrag ausblenden",
+    "hide_snoozed_other": "{count} zurückgestellte Einträge ausblenden"
+  },
+  "folder_menu": {
+    "copy_share_link": "Link zum Teilen kopieren",
+    "turn_on": "Auf diesem Gerät einschalten",
+    "refresh": "Jetzt aktualisieren",
+    "smart_settings": "Einstellungen des smarten Ordners …",
+    "rename": "Ordner umbenennen",
+    "change_icon": "Symbol ändern …",
+    "collapse": "Einklappen",
+    "expand": "Ausklappen",
+    "stop_updating": "Nicht mehr aktualisieren (Tabs behalten)",
+    "delete_with_items": "Ordner samt Inhalt löschen",
+    "new_folder_inside": "Neuer Ordner darin",
+    "make_smart": "In smarten Ordner umwandeln …",
+    "delete_keep_tabs": "Ordner löschen (Tabs behalten)"
+  },
+  "folder_row": {
+    "smart": "Smarter Ordner",
+    "smart_updated": "Smarter Ordner · aktualisiert {ago}",
+    "refreshing": "Wird aktualisiert",
+    "error": "{error} Klicken für Einstellungen.",
+    "error_label": "Problem mit dem smarten Ordner",
+    "new_items": "Neue Einträge"
+  },
+  "split_menu": {
+    "pin": "Split anheften",
+    "unpin": "Split lösen",
+    "add_to_favorites": "Split zu Favoriten hinzufügen",
+    "even_out": "Größen angleichen",
+    "grid": "Als Raster anordnen"
+  },
+  "split_drop": {
+    "window_title": "Split",
+    "tab": "Tab",
+    "move_here": "{title} hierher verschieben",
+    "open_here": "{title} hier öffnen",
+    "swap_with": "{title} mit {other} tauschen",
+    "swap_with_this_page": "{title} mit dieser Seite tauschen",
+    "full": "Split View fasst bis zu vier Seiten"
+  },
+  "device_tab": {
+    "hint": "Offen auf {device}. Klicken, um hier weiterzumachen.",
+    "label": "Offen auf {device}"
+  },
+  "extensions": {
+    "title": "Erweiterungen",
+    "more": "Weitere Erweiterungen",
+    "manage": "Erweiterungen verwalten",
+    "options": "Optionen",
+    "remove_from_sidebar": "Aus Seitenleiste entfernen",
+    "remove_from_top_bar": "Aus oberer Leiste entfernen"
+  },
+  "media": {
+    "previous": "Vorheriger Titel",
+    "next": "Nächster Titel",
+    "play": "Wiedergeben",
+    "pause": "Pausieren",
+    "mute": "Stummschalten",
+    "unmute": "Ton einschalten",
+    "picture_in_picture": "Bild-in-Bild",
+    "back_into_page": "Zurück in die Seite"
+  },
+  "library_button": {
+    "label": "Lesezeichen, Verlauf, Downloads, Archiv und Einstellungen",
+    "downloading": "{name} wird geladen",
+    "downloading_files_one": "Eine Datei wird geladen",
+    "downloading_files_other": "{count} Dateien werden geladen",
+    "bookmarks": "Lesezeichen",
+    "history": "Verlauf",
+    "downloads": "Downloads",
+    "archive": "Archiv",
+    "running_one": "{count} läuft",
+    "running_other": "{count} laufen"
+  },
+  "space_picker": {
+    "label": "Zu Space wechseln",
+    "placeholder": "Zu Space wechseln …",
+    "current": "Aktuell",
+    "go_hint": "{key} Zum Space wechseln",
+    "no_match": "Kein Space mit diesem Namen",
+    "keys_hint": "Tasten für einen Space: Einstellungen → Tastaturkurzbefehle"
+  },
+  "switcher": {
+    "label": "Tabs nach letzter Nutzung"
+  },
+  "resizer": {
+    "label": "Breite der Seitenleiste",
+    "title": "Ziehen ändert die Breite · Doppelklick setzt sie zurück"
+  },
+  "panel_grip": {
+    "label": "Breite des Web-Panels",
+    "title": "Ziehen ändert die Breite · Doppelklick setzt sie zurück"
+  },
+  "icon_picker": {
+    "default": "Standardsymbol"
+  },
+  "glyphs": {
+    "bolt": "Blitz",
+    "home": "Haus",
+    "briefcase": "Aktentasche",
+    "book": "Buch",
+    "code": "Code",
+    "globe": "Globus",
+    "heart": "Herz",
+    "star": "Stern",
+    "music": "Musik",
+    "cart": "Einkaufswagen",
+    "camera": "Kamera",
+    "flask": "Kolben",
+    "leaf": "Blatt",
+    "flame": "Flamme",
+    "chat": "Sprechblase",
+    "wrench": "Schraubenschlüssel",
+    "compass": "Kompass",
+    "folder": "Ordner",
+    "plane": "Flugzeug",
+    "gamepad": "Gamepad",
+    "shield": "Schild",
+    "medical": "Medizin",
+    "github": "GitHub",
+    "diamond": "Raute",
+    "circle": "Kreis",
+    "square": "Quadrat",
+    "triangle": "Dreieck"
+  },
+  "time": {
+    "just_now": "gerade eben",
+    "minutes_ago": "vor {minutes} Min.",
+    "hours_ago": "vor {hours} Std.",
+    "days_ago_one": "vor 1 Tag",
+    "days_ago_other": "vor {count} Tagen"
+  }
+}

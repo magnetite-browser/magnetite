@@ -5,6 +5,7 @@
 // width: there the pointer's travel on the screen since the press counts.
 import { useRef } from "react";
 import { send, type SidebarSide } from "./bridge";
+import { t } from "./i18n";
 
 const DEFAULT_WIDTH = 264;
 
@@ -25,8 +26,8 @@ export function SidebarResizer({ side }: { side: SidebarSide }) {
       data-side={side}
       role="separator"
       aria-orientation="vertical"
-      aria-label="Sidebar width"
-      title="Drag to resize the sidebar · double-click to reset"
+      aria-label={t("sidebar.resizer.label")}
+      title={t("sidebar.resizer.title")}
       onPointerDown={(e) => {
         e.preventDefault();
         e.currentTarget.setPointerCapture(e.pointerId);

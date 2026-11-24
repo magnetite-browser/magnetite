@@ -16,6 +16,7 @@ import { Field, Group, Toggle } from "./settings/fields";
 import { SpaceIcon } from "./Glyphs";
 import { BookmarksSection } from "./settings/BookmarksSection";
 import { ImportBrowsers } from "./settings/ImportBrowsers";
+import { LanguageField } from "./settings/LanguageField";
 import { PickList } from "./settings/PickList";
 import { PermissionsSection } from "./settings/PermissionsSection";
 import { SearchedSection, SearchResults } from "./settings/SearchResults";
@@ -25,6 +26,7 @@ import { FavoritesSection, ProfilePick, ProfilesSection, spaceOptions, SpacesSec
 import { SmartFoldersSection } from "./settings/SmartFoldersSection";
 import { SyncSection, type SyncJob } from "./settings/SyncSection";
 import type { Info, SettingsPatch } from "./settings/types";
+import { t } from "./i18n";
 
 /** The Chrome Web Store's extensions section. */
 
@@ -35,47 +37,47 @@ const GROUPS: { label: string; sections: Section[] }[] = [
   {
     label: "",
     sections: [
-      { id: "general", label: "General", Icon: SettingsIcon, title: "General", intro: "Windows, the command bar and the first start. No account is needed." },
-      { id: "appearance", label: "Appearance", Icon: PaletteIcon, title: "Appearance", intro: "How the sidebar and Magnetite's own pages look. Web pages keep their own design." },
-      { id: "shortcuts", label: "Shortcuts", Icon: KeyboardIcon, title: "Shortcuts", intro: "The keys that run Magnetite's commands. Give any of them other keys, or none." },
+      { id: "general", label: t("settings.sections.general.label"), Icon: SettingsIcon, title: t("settings.sections.general.label"), intro: t("settings.sections.general.intro") },
+      { id: "appearance", label: t("settings.sections.appearance.label"), Icon: PaletteIcon, title: t("settings.sections.appearance.label"), intro: t("settings.sections.appearance.intro") },
+      { id: "shortcuts", label: t("settings.sections.shortcuts.label"), Icon: KeyboardIcon, title: t("settings.sections.shortcuts.label"), intro: t("settings.sections.shortcuts.intro") },
     ],
   },
   {
-    label: "Browsing",
+    label: t("settings.groups.browsing"),
     sections: [
-      { id: "tabs", label: "Tabs and archive", Icon: Archive, title: "Tabs and archive", intro: "A closed tab goes to the archive, and Today tabs you stop using move there on their own. It can be opened again for as long as the archive keeps it." },
-      { id: "links", label: "Links", Icon: LinkIcon, title: "Links", intro: "What happens to a link you click in another app, to a link a page opens in a new tab, and to a link you copy." },
-      { id: "search", label: "Search", Icon: Search, title: "Search", intro: "Used when what you type in the command bar is not a web address. A keyword and a space search one site instead." },
-      { id: "adblock", label: "Content blocking", Icon: AdblockIcon, title: "Content blocking", intro: "Magnetite can stop ads and trackers before they load, with filter lists you choose. Off until you turn it on." },
-      { id: "video", label: "Protected video", Icon: VideoIcon, title: "Protected video", intro: "Some streaming services do not play in Magnetite's Chromium engine yet. Their pages open in your system's own web engine instead." },
-      { id: "permissions", label: "Permissions", Icon: CameraIcon, title: "Permissions", intro: "The websites that may, or may not, use your camera, microphone or location, send notifications, open pop-ups or read the clipboard. A website asks first; this is what you answered." },
-      { id: "autofill", label: "Passwords and autofill", Icon: KeyIcon, title: "Passwords and autofill", intro: "Magnetite can keep your passwords, addresses and cards and fill them in for you. What it saves stays on this computer." },
-      { id: "code", label: "User scripts and styles", Icon: BracesIcon, title: "User scripts and styles", intro: "Change how a site looks or behaves with CSS and JavaScript of your own: hide a part of a page, change its fonts or colors, or run a small script on it. They are for web pages, not for Magnetite's own." },
+      { id: "tabs", label: t("settings.sections.tabs.label"), Icon: Archive, title: t("settings.sections.tabs.label"), intro: t("settings.sections.tabs.intro") },
+      { id: "links", label: t("settings.sections.links.label"), Icon: LinkIcon, title: t("settings.sections.links.label"), intro: t("settings.sections.links.intro") },
+      { id: "search", label: t("settings.sections.search.label"), Icon: Search, title: t("settings.sections.search.label"), intro: t("settings.sections.search.intro") },
+      { id: "adblock", label: t("settings.sections.adblock.label"), Icon: AdblockIcon, title: t("settings.sections.adblock.label"), intro: t("settings.sections.adblock.intro") },
+      { id: "video", label: t("settings.sections.video.label"), Icon: VideoIcon, title: t("settings.sections.video.label"), intro: t("settings.sections.video.intro") },
+      { id: "permissions", label: t("settings.sections.permissions.label"), Icon: CameraIcon, title: t("settings.sections.permissions.label"), intro: t("settings.sections.permissions.intro") },
+      { id: "autofill", label: t("settings.sections.autofill.label"), Icon: KeyIcon, title: t("settings.sections.autofill.label"), intro: t("settings.sections.autofill.intro") },
+      { id: "code", label: t("settings.sections.code.label"), Icon: BracesIcon, title: t("settings.sections.code.label"), intro: t("settings.sections.code.intro") },
     ],
   },
   {
-    label: "Organization",
+    label: t("settings.groups.organization"),
     sections: [
-      { id: "spaces", label: "Spaces", Icon: SharedIcon, title: "Spaces", intro: "Your spaces: their names, order and look, and the profile each one signs in with." },
-      { id: "profiles", label: "Profiles", Icon: CookieIcon, title: "Profiles", intro: "The sets of logins your spaces and favorites sign in with, and what uses each of them." },
-      { id: "favorites", label: "Favorites", Icon: Pin, title: "Favorites", intro: "The sites at the top of the sidebar: their names and order, the spaces each one shows in, and its profile." },
-      { id: "bookmarks", label: "Bookmarks", Icon: BookmarkIcon, title: "Bookmarks", intro: "The saved addresses of each space: adding its pinned tabs, deleting, and importing and exporting them as a file." },
-      { id: "smart", label: "Smart folders", Icon: SmartFolderIcon, title: "Smart folders", intro: "Folders that fill themselves with your pull requests, issues or tickets. Magnetite asks the service from this computer; tokens stay here and are never synced." },
+      { id: "spaces", label: t("settings.sections.spaces.label"), Icon: SharedIcon, title: t("settings.sections.spaces.label"), intro: t("settings.sections.spaces.intro") },
+      { id: "profiles", label: t("settings.sections.profiles.label"), Icon: CookieIcon, title: t("settings.sections.profiles.label"), intro: t("settings.sections.profiles.intro") },
+      { id: "favorites", label: t("settings.sections.favorites.label"), Icon: Pin, title: t("settings.sections.favorites.label"), intro: t("settings.sections.favorites.intro") },
+      { id: "bookmarks", label: t("settings.sections.bookmarks.label"), Icon: BookmarkIcon, title: t("settings.sections.bookmarks.label"), intro: t("settings.sections.bookmarks.intro") },
+      { id: "smart", label: t("settings.sections.smart.label"), Icon: SmartFolderIcon, title: t("settings.sections.smart.label"), intro: t("settings.sections.smart.intro") },
     ],
   },
   {
-    label: "Services",
+    label: t("settings.groups.services"),
     sections: [
-      { id: "sync", label: "Sync", Icon: DevicesIcon, title: "Sync", intro: "Optional, zero-knowledge sync between your devices, through Magnetite's free server or one you host yourself. No account: a 24-word sync code is the only key." },
-      { id: "extensions", label: "Extensions", Icon: PuzzleIcon, title: "Extensions", intro: "Chrome extensions install from the Chrome Web Store, right here in Magnetite. Choose which ones sit in the sidebar; all of them are in the menu bar under Extensions." },
+      { id: "sync", label: t("settings.sections.sync.label"), Icon: DevicesIcon, title: t("settings.sections.sync.label"), intro: t("settings.sections.sync.intro") },
+      { id: "extensions", label: t("settings.sections.extensions.label"), Icon: PuzzleIcon, title: t("settings.sections.extensions.label"), intro: t("settings.sections.extensions.intro") },
     ],
   },
   {
-    label: "Advanced",
+    label: t("settings.groups.advanced"),
     sections: [
-      { id: "developer", label: "Developer tools", Icon: CodeIcon, title: "Developer tools", intro: "Tools for building and debugging websites." },
-      { id: "data", label: "Data and privacy", Icon: PrivacyIcon, title: "Data and privacy", intro: "No telemetry, no Magnetite account. What Magnetite keeps on this computer, and the few servers it talks to." },
-      { id: "about", label: "About", Icon: InfoIcon, title: "About Magnetite", intro: "A free, open-source browser built around a sidebar, on a Chromium engine, made in Europe." },
+      { id: "developer", label: t("settings.sections.developer.label"), Icon: CodeIcon, title: t("settings.sections.developer.label"), intro: t("settings.sections.developer.intro") },
+      { id: "data", label: t("settings.sections.data.label"), Icon: PrivacyIcon, title: t("settings.sections.data.label"), intro: t("settings.sections.data.intro") },
+      { id: "about", label: t("settings.sections.about.label"), Icon: InfoIcon, title: t("settings.sections.about.title"), intro: t("settings.sections.about.intro") },
     ],
   },
 ];
@@ -176,7 +178,7 @@ export function SettingsPage() {
   // A start or join of sync the app has not answered yet (see `SyncSection`).
   const [syncJob, setSyncJob] = useState<SyncJob | null>(null);
   useEffect(() => {
-    document.title = "Settings";
+    document.title = t("common.settings");
     void reload();
   }, [reload]);
   // The app does not tell this page what changes elsewhere (the sidebar's
@@ -217,102 +219,105 @@ export function SettingsPage() {
   const ownSpace = sectionId === "spaces" && place.item ? info.spaces.find((sp) => sp.id === place.item) : undefined;
   // One section is on the page: always, but for the list of what a search found.
   const shown = !searching || picked;
+  // Ctrl+Tab is the Control key on a Mac too; elsewhere that key has its name in the page's language.
+  const ctrl = IS_MAC ? "Ctrl" : t("settings.keys.ctrl");
   /** The settings of one section. */
   const body = (sectionId: string) => (
     <>
       {sectionId === "general" && (
         <>
-          <Group title="Windows">
-          <Toggle label="Several windows" hint="New Window opens another window on the same sidebar; choosing a tab in one window moves it there. Windows open again after a restart. New, and untested on macOS and Windows." checked={settings.several_windows} onChange={(v) => update({ several_windows: v })} />
-          {settings.several_windows && <Toggle label="Private space in its own window" hint="The private space opens in a new window that shows it alone, instead of in the sidebar of the window you open it from. Closing that window closes the private space." checked={settings.private_window} onChange={(v) => update({ private_window: v })} />}
-          <Toggle label="Web panels close by themselves" hint="A web panel (a favorite with &quot;Open as panel&quot;) closes when you click into the page behind it. Off: it stays until you close it." checked={settings.panel_autoclose} onChange={(v) => update({ panel_autoclose: v })} />
-          <Toggle label="Pop out playing videos" hint="When you leave a tab with a playing video, it continues in a floating picture-in-picture window. Coming back puts it into the page again." checked={settings.auto_pip} onChange={(v) => update({ auto_pip: v })} />
+          <Group title={t("settings.general.windows.title")}>
+          <Toggle label={t("settings.general.windows.several.label")} hint={t("settings.general.windows.several.hint")} checked={settings.several_windows} onChange={(v) => update({ several_windows: v })} />
+          {settings.several_windows && <Toggle label={t("settings.general.windows.private_window.label")} hint={t("settings.general.windows.private_window.hint")} checked={settings.private_window} onChange={(v) => update({ private_window: v })} />}
+          <Toggle label={t("settings.general.windows.panel_autoclose.label")} hint={t("settings.general.windows.panel_autoclose.hint")} checked={settings.panel_autoclose} onChange={(v) => update({ panel_autoclose: v })} />
+          <Toggle label={t("settings.general.windows.auto_pip.label")} hint={t("settings.general.windows.auto_pip.hint")} checked={settings.auto_pip} onChange={(v) => update({ auto_pip: v })} />
           </Group>
-          <Group title="Downloads">
+          <Group title={t("settings.general.downloads.title")}>
             {/* Each sends its own part only: the other one may be newer than this page knows. */}
             <DownloadFolder folder={settings.downloads.folder} missing={info.download_folder_missing} reset={() => send({ cmd: "set_settings", settings: { downloads: { folder: "" } } }).then(reload)} chosen={reload} />
-            <Toggle label="Ask where to save each file" hint="A dialog for every download, to name the file and its folder." checked={settings.downloads.ask} onChange={(ask) => void send({ cmd: "set_settings", settings: { downloads: { ask } } }).then(reload, reload).catch(() => {})} />
+            <Toggle label={t("settings.general.downloads.ask.label")} hint={t("settings.general.downloads.ask.hint")} checked={settings.downloads.ask} onChange={(ask) => void send({ cmd: "set_settings", settings: { downloads: { ask } } }).then(reload, reload).catch(() => {})} />
           </Group>
-          <Group title="Text and languages">
-            <Toggle label="Check spelling as you type" hint="Marks words the spell checker does not know, in the text fields of web pages." checked={settings.languages.spellcheck} onChange={(spellcheck) => void send({ cmd: "set_settings", settings: { languages: { spellcheck } } }).then(reload, reload).catch(() => {})} />
+          <Group title={t("settings.general.languages.title")}>
+            <LanguageField chosen={settings.language} system={info.system_language} save={(language) => update({ language })} />
+            <Toggle label={t("settings.general.languages.spellcheck.label")} hint={t("settings.general.languages.spellcheck.hint")} checked={settings.languages.spellcheck} onChange={(spellcheck) => void send({ cmd: "set_settings", settings: { languages: { spellcheck } } }).then(reload, reload).catch(() => {})} />
             <WebLanguages key={settings.languages.languages.join()} saved={settings.languages.languages} save={(languages) => send({ cmd: "set_settings", settings: { languages: { languages } } }).then(() => void reload().catch(() => undefined))} />
           </Group>
-          <Group title="Command bar">
-          <Toggle label={`Quick search from anywhere (${keyLabel("⌥⌘N")})`} hint="Opens the command bar over any app; what you pick opens in a mini window. Only that key combination reaches Magnetite, no other typing." checked={settings.quick_search} onChange={(v) => update({ quick_search: v })} />
+          <Group title={t("settings.general.command_bar.title")}>
+          <Toggle label={t("settings.general.command_bar.quick_search.label", { keys: keyLabel("⌥⌘N") })} hint={t("settings.general.command_bar.quick_search.hint")} checked={settings.quick_search} onChange={(v) => update({ quick_search: v })} />
           </Group>
-          <Group title="First start">
-          <Field side label="Welcome page" hint="The questions of the first start, once more. Nothing you have set changes until you choose something there.">
-            <button className="btn" onClick={() => void send({ cmd: "new_tab", url: "magnetite://ui/welcome" })}>Show it again</button>
+          <Group title={t("settings.general.first_start.title")}>
+          <Field side label={t("settings.general.first_start.welcome.label")} hint={t("settings.general.first_start.welcome.hint")}>
+            <button className="btn" onClick={() => void send({ cmd: "new_tab", url: "magnetite://ui/welcome" })}>{t("settings.general.first_start.welcome.show")}</button>
           </Field>
           </Group>
         </>
       )}
       {sectionId === "links" && (
         <>
-          <Group title="From other apps">
+          <Group title={t("settings.links.other_apps.title")}>
           {info.default_browser !== "unknown" && <DefaultBrowserCard key={info.default_browser} state={info.default_browser} />}
-          <Field side label="Open links from other apps in" hint="Links from Mail, Slack and other apps, when Magnetite is your default browser.">
+          <Field side label={t("settings.links.other_apps.open_in.label")} hint={t("settings.links.other_apps.open_in.hint")}>
             <select className="field" value={settings.external_links} onChange={(e) => update({ external_links: e.target.value as Settings["external_links"] })}>
               {EXTERNAL_LINKS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </Field>
           <LinkRules saved={settings.link_rules} spaces={info.spaces} save={(rules) => update({ link_rules: rules })} />
           </Group>
-          <Group title="From pages">
-          <Field side label="Links opened in a new tab" hint={`Open Link in New Tab, ${keyLabel("⌘")}-click and middle click. Waiting keeps the memory free until you open the tab.`}>
+          <Group title={t("settings.links.pages.title")}>
+          <Field side label={t("settings.links.pages.new_tab.label")} hint={t("settings.links.pages.new_tab.hint", { key: keyLabel("⌘") })}>
             <select className="field" value={settings.new_tab_links} onChange={(e) => update({ new_tab_links: e.target.value as Settings["new_tab_links"] })}>
-              <option value="inactive">wait until opened</option>
-              <option value="load">load in the background</option>
-              <option value="switch">switch to the new tab</option>
+              <option value="inactive">{t("settings.links.pages.new_tab.inactive")}</option>
+              <option value="load">{t("settings.links.pages.new_tab.load")}</option>
+              <option value="switch">{t("settings.links.pages.new_tab.switch")}</option>
             </select>
           </Field>
           </Group>
-          <Group title="Copied links">
-          <Toggle label="Remove trackers from copied links" hint="Copy Link drops tracking parameters such as utm_source and fbclid." checked={settings.strip_trackers} onChange={(v) => update({ strip_trackers: v })} />
+          <Group title={t("settings.links.copied.title")}>
+          <Toggle label={t("settings.links.copied.strip_trackers.label")} hint={t("settings.links.copied.strip_trackers.hint")} checked={settings.strip_trackers} onChange={(v) => update({ strip_trackers: v })} />
           </Group>
         </>
       )}
       {sectionId === "tabs" && (
         <>
-          <Group title="Tidying up" hint="What Magnetite does with tabs you leave alone. An archived tab can be opened again for as long as the archive keeps it.">
-          <Field side label="Archive Today tabs after" hint="Pinned tabs and favorites are left where they are.">
+          <Group title={t("settings.tabs.tidying.title")} hint={t("settings.tabs.tidying.hint")}>
+          <Field side label={t("settings.tabs.tidying.archive_after.label")} hint={t("settings.tabs.tidying.archive_after.hint")}>
             <select className="field" value={settings.auto_archive_hours} onChange={(e) => update({ auto_archive_hours: Number(e.target.value) })}>
-              {ARCHIVE_AFTER.map((t) => <option key={t.hours} value={t.hours}>{t.label}</option>)}
+              {ARCHIVE_AFTER.map((a) => <option key={a.hours} value={a.hours}>{a.label}</option>)}
             </select>
           </Field>
           <Retention
             key={settings.archive_days}
-            label="Keep archived tabs for"
-            hint="Older ones are deleted from the archive for good. A tab can also be removed by hand in the archive view."
+            label={t("settings.tabs.tidying.keep_archived.label")}
+            hint={t("settings.tabs.tidying.keep_archived.hint")}
             presets={[30, 60, 90]}
-            special="Forever"
+            special={t("settings.tabs.tidying.keep_archived.forever")}
             days={settings.archive_days}
             save={(days) => update({ archive_days: days })}
           />
-          <Field side label="Suspend inactive tabs after" hint="Suspended tabs keep their place and reload when opened. This is what keeps hundreds of tabs cheap.">
+          <Field side label={t("settings.tabs.tidying.unload_after.label")} hint={t("settings.tabs.tidying.unload_after.hint")}>
             <select className="field" value={settings.unload_minutes} onChange={(e) => update({ unload_minutes: Number(e.target.value) })}>
-              {UNLOAD_AFTER.map((t) => <option key={t.minutes} value={t.minutes}>{t.label}</option>)}
+              {UNLOAD_AFTER.map((u) => <option key={u.minutes} value={u.minutes}>{u.label}</option>)}
             </select>
           </Field>
-          <Toggle label="Load pinned tabs at start" hint="Favorites and pinned tabs of every space load when Magnetite starts, so they are ready on the first click. Off: each one loads when you first open it." checked={settings.load_pinned_at_start} onChange={(v) => update({ load_pinned_at_start: v })} />
-          <Field side label="Archived tabs" hint={`${info.archive_count} so far. Search them from the command bar or the archive view in the sidebar.`}>
-            <button className="btn" onClick={() => send({ cmd: "reopen_closed" })}>Reopen last archived tab</button>
+          <Toggle label={t("settings.tabs.tidying.load_pinned.label")} hint={t("settings.tabs.tidying.load_pinned.hint")} checked={settings.load_pinned_at_start} onChange={(v) => update({ load_pinned_at_start: v })} />
+          <Field side label={t("settings.tabs.tidying.archived.label")} hint={t("settings.tabs.tidying.archived.hint", { number: info.archive_count })}>
+            <button className="btn" onClick={() => send({ cmd: "reopen_closed" })}>{t("settings.tabs.tidying.archived.reopen")}</button>
           </Field>
           </Group>
-          <Group title="Getting around">
-          <Field side label="Ctrl+Tab goes through the tabs" hint="By last use: one press goes to the tab used before this one; hold Ctrl and press Tab again to go further back. In sidebar order: down the sidebar, row by row.">
+          <Group title={t("settings.tabs.getting_around.title")}>
+          <Field side label={t("settings.tabs.getting_around.ctrl_tab.label", { ctrl })} hint={t("settings.tabs.getting_around.ctrl_tab.hint", { ctrl })}>
             <div className="seg">
-              {([["recent", "By last use"], ["sidebar", "In sidebar order"]] as const).map(([order, label]) => (
+              {([["recent", t("settings.tabs.getting_around.ctrl_tab.recent")], ["sidebar", t("settings.tabs.getting_around.ctrl_tab.sidebar")]] as const).map(([order, label]) => (
                 <button key={order} data-on={settings.tab_order === order || undefined} aria-pressed={settings.tab_order === order} onClick={() => update({ tab_order: order })}>{label}</button>
               ))}
             </div>
           </Field>
-          <Field side label="Clicking the archive button opens" hint="The button at the bottom left of the sidebar; resting on it shows bookmarks, history, downloads and the archive. While a download runs, a click opens downloads.">
+          <Field side label={t("settings.tabs.getting_around.library.label")} hint={t("settings.tabs.getting_around.library.hint")}>
             <select className="field" value={settings.library_opens} onChange={(e) => update({ library_opens: e.target.value as Settings["library_opens"] })}>
-              <option value="archive">the archive</option>
-              <option value="downloads">downloads</option>
-              <option value="bookmarks">bookmarks</option>
-              <option value="history">history</option>
+              <option value="archive">{t("settings.tabs.getting_around.library.archive")}</option>
+              <option value="downloads">{t("settings.tabs.getting_around.library.downloads")}</option>
+              <option value="bookmarks">{t("settings.tabs.getting_around.library.bookmarks")}</option>
+              <option value="history">{t("settings.tabs.getting_around.library.history")}</option>
             </select>
           </Field>
           </Group>
@@ -326,12 +331,12 @@ export function SettingsPage() {
       {sectionId === "search" && (
         <>
           <Group>
-          <Field side label="Search engine" hint="Nothing goes to it until you search.">
+          <Field side label={t("settings.search.engine.label")} hint={t("settings.search.engine.hint")}>
             {/* Found by the names of the engines too, which only the list holds. */}
             <span hidden data-search-name>{SEARCH_ENGINES.map((e) => e.label).join(" ")}</span>
-            <select className="field" aria-label="Search engine" value={SEARCH_ENGINES.some((e) => e.template === settings.search_template) ? settings.search_template : ""} onChange={(e) => e.target.value && update({ search_template: e.target.value })}>
+            <select className="field" aria-label={t("settings.search.engine.label")} value={SEARCH_ENGINES.some((e) => e.template === settings.search_template) ? settings.search_template : ""} onChange={(e) => e.target.value && update({ search_template: e.target.value })}>
               {SEARCH_ENGINES.map((e) => <option key={e.template} value={e.template}>{e.label}</option>)}
-              {!SEARCH_ENGINES.some((e) => e.template === settings.search_template) && <option value="">Your own address</option>}
+              {!SEARCH_ENGINES.some((e) => e.template === settings.search_template) && <option value="">{t("settings.search.engine.own")}</option>}
             </select>
           </Field>
           <SearchAddress key={settings.search_template} saved={settings.search_template} save={(template) => update({ search_template: template })} />
@@ -349,9 +354,9 @@ export function SettingsPage() {
       {sectionId === "developer" && (
         <>
           <Group>
-        <Field label="Developer tools open" hint="With F12 or from the site panel. Docked tools sit next to the page inside the window.">
+        <Field label={t("settings.developer.dock.label")} hint={t("settings.developer.dock.hint")}>
           <div className="seg">
-            {([["right", "Right of the page"], ["bottom", "Below the page"], ["window", "In a separate window"]] as const).map(([v, label]) => (
+            {([["right", t("settings.developer.dock.right")], ["bottom", t("settings.developer.dock.bottom")], ["window", t("settings.developer.dock.window")]] as const).map(([v, label]) => (
               <button key={v} data-on={settings.devtools_dock === v || undefined} onClick={() => update({ devtools_dock: v })}>{label}</button>
             ))}
           </div>
@@ -363,59 +368,59 @@ export function SettingsPage() {
       {sectionId === "extensions" && (
         <>
           <ExtensionsSection info={info} reload={reload} />
-          <Group title="Inside pages">
-          <Toggle label="Show the Chrome toolbar inside pages" hint="Chromium's own toolbar row above every page, with its extension buttons. Applies to tabs loaded from now on." checked={settings.chrome_toolbar} onChange={(v) => update({ chrome_toolbar: v })} />
+          <Group title={t("settings.extensions.inside_pages.title")}>
+          <Toggle label={t("settings.extensions.inside_pages.chrome_toolbar.label")} hint={t("settings.extensions.inside_pages.chrome_toolbar.hint")} checked={settings.chrome_toolbar} onChange={(v) => update({ chrome_toolbar: v })} />
           </Group>
-          <Group title="Unpacked extensions">
-          <Toggle label="Keep unpacked extensions on when Developer mode is off" hint="Manifest V2 extensions can only be loaded unpacked, and Chromium switches unpacked extensions off while Developer mode is off. With this on, an extension another program put into your profile stays on too. Applies after Magnetite restarts." checked={settings.keep_unpacked_extensions} onChange={(v) => update({ keep_unpacked_extensions: v })} />
+          <Group title={t("settings.extensions.unpacked.title")}>
+          <Toggle label={t("settings.extensions.unpacked.keep.label")} hint={t("settings.extensions.unpacked.keep.hint")} checked={settings.keep_unpacked_extensions} onChange={(v) => update({ keep_unpacked_extensions: v })} />
           </Group>
         </>
       )}
       {sectionId === "sync" && <SyncSection info={info} reload={reload} job={syncJob} setJob={setSyncJob} />}
       {sectionId === "data" && (
         <>
-          <Group title="Browsing data">
+          <Group title={t("settings.data.browsing.title")}>
           <Retention
             key={settings.history_days}
-            label="Keep history for"
-            hint="The pages you visit, with title and time, to find them again: the newest 25,000 at most. Kept on this computer only, never synced; private profiles leave none."
+            label={t("settings.data.browsing.history.label")}
+            hint={t("settings.data.browsing.history.hint", { limit: 25_000 })}
             presets={[7, 30, 90, 365]}
-            special="Don't keep history"
+            special={t("settings.data.browsing.history.none")}
             days={settings.history_days}
             save={(days) => update({ history_days: days })}
           />
-          <Field side label="Visited pages" hint={`${info.history_count} so far. Single pages can be removed in the history view.`}>
+          <Field side label={t("settings.data.browsing.visited.label")} hint={t("settings.data.browsing.visited.hint", { number: info.history_count })}>
             <ClearHistory key={info.history_count} disabled={info.history_count === 0} onClear={() => send({ cmd: "clear_history" }).then(() => void reload())} />
           </Field>
             <ClearBrowsingData info={info} reload={reload} />
           </Group>
-          <Group title="Import">
+          <Group title={t("settings.data.import.title")}>
           <ImportBrowsers />
-          <Field side label="Bookmarks as a file" hint="Importing a bookmarks file and exporting your bookmarks are in Bookmarks.">
-            <button className="btn" onClick={() => openSection("bookmarks")}>Open Bookmarks</button>
+          <Field side label={t("settings.data.import.bookmarks.label")} hint={t("settings.data.import.bookmarks.hint")}>
+            <button className="btn" onClick={() => openSection("bookmarks")}>{t("settings.data.import.bookmarks.open")}</button>
           </Field>
           </Group>
-          <Group title="What websites are told">
-            <Toggle label="Tell websites not to sell or share my data" hint="Global Privacy Control: every request to a website carries the signal, and a page can read it in its scripts. Some laws oblige a website to honor it; whether one does is up to the website." checked={settings.global_privacy_control} onChange={(v) => update({ global_privacy_control: v })} />
+          <Group title={t("settings.data.told.title")}>
+            <Toggle label={t("settings.data.told.gpc.label")} hint={t("settings.data.told.gpc.hint")} checked={settings.global_privacy_control} onChange={(v) => update({ global_privacy_control: v })} />
           </Group>
-          <Group title="What Magnetite talks to" hint="Nothing else leaves this computer: no telemetry, no usage data, no account.">
+          <Group title={t("settings.data.talks.title")} hint={t("settings.data.talks.hint")}>
             <ul className="set-list set-talks">
-              <li data-search-row><b>The sites you open</b><span>and what their pages load, less what ad blocking stops.</span></li>
-              <li data-search-row><b>Services you connect</b><span>your sync server, and the servers of your smart folders.</span></li>
-              <li data-search-row><b>Publishers of filter lists</b><span>for the ad blocking lists you choose, every four days.</span></li>
-              <li data-search-row><b>GitHub</b><span>for update checks, at start and once a day, unless turned off in About. Not where your system's packages bring the updates.</span></li>
-              <li data-search-row><b>Google's component server</b><span>from which Chromium fetches the Widevine module for protected video and its certificate lists.</span></li>
-              <li data-search-row><b>Google's password check</b><span>only while "Warn about passwords from data breaches" is on: an encrypted fragment of a password you sign in with.</span></li>
+              <li data-search-row><b>{t("settings.data.talks.sites.name")}</b><span>{t("settings.data.talks.sites.what")}</span></li>
+              <li data-search-row><b>{t("settings.data.talks.services.name")}</b><span>{t("settings.data.talks.services.what")}</span></li>
+              <li data-search-row><b>{t("settings.data.talks.filter_lists.name")}</b><span>{t("settings.data.talks.filter_lists.what")}</span></li>
+              <li data-search-row><b>GitHub</b><span>{t("settings.data.talks.github.what")}</span></li>
+              <li data-search-row><b>{t("settings.data.talks.components.name")}</b><span>{t("settings.data.talks.components.what")}</span></li>
+              <li data-search-row><b>{t("settings.data.talks.password_check.name")}</b><span>{t("settings.data.talks.password_check.what")}</span></li>
             </ul>
           </Group>
-          <Group title="On this computer">
-          <Field label="Where your data lives" hint="The sidebar, archive and settings are in state.json, the history in history.json; Chromium's profile data (cookies, cache, extensions) in the cef folder next to it.">
+          <Group title={t("settings.data.computer.title")}>
+          <Field label={t("settings.data.computer.where.label")} hint={t("settings.data.computer.where.hint")}>
             <DataFolder path={info.data_dir} />
           </Field>
           {info.keychain === "test" && (
             <Field
-              label="Development mode: cookies use a fixed key"
-              hint="This data folder runs with --mock-keychain: Chromium encrypts cookies and saved passwords with its built-in test key instead of one in your macOS Keychain, so any program that can read the folder can read them. Fine while developing; a signed release build uses the Keychain."
+              label={t("settings.data.computer.mock_keychain.label")}
+              hint={t("settings.data.computer.mock_keychain.hint")}
             />
           )}
           </Group>
@@ -431,14 +436,14 @@ export function SettingsPage() {
     <div className="set-page" style={{ background: "var(--bg)" }}>
       <div className="set-layout">
       <nav className="set-nav scroll w-[232px] shrink-0 border-r border-[var(--line)] p-3">
-        <div className="set-nav-title px-2 pb-2 pt-1 text-[16px] font-semibold">Settings</div>
+        <div className="set-nav-title px-2 pb-2 pt-1 text-[16px] font-semibold">{t("common.settings")}</div>
         <label className="set-search">
           <Search width={14} height={14} />
-          <input ref={searchField} type="search" className="field" placeholder="Search settings" aria-label="Search settings" value={query} onChange={(e) => type(e.target.value)} onKeyDown={(e) => e.key === "Escape" && type("")} spellCheck={false} />
+          <input ref={searchField} type="search" className="field" placeholder={t("settings.page.search")} aria-label={t("settings.page.search")} value={query} onChange={(e) => type(e.target.value)} onKeyDown={(e) => e.key === "Escape" && type("")} spellCheck={false} />
         </label>
         {/* The sections as one list, for a page too narrow for them at its side. */}
-        <select className="field set-nav-pick" aria-label="Section" value={shown ? sectionId : ""} onChange={(e) => openSection(e.target.value)}>
-          {!shown && <option value="" disabled>Search results</option>}
+        <select className="field set-nav-pick" aria-label={t("settings.page.section")} value={shown ? sectionId : ""} onChange={(e) => openSection(e.target.value)}>
+          {!shown && <option value="" disabled>{t("settings.page.search_results")}</option>}
           {GROUPS.map((g) => {
             const options = g.sections.map((s) => <option key={s.id} value={s.id}>{s.label}</option>);
             return g.label ? <optgroup key={g.label} label={g.label}>{options}</optgroup> : options;
@@ -468,7 +473,7 @@ export function SettingsPage() {
               {ownSpace && (
                 <button className="set-found" onClick={() => openSection("spaces")}>
                   <Back width={15} height={15} />
-                  All spaces
+                  {t("settings.page.all_spaces")}
                 </button>
               )}
               <header className="mb-6 flex items-start gap-4">
@@ -479,13 +484,13 @@ export function SettingsPage() {
                 )}
                 <div>
                   <h1 ref={heading} tabIndex={-1} className="text-[22px] font-semibold tracking-[-0.01em] outline-none">{ownSpace?.title ?? section.title}</h1>
-                  <p className="mt-1 max-w-[560px] text-[14px] leading-5 text-[var(--muted)]">{ownSpace ? "The settings of this space alone: its name, icon, look and profile. “All spaces” leads back to the list." : section.intro}</p>
+                  <p className="mt-1 max-w-[560px] text-[14px] leading-5 text-[var(--muted)]">{ownSpace ? t("settings.page.space_intro") : section.intro}</p>
                 </div>
               </header>
               {searching && (
-                <button className="set-found" onClick={() => { setPicked(false); searchField.current?.focus(); }} title="Back to everything the search found">
+                <button className="set-found" onClick={() => { setPicked(false); searchField.current?.focus(); }} title={t("settings.page.back_to_results")}>
                   <Back width={15} height={15} />
-                  Everything for “{query.trim()}”
+                  {t("settings.page.everything_for", { query: query.trim() })}
                 </button>
               )}
               <SearchedSection key={sectionId} query={searching ? query : ""} section={section} onFound={searching ? onSectionFound : undefined}>{body(sectionId)}</SearchedSection>
@@ -507,7 +512,7 @@ export function SettingsPage() {
 function SearchAddress({ saved, save }: { saved: string; save: (template: string) => void }) {
   const [ignored, setIgnored] = useState(false);
   return (
-    <Field label="Custom search address" hint="Use %s where the query goes. Takes effect when it starts with https:// and contains %s.">
+    <Field label={t("settings.search.custom.label")} hint={t("settings.search.custom.hint")}>
       <input
         className="field"
         defaultValue={saved}
@@ -521,7 +526,7 @@ function SearchAddress({ saved, save }: { saved: string; save: (template: string
         }}
         spellCheck={false}
       />
-      {ignored && <p className="set-hint" style={{ color: "var(--danger)" }}>Not saved: the address must start with https:// and contain %s.</p>}
+      {ignored && <p className="set-hint" style={{ color: "var(--danger)" }}>{t("settings.search.custom.invalid")}</p>}
     </Field>
   );
 }
@@ -529,7 +534,7 @@ function SearchAddress({ saved, save }: { saved: string; save: (template: string
 const MAX_RETENTION_DAYS = 3650;
 
 /** What the Settings page calls a retention period of `days`. */
-const daysLabel = (days: number) => (days === 365 ? "1 year" : `${days} days`);
+const daysLabel = (days: number) => (days === 365 ? t("settings.times.years", { count: 1 }) : t("settings.times.days", { count: days }));
 
 /**
  * How long the archive or the history keeps its records: one of `presets`
@@ -567,7 +572,7 @@ function Retention({ label, hint, presets, special, days, save }: {
           }}
         >
           {presets.map((d) => <option key={d} value={d}>{daysLabel(d)}</option>)}
-          <option value="custom">Custom…</option>
+          <option value="custom">{t("settings.retention.custom")}</option>
           <option value={0}>{special}</option>
         </select>
         {custom && (
@@ -577,18 +582,18 @@ function Retention({ label, hint, presets, special, days, save }: {
               style={{ width: 88 }}
               inputMode="numeric"
               value={text}
-              aria-label="Days"
+              aria-label={t("settings.retention.days")}
               aria-invalid={!valid || undefined}
               autoFocus={listed}
               onChange={(e) => setText(e.target.value.replace(/\D/g, "").slice(0, 4))}
               onBlur={commit}
               onKeyDown={(e) => e.key === "Enter" && commit()}
             />
-            <span className="shrink-0 text-[var(--muted)]">days</span>
+            <span className="shrink-0 text-[var(--muted)]">{t("settings.retention.days_unit")}</span>
           </>
         )}
       </div>
-      {custom && !valid && <p className="set-hint" style={{ color: "var(--danger)" }}>Not saved: enter 1 to {MAX_RETENTION_DAYS} days.</p>}
+      {custom && !valid && <p className="set-hint" style={{ color: "var(--danger)" }}>{t("settings.retention.invalid", { max: String(MAX_RETENTION_DAYS) })}</p>}
     </Field>
   );
 }
@@ -599,9 +604,9 @@ function ClearHistory({ disabled, onClear }: { disabled: boolean; onClear: () =>
   return (
     <div className="flex gap-2">
       <button className="btn" disabled={disabled} data-danger={confirming || undefined} onClick={() => (confirming ? onClear() : setConfirming(true))} onBlur={() => setConfirming(false)}>
-        {confirming ? "Clear all history" : "Clear history…"}
+        {confirming ? t("settings.data.browsing.visited.clear_all") : t("settings.data.browsing.visited.clear")}
       </button>
-      <button className="btn" onClick={() => send({ cmd: "show_history" })}>Show history</button>
+      <button className="btn" onClick={() => send({ cmd: "show_history" })}>{t("settings.data.browsing.visited.show")}</button>
     </div>
   );
 }
@@ -621,8 +626,8 @@ function DefaultBrowserCard({ state }: { state: DefaultBrowser }) {
       .finally(() => setAsking(false));
   };
   return (
-    <Field side label="Default browser" hint={now === "yes" ? "Magnetite opens links from other apps." : "Links from other apps open in another browser."}>
-      {now === "no" && <button className="btn" disabled={asking} onClick={ask}>{asking ? (IS_MAC ? "Waiting for macOS…" : "Opening Settings…") : "Make default"}</button>}
+    <Field side label={t("settings.links.other_apps.default_browser.label")} hint={now === "yes" ? t("settings.links.other_apps.default_browser.yes") : t("settings.links.other_apps.default_browser.no")}>
+      {now === "no" && <button className="btn" disabled={asking} onClick={ask}>{asking ? (IS_MAC ? t("settings.links.other_apps.default_browser.waiting_mac") : t("settings.links.other_apps.default_browser.opening_settings")) : t("settings.links.other_apps.default_browser.make_default")}</button>}
     </Field>
   );
 }
@@ -643,13 +648,13 @@ function DownloadFolder({ folder, missing, reset, chosen }: { folder: string; mi
   };
   const choose = () => run(send({ cmd: "choose_download_folder" }).then(chosen));
   return (
-    <Field side label="Save downloads to" hint={folder ? folder : "The Downloads folder of your system."}>
+    <Field side label={t("settings.general.downloads.folder.label")} hint={folder ? folder : t("settings.general.downloads.folder.system")}>
       <div className="flex gap-2">
-        {folder && <button className="btn ghost" disabled={busy} onClick={() => run(reset())}>Reset</button>}
-        <button className="btn" disabled={busy} onClick={choose}>Choose…</button>
+        {folder && <button className="btn ghost" disabled={busy} onClick={() => run(reset())}>{t("common.reset")}</button>}
+        <button className="btn" disabled={busy} onClick={choose}>{t("common.choose")}</button>
       </div>
-      {missing && folder && <p className="set-hint" style={{ color: "var(--warn)" }}>This folder is not there right now.</p>}
-      {failed && <p className="set-hint" style={{ color: "var(--danger)" }}>That did not work. What shows here may be out of date; try again.</p>}
+      {missing && folder && <p className="set-hint" style={{ color: "var(--warn)" }}>{t("settings.general.downloads.folder.missing")}</p>}
+      {failed && <p className="set-hint" style={{ color: "var(--danger)" }}>{t("settings.general.downloads.folder.failed")}</p>}
     </Field>
   );
 }
@@ -676,14 +681,14 @@ function ClearBrowsingData({ info, reload }: { info: Info; reload: () => Promise
     });
   };
   return (
-    <Field side label="Cookies, site data and cache" hint="Delete what websites have stored on this computer, for the last hour or for all time. Deleting cookies signs you out of websites. The dialog is Chromium's own; the history it names is not the one above.">
+    <Field side label={t("settings.data.browsing.site_data.label")} hint={t("settings.data.browsing.site_data.hint")}>
       <div className="flex flex-wrap gap-2">
         {logins.length > 1 && (
           <ProfilePick info={info} profiles={logins} value={profile} onChoose={setChosen} />
         )}
-        <button className="btn" disabled={!profile} onClick={open}>Delete…</button>
+        <button className="btn" disabled={!profile} onClick={open}>{t("settings.data.browsing.site_data.delete")}</button>
       </div>
-      {failed && <p className="set-hint" role="alert" style={{ color: "var(--danger)" }}>The dialog could not be opened for that profile. Choose again.</p>}
+      {failed && <p className="set-hint" role="alert" style={{ color: "var(--danger)" }}>{t("settings.data.browsing.site_data.failed")}</p>}
     </Field>
   );
 }
@@ -712,14 +717,14 @@ function WebLanguages({ saved, save }: { saved: string[]; save: (languages: stri
   const many = typed.length > MAX_LANGUAGES;
   // No language code, or one that names a variant twice.
   const twice = (tag: string) => tag.toLowerCase().split("-").some((part, i, all) => part.length > 3 && all.indexOf(part) !== i);
-  const wrong = typed.filter((t) => !LANGUAGE_TAG.test(t) || twice(t));
+  const wrong = typed.filter((tag) => !LANGUAGE_TAG.test(tag) || twice(tag));
   return (
-    <Field label="Languages websites are asked for" hint="In the order you prefer them, as language codes: de, en-US, en. A website with several languages can choose by them. Empty: the languages of your system. A change counts from the next start of Magnetite.">
+    <Field label={t("settings.general.languages.web.label")} hint={t("settings.general.languages.web.hint")}>
       <input
         className="field mono"
         value={text}
         placeholder="de, en-US, en"
-        aria-label="Languages websites are asked for"
+        aria-label={t("settings.general.languages.web.label")}
         aria-invalid={wrong.length > 0 || many || undefined}
         spellCheck={false}
         onChange={(e) => setText(e.target.value)}
@@ -729,10 +734,10 @@ function WebLanguages({ saved, save }: { saved: string[]; save: (languages: stri
         }}
         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
       />
-      {wrong.length > 0 && <p className="set-hint" style={{ color: "var(--danger)" }}>Not saved: {wrong.join(", ")} {wrong.length === 1 ? "is no language code" : "are no language codes"}.</p>}
-      {wrong.length === 0 && many && <p className="set-hint" style={{ color: "var(--danger)" }}>Not saved: no more than {MAX_LANGUAGES} languages.</p>}
+      {wrong.length > 0 && <p className="set-hint" style={{ color: "var(--danger)" }}>{t("settings.general.languages.web.not_codes", { count: wrong.length, codes: wrong.join(", ") })}</p>}
+      {wrong.length === 0 && many && <p className="set-hint" style={{ color: "var(--danger)" }}>{t("settings.general.languages.web.over_max", { max: MAX_LANGUAGES })}</p>}
       {/* Said aloud: it comes after the field was left. */}
-      {refused && <p className="set-hint" role="alert" style={{ color: "var(--danger)" }}>Not saved: that did not work. Leave the field again to try once more.</p>}
+      {refused && <p className="set-hint" role="alert" style={{ color: "var(--danger)" }}>{t("settings.general.languages.web.refused")}</p>}
     </Field>
   );
 }
@@ -771,9 +776,9 @@ function LinkRules({ saved, spaces, save }: { saved: LinkRule[]; spaces: Info["s
   }, [saved]);
   const problem = (rule: LinkRule, all: LinkRule[]): string | null => {
     const site = ruleSite(rule.site);
-    if (!site) return "Give a site, such as github.com or github.com/acme.";
-    if (all.find((r) => ruleSite(r.site) === site) !== rule) return "Another rule has this site.";
-    if (!spaces.some((s) => s.id === rule.space)) return "Choose a space; the one this rule had is gone.";
+    if (!site) return t("settings.links.other_apps.rules.no_site");
+    if (all.find((r) => ruleSite(r.site) === site) !== rule) return t("settings.links.other_apps.rules.taken");
+    if (!spaces.some((s) => s.id === rule.space)) return t("settings.links.other_apps.rules.space_gone");
     return null;
   };
   const commit = (next: LinkRule[]) => {
@@ -788,7 +793,7 @@ function LinkRules({ saved, spaces, save }: { saved: LinkRule[]; spaces: Info["s
     return next;
   };
   return (
-    <Field label="Links to these sites open in a space of their own" hint="A link from another app to a site listed here opens in its space, in that space's profile. A site stands for its subdomains; github.com/acme is only that part of GitHub. The most exact rule counts.">
+    <Field label={t("settings.links.other_apps.rules.label")} hint={t("settings.links.other_apps.rules.hint")}>
       <div className="space-y-2">
         {rows.map((r, i) => {
           // A row just added says nothing until something is typed.
@@ -796,16 +801,16 @@ function LinkRules({ saved, spaces, save }: { saved: LinkRule[]; spaces: Info["s
           return (
             <div key={i}>
               <div className="flex flex-wrap items-center gap-2">
-                <input className="field mono" style={{ flex: "1 1 160px", minWidth: 0 }} value={r.site} placeholder="github.com/acme" aria-label="Site" aria-invalid={!!why || undefined} onChange={(e) => change(i, { site: e.target.value })} onBlur={() => commit(rows)} />
-                <span className="text-[13px] text-[var(--muted)]">opens in</span>
-                <PickList options={spaceOptions(spaces)} chosen={spaces.some((s) => s.id === r.space) ? [r.space] : []} none="a space…" label={`Space the links to ${r.site || "this site"} open in`} width={180} align="right" onChoose={([to]) => to && commit(change(i, { space: to }))} />
-                <button className="ib" title="Remove" aria-label={`Remove the rule for ${r.site || "a site"}`} onClick={() => { const next = rows.filter((_, j) => j !== i); setRows(next); commit(next); }}><Close width={14} height={14} /></button>
+                <input className="field mono" style={{ flex: "1 1 160px", minWidth: 0 }} value={r.site} placeholder="github.com/acme" aria-label={t("settings.links.other_apps.rules.site")} aria-invalid={!!why || undefined} onChange={(e) => change(i, { site: e.target.value })} onBlur={() => commit(rows)} />
+                <span className="text-[13px] text-[var(--muted)]">{t("settings.links.other_apps.rules.opens_in")}</span>
+                <PickList options={spaceOptions(spaces)} chosen={spaces.some((s) => s.id === r.space) ? [r.space] : []} none={t("settings.links.other_apps.rules.choose_space")} label={t("settings.links.other_apps.rules.space_for", { site: r.site || t("settings.links.other_apps.rules.this_site") })} width={180} align="right" onChoose={([to]) => to && commit(change(i, { space: to }))} />
+                <button className="ib" title={t("common.remove")} aria-label={t("settings.links.other_apps.rules.remove", { site: r.site || t("settings.links.other_apps.rules.a_site") })} onClick={() => { const next = rows.filter((_, j) => j !== i); setRows(next); commit(next); }}><Close width={14} height={14} /></button>
               </div>
-              {why && <p className="set-hint" style={{ color: "var(--danger)" }}>Not saved: {why}</p>}
+              {why && <p className="set-hint" style={{ color: "var(--danger)" }}>{t("settings.not_saved", { reason: why })}</p>}
             </div>
           );
         })}
-        <button className="btn" disabled={rows.length >= MAX_LINK_RULES} title={rows.length >= MAX_LINK_RULES ? `No more than ${MAX_LINK_RULES} rules are kept.` : undefined} onClick={() => setRows((list) => [...list, { site: "", space: spaces[0]?.id ?? "" }])}>Add rule</button>
+        <button className="btn" disabled={rows.length >= MAX_LINK_RULES} title={rows.length >= MAX_LINK_RULES ? t("settings.links.other_apps.rules.max", { max: MAX_LINK_RULES }) : undefined} onClick={() => setRows((list) => [...list, { site: "", space: spaces[0]?.id ?? "" }])}>{t("settings.links.other_apps.rules.add")}</button>
       </div>
     </Field>
   );
@@ -816,10 +821,10 @@ const KEYWORD = /^[\p{L}\p{N}_-]{1,20}$/u;
 /** Why a site search would not be kept (`SiteSearch::sanitised` in the app), or null. */
 function siteSearchProblem(site: SiteSearch, all: SiteSearch[]): string | null {
   const keyword = site.keyword.trim().toLowerCase();
-  if (!KEYWORD.test(keyword)) return "The keyword is one word of letters, digits, - or _ (up to 20).";
-  if (all.find((s) => s.keyword.trim().toLowerCase() === keyword) !== site) return "Another site has this keyword.";
-  if (!site.name.trim()) return "Give it a name.";
-  if (!(site.url.trim().startsWith("https://") && site.url.includes("%s"))) return "The address must start with https:// and contain %s.";
+  if (!KEYWORD.test(keyword)) return t("settings.search.sites.bad_keyword");
+  if (all.find((s) => s.keyword.trim().toLowerCase() === keyword) !== site) return t("settings.search.sites.keyword_taken");
+  if (!site.name.trim()) return t("settings.search.sites.no_name");
+  if (!(site.url.trim().startsWith("https://") && site.url.includes("%s"))) return t("settings.search.sites.bad_address");
   return null;
 }
 
@@ -841,7 +846,7 @@ function SiteSearches({ saved, save }: { saved: SiteSearch[]; save: (sites: Site
     commit(next);
   };
   return (
-    <Field label="Site search" hint="Type a keyword and a space (or Tab) in the command bar, then what to look for: “gh rust” searches GitHub. Use %s where the query goes.">
+    <Field label={t("settings.search.sites.label")} hint={t("settings.search.sites.hint")}>
       <div className="space-y-2">
         {rows.map((s, i) => {
           // A row just added says nothing until something is typed.
@@ -849,16 +854,16 @@ function SiteSearches({ saved, save }: { saved: SiteSearch[]; save: (sites: Site
           return (
             <div key={i}>
               <div className="flex flex-wrap items-center gap-2">
-                <input className="field mono" style={{ width: 88 }} value={s.keyword} placeholder="keyword" aria-label="Keyword" aria-invalid={!!problem || undefined} onChange={(e) => change(i, { keyword: e.target.value })} onBlur={() => commit(rows)} spellCheck={false} />
-                <input className="field" style={{ width: 140 }} value={s.name} placeholder="Name" aria-label="Name" onChange={(e) => change(i, { name: e.target.value })} onBlur={() => commit(rows)} />
-                <input className="field" style={{ flex: "1 1 160px", minWidth: 0 }} value={s.url} placeholder="https://example.org/search?q=%s" aria-label="Search address" onChange={(e) => change(i, { url: e.target.value })} onBlur={() => commit(rows)} spellCheck={false} />
-                <button className="ib" title="Remove" aria-label={`Remove ${s.name || "site search"}`} onClick={() => remove(i)}><Close width={14} height={14} /></button>
+                <input className="field mono" style={{ width: 88 }} value={s.keyword} placeholder={t("settings.search.sites.keyword_placeholder")} aria-label={t("settings.search.sites.keyword")} aria-invalid={!!problem || undefined} onChange={(e) => change(i, { keyword: e.target.value })} onBlur={() => commit(rows)} spellCheck={false} />
+                <input className="field" style={{ width: 140 }} value={s.name} placeholder={t("settings.search.sites.name")} aria-label={t("settings.search.sites.name")} onChange={(e) => change(i, { name: e.target.value })} onBlur={() => commit(rows)} />
+                <input className="field" style={{ flex: "1 1 160px", minWidth: 0 }} value={s.url} placeholder="https://example.org/search?q=%s" aria-label={t("settings.search.sites.address")} onChange={(e) => change(i, { url: e.target.value })} onBlur={() => commit(rows)} spellCheck={false} />
+                <button className="ib" title={t("common.remove")} aria-label={t("settings.search.sites.remove", { name: s.name || t("settings.search.sites.site_search") })} onClick={() => remove(i)}><Close width={14} height={14} /></button>
               </div>
-              {problem && <p className="set-hint" style={{ color: "var(--danger)" }}>Not saved: {problem}</p>}
+              {problem && <p className="set-hint" style={{ color: "var(--danger)" }}>{t("settings.not_saved", { reason: problem })}</p>}
             </div>
           );
         })}
-        <button className="btn" onClick={() => setRows((list) => [...list, { keyword: "", name: "", url: "" }])}>Add site</button>
+        <button className="btn" onClick={() => setRows((list) => [...list, { keyword: "", name: "", url: "" }])}>{t("settings.search.sites.add")}</button>
       </div>
     </Field>
   );
@@ -869,21 +874,21 @@ function DataFolder({ path }: { path: string }) {
   const [said, setSaid] = useState<string>();
   const copy = () =>
     send({ cmd: "copy_data_dir" }).then(
-      (r) => setSaid(r.ok ? "Copied" : "Could not copy"),
-      () => setSaid("Could not copy"),
+      (r) => setSaid(r.ok ? t("common.copied") : t("settings.data.computer.where.copy_failed")),
+      () => setSaid(t("settings.data.computer.where.copy_failed")),
     );
   useEffect(() => {
     if (!said) return;
-    const t = window.setTimeout(() => setSaid(undefined), 2000);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setSaid(undefined), 2000);
+    return () => window.clearTimeout(timer);
   }, [said]);
   return (
     <div className="flex items-center gap-2">
       <code className="set-path min-w-0 flex-1 rounded-lg bg-white/5 px-3 py-2 text-[12px] text-[var(--secondary)]">{path}</code>
       <button className="btn flex-none" onClick={() => void copy()}>
-        <span aria-live="polite">{said ?? "Copy"}</span>
+        <span aria-live="polite">{said ?? t("common.copy")}</span>
       </button>
-      <button className="btn flex-none" title="Shows the folder in your file manager" onClick={() => void send({ cmd: "open_data_dir" }).catch(() => setSaid("Could not open"))}>Open</button>
+      <button className="btn flex-none" title={t("settings.data.computer.where.open_hint")} onClick={() => void send({ cmd: "open_data_dir" }).catch(() => setSaid(t("settings.data.computer.where.open_failed")))}>{t("common.open")}</button>
     </div>
   );
 }

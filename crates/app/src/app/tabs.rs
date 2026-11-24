@@ -662,11 +662,11 @@ impl MagnetiteApp {
             return None;
         }
         let title = if url.starts_with("magnetite://ui/settings") {
-            "Settings".to_string()
+            magnetite_ui::t!("common.settings").to_string()
         } else if url.starts_with(WELCOME_URL) {
-            "Welcome".to_string()
+            magnetite_ui::t!("app.pages.welcome").to_string()
         } else if url.starts_with(DOWNLOADS_URL) {
-            "Downloads".to_string()
+            magnetite_ui::t!("app.pages.downloads").to_string()
         } else {
             url.clone()
         };

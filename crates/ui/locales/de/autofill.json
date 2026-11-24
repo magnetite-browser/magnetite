@@ -1,0 +1,25 @@
+{
+  "profile": {
+    "label": "Profil",
+    "hint": "Jedes Profil hat eigene Passwörter, Adressen und Karten. Die Tasten unten öffnen die des hier gewählten Profils; die Schalter gelten für alle."
+  },
+  "passwords": {
+    "title": "Passwörter",
+    "offer": "Speichern von Passwörtern anbieten",
+    "offer_hint": "Nach der Anmeldung fragt Magnetite, ob das Passwort behalten werden soll, und füllt es beim nächsten Mal aus. Gespeicherte Passwörter bleiben auf diesem Computer, außerhalb von Sync.",
+    "manage": "Gespeicherte Passwörter …",
+    "test_key": "Diese Sitzung nutzt den Testschlüssel von Chromium (--mock-keychain): Was sie speichert, ist nicht durch deinen Schlüsselbund geschützt.",
+    "breach": "Vor Passwörtern aus Datenlecks warnen",
+    "breach_hint": "Ist dies an, fragt Chromium bei jeder Anmeldung einen Google-Dienst, ob das Passwort in einem bekannten Datenleck vorkam. Gesendet wird ein verschlüsseltes Fragment, nicht das Passwort."
+  },
+  "forms": {
+    "title": "Formulare",
+    "addresses": "Adressen speichern und automatisch ausfüllen",
+    "addresses_hint": "Namen, Adressen, Telefonnummern und E-Mail-Adressen für Formulare. Magnetite fragt, bevor es eine speichert.",
+    "addresses_manage": "Gespeicherte Adressen …",
+    "cards": "Zahlungskarten speichern und automatisch ausfüllen",
+    "cards_hint": "Kartendaten für Bezahlformulare, auf diesem Computer aufbewahrt. Magnetite fragt, bevor es eine speichert.",
+    "cards_manage": "Gespeicherte Karten …"
+  },
+  "footer": "Die Listen sind eigene Seiten von Chromium; sie öffnen sich über dieser. Die Erweiterung eines Passwortmanagers wie Bitwarden funktioniert daneben oder an ihrer Stelle."
+}

@@ -38,7 +38,7 @@ labels say so.
 | [import.md](import.md) | bringing tabs over from another browser |
 | [arc-sidebar-format.md](arc-sidebar-format.md) | the sidebar file of Arc, as far as the importer reads it |
 | [sync.md](sync.md) | optional, end-to-end encrypted sync between devices |
-| [text-and-languages.md](text-and-languages.md) | Spell check, and the languages websites are asked for |
+| [text-and-languages.md](text-and-languages.md) | Magnetite's language, spell check, and the languages websites are asked for |
 | [settings.md](settings.md) | the settings page and its search |
 
 Why Magnetite is built the way it is: `docs/adr/`. The rules its own code

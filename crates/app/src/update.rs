@@ -38,6 +38,7 @@ use std::time::{Duration, SystemTime};
 
 use base64::Engine as _;
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+use magnetite_ui::t;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -184,13 +185,13 @@ pub fn verify(body: &[u8], signature: &str, key: &VerifyingKey) -> Result<Manife
         .decode(signature.trim())
         .ok()
         .and_then(|b| b.try_into().ok())
-        .ok_or("The update signature is malformed.")?;
+        .ok_or(t!("app.update.bad_signature"))?;
     key.verify(body, &Signature::from_bytes(&sig))
-        .map_err(|_| "The update is not signed with Magnetite's release key.")?;
+        .map_err(|_| t!("app.update.not_release_key"))?;
     let manifest: Manifest =
-        serde_json::from_slice(body).map_err(|_| "The update description is malformed.")?;
+        serde_json::from_slice(body).map_err(|_| t!("app.update.bad_description"))?;
     if !manifest.notes_url.starts_with("https://") {
-        return Err("The update description is malformed.".into());
+        return Err(t!("app.update.bad_description").into());
     }
     Ok(manifest)
 }
@@ -223,15 +224,15 @@ fn get(agent: &ureq::Agent, url: &str, limit: u64) -> Result<Vec<u8>, String> {
     let mut res = agent
         .get(url)
         .call()
-        .map_err(|e| format!("Cannot reach the update server: {e}"))?;
+        .map_err(|e| t!("app.update.unreachable", error = e))?;
     let mut body = Vec::new();
     res.body_mut()
         .as_reader()
         .take(limit + 1)
         .read_to_end(&mut body)
-        .map_err(|e| format!("The download broke off: {e}"))?;
+        .map_err(|e| t!("app.errors.download_broke_off", error = e))?;
     if body.len() as u64 > limit {
-        return Err("The update server sent more than expected.".into());
+        return Err(t!("app.update.too_much").into());
     }
     Ok(body)
 }
@@ -460,7 +461,7 @@ fn runnable(path: &Path) -> bool {
 }
 
 /// Start `program` with this run's arguments once Magnetite has quit.
-fn restart_after_exit(program: &Path) -> std::io::Result<()> {
+pub fn restart_after_exit(program: &Path) -> std::io::Result<()> {
     let script =
         r#"pid=$1; shift; while kill -0 "$pid" 2>/dev/null; do sleep 0.2; done; exec "$@""#;
     let mut cmd = std::process::Command::new("/bin/sh");
@@ -502,7 +503,7 @@ pub fn appimage() -> Option<PathBuf> {
 pub fn install_appimage(asset: &Asset, image: &Path) -> Result<(), String> {
     let data = download(asset)?;
     replace_executable(image, &data)?;
-    restart_after_exit(image).map_err(|e| format!("Cannot restart: {e}"))
+    restart_after_exit(image).map_err(|e| t!("app.update.restart_failed", error = e))
 }
 
 /// Put `data` in place of the executable `file` in one step: written next
@@ -514,8 +515,8 @@ fn replace_executable(file: &Path, data: &[u8]) -> Result<(), String> {
     use std::io::Write;
     use std::os::unix::fs::PermissionsExt;
 
-    let failed = |e: std::io::Error| format!("Cannot put the update in place: {e}");
-    let name = file.file_name().ok_or("No file for the update.")?;
+    let failed = |e: std::io::Error| t!("app.update.place_failed", error = e);
+    let name = file.file_name().ok_or(t!("app.update.no_file"))?;
     let new = file.with_file_name(format!(
         ".{}.update-{}",
         name.to_string_lossy(),
@@ -555,18 +556,18 @@ fn tempfile_in(dir: &Path) -> Option<()> {
 /// Download, check and put the new bundle in place of `bundle` (blocking).
 /// Returns the folder to delete after the restart (holds the old bundle).
 pub fn install(asset: &Asset, bundle: &Path) -> Result<PathBuf, String> {
-    let parent = bundle.parent().ok_or("No folder for the update.")?;
+    let parent = bundle.parent().ok_or(t!("app.update.no_folder"))?;
     // Next to the app, so the swap is a rename on the same volume.
     let staging = parent.join(format!(".magnetite-update-{}", std::process::id()));
     // An earlier try left the old app in there: never delete that.
     if staging.join(OLD_APP).exists() {
-        return Err(format!(
-            "Your Magnetite is still at {}; move it back by hand before updating.",
-            staging.join(OLD_APP).display()
+        return Err(t!(
+            "app.update.stranded",
+            path = staging.join(OLD_APP).display()
         ));
     }
     let _ = std::fs::remove_dir_all(&staging);
-    std::fs::create_dir(&staging).map_err(|e| format!("Cannot prepare the update: {e}"))?;
+    std::fs::create_dir(&staging).map_err(|e| t!("app.update.prepare_failed", error = e))?;
     let result = stage_and_swap(asset, bundle, &staging);
     // Not when the old app is stranded in there (see `stage_and_swap`).
     if result.is_err() && !staging.join(OLD_APP).exists() {
@@ -581,7 +582,7 @@ fn download(asset: &Asset) -> Result<Vec<u8>, String> {
     let data = get(&agent(local_feed(&asset.url)), &asset.url, asset.size)?;
     let hash = hex(&Sha256::digest(&data));
     if data.len() as u64 != asset.size || !hash.eq_ignore_ascii_case(asset.sha256.trim()) {
-        return Err("The download does not match the signed update.".into());
+        return Err(t!("app.update.mismatch").into());
     }
     Ok(data)
 }
@@ -610,9 +611,9 @@ pub fn fetch_installer(asset: &Asset) -> Result<PathBuf, String> {
     // One folder for every try: the last installer does not pile up.
     let dir = std::env::temp_dir().join("magnetite-update");
     let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(&dir).map_err(|e| format!("Cannot prepare the update: {e}"))?;
+    std::fs::create_dir_all(&dir).map_err(|e| t!("app.update.prepare_failed", error = e))?;
     let path = dir.join("Magnetite-setup.exe");
-    std::fs::write(&path, &data).map_err(|e| format!("Cannot save the update: {e}"))?;
+    std::fs::write(&path, &data).map_err(|e| t!("app.update.save_failed", error = e))?;
     Ok(path)
 }
 
@@ -642,7 +643,7 @@ pub fn run_installer(installer: &Path) -> Result<(), String> {
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .spawn()
-        .map_err(|e| format!("Cannot start the update: {e}"))?;
+        .map_err(|e| t!("app.update.start_failed", error = e))?;
     let started = std::time::Instant::now();
     let mut ended = None;
     while started.elapsed() < INSTALLER_WAIT {
@@ -654,18 +655,18 @@ pub fn run_installer(installer: &Path) -> Result<(), String> {
         if matches!(child.try_wait(), Ok(Some(_)) | Err(_)) {
             let since = *ended.get_or_insert_with(std::time::Instant::now);
             if since.elapsed() > Duration::from_secs(5) {
-                return Err("The update was not installed. Try again, and allow the installer to make changes when Windows asks.".into());
+                return Err(t!("app.update.not_installed").into());
             }
         }
         std::thread::sleep(Duration::from_millis(200));
     }
-    Err("The update did not start.".into())
+    Err(t!("app.update.did_not_start").into())
 }
 
 fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), String> {
     let data = download(asset)?;
     let zip = staging.join("update.zip");
-    std::fs::write(&zip, &data).map_err(|e| format!("Cannot save the update: {e}"))?;
+    std::fs::write(&zip, &data).map_err(|e| t!("app.update.save_failed", error = e))?;
     let unpacked = staging.join("new");
     unpack(&zip, &unpacked)?;
     let new_app = std::fs::read_dir(&unpacked)
@@ -673,16 +674,14 @@ fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), St
         .filter_map(Result::ok)
         .map(|e| e.path())
         .find(|p| p.extension().is_some_and(|x| x == "app"))
-        .ok_or("The update holds no app.")?;
+        .ok_or(t!("app.update.no_app"))?;
     if bundle_id(&new_app)? != bundle_id(bundle)? {
-        return Err("The update is a different app.".into());
+        return Err(t!("app.update.other_app").into());
     }
     // Signed by the team that signed this Magnetite: a valid signature of
     // any other developer does not do. Then Gatekeeper decides, as it would
     // for a download: notarized.
-    let team = team_id(bundle).ok_or(
-        "This Magnetite is not signed by a developer team. Download the update from the release page.",
-    )?;
+    let team = team_id(bundle).ok_or(t!("app.update.no_team"))?;
     let requirement =
         format!("-R=anchor apple generic and certificate leaf[subject.OU] = \"{team}\"");
     run(
@@ -690,25 +689,23 @@ fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), St
         &["--verify", "--deep", "--strict", &requirement],
         &[&new_app],
     )
-    .map_err(|_| "The update is not signed by Magnetite's developers.".to_string())?;
+    .map_err(|_| t!("app.update.not_ours").to_string())?;
     run(
         "/usr/sbin/spctl",
         &["--assess", "--type", "execute"],
         &[&new_app],
     )
-    .map_err(|_| {
-        "macOS does not accept this update (not notarized). Download it from the release page."
-            .to_string()
-    })?;
+    .map_err(|_| t!("app.update.not_notarized").to_string())?;
     let old = staging.join(OLD_APP);
-    std::fs::rename(bundle, &old).map_err(|e| format!("Cannot move the old app aside: {e}"))?;
+    std::fs::rename(bundle, &old).map_err(|e| t!("app.update.move_aside_failed", error = e))?;
     if let Err(e) = std::fs::rename(&new_app, bundle) {
         return Err(match std::fs::rename(&old, bundle) {
-            Ok(()) => format!("Cannot put the new app in place: {e}"),
+            Ok(()) => t!("app.update.swap_failed", error = e),
             // Neither app is in place now: say where the old one is.
-            Err(_) => format!(
-                "Cannot put the new app in place: {e}. Your Magnetite is now at {}; move it back by hand.",
-                old.display()
+            Err(_) => t!(
+                "app.update.swap_failed_stranded",
+                error = e,
+                path = old.display()
             ),
         });
     }
@@ -725,10 +722,7 @@ fn stage_and_swap(asset: &Asset, bundle: &Path, staging: &Path) -> Result<(), St
 /// zip against the signed manifest and lets Gatekeeper assess the app
 /// itself, which is what the mark is for.
 fn unpack(zip: &Path, into: &Path) -> Result<(), String> {
-    let marked = |_| {
-        "Cannot prepare the update (it stays marked as a download). Download it from the release page."
-            .to_string()
-    };
+    let marked = |_| t!("app.update.still_marked").to_string();
     run("/usr/bin/ditto", &["-x", "-k"], &[zip, into])?;
     // The mark only comes off a file its owner may write, and a bundle can
     // hold read-only files (CEF's `gpu_shader_cache.bin` is one).
@@ -751,7 +745,7 @@ pub fn relaunch_after_exit(bundle: &Path, cleanup: &Path) -> Result<(), String> 
         .stderr(std::process::Stdio::null())
         .spawn()
         .map(drop)
-        .map_err(|e| format!("Cannot restart: {e}"))
+        .map_err(|e| t!("app.update.restart_failed", error = e))
 }
 
 /// The Apple developer team that signed `app` (`TeamIdentifier`, ten
@@ -784,7 +778,7 @@ fn bundle_id(app: &Path) -> Result<String, String> {
     out.status
         .success()
         .then(|| String::from_utf8_lossy(&out.stdout).trim().to_string())
-        .ok_or_else(|| "The update's app has no identifier.".to_string())
+        .ok_or_else(|| t!("app.update.no_identifier").to_string())
 }
 
 fn run(program: &str, args: &[&str], paths: &[&Path]) -> Result<(), String> {

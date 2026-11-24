@@ -67,10 +67,10 @@ pub enum ShareError {
 impl fmt::Display for ShareError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
-            Self::Empty => "This folder has no tabs to share",
-            Self::TooMany => "Too much for one link",
-            Self::Unreadable => "This link could not be read",
-            Self::Private => "The private space keeps no folders",
+            Self::Empty => magnetite_ui::t!("app.share.empty"),
+            Self::TooMany => magnetite_ui::t!("app.share.too_much"),
+            Self::Unreadable => magnetite_ui::t!("app.share.unreadable"),
+            Self::Private => magnetite_ui::t!("app.share.private"),
         })
     }
 }
@@ -171,7 +171,7 @@ fn unpack(shared: Shared, depth: usize, tabs: &mut usize) -> Result<Folder, Shar
         .collect::<Result<_, _>>()?;
     Ok(Folder {
         id: new_id(),
-        title: short(&shared.title, "Shared folder"),
+        title: short(&shared.title, magnetite_ui::t!("app.names.shared_folder")),
         // Only names of the built-in glyphs draw anything; those are short.
         icon: shared.icon.filter(|i| i.len() <= 64),
         children,

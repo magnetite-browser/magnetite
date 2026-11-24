@@ -3,6 +3,7 @@
 // own (the spaces). A button says what is chosen; the list opens under it.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check } from "../Icons";
+import { t } from "../i18n";
 
 export type PickOption = {
   value: string;
@@ -98,7 +99,7 @@ export function PickList({ options, chosen, several, none, label, width = 170, a
   };
   return (
     <span ref={root} className="set-pick" style={{ width }} onBlur={(e) => e.relatedTarget && !e.currentTarget.contains(e.relatedTarget) && setOpen(false)}>
-      <button className="field set-pick-button" disabled={disabled} aria-haspopup="menu" aria-expanded={open} aria-label={`${label}: ${names || none || "nothing chosen"}`} title={more > 0 ? names : undefined} onClick={() => setOpen(!open)}>
+      <button className="field set-pick-button" disabled={disabled} aria-haspopup="menu" aria-expanded={open} aria-label={`${label}: ${names || none || t("settings.pick.nothing")}`} title={more > 0 ? names : undefined} onClick={() => setOpen(!open)}>
         {now.length === 0 && <span className="truncate">{none}</span>}
         {now.some((o) => o.color)
           ? tags.map((o) => (

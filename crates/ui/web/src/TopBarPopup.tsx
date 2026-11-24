@@ -8,6 +8,7 @@ import { EmulationPanel, TimezonePanel } from "./DevBar";
 import { extensionMenu, moreExtensionsMenu } from "./PinnedExtensions";
 import { SitePanel } from "./SitePanel";
 import { accentCss, applyAppearance, findTab, send, subscribe, type LinkVariant, type UiState } from "./bridge";
+import { t } from "./i18n";
 
 const params = new URLSearchParams(location.search);
 const KIND = params.get("kind");
@@ -15,9 +16,9 @@ const ID = params.get("id");
 
 const copy = (variant: LinkVariant) => () => void send({ cmd: "copy_link", variant, notify: true });
 const COPY_ITEMS: MenuItem[] = [
-  { label: "Copy link", onClick: copy("clean") },
-  { label: "Copy original link", onClick: copy("original") },
-  { label: "Copy as Markdown", onClick: copy("markdown") },
+  { label: t("page.copy_menu.link"), onClick: copy("clean") },
+  { label: t("page.copy_menu.original"), onClick: copy("original") },
+  { label: t("page.copy_menu.markdown"), onClick: copy("markdown") },
 ];
 
 export function TopBarPopup() {

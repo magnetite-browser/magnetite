@@ -6,7 +6,9 @@
 // them for a separate window and hides its own dock controls and ×. A choice goes back to the browser as
 // a marked console message, which only this page can produce in this browser.
 // The main menu is found by the stable `jslog` ids of its items, not labels.
-(() => {
+// The labels come in the user's language: devdock.rs calls this function
+// with `texts`.
+(texts) => {
   if (window.__magnetiteMenu) return;
   window.__magnetiteMenu = true;
   const MARK = "__magnetite_devtools__:";
@@ -17,7 +19,7 @@
     bottom: '<rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M3 11.5h14v3a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 14.5z" fill="currentColor" stroke="none"/>',
     right: '<rect x="2.5" y="3.5" width="15" height="13" rx="2"/><path d="M11.5 4h4a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5h-4z" fill="currentColor" stroke="none"/>',
   };
-  const CHOICES = [["window", "Separate window"], ["bottom", "Dock to the bottom"], ["right", "Dock to the right"]];
+  const CHOICES = [["window", texts.separate], ["bottom", texts.dockBottom], ["right", texts.dockRight]];
   const HOVER = "soft-context-menu-item-mouse-over";
   const isMain = (menu) => !!menu.querySelector('[jslog*="main.toggle-drawer"], [jslog*="quick-open.show-command-menu"]');
   const dismiss = (menu) => menu.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
@@ -33,9 +35,9 @@
     const row = document.createElement("div");
     row.className = "soft-context-menu-item";
     row.setAttribute("role", "group");
-    row.setAttribute("aria-label", "Dock side");
+    row.setAttribute("aria-label", texts.dockSide);
     row.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:default";
-    row.append("Dock side");
+    row.append(texts.dockSide);
     const buttons = document.createElement("span");
     buttons.style.cssText = "display:flex;gap:2px";
     for (const [key, label] of CHOICES) {
@@ -60,7 +62,7 @@
     close.className = "soft-context-menu-item";
     close.setAttribute("role", "menuitem");
     close.tabIndex = -1;
-    close.textContent = "Close DevTools";
+    close.textContent = texts.close;
     hoverable(close);
     close.addEventListener("mousedown", (e) => e.stopPropagation());
     close.addEventListener("click", (e) => {
@@ -113,8 +115,8 @@
     if (picker.dataset.magnetiteDevice) return;
     picker.dataset.magnetiteDevice = "1";
     const b = document.createElement("button");
-    b.title = MAC ? "Toggle device toolbar - ⌘ ⇧ M" : "Toggle device toolbar - Ctrl+Shift+M";
-    b.setAttribute("aria-label", "Toggle device toolbar");
+    b.title = `${texts.deviceToolbar} - ${MAC ? "⌘ ⇧ M" : "Ctrl+Shift+M"}`;
+    b.setAttribute("aria-label", texts.deviceToolbar);
     b.style.cssText = "display:inline-flex;align-items:center;justify-content:center;width:28px;height:26px;padding:0;border:0;border-radius:4px;background:transparent;cursor:pointer";
     b.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="10" height="14" rx="2"/><path d="M5 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-2.4"/><path d="M8 18h.01"/></svg>';
     b.addEventListener("click", () => send("device"));
@@ -166,4 +168,4 @@
     showDevice();
   };
   new MutationObserver(() => requestAnimationFrame(() => scan(document))).observe(document.body, { childList: true, subtree: true });
-})();
+}

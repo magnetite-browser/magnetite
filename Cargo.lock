@@ -1445,6 +1445,7 @@ dependencies = [
  "magnetite-importer",
  "magnetite-sync",
  "magnetite-sync-proto",
+ "magnetite-ui",
  "png",
  "qrcode",
  "semver",
@@ -1478,6 +1479,7 @@ dependencies = [
  "image",
  "libc",
  "magnetite-core",
+ "magnetite-ui",
  "objc2",
  "objc2-app-kit",
  "objc2-core-graphics",
@@ -1486,7 +1488,6 @@ dependencies = [
  "psl",
  "serde",
  "serde_json",
- "thiserror 2.0.21",
  "webview2-com",
  "windows",
  "windows-core",
@@ -1542,6 +1543,9 @@ dependencies = [
 [[package]]
 name = "magnetite-ui"
 version = "0.0.17"
+dependencies = [
+ "serde_json",
+]
 
 [[package]]
 name = "magnetite-windows"

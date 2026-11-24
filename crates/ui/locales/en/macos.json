@@ -1,0 +1,9 @@
+{
+  "info_plist": {
+    "copyright": "© the Magnetite contributors",
+    "camera": "Websites you allow can use your camera.",
+    "microphone": "Websites you allow can use your microphone.",
+    "bluetooth": "Websites you allow can connect to Bluetooth devices.",
+    "passkeys": "Websites can use your passkeys when you approve it."
+  }
+}

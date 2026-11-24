@@ -3,6 +3,7 @@
 // that Magnetite's Chromium is refused.
 import { useEffect, useState } from "react";
 import { send } from "../bridge";
+import { t } from "../i18n";
 import { Field, Group, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
@@ -36,7 +37,7 @@ export function ProtectedVideoSection({ info, update }: { info: Info; update: (p
     return (
       <Group>
         <p className="set-row set-hint" style={{ marginTop: 0 }}>
-          Magnetite can use a system's own web engine only on macOS 14 or newer and on Windows with a current WebView2 so far. On this computer every page is shown by Chromium, and services that ask for a verified browser do not play.
+          {t("protectedVideo.unavailable")}
         </p>
       </Group>
     );
@@ -49,43 +50,43 @@ export function ProtectedVideoSection({ info, update }: { info: Info; update: (p
     <>
       <Group>
         <Toggle
-          label={`Open streaming services in ${name}`}
-          hint={`${known.join(", ")}. They play protected video only in a browser that Google has verified. Magnetite's Chromium is not verified yet; talks to get it there are under way. Until then ${name}, ${about}, plays it.`}
+          label={t("protectedVideo.known.label", { engine: name })}
+          hint={t("protectedVideo.known.hint", { services: known.join(", "), engine: name, about })}
           checked={engine.known}
           onChange={(on) => update({ system_engine: { ...engine, known: on } })}
         />
         <Toggle
-          label={`Move sites whose protected video fails to ${name}`}
-          hint={`When a service refuses to play protected video in Chromium, its site opens in ${name} from then on and the page loads again there. Services that play in Chromium stay where they are. Turn the switch in the site panel off again to keep a site in Chromium.`}
+          label={t("protectedVideo.auto.label", { engine: name })}
+          hint={t("protectedVideo.auto.hint", { engine: name })}
           checked={engine.auto}
           onChange={(on) => update({ system_engine: { ...engine, auto: on } })}
         />
-        <Field label="Other sites" hint={`Sites that open in ${name} too, one per line: a site's name stands for its subdomains. Sites that moved by themselves are listed here. The site panel (the button left of the address) has the same switch for the page in front.`}>
-          <textarea className="field mono" rows={3} spellCheck={false} aria-label="Other sites" placeholder={"tv.example.org"} value={sites} onChange={(e) => setSites(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
+        <Field label={t("protectedVideo.other.label")} hint={t("protectedVideo.other.hint", { engine: name })}>
+          <textarea className="field mono" rows={3} spellCheck={false} aria-label={t("protectedVideo.other.label")} placeholder={"tv.example.org"} value={sites} onChange={(e) => setSites(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
         </Field>
         {(engine.auto || engine.chromium.length > 0) && (
-          <Field label="Kept in Chromium" hint={`Sites that never move by themselves, one per line: those you took back with the site panel's switch, and any you add.`}>
-            <textarea className="field mono" rows={2} spellCheck={false} aria-label="Kept in Chromium" placeholder={"music.example.org"} value={chromium} onChange={(e) => setChromium(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
+          <Field label={t("protectedVideo.chromium.label")} hint={t("protectedVideo.chromium.hint")}>
+            <textarea className="field mono" rows={2} spellCheck={false} aria-label={t("protectedVideo.chromium.label")} placeholder={"music.example.org"} value={chromium} onChange={(e) => setChromium(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
           </Field>
         )}
       </Group>
-      <Group title={`What is different in a ${name} page`} hint="It is a tab like any other: in the sidebar, in its space, in a split or a peek. Extensions cannot read or fill the page. It has no ad blocking or developer tools, sends no Global Privacy Control signal, and signs in on its own: a site you are signed in to in Chromium asks again. Open pages keep their engine until they load another address.">
+      <Group title={t("protectedVideo.different.title", { engine: name })} hint={t("protectedVideo.different.hint")}>
         <div className="set-row flex items-center gap-3" data-search-row>
           <span className="min-w-0 flex-1" data-search-name>
-            <span className="set-label block">{name}'s website data</span>
+            <span className="set-label block">{t("protectedVideo.data.label", { engine: name })}</span>
             {cleared === "failed" ? (
-              <span className="set-hint block" role="alert" style={{ color: "var(--danger)" }}>It could not be deleted. Try again.</span>
+              <span className="set-hint block" role="alert" style={{ color: "var(--danger)" }}>{t("protectedVideo.data.failed")}</span>
             ) : (
-              <span className="set-hint block">{cleared === "done" ? "Deleted. The sites there ask you to sign in again." : cleared === "working" ? "Deleting…" : `The cookies, site storage and cache of the pages ${name} showed, in every profile. Chromium's are deleted under Data and privacy.`}</span>
+              <span className="set-hint block">{cleared === "done" ? t("protectedVideo.data.done") : cleared === "working" ? t("protectedVideo.data.working") : t("protectedVideo.data.hint", { engine: name })}</span>
             )}
           </span>
           {cleared === "confirm" ? (
             <>
-              <button className="btn sm" onClick={() => setCleared("idle")}>Cancel</button>
-              <button className="btn sm" data-danger onClick={clear}>Delete</button>
+              <button className="btn sm" onClick={() => setCleared("idle")}>{t("common.cancel")}</button>
+              <button className="btn sm" data-danger onClick={clear}>{t("common.delete")}</button>
             </>
           ) : (
-            <button className="btn sm" disabled={cleared === "working"} onClick={() => setCleared("confirm")}>Delete…</button>
+            <button className="btn sm" disabled={cleared === "working"} onClick={() => setCleared("confirm")}>{t("protectedVideo.data.delete")}</button>
           )}
         </div>
       </Group>

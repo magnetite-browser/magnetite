@@ -8,12 +8,13 @@ import { iconUrl, storeIcon } from "./backgrounds";
 import { accentCss, applyAppearance, lookOf, send, type Appearance, type Space, type SpaceLook, type UiState } from "./bridge";
 import { BackgroundImage, ColourSwatches, EFFECTS, OwnImage } from "./settings/AppearanceSection";
 import { Slider } from "./settings/fields";
+import { t } from "./i18n";
 
 export function SpaceDialog() {
   const [state, setState] = useState<UiState | null>(null);
   const id = new URLSearchParams(location.search).get("id");
   useEffect(() => {
-    document.title = "Space settings";
+    document.title = t("dialogs.space.title");
     send({ cmd: "get_state" }).then((s) => {
       applyAppearance(s.settings.appearance);
       setState(s);
@@ -123,16 +124,16 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
       <header className="sf-head">
         <span className="sf-icon" style={{ background: accentCss(accent, 0.16), color: "var(--space)" }}><SpaceIcon space={{ icon, icon_image: iconImage, title: title || space.title }} size={18} /></span>
         <div className="min-w-0 flex-1">
-          <h1>Space settings</h1>
-          <p>Changes apply as you make them.</p>
+          <h1>{t("dialogs.space.title")}</h1>
+          <p>{t("dialogs.space.intro")}</p>
         </div>
       </header>
 
-      <Row label="Name">
-        <input className="field" value={title} aria-label="Name" autoFocus onFocus={(e) => e.target.select()} onChange={(e) => setTitle(e.target.value)} onBlur={() => rename()} />
+      <Row label={t("dialogs.space.name")}>
+        <input className="field" value={title} aria-label={t("dialogs.space.name")} autoFocus onFocus={(e) => e.target.select()} onChange={(e) => setTitle(e.target.value)} onBlur={() => rename()} />
       </Row>
 
-      <Row label="Icon">
+      <Row label={t("dialogs.space.icon.label")}>
         <GlyphGrid
           current={iconImage ? null : glyph}
           onPick={(g) => {
@@ -144,10 +145,10 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
         <div className="mt-2">
           <OwnImage square preview={iconImage ? iconUrl(iconImage) : null} store={(file) => storeIcon(space.id, file)} reload={reload} />
         </div>
-        <div className="hint">Or a picture of your own, such as a PNG or an SVG. It syncs with the space, so it is kept small.</div>
+        <div className="hint">{t("dialogs.space.icon.hint")}</div>
       </Row>
 
-      <Row label="Color">
+      <Row label={t("dialogs.space.colour")}>
         <div className="flex min-h-8 items-center">
           <ColourSwatches
             value={accent}
@@ -159,23 +160,23 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
         </div>
       </Row>
 
-      <Row label="Strength" hint="How much of the color the window takes.">
+      <Row label={t("dialogs.space.strength.label")} hint={t("dialogs.space.strength.hint")}>
         <Slider value={look.tint} min={0} max={30} step={1} unit="%" reset={8} onChange={(v, now) => changeLook({ tint: v }, now)} />
       </Row>
 
-      <Row label="Background" hint="An effect in the space color across the window, or a picture of your own under the sidebar's rows.">
+      <Row label={t("dialogs.space.background.label")} hint={t("dialogs.space.background.hint")}>
         <div className="seg sm mb-2">
           {EFFECTS.map(([label, effect]) => (
             <button key={effect} type="button" data-on={look.sidebar_effect === effect || undefined} onClick={() => changeLook({ sidebar_effect: effect }, true)}>{label}</button>
           ))}
           {look.sidebar_image != null && (
-            <button type="button" data-on={look.sidebar_effect === "image" || undefined} onClick={() => changeLook({ sidebar_effect: "image" }, true)}>Picture</button>
+            <button type="button" data-on={look.sidebar_effect === "image" || undefined} onClick={() => changeLook({ sidebar_effect: "image" }, true)}>{t("dialogs.space.background.picture")}</button>
           )}
         </div>
         <BackgroundImage slot="sidebar" space={space.id} stamp={look.sidebar_image} maxSide={1600} reload={reload} />
       </Row>
 
-      <Row label="Empty window" hint="A picture behind the window while no tab is open in this space.">
+      <Row label={t("dialogs.space.empty_window.label")} hint={t("dialogs.space.empty_window.hint")}>
         <BackgroundImage slot="empty" space={space.id} stamp={look.empty_image} maxSide={2880} reload={reload} />
       </Row>
 
@@ -191,10 +192,10 @@ function Form({ space, appearance: opened }: { space: Space; appearance: Appeara
             void send({ cmd: "palette_close" });
           }}
         >
-          All settings…
+          {t("dialogs.space.all_settings")}
         </button>
         <span className="flex-1" />
-        <button type="submit" className="btn primary">Done</button>
+        <button type="submit" className="btn primary">{t("common.done")}</button>
       </footer>
     </form>
   );

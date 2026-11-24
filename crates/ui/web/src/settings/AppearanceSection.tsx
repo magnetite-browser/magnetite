@@ -5,6 +5,7 @@
 import { useRef, useState, useEffect } from "react";
 import { storeImage, userImageUrl, type ImageSlot } from "../backgrounds";
 import { DEFAULT_ACCENT, LAYOUTS, accentCss, keyLabel, layoutOf, lookOf, send, type Appearance, type Color, type Layout, type SpaceLook } from "../bridge";
+import { t } from "../i18n";
 import { Field, Group, Slider, Toggle } from "./fields";
 import type { Info, SettingsPatch } from "./types";
 
@@ -14,9 +15,9 @@ const channels = (c: Color) => [c.red, c.green, c.blue].map((v) => Math.round(v 
 
 /** Space colours to pick from (the first is the default); any other comes from the colour picker. */
 const SPACE_COLOURS: [string, Color][] = [
-  ["Indigo", DEFAULT_ACCENT], ["Blue", toColor(77, 148, 255)], ["Teal", toColor(45, 190, 170)], ["Green", toColor(95, 196, 120)],
-  ["Lime", toColor(170, 205, 80)], ["Yellow", toColor(235, 195, 70)], ["Orange", toColor(245, 150, 70)], ["Red", toColor(240, 95, 95)],
-  ["Pink", toColor(235, 110, 170)], ["Purple", toColor(170, 120, 240)], ["Graphite", toColor(150, 150, 165)],
+  [t("settings.appearance.colours.indigo"), DEFAULT_ACCENT], [t("settings.appearance.colours.blue"), toColor(77, 148, 255)], [t("settings.appearance.colours.teal"), toColor(45, 190, 170)], [t("settings.appearance.colours.green"), toColor(95, 196, 120)],
+  [t("settings.appearance.colours.lime"), toColor(170, 205, 80)], [t("settings.appearance.colours.yellow"), toColor(235, 195, 70)], [t("settings.appearance.colours.orange"), toColor(245, 150, 70)], [t("settings.appearance.colours.red"), toColor(240, 95, 95)],
+  [t("settings.appearance.colours.pink"), toColor(235, 110, 170)], [t("settings.appearance.colours.purple"), toColor(170, 120, 240)], [t("settings.appearance.colours.graphite"), toColor(150, 150, 165)],
 ];
 const toHex = (c?: Color | null) => "#" + channels(c ?? DEFAULT_ACCENT).map((v) => v.toString(16).padStart(2, "0")).join("");
 const fromHex = (h: string) => toColor(parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16));
@@ -30,7 +31,7 @@ export function ColourSwatches({ value, onPick }: { value: Color | null | undefi
         const on = sameColour(value ?? DEFAULT_ACCENT, c);
         return <button key={name} type="button" className="swatch" title={name} aria-label={name} aria-pressed={on} data-on={on || undefined} style={{ background: accentCss(c) }} onClick={() => onPick(c)} />;
       })}
-      <label className="swatch custom" title="Any color">
+      <label className="swatch custom" title={t("settings.appearance.colours.any")}>
         <input type="color" value={toHex(value)} onChange={(e) => onPick(fromHex(e.target.value))} />
       </label>
     </div>
@@ -41,7 +42,10 @@ export function ColourSwatches({ value, onPick }: { value: Color | null | undefi
 const PAGE_ZOOM = [25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300, 400, 500];
 
 /** The built-in sidebar effects; the user's own picture is offered once one is stored. */
-export const EFFECTS = [["None", "none"], ["Grain", "grain"], ["Glow", "glow"], ["Aurora", "aurora"], ["Fade", "fade"]] as const;
+export const EFFECTS = [
+  [t("settings.appearance.effects.none"), "none"], [t("settings.appearance.effects.grain"), "grain"], [t("settings.appearance.effects.glow"), "glow"],
+  [t("settings.appearance.effects.aurora"), "aurora"], [t("settings.appearance.effects.fade"), "fade"],
+] as const;
 
 /**
  * Choose or remove a picture of the user's own, with a small preview of the
@@ -57,7 +61,7 @@ export function OwnImage({ preview, square, store, reload }: { preview: string |
   return (
     <div className="flex items-center gap-3">
       {preview != null && <img className={square ? "h-8 w-8 object-contain" : "h-8 w-12 rounded-md object-cover"} src={preview} alt="" />}
-      <button type="button" className="btn sm" onClick={() => picker.current?.click()}>{preview == null ? "Choose picture…" : "Change…"}</button>
+      <button type="button" className="btn sm" onClick={() => picker.current?.click()}>{preview == null ? t("settings.appearance.picture.choose") : t("settings.appearance.picture.change")}</button>
       <input
         ref={picker}
         className="hidden"
@@ -70,7 +74,7 @@ export function OwnImage({ preview, square, store, reload }: { preview: string |
           if (file) void keep(file);
         }}
       />
-      {preview != null && <button type="button" className="btn sm" onClick={() => void keep(null)}>Remove</button>}
+      {preview != null && <button type="button" className="btn sm" onClick={() => void keep(null)}>{t("common.remove")}</button>}
       {error && <span className="text-[12.5px] text-[#f3a0a0]">{error}</span>}
     </div>
   );
@@ -140,22 +144,22 @@ export function SpaceLookFields({ info, space, update, reload }: { info: Info; s
   const stored = lookOf(saved, space.id);
   return (
     <>
-      <Field side label="Color" hint="Tints the sidebar and outlines the focused page in split view. It syncs with the space.">
+      <Field side label={t("settings.appearance.space.colour.label")} hint={t("settings.appearance.space.colour.hint")}>
         <ColourSwatches value={space.accent} onPick={colour} />
       </Field>
-      <Field side label="Color strength" hint="How much of the space color the window takes.">
+      <Field side label={t("settings.appearance.space.strength.label")} hint={t("settings.appearance.space.strength.hint")}>
         <Slider value={look.tint} min={0} max={30} step={1} unit="%" reset={8} onChange={(v, now) => setLook({ tint: v }, now)} />
       </Field>
-      <Field label="Background" hint="An effect in the space color across the window, or a picture of your own under the sidebar's rows.">
+      <Field label={t("settings.appearance.space.background.label")} hint={t("settings.appearance.space.background.hint")}>
         <div className="flex flex-wrap items-center gap-3">
-          <select className="field" style={{ width: 200 }} value={look.sidebar_effect} aria-label="Background" onChange={(e) => setLook({ sidebar_effect: e.target.value as SpaceLook["sidebar_effect"] }, true)}>
+          <select className="field" style={{ width: 200 }} value={look.sidebar_effect} aria-label={t("settings.appearance.space.background.label")} onChange={(e) => setLook({ sidebar_effect: e.target.value as SpaceLook["sidebar_effect"] }, true)}>
             {EFFECTS.map(([label, effect]) => <option key={effect} value={effect}>{label}</option>)}
-            {stored.sidebar_image != null && <option value="image">Your picture</option>}
+            {stored.sidebar_image != null && <option value="image">{t("settings.appearance.space.background.yours")}</option>}
           </select>
           <BackgroundImage slot="sidebar" space={space.id} stamp={stored.sidebar_image} maxSide={1600} reload={reload} />
         </div>
       </Field>
-      <Field side label="Empty window" hint="A picture behind the window while no tab is open in this space. Without one, the logo shows there.">
+      <Field side label={t("settings.appearance.space.empty.label")} hint={t("settings.appearance.space.empty.hint")}>
         <BackgroundImage slot="empty" space={space.id} stamp={stored.empty_image} maxSide={2880} reload={reload} />
       </Field>
     </>
@@ -172,30 +176,39 @@ function TextSample({ from, to }: { from: number; to: number }) {
   const sample = (title: string, factor: number, on: boolean) => (
     <div className="min-w-0 flex-1">
       <div className="set-hint">{title}</div>
-      <div className="flex h-9 items-center overflow-hidden whitespace-nowrap" style={{ fontSize: 14 * factor, color: on ? "var(--fg)" : "var(--secondary)" }}>Text in this size</div>
+      <div className="flex h-9 items-center overflow-hidden whitespace-nowrap" style={{ fontSize: 14 * factor, color: on ? "var(--fg)" : "var(--secondary)" }}>{t("settings.appearance.text_sample.text")}</div>
     </div>
   );
   return (
     <div className="mt-2 flex max-w-[460px] gap-4" aria-hidden>
-      {sample("Now", 1, from === to)}
-      {sample("New", to / from, from !== to)}
+      {sample(t("settings.appearance.text_sample.now"), 1, from === to)}
+      {sample(t("settings.appearance.text_sample.new"), to / from, from !== to)}
     </div>
   );
 }
 
 /** The choices for the layout (`LAYOUTS`). */
-const LAYOUT_CHOICES = [["Sidebar", "sidebar"], ["Top bar", "top_bar"], ["Top bar, sidebar right", "top_bar_right"]] as const satisfies readonly (readonly [string, Layout])[];
+const LAYOUT_CHOICES = [
+  [t("settings.appearance.layout.sidebar"), "sidebar"], [t("settings.appearance.layout.top_bar"), "top_bar"], [t("settings.appearance.layout.top_bar_right"), "top_bar_right"],
+] as const satisfies readonly (readonly [string, Layout])[];
 
 /** The choices for the frame around the page. */
-const PAGE_FRAMES = [["Always", "always"], ["Not in full screen", "windowed"], ["Never", "never"]] as const satisfies readonly (readonly [string, Appearance["page_frame"]])[];
+const PAGE_FRAMES = [
+  [t("settings.appearance.frame.always"), "always"], [t("settings.appearance.frame.windowed"), "windowed"], [t("settings.appearance.frame.never"), "never"],
+] as const satisfies readonly (readonly [string, Appearance["page_frame"]])[];
+
+/** The choices for the height and spacing of the sidebar rows. */
+const DENSITIES = [
+  [t("settings.appearance.density.compact"), "compact"], [t("settings.appearance.density.comfortable"), "comfortable"], [t("settings.appearance.density.spacious"), "spacious"],
+] as const satisfies readonly (readonly [string, Appearance["density"]])[];
 
 /** Layout, the frame around the page, text size, page zoom, density and sidebar width. */
 export function AppearanceSection({ info, update, open }: { info: Info; update: (patch: SettingsPatch) => void; open: (section: string) => void }) {
   const { draft, set, preview } = useAppearance(info, update);
   return (
     <>
-      <Group title="Window" hint="The same in every space.">
-      <Field side label="Layout" hint="Where back, forward, the address and the extensions sit: at the top of the sidebar, or in a bar across the window. With the bar, the sidebar can also sit on the right.">
+      <Group title={t("settings.appearance.window.title")} hint={t("settings.appearance.window.hint")}>
+      <Field side label={t("settings.appearance.layout.label")} hint={t("settings.appearance.layout.hint")}>
         <div className="seg">
           {LAYOUT_CHOICES.map(([label, layout]) => (
             <button key={layout} data-on={layoutOf(draft) === layout || undefined} aria-pressed={layoutOf(draft) === layout} onClick={() => set(LAYOUTS[layout], true)}>{label}</button>
@@ -203,38 +216,38 @@ export function AppearanceSection({ info, update, open }: { info: Info; update: 
         </div>
       </Field>
       {!draft.top_bar && (
-        <Toggle label="Extension bar" hint="A row of pinned extensions below the address, with a button that lists the rest. The icons leave the row above it." checked={draft.extension_bar} onChange={(on) => set({ extension_bar: on }, true)} />
+        <Toggle label={t("settings.appearance.extension_bar.label")} hint={t("settings.appearance.extension_bar.hint")} checked={draft.extension_bar} onChange={(on) => set({ extension_bar: on }, true)} />
       )}
-      <Field side label="Frame around the page" hint="The gap between a page and the window's edges, and the page's round corners. Without it a page reaches the edges of the window.">
+      <Field side label={t("settings.appearance.frame.label")} hint={t("settings.appearance.frame.hint")}>
         <div className="seg">
           {PAGE_FRAMES.map(([label, frame]) => (
             <button key={frame} data-on={draft.page_frame === frame || undefined} aria-pressed={draft.page_frame === frame} onClick={() => set({ page_frame: frame }, true)}>{label}</button>
           ))}
         </div>
       </Field>
-      <Field side label="Text size" hint={`The sidebar, the command bar and these pages. Web pages zoom on their own with ${keyLabel("⌘+", "Ctrl +")} and ${keyLabel("⌘−", "Ctrl −")}.`}>
+      <Field side label={t("settings.appearance.text_size.label")} hint={t("settings.appearance.text_size.hint", { zoom_in: keyLabel("⌘+", `${t("settings.keys.ctrl")} +`), zoom_out: keyLabel("⌘−", `${t("settings.keys.ctrl")} −`) })}>
         <Slider value={draft.text_scale} min={85} max={130} step={5} unit="%" reset={100} onChange={(v, now) => (now ? set({ text_scale: v }, true) : preview({ text_scale: v }))} />
         <TextSample from={info.settings.appearance.text_scale} to={draft.text_scale} />
       </Field>
-      <Field side label="Page zoom" hint="The zoom a website has until you zoom it yourself. A change counts from the next start of Magnetite.">
-        <select className="field" value={info.settings.page_zoom} aria-label="Page zoom" onChange={(e) => update({ page_zoom: Number(e.target.value) })}>
+      <Field side label={t("settings.appearance.page_zoom.label")} hint={t("settings.appearance.page_zoom.hint")}>
+        <select className="field" value={info.settings.page_zoom} aria-label={t("settings.appearance.page_zoom.label")} onChange={(e) => update({ page_zoom: Number(e.target.value) })}>
           {PAGE_ZOOM.map((pct) => <option key={pct} value={pct}>{pct}%</option>)}
         </select>
       </Field>
-      <Field side label="Density" hint="Height and spacing of the sidebar rows.">
+      <Field side label={t("settings.appearance.density.label")} hint={t("settings.appearance.density.hint")}>
         <div className="seg">
-          {(["compact", "comfortable", "spacious"] as const).map((d) => (
-            <button key={d} data-on={draft.density === d || undefined} aria-pressed={draft.density === d} onClick={() => set({ density: d }, true)}>{d[0]!.toUpperCase() + d.slice(1)}</button>
+          {DENSITIES.map(([label, d]) => (
+            <button key={d} data-on={draft.density === d || undefined} aria-pressed={draft.density === d} onClick={() => set({ density: d }, true)}>{label}</button>
           ))}
         </div>
       </Field>
-      <Field side label="Sidebar width" hint="The pages take the rest of the window.">
+      <Field side label={t("settings.appearance.sidebar_width.label")} hint={t("settings.appearance.sidebar_width.hint")}>
         <Slider value={draft.sidebar_width} min={220} max={360} step={4} unit=" pt" reset={264} onChange={(v, now) => (now ? set({ sidebar_width: v }, true) : preview({ sidebar_width: v }))} />
       </Field>
       </Group>
       <Group>
-        <Field side label="Colors and backgrounds" hint="Each space has a color and a background of its own. They are with the space, in Settings → Spaces.">
-          <button className="btn" onClick={() => open("spaces")}>Open Spaces</button>
+        <Field side label={t("settings.appearance.colours_link.label")} hint={t("settings.appearance.colours_link.hint")}>
+          <button className="btn" onClick={() => open("spaces")}>{t("settings.appearance.colours_link.open")}</button>
         </Field>
       </Group>
     </>

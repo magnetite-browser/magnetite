@@ -4,6 +4,7 @@
 // space's own icon is made here too; it is kept in the space itself.
 import type { CSSProperties } from "react";
 import { DEFAULT_ACCENT, accentCss, send, type Color, type Id, type SidebarSide, type SpaceLook } from "./bridge";
+import { t } from "./i18n";
 
 export type ImageSlot = "empty" | "sidebar";
 
@@ -120,7 +121,7 @@ function dataUrl(blob: Blob): Promise<string> {
   return new Promise((done, fail) => {
     const reader = new FileReader();
     reader.onload = () => done(String(reader.result));
-    reader.onerror = () => fail(new Error("That picture could not be read"));
+    reader.onerror = () => fail(new Error(t("settings.appearance.picture.unreadable")));
     reader.readAsDataURL(blob);
   });
 }
@@ -135,7 +136,7 @@ async function squared(file: File, side: number): Promise<HTMLCanvasElement> {
   const img = new Image();
   // A `data:` address: the pages' policy lets pictures load from no `blob:`.
   img.src = await dataUrl(file);
-  await img.decode().catch(() => Promise.reject(new Error("That picture could not be read")));
+  await img.decode().catch(() => Promise.reject(new Error(t("settings.appearance.picture.unreadable"))));
   // An SVG may name no size of its own.
   const width = img.naturalWidth || side;
   const height = img.naturalHeight || side;
@@ -148,7 +149,7 @@ async function squared(file: File, side: number): Promise<HTMLCanvasElement> {
 
 /** `canvas` as a WebP file of `quality` (0 to 1). */
 function webp(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
-  return new Promise((done, fail) => canvas.toBlob((blob) => (blob ? done(blob) : fail(new Error("That picture could not be read"))), "image/webp", quality));
+  return new Promise((done, fail) => canvas.toBlob((blob) => (blob ? done(blob) : fail(new Error(t("settings.appearance.picture.unreadable")))), "image/webp", quality));
 }
 
 /** The base64 part of `blob`'s `data:` address. */
@@ -188,7 +189,7 @@ export async function storeIcon(space: Id, file: File | null): Promise<void> {
       }
     }
   }
-  throw new Error("That picture has too much detail for an icon");
+  throw new Error(t("settings.appearance.picture.too_detailed"));
 }
 
 /**

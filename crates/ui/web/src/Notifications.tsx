@@ -42,6 +42,7 @@ import {
   type UpdateStatus,
 } from "./bridge";
 import { FileName, REVEAL, size } from "./DownloadsView";
+import { t } from "./i18n";
 
 /** Seconds an ended download stays; the pointer on the panel holds it. */
 const LINGER = 6;
@@ -78,7 +79,7 @@ export function Notifications() {
   );
 
   useEffect(() => {
-    document.title = "Notifications";
+    document.title = t("notifications.title");
     send({ cmd: "get_state" }).then((s) => s.settings && applyAppearance(s.settings.appearance));
     return onDownloads((list) => {
       setItems(list);
@@ -112,8 +113,8 @@ export function Notifications() {
   const waiting = shown.some((d) => d.status !== "in_progress");
   useEffect(() => {
     if (!waiting || hover) return;
-    const t = window.setInterval(() => setNow(Date.now() / 1000), 1000);
-    return () => window.clearInterval(t);
+    const timer = window.setInterval(() => setNow(Date.now() / 1000), 1000);
+    return () => window.clearInterval(timer);
   }, [waiting, hover]);
 
   const updateCard =
@@ -177,24 +178,24 @@ export function Notifications() {
 
 /** What each kind of permission lets a site do, and its icon. */
 const KINDS: Record<PromptKind, { label: string; Icon: IconComponent }> = {
-  camera: { label: "Use your camera", Icon: CameraIcon },
-  camera_control: { label: "Move your camera", Icon: CameraMoveIcon },
-  microphone: { label: "Use your microphone", Icon: MicIcon },
-  location: { label: "Know your location", Icon: LocationIcon },
-  notifications: { label: "Show notifications", Icon: BellIcon },
-  clipboard: { label: "See text and images you copy", Icon: ClipboardIcon },
-  downloads: { label: "Download several files", Icon: DownloadIcon },
-  midi: { label: "Control your MIDI devices", Icon: MidiIcon },
-  fonts: { label: "Use the fonts on your computer", Icon: FontIcon },
-  idle: { label: "Know when you are using this computer", Icon: IdleIcon },
-  windows: { label: "Place windows on all your displays", Icon: WindowsIcon },
-  local_network: { label: "Connect to devices on your network", Icon: NetworkIcon },
-  sensors: { label: "Use your motion sensors", Icon: SensorIcon },
-  storage_access: { label: "Use its cookies on this site", Icon: CookieIcon },
-  links: { label: "Open a kind of link", Icon: LinkIcon },
-  keyboard_lock: { label: "Take over your keyboard", Icon: KeyboardIcon },
-  pointer_lock: { label: "Take over your mouse pointer", Icon: PointerIcon },
-  other: { label: "Use another feature", Icon: QuestionIcon },
+  camera: { label: t("notifications.prompt.kinds.camera"), Icon: CameraIcon },
+  camera_control: { label: t("notifications.prompt.kinds.camera_control"), Icon: CameraMoveIcon },
+  microphone: { label: t("notifications.prompt.kinds.microphone"), Icon: MicIcon },
+  location: { label: t("notifications.prompt.kinds.location"), Icon: LocationIcon },
+  notifications: { label: t("notifications.prompt.kinds.notifications"), Icon: BellIcon },
+  clipboard: { label: t("notifications.prompt.kinds.clipboard"), Icon: ClipboardIcon },
+  downloads: { label: t("notifications.prompt.kinds.downloads"), Icon: DownloadIcon },
+  midi: { label: t("notifications.prompt.kinds.midi"), Icon: MidiIcon },
+  fonts: { label: t("notifications.prompt.kinds.fonts"), Icon: FontIcon },
+  idle: { label: t("notifications.prompt.kinds.idle"), Icon: IdleIcon },
+  windows: { label: t("notifications.prompt.kinds.windows"), Icon: WindowsIcon },
+  local_network: { label: t("notifications.prompt.kinds.local_network"), Icon: NetworkIcon },
+  sensors: { label: t("notifications.prompt.kinds.sensors"), Icon: SensorIcon },
+  storage_access: { label: t("notifications.prompt.kinds.storage_access"), Icon: CookieIcon },
+  links: { label: t("notifications.prompt.kinds.links"), Icon: LinkIcon },
+  keyboard_lock: { label: t("notifications.prompt.kinds.keyboard_lock"), Icon: KeyboardIcon },
+  pointer_lock: { label: t("notifications.prompt.kinds.pointer_lock"), Icon: PointerIcon },
+  other: { label: t("notifications.prompt.kinds.other"), Icon: QuestionIcon },
 };
 
 /**
@@ -247,20 +248,20 @@ function PromptCard({ prompt, layout }: { prompt: PermissionPrompt; layout: stri
   const answer = (a: PromptAnswer) => send({ cmd: "answer_permission", id: prompt.id, answer: a });
   const First = KINDS[prompt.kinds[0] ?? "other"].Icon;
   return (
-    <div className="note prompt" role="alertdialog" aria-label={`${prompt.site} wants to`} {...deliberate.card}>
+    <div className="note prompt" role="alertdialog" aria-label={t("notifications.prompt.wants_to", { site: prompt.site })} {...deliberate.card}>
       <span className="note-icon"><First /></span>
       <div className="note-body">
         {/* The whole site, wrapped rather than cut: the end of a host is what names it. */}
-        <div className="note-title">{prompt.site} wants to</div>
+        <div className="note-title">{t("notifications.prompt.wants_to", { site: prompt.site })}</div>
         {prompt.kinds.map((k) => (
           <div key={k} className="note-detail">{KINDS[k].label}</div>
         ))}
         <div className="note-actions">
-          <button className="btn sm" {...deliberate.button(() => answer("block"))}>Block</button>
-          <button className="btn sm primary" {...deliberate.button(() => answer("allow"))}>Allow</button>
+          <button className="btn sm" {...deliberate.button(() => answer("block"))}>{t("notifications.prompt.block")}</button>
+          <button className="btn sm primary" {...deliberate.button(() => answer("allow"))}>{t("notifications.prompt.allow")}</button>
         </div>
       </div>
-      <button className="ib sm note-close" aria-label="Ask later" title="Ask later" onClick={() => answer("dismiss")}><Close width={14} height={14} /></button>
+      <button className="ib sm note-close" aria-label={t("notifications.prompt.ask_later")} title={t("notifications.prompt.ask_later")} onClick={() => answer("dismiss")}><Close width={14} height={14} /></button>
     </div>
   );
 }
@@ -268,16 +269,19 @@ function PromptCard({ prompt, layout }: { prompt: PermissionPrompt; layout: stri
 function DownloadCard({ d, layout, onClose }: { d: DownloadEntry; layout: string; onClose: () => void }) {
   const deliberate = useDeliberate(layout);
   const share = d.status === "in_progress" && d.total ? Math.min(1, d.received / d.total) : null;
+  const progress = d.total ? t("notifications.download.progress", { received: size(d.received), total: size(d.total) }) : t("notifications.download.so_far", { received: size(d.received) });
   const detail =
     d.status === "failed"
       ? d.canceled
-        ? "Download canceled"
-        : "Download failed"
+        ? t("notifications.download.canceled")
+        : t("notifications.download.failed")
       : d.status === "in_progress"
-        ? `${d.paused ? "Paused · " : ""}${d.total ? `${size(d.received)} of ${size(d.total)}` : `${size(d.received)} so far`}`
+        ? d.paused
+          ? t("notifications.download.paused", { progress })
+          : progress
         : d.missing
-          ? "Moved or deleted"
-          : `Downloaded · ${size(d.total ?? d.received)}`;
+          ? t("notifications.download.missing")
+          : t("notifications.download.done", { size: size(d.total ?? d.received) });
   const finished = d.status === "finished" && !d.missing;
   return (
     <div className="note" data-failed={d.status === "failed" || undefined} role="status" {...deliberate.card}>
@@ -294,18 +298,18 @@ function DownloadCard({ d, layout, onClose }: { d: DownloadEntry; layout: string
           <div className="note-actions">
             {/* A file that runs code is only shown in its folder (`risky`). */}
             {!d.risky && (
-              <button className="btn sm" {...deliberate.button(() => { send({ cmd: "open_download", id: d.id }); onClose(); })}>Open</button>
+              <button className="btn sm" {...deliberate.button(() => { send({ cmd: "open_download", id: d.id }); onClose(); })}>{t("common.open")}</button>
             )}
             <button className="btn sm ghost" onClick={() => send({ cmd: "open_download", id: d.id, reveal: true })}>{REVEAL}</button>
           </div>
         )}
         {d.retryable && (
           <div className="note-actions">
-            <button className="btn sm" onClick={() => send({ cmd: "retry_download", id: d.id })}>Try again</button>
+            <button className="btn sm" onClick={() => send({ cmd: "retry_download", id: d.id })}>{t("common.retry")}</button>
           </div>
         )}
       </div>
-      <button className="ib sm note-close" aria-label={`Dismiss ${d.name}`} onClick={onClose}><Close width={14} height={14} /></button>
+      <button className="ib sm note-close" aria-label={t("notifications.download.dismiss", { name: d.name })} onClick={onClose}><Close width={14} height={14} /></button>
     </div>
   );
 }
@@ -317,13 +321,13 @@ function UpdateCard({ status, failed, onClose }: { status: UpdateStatus; failed:
       <div className="note" data-failed role="alert">
         <span className="note-icon"><WarningIcon /></span>
         <div className="note-body">
-          <div className="note-title">The update was not installed</div>
+          <div className="note-title">{t("notifications.update.not_installed")}</div>
           <div className="note-detail">{failed}</div>
           <div className="note-actions">
-            <button className="btn sm" onClick={() => { send({ cmd: "open_update_page" }); onClose(); }}>Download</button>
+            <button className="btn sm" onClick={() => { send({ cmd: "open_update_page" }); onClose(); }}>{t("notifications.update.download")}</button>
           </div>
         </div>
-        <button className="ib sm note-close" aria-label="Dismiss" onClick={onClose}><Close width={14} height={14} /></button>
+        <button className="ib sm note-close" aria-label={t("notifications.update.dismiss")} onClick={onClose}><Close width={14} height={14} /></button>
       </div>
     );
   }
@@ -332,8 +336,8 @@ function UpdateCard({ status, failed, onClose }: { status: UpdateStatus; failed:
       <div className="note" role="status">
         <span className="note-icon"><RefreshIcon /></span>
         <div className="note-body">
-          <div className="note-title">Installing Magnetite {status.version}…</div>
-          <div className="note-detail">Magnetite restarts when it is ready. Your tabs stay.</div>
+          <div className="note-title">{t("notifications.update.installing", { version: status.version })}</div>
+          <div className="note-detail">{t("notifications.update.installing_detail")}</div>
           <div className="note-bar" data-unknown><span /></div>
         </div>
       </div>
@@ -344,18 +348,18 @@ function UpdateCard({ status, failed, onClose }: { status: UpdateStatus; failed:
     <div className="note" role="status">
       <span className="note-icon"><RefreshIcon /></span>
       <div className="note-body">
-        <div className="note-title">Magnetite {status.version} is available</div>
-        <div className="note-detail">{status.installable ? "Restart to use it. Your tabs stay." : "Download it from the release page."}</div>
+        <div className="note-title">{t("notifications.update.available", { version: status.version })}</div>
+        <div className="note-detail">{status.installable ? t("notifications.update.restart_detail") : t("notifications.update.download_detail")}</div>
         <div className="note-actions">
           {status.installable ? (
-            <button className="btn sm primary" onClick={() => send({ cmd: "install_update" })}>Restart to update</button>
+            <button className="btn sm primary" onClick={() => send({ cmd: "install_update" })}>{t("notifications.update.restart")}</button>
           ) : (
-            <button className="btn sm primary" onClick={() => { send({ cmd: "open_update_page" }); onClose(); }}>Download</button>
+            <button className="btn sm primary" onClick={() => { send({ cmd: "open_update_page" }); onClose(); }}>{t("notifications.update.download")}</button>
           )}
-          <button className="btn sm ghost" onClick={() => send({ cmd: "open_update_page" })}>What's new</button>
+          <button className="btn sm ghost" onClick={() => send({ cmd: "open_update_page" })}>{t("notifications.update.whats_new")}</button>
         </div>
       </div>
-      <button className="ib sm note-close" aria-label="Later" title="Later" onClick={onClose}><Close width={14} height={14} /></button>
+      <button className="ib sm note-close" aria-label={t("notifications.update.later")} title={t("notifications.update.later")} onClick={onClose}><Close width={14} height={14} /></button>
     </div>
   );
 }

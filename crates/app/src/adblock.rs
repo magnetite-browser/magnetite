@@ -14,12 +14,14 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
+use magnetite_ui::t;
+
 /// A filter list one can subscribe to.
 pub struct FilterList {
     pub id: &'static str,
     pub name: &'static str,
-    /// What it blocks, in a few words.
-    pub about: &'static str,
+    /// What it blocks, in a few words, in the user's language.
+    pub about: fn() -> &'static str,
     /// Where it is downloaded from, over https: its files, kept as one.
     pub urls: &'static [&'static str],
     /// Whether its rules may use the scriptlets that need trust
@@ -35,28 +37,28 @@ pub const LISTS: &[FilterList] = &[
     FilterList {
         id: "easylist",
         name: "EasyList",
-        about: "Ads on most international websites.",
+        about: || t!("app.adblock.about.easylist"),
         urls: &["https://easylist.to/easylist/easylist.txt"],
         trusted: false,
     },
     FilterList {
         id: "easyprivacy",
         name: "EasyPrivacy",
-        about: "Trackers and analytics.",
+        about: || t!("app.adblock.about.easyprivacy"),
         urls: &["https://easylist.to/easylist/easyprivacy.txt"],
         trusted: false,
     },
     FilterList {
         id: "easylist-germany",
         name: "EasyList Germany",
-        about: "Ads on German-language websites. Use with EasyList.",
+        about: || t!("app.adblock.about.easylist_germany"),
         urls: &["https://easylist.to/easylistgermany/easylistgermany.txt"],
         trusted: false,
     },
     FilterList {
         id: "peter-lowe",
         name: "Peter Lowe's list",
-        about: "Servers of ad and tracking companies.",
+        about: || t!("app.adblock.about.peter_lowe"),
         urls: &[
             "https://pgl.yoyo.org/adservers/serverlist.php?hostformat=adblockplus&showintro=0&mimetype=plaintext",
         ],
@@ -65,7 +67,7 @@ pub const LISTS: &[FilterList] = &[
     FilterList {
         id: "ublock",
         name: "uBlock Origin's lists",
-        about: "Ads, trackers and \"turn off your ad blocker\" walls, with fixes for sites the other lists break.",
+        about: || t!("app.adblock.about.ublock"),
         urls: &[
             "https://ublockorigin.github.io/uAssetsCDN/filters/filters.min.txt",
             "https://ublockorigin.github.io/uAssetsCDN/filters/badware.min.txt",
@@ -153,7 +155,7 @@ fn fetch_file(agent: &ureq::Agent, url: &str) -> Result<Vec<u8>, String> {
     let mut res = agent
         .get(url)
         .call()
-        .map_err(|e| format!("Cannot download it: {e}"))?;
+        .map_err(|e| t!("app.adblock.unreachable", error = e))?;
     let html = (res.headers().get("content-type"))
         .and_then(|v| v.to_str().ok())
         .is_some_and(|t| t.trim_start().to_ascii_lowercase().starts_with("text/html"));
@@ -162,7 +164,7 @@ fn fetch_file(agent: &ureq::Agent, url: &str) -> Result<Vec<u8>, String> {
         .as_reader()
         .take(MAX_LIST + 1)
         .read_to_end(&mut body)
-        .map_err(|e| format!("The download broke off: {e}"))?;
+        .map_err(|e| t!("app.errors.download_broke_off", error = e))?;
     check(&body, html)?;
     Ok(body)
 }
@@ -173,12 +175,12 @@ fn fetch_file(agent: &ureq::Agent, url: &str) -> Result<Vec<u8>, String> {
 /// order mark and white space.
 fn check(body: &[u8], html: bool) -> Result<(), String> {
     if body.len() as u64 > MAX_LIST {
-        return Err("The list is larger than expected.".into());
+        return Err(t!("app.adblock.too_large").into());
     }
-    let text = std::str::from_utf8(body).map_err(|_| "The download is no filter list.")?;
+    let text = std::str::from_utf8(body).map_err(|_| t!("app.adblock.not_a_list"))?;
     let text = text.trim_start_matches('\u{feff}').trim_start();
     if html || text.starts_with('<') || text.is_empty() {
-        return Err("The download is no filter list.".into());
+        return Err(t!("app.adblock.not_a_list").into());
     }
     Ok(())
 }

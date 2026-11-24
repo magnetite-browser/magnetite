@@ -9,5 +9,8 @@ publish = false
 
 [dependencies]
 
+[build-dependencies]
+serde_json.workspace = true
+
 [lints]
 workspace = true

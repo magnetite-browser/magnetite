@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Field, Toggle } from "./fields";
 import type { Settings } from "../bridge";
+import { t } from "../i18n";
 
 export function DeveloperSection({ settings, update }: { settings: Settings; update: (patch: Partial<Settings>) => void }) {
   const dev = settings.developer;
@@ -11,12 +12,12 @@ export function DeveloperSection({ settings, update }: { settings: Settings; upd
   return (
     <>
       <Toggle
-        label="Developer bar for local pages"
-        hint="A page served from this computer (localhost, 127.0.0.1) gets a row under its address: its project, its console errors, and the console, element picker, network panel and a reset a click away."
+        label={t("settings.developer.bar.label")}
+        hint={t("settings.developer.bar.hint")}
         checked={dev.enabled}
         onChange={(enabled) => update({ developer: { ...dev, enabled } })}
       />
-      <Field label="Also local" hint="Hosts that get the developer bar too, one per line: staging.example.org, or *.test for every name under one. The reset never clears their data by a key press.">
+      <Field label={t("settings.developer.hosts.label")} hint={t("settings.developer.hosts.hint")}>
         <textarea className="field mono" rows={3} spellCheck={false} placeholder={"staging.example.org\n*.test"} value={hosts} onChange={(e) => setHosts(e.target.value)} onBlur={save} style={{ height: "auto", padding: "8px 10px", resize: "vertical" }} />
       </Field>
     </>

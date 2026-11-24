@@ -6,6 +6,7 @@ import { Field, Group } from "./fields";
 import { useEffect, useRef, useState } from "react";
 import { SpaceIcon } from "../Glyphs";
 import { accentCss, send } from "../bridge";
+import { rich, t } from "../i18n";
 import { keysLabel, pressedKeys, SHORTCUT_GROUPS, SHORTCUT_LABEL, type ShortcutAction, type ShortcutFirst } from "./shortcutKeys";
 import type { Info } from "./types";
 
@@ -40,7 +41,7 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
     const space = info.spaces.find((s) => s.id === target.id);
     return { keys: space?.keys ?? null, default: null, unused: space?.keys ? null : space?.shortcut };
   };
-  const name = (target: Target) => (target.kind === "action" ? SHORTCUT_LABEL[target.action] : `Go to ${info.spaces.find((s) => s.id === target.id)?.title ?? "the space"}`);
+  const name = (target: Target) => (target.kind === "action" ? SHORTCUT_LABEL[target.action] : t("settings.shortcuts.go_to_space", { space: info.spaces.find((s) => s.id === target.id)?.title ?? t("settings.shortcuts.the_space") }));
   /** What else has `keys` now. */
   const holder = (keys: string, except: Target): Target | undefined => {
     const all: Target[] = [
@@ -103,14 +104,14 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
     return (
       <select
         className="field sm shortcut-first"
-        aria-label={`Who gets the keys of “${SHORTCUT_LABEL[action]}” first`}
-        title={now.first === "magnetite" ? "A page never sees these keys" : "A page may use these keys itself; the shortcut runs if it does not"}
+        aria-label={t("settings.shortcuts.first.label", { action: SHORTCUT_LABEL[action] })}
+        title={now.first === "magnetite" ? t("settings.shortcuts.first.magnetite_hint") : t("settings.shortcuts.first.page_hint")}
         data-changed={now.first !== now.default_first || undefined}
         value={now.first}
         onChange={(e) => pick(e.target.value as ShortcutFirst)}
       >
-        <option value="magnetite">Magnetite first</option>
-        <option value="page">Page first</option>
+        <option value="magnetite">{t("settings.shortcuts.first.magnetite")}</option>
+        <option value="page">{t("settings.shortcuts.first.page")}</option>
       </select>
     );
   };
@@ -119,15 +120,15 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
   const resetButton = (action: ShortcutAction) => {
     const now = info.shortcuts.find((s) => s.action === action);
     if (!now) return null;
-    const first = now.default_first === "page" ? "page first" : "Magnetite first";
+    const first = now.default_first === "page" ? t("settings.shortcuts.reset.page_first") : t("settings.shortcuts.first.magnetite");
     return (
       <button
         className="btn sm"
         disabled={now.keys === now.default && now.first === now.default_first}
-        title={`Back to ${now.default ? keysLabel(now.default) : "no keys"}, ${first}`}
+        title={t("settings.shortcuts.reset.title", { keys: now.default ? keysLabel(now.default) : t("settings.shortcuts.reset.no_keys"), first })}
         onClick={() => reset(action)}
       >
-        Reset
+        {t("common.reset")}
       </button>
     );
   };
@@ -141,18 +142,18 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
         <div className="flex min-h-9 items-center gap-2">
           {label}
           {here && !here.taken ? (
-            <span className="text-[13px] text-[var(--accent)]">Press the new keys · Esc cancels</span>
+            <span className="text-[13px] text-[var(--accent)]">{t("settings.shortcuts.recording")}</span>
           ) : (
             <>
               <span className="shortcut-keys">
                 {now?.keys ? <kbd>{keysLabel(now.keys)}</kbd> : (
-                  <span className="text-[13px] text-[var(--muted)]" title={now?.unused ? "These keys are fixed on this device, or something else has them" : undefined}>
-                    {now?.unused ? `${keysLabel(now.unused)}, not used here` : "No keys"}
+                  <span className="text-[13px] text-[var(--muted)]" title={now?.unused ? t("settings.shortcuts.unused_hint") : undefined}>
+                    {now?.unused ? t("settings.shortcuts.unused", { keys: keysLabel(now.unused) }) : t("settings.shortcuts.no_keys")}
                   </span>
                 )}
               </span>
-              <button className="btn sm" onClick={() => { setProblem(null); setRecording({ target }); }}>Change</button>
-              <button className="btn sm" disabled={!now?.keys && !now?.unused} title="No keys from now on" onClick={() => void save(target, null)}>Remove</button>
+              <button className="btn sm" onClick={() => { setProblem(null); setRecording({ target }); }}>{t("common.change")}</button>
+              <button className="btn sm" disabled={!now?.keys && !now?.unused} title={t("settings.shortcuts.remove_hint")} onClick={() => void save(target, null)}>{t("common.remove")}</button>
               {target.kind === "action" && firstPick(target.action)}
               {target.kind === "action" && resetButton(target.action)}
             </>
@@ -161,10 +162,10 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
         {here?.taken && (
           <div className="flex items-center gap-2 pb-2 text-[13px]">
             <span className="min-w-0 flex-1">
-              <kbd>{keysLabel(here.taken.keys)}</kbd> is used by “{name(here.taken.by)}”, which would lose its keys.
+              {rich("settings.shortcuts.taken", { keys: <kbd>{keysLabel(here.taken.keys)}</kbd>, name: name(here.taken.by) })}
             </span>
-            <button className="btn sm" onClick={() => void save(target, here.taken!.keys)}>Use here</button>
-            <button className="btn sm" onClick={() => setRecording(null)}>Cancel</button>
+            <button className="btn sm" onClick={() => void save(target, here.taken!.keys)}>{t("settings.shortcuts.use_here")}</button>
+            <button className="btn sm" onClick={() => setRecording(null)}>{t("common.cancel")}</button>
           </div>
         )}
         {problem && same(problem.target, target) && <p className="pb-2 text-[13px]" style={{ color: "var(--danger)" }}>{problem.text}</p>}
@@ -178,34 +179,34 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
   return (
     <>
       <Group>
-        <Field label="When a page uses the same keys" hint="Each shortcut says who gets its keys first while a page is in focus. “Magnetite first”: the page never sees them. “Page first”: a web app may use them itself, and the shortcut runs only if it does not." />
+        <Field label={t("settings.shortcuts.conflict.label")} hint={t("settings.shortcuts.conflict.hint")} />
       </Group>
-      <Group title="Sites that get every shortcut's keys first" hint="For a web app with many shortcuts of its own, such as an editor: each shortcut's own choice does not count there. Add a site here, or turn it on in the site panel (the button left of the address) for the page in front.">
+      <Group title={t("settings.shortcuts.sites.title")} hint={t("settings.shortcuts.sites.hint")}>
         <form className="set-row flex items-center gap-3" data-search-row onSubmit={(e) => { e.preventDefault(); addSite(); }}>
-          <input className="field flex-1" aria-label="Site to add" placeholder="example.org" spellCheck={false} autoCapitalize="off" value={newSite} onChange={(e) => setNewSite(e.target.value)} />
-          <button className="btn sm" type="submit" disabled={!newSite.trim()}>Add site</button>
+          <input className="field flex-1" aria-label={t("settings.shortcuts.sites.add_label")} placeholder="example.org" spellCheck={false} autoCapitalize="off" value={newSite} onChange={(e) => setNewSite(e.target.value)} />
+          <button className="btn sm" type="submit" disabled={!newSite.trim()}>{t("settings.shortcuts.sites.add")}</button>
         </form>
         {sites.length > 0 && (
           <ul>
             {sites.map((site) => (
               <li key={site} className="set-row flex items-center gap-3" data-search-row>
                 <span className="flex-1 truncate" data-search-name>{site}</span>
-                <button className="btn sm" title="Each shortcut's own choice counts on this site again" onClick={() => setSite(site, false)}>Remove</button>
+                <button className="btn sm" title={t("settings.shortcuts.sites.remove_hint")} onClick={() => setSite(site, false)}>{t("common.remove")}</button>
               </li>
             ))}
           </ul>
         )}
       </Group>
       {SHORTCUT_GROUPS.map((group) => (
-        <Group key={group.label} title={group.label} fold={first === group ? "open" : "closed"} onFold={() => setRecording((now) => (now?.target.kind === "action" && now.target.action in group.actions ? null : now))} count={`${Object.keys(group.actions).length} commands`}>
+        <Group key={group.id} title={t(`settings.shortcuts.groups.${group.id}`)} fold={first === group ? "open" : "closed"} onFold={() => setRecording((now) => { const target = now?.target; return target?.kind === "action" && group.actions.some((a) => a === target.action) ? null : now; })} count={t("settings.shortcuts.commands", { count: group.actions.length })}>
           <div className="set-list">
-            {(Object.keys(group.actions) as ShortcutAction[]).map((action) =>
+            {group.actions.map((action) =>
               row({ kind: "action", action }, action, <span className="min-w-0 flex-1 truncate" data-search-name>{SHORTCUT_LABEL[action]}</span>),
             )}
           </div>
         </Group>
       ))}
-      <Group title="Spaces" fold="closed" onFold={() => setRecording((now) => (now?.target.kind === "space" ? null : now))} count={`${info.spaces.length} ${info.spaces.length === 1 ? "space" : "spaces"}`} hint="Keys that go straight to one space. The first nine also have the digits of their place.">
+      <Group title={t("settings.shortcuts.spaces.title")} fold="closed" onFold={() => setRecording((now) => (now?.target.kind === "space" ? null : now))} count={t("settings.shortcuts.spaces.count", { count: info.spaces.length })} hint={t("settings.shortcuts.spaces.hint")}>
         <div className="set-list">
           {info.spaces.map((space) =>
             row(
@@ -220,8 +221,8 @@ export function ShortcutsSection({ info, reload }: { info: Info; reload: () => v
         </div>
       </Group>
       <Group>
-        <Field side label="Reset all shortcuts" hint="Changed shortcuts sync to your other devices, a space's keys with the space. Reload, back, forward, zoom, the digits that choose a tab or a space, and the quick search from anywhere keep their keys.">
-          <button className="btn" disabled={!changed} title="Every shortcut gets its default keys back and goes first to whom it did, on every site; the spaces have no keys of their own" onClick={() => reset()}>Reset all</button>
+        <Field side label={t("settings.shortcuts.reset_all.label")} hint={t("settings.shortcuts.reset_all.hint")}>
+          <button className="btn" disabled={!changed} title={t("settings.shortcuts.reset_all.title")} onClick={() => reset()}>{t("settings.shortcuts.reset_all.button")}</button>
         </Field>
       </Group>
     </>

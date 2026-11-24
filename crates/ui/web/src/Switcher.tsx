@@ -5,6 +5,7 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { Favicon } from "./Favicon";
 import { accentCss, applyAppearance, findTab, hostOf, send, subscribe, type UiState } from "./bridge";
+import { t } from "./i18n";
 
 export function Switcher() {
   const [state, setState] = useState<UiState | null>(null);
@@ -24,7 +25,7 @@ export function Switcher() {
   const round = state?.switcher;
   if (!state || !round) return null;
   return (
-    <div className="switcher" role="listbox" aria-label="Tabs by last use">
+    <div className="switcher" role="listbox" aria-label={t("sidebar.switcher.label")}>
       {round.tabs.map((id, i) => {
         const tab = findTab(state, id);
         if (!tab) return null;

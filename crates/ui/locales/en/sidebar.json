@@ -1,0 +1,254 @@
+{
+  "header": {
+    "keep_open": "Keep the sidebar open",
+    "hide": "Hide sidebar",
+    "forward": "Forward",
+    "reload": "Reload"
+  },
+  "window": {
+    "minimize": "Minimize",
+    "full_screen": "Full screen"
+  },
+  "peek": {
+    "label": "Peek",
+    "keep": "Keep",
+    "keep_as_tab": "Keep as tab",
+    "open_in_split": "Open in split view"
+  },
+  "space": {
+    "change_icon": "Change icon",
+    "options": "Space options",
+    "hide_private": "Hide private space",
+    "close_private": "Close private space"
+  },
+  "space_menu": {
+    "settings": "Space settings…",
+    "new_folder": "New folder",
+    "new_profile": "New profile for this space…",
+    "delete": "Delete space…",
+    "delete_confirm": "Click again to delete space"
+  },
+  "profile": {
+    "item": "Profile: {name}",
+    "fallback": "Profile"
+  },
+  "today": {
+    "clear_title": "Archive all Today tabs",
+    "clear_private_title": "Close all private tabs",
+    "new_tab_title": "New tab",
+    "new_private_tab_title": "New private tab",
+    "new_private_tab": "New Private Tab"
+  },
+  "new_menu": {
+    "label": "New",
+    "open": "New…",
+    "close": "Close menu",
+    "space": "New Space",
+    "private_space": "Private Space",
+    "folder": "New Folder",
+    "smart_folder": "New Smart Folder",
+    "split": "New Split",
+    "private_tab": "New Private Tab"
+  },
+  "tab_menu": {
+    "reload": "Reload",
+    "share": "Share…",
+    "copy_link": "Copy link",
+    "pin": "Pin tab",
+    "unpin": "Unpin tab",
+    "back_to_pinned": "Back to pinned page",
+    "add_to_favorites": "Add to favorites",
+    "remove_from_favorites": "Remove from favorites",
+    "add_to_bookmarks": "Add to bookmarks",
+    "keep_active": "Keep active",
+    "open_as_panel": "Open as panel",
+    "mobile_view": "Mobile view",
+    "open_in_split": "Open in split view",
+    "remove_from_split": "Remove from split view",
+    "separate_all": "Separate all tabs",
+    "duplicate": "Duplicate tab",
+    "use_page_title": "Use page title",
+    "duplicate_favorite": "Duplicate favorite",
+    "new_profile": "New profile for this favorite…",
+    "show_in_every_space": "Show in every space",
+    "show_only_in": "Show only in {space}",
+    "move_to": "Move to {space}",
+    "archive": "Archive",
+    "remove_from_pinned": "Remove from pinned tabs"
+  },
+  "tab_row": {
+    "back_to_home": "Back to {host} (the pinned page)",
+    "back_to_home_label": "Back to the pinned page, {host}",
+    "mute": "Mute tab",
+    "unmute": "Unmute tab",
+    "shared": "This tab is being shared",
+    "shared_label": "Being shared",
+    "console_errors_one": "{count} error in the console",
+    "console_errors_other": "{count} errors in the console",
+    "console_errors_label_one": "{count} console error",
+    "console_errors_label_other": "{count} console errors",
+    "web_panel": "Opens as a web panel",
+    "kept_active": "Kept active: this tab is not unloaded",
+    "kept_active_label": "Kept active",
+    "share_instead": "Share this tab instead",
+    "archive": "Archive"
+  },
+  "favorites": {
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "panel": "panel",
+    "shared": "being shared",
+    "rename_label": "Name of the favorite {name}"
+  },
+  "snooze": {
+    "button": "Snooze",
+    "in_hours_one": "In 1 hour",
+    "in_hours_other": "In {count} hours",
+    "this_evening": "This evening",
+    "tomorrow": "Tomorrow",
+    "next_week": "Next week",
+    "custom": "Custom…",
+    "custom_title": "Pick a date and time",
+    "forever": "Forever",
+    "forever_title": "Until you wake it from the folder's snoozed items",
+    "until_label": "Snooze until",
+    "snoozed": "Snoozed",
+    "snoozed_until": "Snoozed until {time}",
+    "wake_now": "Wake now",
+    "show_snoozed_one": "Show 1 snoozed item",
+    "show_snoozed_other": "Show {count} snoozed items",
+    "hide_snoozed_one": "Hide 1 snoozed item",
+    "hide_snoozed_other": "Hide {count} snoozed items"
+  },
+  "folder_menu": {
+    "copy_share_link": "Copy link to share",
+    "turn_on": "Turn on on this device",
+    "refresh": "Refresh now",
+    "smart_settings": "Smart folder settings…",
+    "rename": "Rename folder",
+    "change_icon": "Change icon…",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "stop_updating": "Stop updating (keep tabs)",
+    "delete_with_items": "Delete folder and its items",
+    "new_folder_inside": "New folder inside",
+    "make_smart": "Turn into smart folder…",
+    "delete_keep_tabs": "Delete folder (keep tabs)"
+  },
+  "folder_row": {
+    "smart": "Smart folder",
+    "smart_updated": "Smart folder · updated {ago}",
+    "refreshing": "Refreshing",
+    "error": "{error} Click for settings.",
+    "error_label": "Smart folder problem",
+    "new_items": "New items"
+  },
+  "split_menu": {
+    "pin": "Pin split",
+    "unpin": "Unpin split",
+    "add_to_favorites": "Add split to favorites",
+    "even_out": "Even out sizes",
+    "grid": "Arrange as grid"
+  },
+  "split_drop": {
+    "window_title": "Split",
+    "tab": "tab",
+    "move_here": "Move {title} here",
+    "open_here": "Open {title} here",
+    "swap_with": "Swap {title} with {other}",
+    "swap_with_this_page": "Swap {title} with this page",
+    "full": "Split view holds up to four pages"
+  },
+  "device_tab": {
+    "hint": "Open on {device}. Click to continue here.",
+    "label": "Open on {device}"
+  },
+  "extensions": {
+    "title": "Extensions",
+    "more": "More extensions",
+    "manage": "Manage extensions",
+    "options": "Options",
+    "remove_from_sidebar": "Remove from Sidebar",
+    "remove_from_top_bar": "Remove from Top Bar"
+  },
+  "media": {
+    "previous": "Previous",
+    "next": "Next",
+    "play": "Play",
+    "pause": "Pause",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "picture_in_picture": "Picture in picture",
+    "back_into_page": "Back into the page"
+  },
+  "library_button": {
+    "label": "Bookmarks, history, downloads, archive and settings",
+    "downloading": "Downloading {name}",
+    "downloading_files_one": "Downloading 1 file",
+    "downloading_files_other": "Downloading {count} files",
+    "bookmarks": "Bookmarks",
+    "history": "History",
+    "downloads": "Downloads",
+    "archive": "Archive",
+    "running_one": "{count} running",
+    "running_other": "{count} running"
+  },
+  "space_picker": {
+    "label": "Go to space",
+    "placeholder": "Go to space…",
+    "current": "Current",
+    "go_hint": "{key} Go to the space",
+    "no_match": "No space with that name",
+    "keys_hint": "Keys for a space: Settings → Shortcuts"
+  },
+  "switcher": {
+    "label": "Tabs by last use"
+  },
+  "resizer": {
+    "label": "Sidebar width",
+    "title": "Drag to resize the sidebar · double-click to reset"
+  },
+  "panel_grip": {
+    "label": "Web panel width",
+    "title": "Drag to resize the panel · double-click to reset"
+  },
+  "icon_picker": {
+    "default": "Default icon"
+  },
+  "glyphs": {
+    "bolt": "bolt",
+    "home": "home",
+    "briefcase": "briefcase",
+    "book": "book",
+    "code": "code",
+    "globe": "globe",
+    "heart": "heart",
+    "star": "star",
+    "music": "music",
+    "cart": "cart",
+    "camera": "camera",
+    "flask": "flask",
+    "leaf": "leaf",
+    "flame": "flame",
+    "chat": "chat",
+    "wrench": "wrench",
+    "compass": "compass",
+    "folder": "folder",
+    "plane": "plane",
+    "gamepad": "gamepad",
+    "shield": "shield",
+    "medical": "medical",
+    "github": "github",
+    "diamond": "diamond",
+    "circle": "circle",
+    "square": "square",
+    "triangle": "triangle"
+  },
+  "time": {
+    "just_now": "just now",
+    "minutes_ago": "{minutes} min ago",
+    "hours_ago": "{hours} h ago",
+    "days_ago_one": "1 day ago",
+    "days_ago_other": "{count} days ago"
+  }
+}

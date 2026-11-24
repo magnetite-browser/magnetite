@@ -38,6 +38,7 @@ use crate::engine::Engine;
 use crate::events::{ContentId, EngineEvent};
 use crate::mac::plain_box;
 use crate::media::{MediaAction, MediaState};
+use magnetite_ui::t;
 
 /// Sizes in points.
 const MARGIN: f64 = 10.0;
@@ -84,13 +85,13 @@ impl Button {
 
     fn label(self, playing: bool) -> &'static str {
         match self {
-            Self::BackToTab => "Back to Tab",
-            Self::Minimize => "Minimize",
-            Self::Close => "Close",
-            Self::Back => "Back 15 seconds",
-            Self::PlayPause if playing => "Pause",
-            Self::PlayPause => "Play",
-            Self::Forward => "Forward 15 seconds",
+            Self::BackToTab => t!("app.pip.back_to_tab"),
+            Self::Minimize => t!("app.pip.minimize"),
+            Self::Close => t!("common.close"),
+            Self::Back => t!("app.pip.back"),
+            Self::PlayPause if playing => t!("app.pip.pause"),
+            Self::PlayPause => t!("app.pip.play"),
+            Self::Forward => t!("app.pip.forward"),
         }
     }
 

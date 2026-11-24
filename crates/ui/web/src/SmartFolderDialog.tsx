@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Favicon } from "./Favicon";
 import { ExternalIcon, KeyIcon, SmartFolderIcon } from "./Icons";
+import { t } from "./i18n";
 import { send, sourceHost, type Account, type ReviewShow, type Service, type SmartItem, type SmartSource, type UiState } from "./bridge";
 import {
   DEFAULT_JIRA_JQL,
@@ -25,29 +26,34 @@ import {
 
 const SHOW: Record<"github" | "gitlab", [ReviewShow, string][]> = {
   github: [
-    ["pull_requests", "My PRs + review requests"],
-    ["review_requests", "Review requests"],
-    ["my_pull_requests", "My pull requests"],
-    ["assigned_issues", "Issues assigned to me"],
+    ["pull_requests", t("dialogs.smart_folder.show.github.pull_requests")],
+    ["review_requests", t("dialogs.smart_folder.show.github.review_requests")],
+    ["my_pull_requests", t("dialogs.smart_folder.show.github.my_pull_requests")],
+    ["assigned_issues", t("dialogs.smart_folder.show.github.assigned_issues")],
   ],
   gitlab: [
-    ["pull_requests", "My MRs + review requests"],
-    ["review_requests", "Review requests"],
-    ["my_pull_requests", "My merge requests"],
-    ["assigned_issues", "Issues assigned to me"],
+    ["pull_requests", t("dialogs.smart_folder.show.gitlab.pull_requests")],
+    ["review_requests", t("dialogs.smart_folder.show.gitlab.review_requests")],
+    ["my_pull_requests", t("dialogs.smart_folder.show.gitlab.my_pull_requests")],
+    ["assigned_issues", t("dialogs.smart_folder.show.gitlab.assigned_issues")],
   ],
 };
 const JIRA_PRESETS: [string, string][] = [
-  ["Assigned to me", DEFAULT_JIRA_JQL],
-  ["Reported by me", "reporter = currentUser() AND resolution = Unresolved ORDER BY updated DESC"],
-  ["Watching", "watcher = currentUser() AND resolution = Unresolved ORDER BY updated DESC"],
+  [t("dialogs.smart_folder.query.assigned_to_me"), DEFAULT_JIRA_JQL],
+  [t("dialogs.smart_folder.query.reported_by_me"), "reporter = currentUser() AND resolution = Unresolved ORDER BY updated DESC"],
+  [t("dialogs.smart_folder.query.watching"), "watcher = currentUser() AND resolution = Unresolved ORDER BY updated DESC"],
 ];
 const YOUTRACK_PRESETS: [string, string][] = [
-  ["Assigned to me", DEFAULT_YOUTRACK_QUERY],
-  ["Reported by me", "reporter: me #Unresolved sort by: updated desc"],
-  ["Starred", "tag: Star #Unresolved sort by: updated desc"],
+  [t("dialogs.smart_folder.query.assigned_to_me"), DEFAULT_YOUTRACK_QUERY],
+  [t("dialogs.smart_folder.query.reported_by_me"), "reporter: me #Unresolved sort by: updated desc"],
+  [t("dialogs.smart_folder.query.starred"), "tag: Star #Unresolved sort by: updated desc"],
 ];
-const DEFAULT_TITLE: Record<Service, string> = { github: "Pull requests", gitlab: "Merge requests", jira: "Issues", youtrack: "Issues" };
+const DEFAULT_TITLE: Record<Service, string> = {
+  github: t("dialogs.smart_folder.default_name.github"),
+  gitlab: t("dialogs.smart_folder.default_name.gitlab"),
+  jira: t("dialogs.smart_folder.default_name.jira"),
+  youtrack: t("dialogs.smart_folder.default_name.youtrack"),
+};
 const REFRESH = [5, 15, 30, 60];
 const LIMITS = [10, 20, 50];
 
@@ -90,7 +96,7 @@ function loadDraft(id?: string): Draft | null {
 export function SmartFolderDialog() {
   const [state, setState] = useState<UiState | null>(null);
   useEffect(() => {
-    document.title = "Smart folder";
+    document.title = t("dialogs.smart_folder.title.smart");
     send({ cmd: "get_state" }).then(setState);
   }, []);
   return state ? <Form state={state} id={new URLSearchParams(location.search).get("id") ?? undefined} /> : null;
@@ -164,14 +170,14 @@ function Form({ state, id }: { state: UiState; id?: string }) {
     if (!chosen || !hostReady || !queryReady) return setPreview({});
     let live = true;
     setPreview((p) => ({ ...p, loading: true }));
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       send({ cmd: "smart_preview", source, account: chosen.login })
         .then((items) => live && setPreview({ items }))
         .catch((e: Error) => live && setPreview({ error: e.message }));
     }, 450);
     return () => {
       live = false;
-      clearTimeout(t);
+      clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewKey]);
@@ -192,16 +198,16 @@ function Form({ state, id }: { state: UiState; id?: string }) {
       <header className="sf-head">
         <span className="sf-icon"><SmartFolderIcon width={18} height={18} /></span>
         <div className="min-w-0 flex-1">
-          <h1>{smart ? "Smart folder" : folder ? "Turn into a smart folder" : "New smart folder"}</h1>
-          <p>{status?.error ? <span className="sf-error">{status.error}</span> : status?.updated_at ? `Updated ${ago(status.updated_at)}` : `Fills itself from ${label} and stays up to date.`}</p>
+          <h1>{smart ? t("dialogs.smart_folder.title.smart") : folder ? t("dialogs.smart_folder.title.turn_into") : t("dialogs.smart_folder.title.new")}</h1>
+          <p>{status?.error ? <span className="sf-error">{status.error}</span> : status?.updated_at ? t("dialogs.smart_folder.updated", { when: ago(status.updated_at) }) : t("dialogs.smart_folder.intro", { service: label })}</p>
         </div>
       </header>
 
-      <Row label="Name">
+      <Row label={t("dialogs.smart_folder.name")}>
         <input className="field" value={title} placeholder={DEFAULT_TITLE[service]} onChange={(e) => setTitle(e.target.value)} autoFocus={!folder} />
       </Row>
 
-      <Row label="Source">
+      <Row label={t("dialogs.smart_folder.source")}>
         <div className="sf-source">
           <Favicon url={serviceSite(source)} />
           <select className="field" value={service} onChange={(e) => setService(SERVICES.find((s) => s === e.target.value) ?? service)}>
@@ -212,44 +218,44 @@ function Form({ state, id }: { state: UiState; id?: string }) {
 
       {source.service === "github" && (
         <>
-          <Row label="Server" hint="github.com, or your GitHub Enterprise address.">
+          <Row label={t("dialogs.smart_folder.server.label")} hint={t("dialogs.smart_folder.server.github_hint")}>
             <input className="field" value={source.host} spellCheck={false} onChange={(e) => edit("github", { host: e.target.value })} />
           </Row>
           <ShowRow options={SHOW.github} value={source.show} onChange={(show) => edit("github", { show })} />
-          <Row label="Only" hint="Optional GitHub search terms, e.g. org:acme or -label:wip.">
+          <Row label={t("dialogs.smart_folder.only.label")} hint={t("dialogs.smart_folder.only.hint")}>
             <input className="field mono" value={source.filter} placeholder="org:acme" spellCheck={false} onChange={(e) => edit("github", { filter: e.target.value })} />
           </Row>
         </>
       )}
       {source.service === "gitlab" && (
         <>
-          <Row label="Server" hint="gitlab.com, or your own GitLab.">
+          <Row label={t("dialogs.smart_folder.server.label")} hint={t("dialogs.smart_folder.server.gitlab_hint")}>
             <input className="field" value={source.host} spellCheck={false} onChange={(e) => edit("gitlab", { host: e.target.value })} />
           </Row>
           <ShowRow options={SHOW.gitlab} value={source.show} onChange={(show) => edit("gitlab", { show })} />
-          <Row label="Group" hint="Optional: only this group and its subgroups, e.g. acme/platform.">
+          <Row label={t("dialogs.smart_folder.group.label")} hint={t("dialogs.smart_folder.group.hint")}>
             <input className="field mono" value={source.group} placeholder="acme/platform" spellCheck={false} onChange={(e) => edit("gitlab", { group: e.target.value })} />
           </Row>
         </>
       )}
       {source.service === "jira" && (
         <>
-          <Row label="Address" hint="Jira Cloud (….atlassian.net) or your Jira Data Center.">
+          <Row label={t("dialogs.smart_folder.address.label")} hint={t("dialogs.smart_folder.address.jira_hint")}>
             <input className="field" value={source.url} placeholder="https://acme.atlassian.net" spellCheck={false} autoFocus={!!folder && !source.url} onChange={(e) => edit("jira", { url: e.target.value })} />
           </Row>
-          <QueryRow hint="Any JQL; the folder shows what it finds." value={source.jql} presets={JIRA_PRESETS} onChange={(jql) => edit("jira", { jql })} />
+          <QueryRow hint={t("dialogs.smart_folder.query.jira_hint")} value={source.jql} presets={JIRA_PRESETS} onChange={(jql) => edit("jira", { jql })} />
         </>
       )}
       {source.service === "youtrack" && (
         <>
-          <Row label="Address">
+          <Row label={t("dialogs.smart_folder.address.label")}>
             <input className="field" value={source.url} placeholder="https://acme.youtrack.cloud" spellCheck={false} autoFocus={!!folder && !source.url} onChange={(e) => edit("youtrack", { url: e.target.value })} />
           </Row>
-          <QueryRow hint="Any YouTrack search; the folder shows what it finds." value={source.query} presets={YOUTRACK_PRESETS} onChange={(query) => edit("youtrack", { query })} />
+          <QueryRow hint={t("dialogs.smart_folder.query.youtrack_hint")} value={source.query} presets={YOUTRACK_PRESETS} onChange={(query) => edit("youtrack", { query })} />
         </>
       )}
 
-      <Row label="Account">
+      <Row label={t("dialogs.smart_folder.account.label")}>
         {!adding && chosen ? (
           <div className="sf-account">
             {usable.length > 1 ? (
@@ -259,7 +265,7 @@ function Form({ state, id }: { state: UiState; id?: string }) {
             ) : (
               <span className="sf-signed"><span className="ok-dot" />@{chosen.login}{chosen.name && <span className="text-[var(--muted)]"> · {chosen.name}</span>}</span>
             )}
-            <button type="button" className="link" onClick={() => setAdding(true)}>Add another</button>
+            <button type="button" className="link" onClick={() => setAdding(true)}>{t("dialogs.smart_folder.account.add_another")}</button>
           </div>
         ) : (
           <TokenForm
@@ -276,13 +282,13 @@ function Form({ state, id }: { state: UiState; id?: string }) {
       </Row>
 
       <div className="sf-preview" aria-live="polite">
-        <div className="sf-preview-head">Preview{preview.loading && <span className="spinner" />}</div>
+        <div className="sf-preview-head">{t("dialogs.smart_folder.preview.label")}{preview.loading && <span className="spinner" />}</div>
         {!chosen ? (
-          <div className="sf-empty">Connect an account to see what this folder will show.</div>
+          <div className="sf-empty">{t("dialogs.smart_folder.preview.no_account")}</div>
         ) : preview.error ? (
           <div className="sf-error px-1 py-1">{preview.error}</div>
         ) : preview.items && preview.items.length === 0 ? (
-          <div className="sf-empty">Nothing matches right now. The folder fills as soon as something does.</div>
+          <div className="sf-empty">{t("dialogs.smart_folder.preview.empty")}</div>
         ) : (
           (preview.items ?? []).map((i) => (
             <div key={i.url} className="sf-item" title={i.url}><Favicon url={i.url} /><span className="truncate">{i.title}</span></div>
@@ -290,30 +296,30 @@ function Form({ state, id }: { state: UiState; id?: string }) {
         )}
       </div>
 
-      <Row label="Refresh">
+      <Row label={t("dialogs.smart_folder.refresh.label")}>
         <div className="flex flex-wrap items-center gap-3">
           <div className="seg sm">
-            {REFRESH.map((m) => <button key={m} type="button" data-on={refresh === m || undefined} onClick={() => setRefresh(m)}>{m < 60 ? `${m} min` : "1 h"}</button>)}
+            {REFRESH.map((m) => <button key={m} type="button" data-on={refresh === m || undefined} onClick={() => setRefresh(m)}>{m < 60 ? t("dialogs.smart_folder.refresh.minutes", { minutes: m }) : t("dialogs.smart_folder.refresh.hour")}</button>)}
           </div>
           <label className="flex items-center gap-2 text-[12.5px] text-[var(--secondary)]">
-            Up to
+            {t("dialogs.smart_folder.refresh.up_to")}
             <select className="field sm" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
-              {LIMITS.map((n) => <option key={n} value={n}>{n} items</option>)}
+              {LIMITS.map((n) => <option key={n} value={n}>{t("dialogs.smart_folder.refresh.items", { count: n })}</option>)}
             </select>
           </label>
         </div>
       </Row>
 
-      <p className="sf-note"><KeyIcon width={12} height={12} />Magnetite asks {label} directly from this computer. Your token stays on this device and is never synced.</p>
+      <p className="sf-note"><KeyIcon width={12} height={12} />{t("dialogs.smart_folder.token_note", { service: label })}</p>
       {problem && <p className="sf-error">{problem}</p>}
 
       <footer className="sf-foot">
         {smart && id && (
-          <button type="button" className="btn ghost" title="The folder and its tabs stay as they are" onClick={() => send({ cmd: "smart_unlink", id }).then(cancel)}>Stop updating</button>
+          <button type="button" className="btn ghost" title={t("dialogs.smart_folder.stop.title")} onClick={() => send({ cmd: "smart_unlink", id }).then(cancel)}>{t("dialogs.smart_folder.stop.label")}</button>
         )}
         <span className="flex-1" />
-        <button type="button" className="btn" onClick={cancel}>Cancel</button>
-        <button type="submit" className="btn primary" disabled={!hostReady || !queryReady}>{smart ? "Save" : "Create"}</button>
+        <button type="button" className="btn" onClick={cancel}>{t("common.cancel")}</button>
+        <button type="submit" className="btn primary" disabled={!hostReady || !queryReady}>{smart ? t("common.save") : t("dialogs.smart_folder.create")}</button>
       </footer>
     </form>
   );
@@ -333,7 +339,7 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 
 function ShowRow({ options, value, onChange }: { options: [ReviewShow, string][]; value: ReviewShow; onChange: (v: ReviewShow) => void }) {
   return (
-    <Row label="Show">
+    <Row label={t("dialogs.smart_folder.show.label")}>
       <div className="chips">
         {options.map(([v, text]) => (
           <button key={v} type="button" className="chip" data-on={value === v || undefined} onClick={() => onChange(v)}>{text}</button>
@@ -345,11 +351,11 @@ function ShowRow({ options, value, onChange }: { options: [ReviewShow, string][]
 
 function QueryRow({ hint, value, presets, onChange }: { hint: string; value: string; presets: [string, string][]; onChange: (v: string) => void }) {
   return (
-    <Row label="Query" hint={hint}>
+    <Row label={t("dialogs.smart_folder.query.label")} hint={hint}>
       <input className="field mono" value={value} spellCheck={false} onChange={(e) => onChange(e.target.value)} />
       <div className="chips mt-2">
         {presets.map(([text, q]) => (
-          <button key={text} type="button" className="chip" data-on={value === q || undefined} onClick={() => onChange(q)}>{text}</button>
+          <button key={q} type="button" className="chip" data-on={value === q || undefined} onClick={() => onChange(q)}>{text}</button>
         ))}
       </div>
     </Row>
@@ -357,10 +363,10 @@ function QueryRow({ hint, value, presets, onChange }: { hint: string; value: str
 }
 
 const TOKEN_HINT: Record<Service, string> = {
-  github: "Read access to pull requests and issues is enough.",
-  gitlab: "A personal access token with the read_api scope.",
-  jira: "A personal access token (Profile → Personal access tokens).",
-  youtrack: "Profile → Account security → New token, scope YouTrack.",
+  github: t("dialogs.smart_folder.token.hint.github"),
+  gitlab: t("dialogs.smart_folder.token.hint.gitlab"),
+  jira: t("dialogs.smart_folder.token.hint.jira"),
+  youtrack: t("dialogs.smart_folder.token.hint.youtrack"),
 };
 
 /**
@@ -396,17 +402,17 @@ export function TokenForm({ source, autoFocus, onConnected, onCancel }: { source
   const enter = (e: React.KeyboardEvent) => e.key === "Enter" && (e.preventDefault(), connect());
   return (
     <div>
-      {cloud && <input className="field mb-1.5" type="email" value={email} placeholder="Atlassian account email" autoComplete="off" onChange={(e) => setEmail(e.target.value)} onKeyDown={enter} />}
+      {cloud && <input className="field mb-1.5" type="email" value={email} placeholder={t("dialogs.smart_folder.token.email")} autoComplete="off" onChange={(e) => setEmail(e.target.value)} onKeyDown={enter} />}
       <div className="sf-token">
-        <input className="field" type="password" value={token} placeholder={cloud ? "API token" : `Paste a ${label} access token`} autoComplete="off" autoFocus={autoFocus && !cloud} onChange={(e) => setToken(e.target.value)} onKeyDown={enter} />
-        <button type="button" className="btn" disabled={!ready || busy} onClick={connect}>{busy ? "Checking…" : "Connect"}</button>
+        <input className="field" type="password" value={token} placeholder={cloud ? t("dialogs.smart_folder.token.api_token") : t("dialogs.smart_folder.token.paste", { service: label })} autoComplete="off" autoFocus={autoFocus && !cloud} onChange={(e) => setToken(e.target.value)} onKeyDown={enter} />
+        <button type="button" className="btn" disabled={!ready || busy} onClick={connect}>{busy ? t("dialogs.smart_folder.token.checking") : t("dialogs.smart_folder.token.connect")}</button>
       </div>
       <div className="hint">
-        {cloud ? "Your Atlassian email and an API token." : TOKEN_HINT[source.service]}{" "}
+        {cloud ? t("dialogs.smart_folder.token.cloud_hint") : TOKEN_HINT[source.service]}{" "}
         {tokenUrl && host.length > 3 && (
-          <button type="button" className="link" onClick={() => send({ cmd: "new_tab", url: tokenUrl })}>Create a token <ExternalIcon width={11} height={11} /></button>
+          <button type="button" className="link" onClick={() => send({ cmd: "new_tab", url: tokenUrl })}>{t("dialogs.smart_folder.token.create")} <ExternalIcon width={11} height={11} /></button>
         )}
-        {onCancel && <button type="button" className="link ml-2" onClick={onCancel}>Cancel</button>}
+        {onCancel && <button type="button" className="link ml-2" onClick={onCancel}>{t("common.cancel")}</button>}
       </div>
       {problem && <div className="sf-error mt-1">{problem}</div>}
     </div>

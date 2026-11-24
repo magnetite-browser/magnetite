@@ -72,7 +72,7 @@ pub(super) fn default_sidebar() -> SidebarSnapshot {
     let mut snap = SidebarSnapshot::new();
     snap.profiles.push(Profile {
         id: "default".into(),
-        name: "Default".into(),
+        name: magnetite_ui::t!("app.names.default_profile").into(),
         is_default: true,
         ephemeral: false,
     });
@@ -82,7 +82,7 @@ pub(super) fn default_sidebar() -> SidebarSnapshot {
     });
     snap.spaces.push(Space {
         id: new_id(),
-        title: "Personal".into(),
+        title: magnetite_ui::t!("app.names.first_space").into(),
         icon: Some("🏠".into()),
         icon_image: None,
         accent: Some(magnetite_core::Color {
@@ -276,6 +276,24 @@ impl AppState {
     /// cannot be used (unreadable, not text, damaged, or without spaces, which
     /// cannot be shown) is moved aside: starting fresh would overwrite it on
     /// the next save.
+    /// The language chosen in Settings (`Settings::language`), read from
+    /// `state.json` before the rest: names made at start are in it.
+    pub fn saved_language(data_dir: &Path) -> Option<String> {
+        #[derive(serde::Deserialize)]
+        struct Saved {
+            settings: SavedSettings,
+        }
+        #[derive(serde::Deserialize)]
+        struct SavedSettings {
+            language: Option<String>,
+        }
+        let text = std::fs::read(data_dir.join("state.json")).ok()?;
+        serde_json::from_slice::<Saved>(&text)
+            .ok()?
+            .settings
+            .language
+    }
+
     pub(super) fn read(path: &Path) -> Option<Persisted> {
         let bytes = match std::fs::read(path) {
             Ok(bytes) => bytes,

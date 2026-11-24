@@ -4,6 +4,7 @@
 // anywhere.
 import { useCallback, useLayoutEffect, useRef } from "react";
 import type { IconComponent } from "../Icons";
+import { t } from "../i18n";
 import { Unfolded } from "./fields";
 
 export type SearchSection = { id: string; title: string; Icon: IconComponent };
@@ -182,7 +183,7 @@ export function SearchResults({ query, sections, body, open, onFound, none }: { 
       <div ref={root} className="flex flex-col gap-8">
         {sections.map((s) => (
           <section key={s.id} data-search-id={s.id} data-search-section={s.title}>
-            <button className="set-found" onClick={() => open(s.id)} title={`Open ${s.title}`}>
+            <button className="set-found" onClick={() => open(s.id)} title={t("settings.page.open_section", { section: s.title })}>
               <s.Icon width={15} height={15} />
               {s.title}
             </button>
@@ -190,7 +191,7 @@ export function SearchResults({ query, sections, body, open, onFound, none }: { 
           </section>
         ))}
       </div>
-      {none && <p className="text-[14px] text-[var(--muted)]">No setting matches “{query.trim()}”.</p>}
+      {none && <p className="text-[14px] text-[var(--muted)]">{t("settings.page.no_match", { query: query.trim() })}</p>}
     </>
   );
 }

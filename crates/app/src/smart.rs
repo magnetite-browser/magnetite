@@ -8,6 +8,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use magnetite_core::smart::{ReviewShow, Service, SmartItem, SmartSource, normalise_host};
+use magnetite_ui::t;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -119,7 +120,7 @@ pub fn whoami(service: Service, host: &str, token: &str) -> Result<(String, Stri
             .to_string()
     };
     let login = logins.iter().map(|k| text(k)).find(|l| !l.is_empty());
-    let login = login.ok_or("The server did not say who the token belongs to.")?;
+    let login = login.ok_or(t!("app.smart.no_login"))?;
     Ok((login, text(name)))
 }
 
@@ -430,16 +431,16 @@ fn parse_youtrack(json: &Value, base: &str) -> Vec<SmartItem> {
 pub fn base_url(host: &str) -> Result<String, String> {
     let h = host.trim().trim_end_matches('/');
     if h.is_empty() {
-        return Err("Enter the server address.".into());
+        return Err(t!("app.smart.enter_server").into());
     }
     let raw = if h.contains("://") {
         h.to_string()
     } else {
         format!("https://{h}")
     };
-    let parsed = url::Url::parse(&raw).map_err(|_| "That is not a server address.".to_string())?;
+    let parsed = url::Url::parse(&raw).map_err(|_| t!("app.smart.bad_server").to_string())?;
     if !parsed.username().is_empty() || parsed.password().is_some() {
-        return Err("Leave the user name out of the address.".into());
+        return Err(t!("app.smart.no_user_name").into());
     }
     let this_computer = match parsed.host() {
         Some(url::Host::Domain(d)) => d.eq_ignore_ascii_case("localhost"),
@@ -450,7 +451,7 @@ pub fn base_url(host: &str) -> Result<String, String> {
     match parsed.scheme() {
         "https" => Ok(raw),
         "http" if this_computer => Ok(raw),
-        _ => Err("Use an https:// address.".into()),
+        _ => Err(t!("app.smart.https_only").into()),
     }
 }
 
@@ -487,9 +488,11 @@ fn get_json(url: &str, authorization: &str) -> Result<Value, String> {
         .header("Accept", "application/json")
         .call()
         .map_err(|e| {
-            format!(
-                "Cannot reach {}: {e}",
-                normalise_host(url).split('/').next().unwrap_or_default()
+            let host = normalise_host(url);
+            t!(
+                "app.smart.unreachable",
+                host = host.split('/').next().unwrap_or_default(),
+                error = e
             )
         })?;
     match res.status().as_u16() {
@@ -503,16 +506,16 @@ fn get_json(url: &str, authorization: &str) -> Result<Value, String> {
                 .reader()
                 .take(MAX_ANSWER + 1)
                 .read_to_end(&mut body)
-                .map_err(|e| format!("Unexpected answer: {e}"))?;
+                .map_err(|e| t!("app.smart.unexpected", error = e))?;
             if body.len() as u64 > MAX_ANSWER {
-                return Err("The server sent more than a list of items can be.".into());
+                return Err(t!("app.smart.too_much").into());
             }
-            serde_json::from_slice(&body).map_err(|e| format!("Unexpected answer: {e}"))
+            serde_json::from_slice(&body).map_err(|e| t!("app.smart.unexpected", error = e))
         }
-        401 => Err("The token was rejected. Create a new one and connect again.".into()),
-        403 | 429 => Err("Access denied or too many requests. Try again later, or check the token's permissions.".into()),
-        404 => Err("Not found. Check the server address.".into()),
-        code => Err(format!("The server answered {code}.")),
+        401 => Err(t!("app.smart.token_rejected").into()),
+        403 | 429 => Err(t!("app.smart.denied").into()),
+        404 => Err(t!("app.smart.not_found").into()),
+        code => Err(t!("app.smart.status", code = code)),
     }
 }
 
