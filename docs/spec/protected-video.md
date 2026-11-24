@@ -20,8 +20,7 @@ Such a page is called a system page below. Why it is built this way:
   and the services that ask for a verified browser do not play.
 - Linux has no such engine: pages are Chromium's, with Chromium's own
   Widevine, which Chromium fetches from Google's component server after
-  the first start. Widevine on Linux decrypts in software only, which
-  Netflix and Disney+ allow up to 720p, in every browser.
+  the first start.
 - Nothing is shipped for it: the engine is the one that comes with the
   system, in the version the system has.
 
@@ -31,8 +30,8 @@ Played with a real account:
 
 | Service | macOS | Windows | Linux |
 |---|---|---|---|
-| Netflix | WebKit | WebView2 | Chromium, up to 720p |
-| Disney+ | WebKit | WebView2 | Chromium, up to 720p |
+| Netflix | WebKit | WebView2 | Chromium |
+| Disney+ | WebKit | WebView2 | Chromium |
 | RTL+ | WebKit, moved there by itself | not checked | not checked |
 
 ## Which pages
