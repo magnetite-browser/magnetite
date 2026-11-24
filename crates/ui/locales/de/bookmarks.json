@@ -12,7 +12,7 @@
   "count_one": "{count} Lesezeichen",
   "count_other": "{count} Lesezeichen",
   "delete": {
-    "hint": "Löschen entfernt alle, samt Ordnern. Das lässt sich nicht widerrufen.",
+    "hint": "Beim Löschen werden alle Lesezeichen samt Ordnern entfernt. Das lässt sich nicht widerrufen.",
     "confirm": "Zum Löschen erneut klicken",
     "button": "Lesezeichen löschen …",
     "done_one": "{count} Lesezeichen gelöscht.",
@@ -20,7 +20,7 @@
   },
   "pinned": {
     "label": "Angeheftete Tabs als Lesezeichen sichern",
-    "hint": "{pinned} „Kopieren“ lässt sie angeheftet. „Verschieben“ schließt sie danach: Dann sind sie Lesezeichen und im Archiv. Ordner kommen mit, smarte Ordner nicht.",
+    "hint": "{pinned} Mit „Kopieren“ bleiben sie angeheftet. Mit „Verschieben“ werden sie danach geschlossen und sind dann Lesezeichen und im Archiv. Ordner werden übernommen, smarte Ordner nicht.",
     "none": "Dieser Space hat keine angehefteten Tabs.",
     "count_one": "{count} angehefteter Tab.",
     "count_other": "{count} angeheftete Tabs.",
@@ -28,7 +28,7 @@
     "move_confirm": "Zum Verschieben erneut klicken",
     "added_one": "{count} Lesezeichen hinzugefügt",
     "added_other": "{count} Lesezeichen hinzugefügt",
-    "none_added": "Jeder angeheftete Tab ist schon ein Lesezeichen",
+    "none_added": "Alle angehefteten Tabs sind schon Lesezeichen",
     "closed_one": "{count} angehefteter Tab geschlossen",
     "closed_other": "{count} angeheftete Tabs geschlossen",
     "copied": "{added}.",

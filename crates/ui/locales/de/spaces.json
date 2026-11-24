@@ -7,19 +7,19 @@
   "profile_choice": {
     "new": "Ein neues Profil",
     "new_named": "namens „{name}“",
-    "new_after_space": "benannt nach dem Space",
+    "new_after_space": "mit dem Namen des Spaces",
     "private": "Privat",
     "private_hint": "wird beim Beenden von Magnetite vergessen",
-    "new_after_site": "benannt nach der Website"
+    "new_after_site": "mit dem Namen der Website"
   },
   "profile_label": "Profil",
   "profile_of": "Profil von {name}",
   "everything_about": "Alles zu {name}",
   "sort": {
-    "title": "Zum Sortieren ziehen oder die Pfeiltasten nach oben und unten drücken",
-    "space": "{name} sortieren: Space {position} von {total}. Die Pfeiltasten nach oben und unten verschieben ihn.",
-    "favorite": "{name} sortieren: Favorit {position} von {total}. Die Pfeiltasten nach oben und unten verschieben ihn.",
-    "favorite_alone": "Der einzige Favorit seines Profils: Es gibt nichts zu sortieren"
+    "title": "Ziehen oder mit den Pfeiltasten nach oben und unten sortieren",
+    "space": "{name} sortieren: Space {position} von {total}. Mit den Pfeiltasten nach oben und unten verschieben.",
+    "favorite": "{name} sortieren: Favorit {position} von {total}. Mit den Pfeiltasten nach oben und unten verschieben.",
+    "favorite_alone": "Der einzige Favorit in seinem Profil – es gibt nichts zu sortieren"
   },
   "page": {
     "name_icon": {
@@ -30,73 +30,73 @@
       "icon_hint": "Erscheint auf der Taste des Spaces in der Seitenleiste.",
       "icons": "Symbole",
       "own_icon": "Eigenes Symbol",
-      "own_icon_hint": "Ein Bild wie ein PNG oder SVG anstelle der Symbole oben. Es wird mit dem Space synchronisiert und deshalb klein gehalten."
+      "own_icon_hint": "Ein Bild, etwa ein PNG oder SVG, statt der Symbole oben. Es wird mit dem Space synchronisiert und deshalb klein gehalten."
     },
     "look": "Aussehen",
     "profile": {
       "title": "Profil",
-      "hint": "Ein Profil hat eigene Anmeldungen: Cookies, Websitedaten und Erweiterungen. Spaces in einem Profil sind bei denselben Konten angemeldet.",
+      "hint": "Ein Profil hat eigene Cookies, Websitedaten und Erweiterungen und damit eigene Anmeldungen. Spaces mit demselben Profil sind bei denselben Konten angemeldet.",
       "uses": "Dieser Space nutzt",
-      "private": "Ein privates Profil: Was seine Seiten speichern, ist beim Beenden von Magnetite weg.",
-      "shared": "Geteilt mit {spaces}. Ein Wechsel lädt die Seiten dieses Spaces neu, angemeldet wie im anderen Profil.",
-      "change": "Ein Wechsel lädt die Seiten dieses Spaces neu, angemeldet wie im anderen Profil."
+      "private": "Ein privates Profil: Alles, was seine Seiten speichern, wird beim Beenden von Magnetite gelöscht.",
+      "shared": "Wird auch von {spaces} genutzt. Nach einem Wechsel werden die Seiten dieses Spaces mit den Anmeldungen des anderen Profils neu geladen.",
+      "change": "Nach einem Wechsel werden die Seiten dieses Spaces mit den Anmeldungen des anderen Profils neu geladen."
     },
     "bookmarks": {
       "title": "Lesezeichen",
       "none": "Keine Lesezeichen",
       "count_one": "{count} Lesezeichen",
       "count_other": "{count} Lesezeichen",
-      "hint": "Angeheftete Tabs dieses Spaces als Lesezeichen sichern, Lesezeichen löschen, importieren und exportieren: Das geht unter „Lesezeichen“.",
+      "hint": "Unter „Lesezeichen“ kannst du die angehefteten Tabs dieses Spaces als Lesezeichen sichern sowie Lesezeichen löschen, importieren und exportieren.",
       "open": "Lesezeichen öffnen"
     },
     "device": {
       "title": "Auf diesem Gerät",
       "only": "Nur auf diesem Gerät",
-      "only_hint": "Wird nicht synchronisiert: Der Space bleibt hier, und Geräte, die ihn noch synchronisieren, verlieren ihn beim nächsten Sync.",
+      "only_hint": "Der Space wird nicht synchronisiert und bleibt hier. Auf Geräten, die ihn noch synchronisieren, verschwindet er beim nächsten Sync.",
       "only_switch": "{name} nur auf diesem Gerät behalten",
       "keys": "Tasten",
       "keys_set": "{keys} führt direkt zu diesem Space.",
-      "keys_none": "Keine Tasten führen direkt zu diesem Space.",
+      "keys_none": "Für diesen Space ist kein Kurzbefehl festgelegt.",
       "keys_change": "In „Tastaturkurzbefehle“ ändern",
       "links": "Links aus anderen Apps",
-      "links_set": "Links von {sites} öffnen sich hier.",
-      "links_none": "Für keine Website gehen Links an diesen Space.",
+      "links_set": "Links zu {sites} öffnen sich hier.",
+      "links_none": "Für keine Website öffnen sich Links hier.",
       "links_change": "In „Links“ ändern"
     },
     "delete": {
       "label": "Diesen Space löschen",
       "last": "Der letzte Space kann nicht gelöscht werden.",
-      "hint": "Seine angehefteten und Heute-Tabs kommen ins Archiv.",
+      "hint": "Seine angehefteten Tabs und Heute-Tabs werden archiviert.",
       "confirm": "Zum Löschen erneut klicken",
       "button": "Space löschen …"
     },
-    "current": "Diesen Space zeigt das Fenster gerade."
+    "current": "Dieser Space wird gerade im Fenster angezeigt."
   },
   "list": {
     "title": "Alle Spaces",
-    "hint": "Ein Space ist eine eigene Seitenleiste für einen Teil deines Tages, mit eigenen Tabs. Die Reihenfolge hier ist die in der Seitenleiste: Zum Sortieren einen Space an seinem Griff ziehen. Ein privater Space vergisst seine Anmeldungen, Cookies und Websitedaten, wenn Magnetite beendet wird.",
+    "hint": "Ein Space ist eine eigene Seitenleiste mit eigenen Tabs für einen Teil deines Tages. Die Spaces stehen hier in derselben Reihenfolge wie in der Seitenleiste; zum Sortieren ziehst du einen Space an seinem Griff. Ein privater Space vergisst seine Anmeldungen, Cookies und Websitedaten, sobald Magnetite beendet wird.",
     "only_device": "nur auf diesem Gerät",
     "current": "aktuell",
     "new": {
       "label": "Neuer Space",
-      "hint": "Er kommt ans Ende der Seitenleiste. Sein Profil bestimmt, welche Anmeldungen seine Seiten nutzen.",
+      "hint": "Er erscheint als letzter Space in der Seitenleiste. Sein Profil bestimmt, welche Anmeldungen seine Seiten nutzen.",
       "name": "Name",
       "name_label": "Name des neuen Spaces",
       "profile_label": "Profil des neuen Spaces",
       "add": "Space hinzufügen"
     },
-    "name_label": "Name des Space {name}",
+    "name_label": "Name des Spaces {name}",
     "private_profile": "Privates Profil",
     "private": {
       "label": "Privat",
       "switch": "{name} ist privat",
-      "on_title": "Privat: Seine Anmeldungen, Cookies und Websitedaten sind weg, wenn Magnetite beendet wird. Ausschalten lädt seine Seiten wieder im Profil, das er vorher hatte, oder im Hauptprofil.",
-      "off_title": "Diesen Space privat machen: Seine Seiten laden neu in einem eigenen Profil, das beim Beenden von Magnetite vergessen wird."
+      "on_title": "Privat: Seine Anmeldungen, Cookies und Websitedaten werden beim Beenden von Magnetite gelöscht. Beim Ausschalten werden seine Seiten im vorherigen Profil oder im Hauptprofil neu geladen.",
+      "off_title": "Diesen Space privat machen: Seine Seiten werden in einem eigenen Profil neu geladen, das beim Beenden von Magnetite vergessen wird."
     }
   },
   "profiles": {
     "title": "Profile",
-    "hint": "Ein Profil hat eigene Anmeldungen: Cookies, Websitedaten und Erweiterungen. Was dasselbe Profil nutzt, ist bei denselben Konten angemeldet; mit einem zweiten Profil lässt sich ein zweites Konto derselben Website nutzen. Ein privates Profil steht nicht in der Liste: Es wird beim Beenden von Magnetite vergessen.",
+    "hint": "Ein Profil hat eigene Cookies, Websitedaten und Erweiterungen und damit eigene Anmeldungen. Alles, was dasselbe Profil nutzt, ist bei denselben Konten angemeldet. Mit einem zweiten Profil kannst du ein zweites Konto derselben Website nutzen. Private Profile stehen nicht in der Liste, da sie beim Beenden von Magnetite vergessen werden.",
     "used_by_spaces": "Genutzt von Spaces",
     "used_by_favorites": "Genutzt von Favoriten",
     "used_by_spaces_caption": "Genutzt von Spaces:",
@@ -108,30 +108,30 @@
     "undeleted": "Das Profil wurde nicht gelöscht: {reason}.",
     "new": {
       "label": "Neues Profil",
-      "hint": "Es ist zuerst leer: Nichts ist angemeldet. Ein Space bekommt es beim Hinzufügen oder auf seiner Seite, ein Favorit unter „Favoriten“.",
+      "hint": "Es ist anfangs leer und nirgends angemeldet. Einem Space weist du es beim Hinzufügen oder auf seiner Seite zu, einem Favoriten unter „Favoriten“.",
       "name": "Name",
       "name_label": "Name des neuen Profils",
       "add": "Profil hinzufügen"
     },
     "for_favorites": {
       "title": "Profile nur für Favoriten",
-      "hint": "Ein Profil braucht keinen Space. Ein Favorit läuft in seinem eigenen Profil, egal welcher Space vorne ist: Seine Seite bleibt bei den Konten dieses Profils angemeldet, und seine Cookies und Websitedaten bleiben von denen des Spaces getrennt. Der Verlauf ist eine Liste für alle Profile; nur ein privates Profil hinterlässt darin nichts.",
+      "hint": "Ein Profil braucht keinen Space. Ein Favorit läuft in seinem eigenen Profil, egal welcher Space gerade angezeigt wird: Seine Seite bleibt bei den Konten dieses Profils angemeldet, und seine Cookies und Websitedaten bleiben von denen des Spaces getrennt. Der Verlauf ist eine gemeinsame Liste für alle Profile; nur ein privates Profil hinterlässt darin nichts.",
       "label": "Einem Favoriten ein Profil geben",
-      "label_hint": "Unter „Favoriten“ hat jeder Favorit eine Liste, aus der sich sein Profil wählen lässt.",
+      "label_hint": "Unter „Favoriten“ kannst du für jeden Favoriten ein Profil aus einer Liste wählen.",
       "open": "Favoriten öffnen"
     }
   },
   "favorites": {
     "title": "Favoriten",
-    "hint": "Die Websites oben in der Seitenleiste. Ein Favorit erscheint in jedem Space oder nur in den gewählten Spaces. Jeder läuft in einem Profil; eine Kopie in einem anderen Profil (Rechtsklick → „Favorit duplizieren“) ist ein zweites Konto derselben Website. Wie in der Seitenleiste hat jedes Profil eine eigene Liste, und ein Favorit wird innerhalb seiner Liste sortiert.",
+    "hint": "Die Websites oben in der Seitenleiste. Ein Favorit erscheint in jedem Space oder nur in den Spaces, die du auswählst. Jeder Favorit läuft in einem Profil; mit einer Kopie in einem anderen Profil (Rechtsklick → „Favorit duplizieren“) nutzt du ein zweites Konto derselben Website. Wie in der Seitenleiste hat jedes Profil seine eigene Liste, und Favoriten werden innerhalb ihrer Liste sortiert.",
     "name_label": "Name des Favoriten {name}",
     "every_space": "Alle Spaces",
     "shows_label": "Wo {name} erscheint",
-    "remove_title": "Nimmt ihn aus den Favoriten; seine Seite liegt danach im Archiv",
+    "remove_title": "Entfernt ihn aus den Favoriten und archiviert seine Seite",
     "remove_confirm": "Erneut klicken",
     "new": {
       "label": "Neuer Favorit",
-      "hint": "Über seine Adresse. Er kommt ans Ende der Liste seines Profils und erscheint in jedem Space. Sein Profil bestimmt, welche Anmeldungen seine Seite nutzt.",
+      "hint": "Über seine Adresse hinzufügen. Er wird ans Ende der Liste seines Profils gesetzt und erscheint in jedem Space. Sein Profil bestimmt, welche Anmeldungen seine Seite nutzt.",
       "address_label": "Adresse des neuen Favoriten",
       "add": "Favorit hinzufügen",
       "profile_label": "Profil des neuen Favoriten"

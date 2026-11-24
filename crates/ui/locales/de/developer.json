@@ -21,12 +21,12 @@
       "dark": "Dunkel",
       "light": "Hell",
       "reduced_motion": "Reduzierte Bewegung",
-      "print": "Druck",
+      "print": "Druckansicht",
       "offline": "Offline",
       "slow_network": "Langsames Netzwerk",
       "slow_cpu": "Langsame CPU",
       "no_cache": "Kein Cache",
-      "time_zone": "Zeitzone {place}"
+      "time_zone": "Ortszeit {place}"
     }
   },
   "time_zone": {
@@ -48,7 +48,7 @@
   },
   "bar": {
     "waiting": "Warten auf {address}",
-    "waiting_hint": "Die Seite lädt von selbst, sobald dort etwas lauscht",
+    "waiting_hint": "Die Seite wird automatisch geladen, sobald unter dieser Adresse etwas erreichbar ist",
     "serves": "{project} stellt {host} bereit",
     "picker": "Element auswählen",
     "console": "Konsole",
@@ -65,18 +65,18 @@
     "time_zone": "Zeitzone der Seite …",
     "time_zone_label": "Zeitzone der Seite",
     "responsive": "Responsiver Split",
-    "responsive_start": "Responsiver Split: diese Seite als Smartphone neben sich selbst, beide unter einer Adresse",
-    "responsive_end": "Responsiven Split beenden: Das Smartphone wird geschlossen",
+    "responsive_start": "Responsiver Split: diese Seite daneben noch einmal als Smartphone, beide mit derselben Adresse",
+    "responsive_end": "Responsiven Split beenden und das Smartphone schließen",
     "capture_set": "Bildschirmfoto-Set",
-    "capture_set_hint": "Bildschirmfoto-Set: hell und dunkel in der Größe eines Smartphones, eines Tablets und eines Computers, als ein Bild",
+    "capture_set_hint": "Bildschirmfoto-Set: hell und dunkel in Smartphone-, Tablet- und Computergröße, in einem Bild",
     "record": "Seite aufnehmen",
     "record_hint": "Seite als Video aufnehmen",
     "record_end": "Aufnahme beenden, {elapsed}",
-    "record_end_hint": "Aufnahme beenden: Das Video landet in Downloads",
+    "record_end_hint": "Aufnahme beenden und das Video in den Downloads speichern",
     "clear": "Websitedaten löschen und neu laden",
-    "clear_hint": "Cookies, Speicher, Caches und Service Worker dieser Website löschen, dann die Seite neu laden",
-    "reload": "Am Cache vorbei neu laden",
-    "reload_hint": "Seite am Cache vorbei neu laden; Cookies und Speicher bleiben"
+    "clear_hint": "Cookies, Speicher, Caches und Service Worker dieser Website löschen und die Seite neu laden",
+    "reload": "Ohne Cache neu laden",
+    "reload_hint": "Seite ohne Cache neu laden – Cookies und Speicher bleiben erhalten"
   },
   "device": {
     "window_title": "Gerät",
@@ -92,7 +92,7 @@
     },
     "dimensions": "Abmessungen",
     "size_hint": "Breite × Höhe in CSS-Pixeln",
-    "size_fixed_hint": "Ein Gerät hat seine eigene Größe; „Responsiv“ erlaubt jede",
+    "size_fixed_hint": "Ein Gerät hat eine feste Größe, bei „Responsiv“ ist jede möglich",
     "width": "Breite",
     "height": "Höhe",
     "rotate": "Drehen",

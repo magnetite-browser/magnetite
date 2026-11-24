@@ -1,30 +1,30 @@
 {
-  "unavailable": "Magnetite kann die eigene Web-Engine des Systems bisher nur ab macOS 14 und unter Windows mit einem aktuellen WebView2 nutzen. Auf diesem Computer zeigt Chromium jede Seite, und Dienste, die einen verifizierten Browser verlangen, spielen nicht ab.",
+  "unavailable": "Magnetite kann die Web-Engine des Systems bisher nur ab macOS 14 und unter Windows mit aktuellem WebView2 nutzen. Auf diesem Computer zeigt Chromium alle Seiten an, und Videos von Diensten, die einen verifizierten Browser verlangen, werden nicht abgespielt.",
   "known": {
     "label": "Streamingdienste in {engine} öffnen",
-    "hint": "{services}. Sie spielen geschützte Videos nur in einem Browser ab, den Google verifiziert hat. Das Chromium von Magnetite ist noch nicht verifiziert; Gespräche darüber laufen. Bis dahin spielt {engine}, {about}, sie ab."
+    "hint": "{services}. Diese Dienste spielen geschützte Videos nur in einem von Google verifizierten Browser ab. Das Chromium von Magnetite ist noch nicht verifiziert, Gespräche dazu laufen. Bis dahin übernimmt {engine}, {about}, die Wiedergabe."
   },
   "auto": {
-    "label": "Websites mit fehlschlagenden geschützten Videos in {engine} verschieben",
-    "hint": "Wenn ein Dienst geschützte Videos in Chromium nicht abspielt, öffnet sich seine Website ab dann in {engine}, und die Seite lädt dort neu. Dienste, die in Chromium abspielen, bleiben, wo sie sind. Um eine Website in Chromium zu behalten, den Schalter im Website-Panel wieder ausschalten."
+    "label": "Bei Fehlern mit geschützten Videos zu {engine} wechseln",
+    "hint": "Verweigert ein Dienst in Chromium die Wiedergabe geschützter Videos, öffnet sich seine Website von da an in {engine}, und die Seite wird dort neu geladen. Dienste, deren Videos in Chromium laufen, bleiben dort. Um eine Website in Chromium zu behalten, deaktiviere den Schalter im Website-Panel wieder."
   },
   "other": {
     "label": "Weitere Websites",
-    "hint": "Websites, die ebenfalls in {engine} geöffnet werden, eine pro Zeile: Der Name einer Website gilt auch für ihre Subdomains. Websites, die von selbst gewechselt sind, stehen hier. Das Website-Panel (die Taste links neben der Adresse) hat denselben Schalter für die Seite im Vordergrund."
+    "hint": "Weitere Websites, die in {engine} geöffnet werden, eine pro Zeile. Der Name einer Website gilt auch für ihre Subdomains. Websites, die von selbst gewechselt sind, werden hier aufgeführt. Denselben Schalter für die aktuelle Seite findest du im Website-Panel (über die Taste links neben der Adresse)."
   },
   "chromium": {
     "label": "In Chromium behalten",
-    "hint": "Websites, die nie von selbst wechseln, eine pro Zeile: die, die du mit dem Schalter im Website-Panel zurückgeholt hast, und alle, die du hinzufügst."
+    "hint": "Websites, die nie von selbst wechseln, eine pro Zeile: solche, die du mit dem Schalter im Website-Panel zurückgeholt hast, und alle, die du hinzufügst."
   },
   "different": {
     "title": "Was auf einer Seite in {engine} anders ist",
-    "hint": "Sie ist ein Tab wie jeder andere: in der Seitenleiste, in ihrem Space, in einer Split View oder einer Vorschau. Erweiterungen können die Seite weder lesen noch ausfüllen. Sie hat keine Werbeblockierung und keine Entwicklertools, sendet kein Global-Privacy-Control-Signal und meldet sich eigenständig an: Eine Website, bei der du in Chromium angemeldet bist, fragt erneut. Offene Seiten behalten ihre Engine, bis sie eine andere Adresse laden."
+    "hint": "Die Seite ist ein Tab wie jeder andere: in der Seitenleiste, in ihrem Space, in einer Split View oder in einer Vorschau. Erweiterungen können sie weder lesen noch ausfüllen. Werbung wird nicht blockiert, Entwicklerwerkzeuge fehlen, und es wird kein Global-Privacy-Control-Signal gesendet. Die Anmeldung ist getrennt: Eine Website, bei der du in Chromium angemeldet bist, fordert dich erneut zur Anmeldung auf. Offene Seiten behalten ihre Engine, bis sie eine andere Adresse laden."
   },
   "data": {
     "label": "Websitedaten von {engine}",
-    "hint": "Die Cookies, der Websitespeicher und der Cache der Seiten, die {engine} gezeigt hat, in jedem Profil. Die von Chromium werden unter „Daten und Datenschutz“ gelöscht.",
+    "hint": "Cookies, Websitespeicher und Cache aller Seiten, die {engine} angezeigt hat, in allen Profilen. Die Daten von Chromium löschst du unter „Daten und Datenschutz“.",
     "failed": "Die Daten konnten nicht gelöscht werden. Versuche es erneut.",
-    "done": "Gelöscht. Die Websites dort fragen erneut nach einer Anmeldung.",
+    "done": "Gelöscht. Auf diesen Websites musst du dich erneut anmelden.",
     "working": "Wird gelöscht …",
     "delete": "Löschen …"
   }

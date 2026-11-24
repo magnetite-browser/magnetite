@@ -9,11 +9,11 @@
   },
   "profile": {
     "label": "Profil",
-    "hint": "Jedes Profil hat seine eigenen Entscheidungen."
+    "hint": "Jedes Profil merkt sich eigene Entscheidungen."
   },
   "unread": {
     "label": "Die Berechtigungen konnten nicht gelesen werden",
-    "hint": "Was unten steht, ist vielleicht nicht aktuell."
+    "hint": "Die Angaben unten sind möglicherweise nicht aktuell."
   },
   "unchanged": {
     "label": "{permission} für {site} konnte nicht geändert werden",
@@ -21,14 +21,14 @@
   },
   "empty": {
     "label": "Keine Website hat eine eigene Einstellung",
-    "hint": "Eine Website, die Kamera, Mikrofon, Standort oder Mitteilungen nutzen will, fragt zuerst. Deine Antwort erscheint hier und lässt sich ändern oder zurücknehmen."
+    "hint": "Websites, die die Kamera, das Mikrofon, deinen Standort oder Mitteilungen nutzen möchten, fragen zuerst nach. Deine Antworten erscheinen hier, wo du sie ändern oder zurücknehmen kannst."
   },
   "for_site": "{permission} für {site}",
   "allow": "Erlauben",
   "block": "Blockieren",
   "reset": {
-    "popups": "Wieder blockiert, wie für jede Website",
-    "ask": "Die Website fragt wieder",
+    "popups": "Wieder blockiert, wie bei jeder Website",
+    "ask": "Die Website fragt erneut",
     "label": "{permission} für {site} zurücksetzen"
   }
 }

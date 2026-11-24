@@ -72,12 +72,12 @@
     "new_profile": "Neues Profil für diesen Favoriten …",
     "show_in_every_space": "In jedem Space zeigen",
     "show_only_in": "Nur in {space} zeigen",
-    "move_to": "Nach {space} verschieben",
+    "move_to": "In {space} verschieben",
     "archive": "Archivieren",
     "remove_from_pinned": "Aus angehefteten Tabs entfernen"
   },
   "tab_row": {
-    "back_to_home": "Zurück zu {host} (angeheftete Seite)",
+    "back_to_home": "Zurück zu {host}, der angehefteten Seite",
     "back_to_home_label": "Zurück zur angehefteten Seite, {host}",
     "mute": "Tab stummschalten",
     "unmute": "Stummschaltung aufheben",
@@ -87,7 +87,7 @@
     "console_errors_other": "{count} Fehler in der Konsole",
     "console_errors_label_one": "{count} Konsolenfehler",
     "console_errors_label_other": "{count} Konsolenfehler",
-    "web_panel": "Öffnet als Web-Panel",
+    "web_panel": "Öffnet sich als Web-Panel",
     "kept_active": "Aktiv gehalten: Dieser Tab wird nicht entladen",
     "kept_active_label": "Aktiv gehalten",
     "share_instead": "Stattdessen diesen Tab teilen",
@@ -131,7 +131,7 @@
     "expand": "Ausklappen",
     "stop_updating": "Nicht mehr aktualisieren (Tabs behalten)",
     "delete_with_items": "Ordner samt Inhalt löschen",
-    "new_folder_inside": "Neuer Ordner darin",
+    "new_folder_inside": "Neuer Unterordner",
     "make_smart": "In smarten Ordner umwandeln …",
     "delete_keep_tabs": "Ordner löschen (Tabs behalten)"
   },
@@ -139,7 +139,7 @@
     "smart": "Smarter Ordner",
     "smart_updated": "Smarter Ordner · aktualisiert {ago}",
     "refreshing": "Wird aktualisiert",
-    "error": "{error} Klicken für Einstellungen.",
+    "error": "{error} Zum Öffnen der Einstellungen klicken.",
     "error_label": "Problem mit dem smarten Ordner",
     "new_items": "Neue Einträge"
   },
@@ -157,11 +157,11 @@
     "open_here": "{title} hier öffnen",
     "swap_with": "{title} mit {other} tauschen",
     "swap_with_this_page": "{title} mit dieser Seite tauschen",
-    "full": "Split View fasst bis zu vier Seiten"
+    "full": "In eine Split View passen bis zu vier Seiten"
   },
   "device_tab": {
-    "hint": "Offen auf {device}. Klicken, um hier weiterzumachen.",
-    "label": "Offen auf {device}"
+    "hint": "Auf {device} geöffnet. Klicken, um hier weiterzumachen.",
+    "label": "Auf {device} geöffnet"
   },
   "extensions": {
     "title": "Erweiterungen",
@@ -183,9 +183,9 @@
   },
   "library_button": {
     "label": "Lesezeichen, Verlauf, Downloads, Archiv und Einstellungen",
-    "downloading": "{name} wird geladen",
-    "downloading_files_one": "Eine Datei wird geladen",
-    "downloading_files_other": "{count} Dateien werden geladen",
+    "downloading": "{name} wird heruntergeladen",
+    "downloading_files_one": "Eine Datei wird heruntergeladen",
+    "downloading_files_other": "{count} Dateien werden heruntergeladen",
     "bookmarks": "Lesezeichen",
     "history": "Verlauf",
     "downloads": "Downloads",
@@ -199,10 +199,10 @@
     "current": "Aktuell",
     "go_hint": "{key} Zum Space wechseln",
     "no_match": "Kein Space mit diesem Namen",
-    "keys_hint": "Tasten für einen Space: Einstellungen → Tastaturkurzbefehle"
+    "keys_hint": "Kurzbefehle für Spaces: Einstellungen → Tastaturkurzbefehle"
   },
   "switcher": {
-    "label": "Tabs nach letzter Nutzung"
+    "label": "Zuletzt verwendete Tabs"
   },
   "resizer": {
     "label": "Breite der Seitenleiste",
@@ -227,7 +227,7 @@
     "music": "Musik",
     "cart": "Einkaufswagen",
     "camera": "Kamera",
-    "flask": "Kolben",
+    "flask": "Glaskolben",
     "leaf": "Blatt",
     "flame": "Flamme",
     "chat": "Sprechblase",
@@ -248,7 +248,7 @@
     "just_now": "gerade eben",
     "minutes_ago": "vor {minutes} Min.",
     "hours_ago": "vor {hours} Std.",
-    "days_ago_one": "vor 1 Tag",
+    "days_ago_one": "vor einem Tag",
     "days_ago_other": "vor {count} Tagen"
   }
 }

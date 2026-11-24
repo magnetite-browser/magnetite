@@ -10,11 +10,11 @@
     "colour": "Farbe",
     "strength": {
       "label": "Stärke",
-      "hint": "Wie viel von der Farbe das Fenster annimmt."
+      "hint": "Wie stark das Fenster die Farbe annimmt."
     },
     "background": {
       "label": "Hintergrund",
-      "hint": "Ein Effekt in der Farbe des Space über das ganze Fenster oder ein eigenes Bild unter den Zeilen der Seitenleiste.",
+      "hint": "Ein Effekt in der Farbe des Spaces über das ganze Fenster oder ein eigenes Bild hinter den Zeilen der Seitenleiste.",
       "picture": "Bild"
     },
     "empty_window": {
@@ -30,7 +30,7 @@
       "new": "Neuer smarter Ordner"
     },
     "updated": "Aktualisiert {when}",
-    "intro": "Füllt sich selbst aus {service} und bleibt aktuell.",
+    "intro": "Wird automatisch aus {service} gefüllt und bleibt aktuell.",
     "default_name": {
       "github": "Pull-Requests",
       "gitlab": "Merge-Requests",
@@ -58,8 +58,8 @@
     },
     "query": {
       "label": "Abfrage",
-      "jira_hint": "Beliebiges JQL; der Ordner zeigt, was es findet.",
-      "youtrack_hint": "Beliebige YouTrack-Suche; der Ordner zeigt, was sie findet.",
+      "jira_hint": "Eine beliebige JQL-Abfrage. Der Ordner zeigt alle Treffer.",
+      "youtrack_hint": "Eine beliebige YouTrack-Suche. Der Ordner zeigt alle Treffer.",
       "assigned_to_me": "Mir zugewiesen",
       "reported_by_me": "Von mir gemeldet",
       "watching": "Beobachtet",
@@ -86,8 +86,8 @@
     },
     "preview": {
       "label": "Vorschau",
-      "no_account": "Verbinde ein Konto, um zu sehen, was dieser Ordner zeigen wird.",
-      "empty": "Gerade passt nichts. Der Ordner füllt sich, sobald etwas passt."
+      "no_account": "Verbinde ein Konto, um zu sehen, was dieser Ordner anzeigen wird.",
+      "empty": "Im Moment gibt es keine Treffer. Der Ordner füllt sich, sobald es welche gibt."
     },
     "refresh": {
       "label": "Aktualisieren",
@@ -97,7 +97,7 @@
       "items_one": "{count} Eintrag",
       "items_other": "{count} Einträge"
     },
-    "token_note": "Magnetite fragt {service} direkt von diesem Computer aus. Dein Token bleibt auf diesem Gerät und wird nie synchronisiert.",
+    "token_note": "Magnetite fragt {service} direkt von diesem Computer aus ab. Dein Token bleibt auf diesem Gerät und wird nie synchronisiert.",
     "stop": {
       "label": "Nicht mehr aktualisieren",
       "title": "Der Ordner und seine Tabs bleiben, wie sie sind"

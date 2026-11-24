@@ -1,8 +1,8 @@
 {
   "browsers": {
     "label": "Aus einem anderen Browser importieren",
-    "hint": "Legt für jeden Space oder Workspace dieses Browsers einen Space an, oder für jedes Profil ohne beides, jeweils mit Tabs, Tabgruppen und Lesezeichen. Deine Seitenleiste bleibt, wie sie ist. Passwörter, Cookies und Erweiterungen werden nicht übernommen, und nichts verlässt diesen Computer.",
-    "none_found": "Kein anderer Browser auf diesem Computer gefunden.",
+    "hint": "Magnetite legt für jeden Space oder Workspace dieses Browsers einen Space mit dessen Tabs, Tabgruppen und Lesezeichen an. Ein Profil ohne Spaces und Workspaces wird zu einem eigenen Space. Deine Seitenleiste bleibt unverändert. Passwörter, Cookies und Erweiterungen werden nicht übernommen, und nichts verlässt diesen Computer.",
+    "none_found": "Auf diesem Computer wurde kein anderer Browser gefunden.",
     "importing": "{browser} wird importiert …",
     "added": "{browser}: {spaces} mit {tabs} hinzugefügt.",
     "added_bookmarks": "{browser}: {spaces} mit {tabs} und {bookmarks} hinzugefügt.",
@@ -16,7 +16,7 @@
   },
   "file": {
     "label": "Lesezeichendatei importieren",
-    "hint": "Die Datei, die ein Browser mit „Lesezeichen exportieren“ schreibt (Safari: Ablage → Exportieren → Lesezeichen …), oder eine unten exportierte JSON- oder CSV-Datei. Ihre Lesezeichen kommen zu denen des gewählten Spaces; Adressen, die dort schon sind, werden übersprungen.",
+    "hint": "Die Datei, die ein Browser mit „Lesezeichen exportieren“ erstellt (Safari: Ablage → Exportieren → Lesezeichen …), oder eine unten exportierte JSON- oder CSV-Datei. Die Lesezeichen werden dem gewählten Space hinzugefügt; Adressen, die es dort schon gibt, werden übersprungen.",
     "into": "In",
     "space_label": "Space für die Lesezeichen",
     "importing": "Wird importiert …",
@@ -25,19 +25,19 @@
     "added_other": "{count} Lesezeichen zu {space} hinzugefügt.",
     "added_current_one": "{count} Lesezeichen zum aktuellen Space hinzugefügt.",
     "added_current_other": "{count} Lesezeichen zum aktuellen Space hinzugefügt.",
-    "none_added": "Jedes Lesezeichen dieser Datei ist schon in {space}.",
-    "none_added_current": "Jedes Lesezeichen dieser Datei ist schon im aktuellen Space."
+    "none_added": "Alle Lesezeichen dieser Datei sind schon in {space}.",
+    "none_added_current": "Alle Lesezeichen dieser Datei sind schon im aktuellen Space."
   },
   "export": {
     "label": "Lesezeichen exportieren",
-    "hint": "Die Lesezeichen aller deiner Spaces oder der angehakten als Datei: HTML importiert jeder Browser, JSON und CSV sind für den eigenen Gebrauch. Tabs und Favoriten sind keine Lesezeichen und nicht enthalten.",
+    "hint": "Speichert die Lesezeichen aller deiner Spaces oder nur der ausgewählten als Datei. HTML kann jeder Browser importieren, JSON und CSV sind für den eigenen Gebrauch. Tabs und Favoriten sind keine Lesezeichen und daher nicht enthalten.",
     "all_spaces": "Alle Spaces",
     "spaces_label": "Zu exportierende Spaces",
     "format": "Format",
     "html": "HTML, für einen anderen Browser",
     "csv": "CSV, für eine Tabellenkalkulation",
     "button": "Exportieren …",
-    "done_one": "{count} Lesezeichen in {file} geschrieben, im Ordner für deine Downloads.",
-    "done_other": "{count} Lesezeichen in {file} geschrieben, im Ordner für deine Downloads."
+    "done_one": "{count} Lesezeichen in {file} im Download-Ordner gespeichert.",
+    "done_other": "{count} Lesezeichen in {file} im Download-Ordner gespeichert."
   }
 }

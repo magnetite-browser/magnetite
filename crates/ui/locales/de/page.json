@@ -28,7 +28,7 @@
     "site_controls": "Website-Einstellungen",
     "site_controls_with": "Website-Einstellungen: {states}",
     "label": "Adresse: {url}. Bearbeiten{keys}",
-    "copy_link_label": "Link kopieren{keys}. Rechtsklick für mehr.",
+    "copy_link_label": "Link kopieren{keys}. Weitere Optionen mit Rechtsklick.",
     "copy_original_short": "Original kopieren"
   },
   "copy_menu": {
@@ -60,16 +60,16 @@
       "devtools": "Entwicklerwerkzeuge"
     },
     "system_engine": {
-      "note": "Die Web-Engine des Systems zeigt diese Seite. Erweiterungen können sie nicht lesen oder ausfüllen; Werbeblocker, Global Privacy Control und Entwicklerwerkzeuge funktionieren hier nicht, und die Anmeldung bei der Website ist von deinen anderen Seiten getrennt.",
-      "note_named": "{engine}, {about}, zeigt diese Seite. Erweiterungen können sie nicht lesen oder ausfüllen; Werbeblocker, Global Privacy Control und Entwicklerwerkzeuge funktionieren hier nicht, und die Anmeldung bei der Website ist von deinen anderen Seiten getrennt.",
+      "note": "Diese Seite wird von der Web-Engine des Systems angezeigt. Erweiterungen können sie weder lesen noch ausfüllen. Werbeblocker, Global Privacy Control und Entwicklerwerkzeuge funktionieren hier nicht, und bei der Website meldest du dich getrennt von deinen anderen Seiten an.",
+      "note_named": "{engine}, {about}, zeigt diese Seite an. Erweiterungen können sie weder lesen noch ausfüllen. Werbeblocker, Global Privacy Control und Entwicklerwerkzeuge funktionieren hier nicht, und bei der Website meldest du dich getrennt von deinen anderen Seiten an.",
       "open_in": "In {engine} öffnen",
       "open_switch": "Diese Website in {engine} öffnen",
-      "open_hint": "Für ganz {site}: {engine}, {about}, zeigt ihre Seiten und spielt geschützte Videos ab. Erweiterungen können ihre Seiten nicht lesen oder ausfüllen, es gibt keinen Werbeblocker, und die Website verlangt eine erneute Anmeldung. Die Seite wird neu geladen.",
+      "open_hint": "Gilt für ganz {site}: {engine}, {about}, zeigt dann ihre Seiten an und spielt geschützte Videos ab. Erweiterungen können diese Seiten weder lesen noch ausfüllen, Werbung wird nicht blockiert, und du musst dich bei der Website erneut anmelden. Die Seite wird dabei neu geladen.",
       "always": "Immer, wegen der Videos"
     },
     "permissions": {
       "title": "Berechtigungen",
-      "none": "Diese Website hat nach keinen Berechtigungen gefragt.",
+      "none": "Diese Website hat keine Berechtigungen angefordert.",
       "via": "über {host}",
       "allow": "Erlauben",
       "ask": "Fragen",
@@ -94,28 +94,28 @@
     "block_ads": {
       "label": "Werbung blockieren",
       "switch": "Werbung auf dieser Website blockieren",
-      "hint": "Für ganz {site}. Die Seite wird neu geladen."
+      "hint": "Gilt für ganz {site}. Die Seite wird neu geladen."
     },
     "site_shortcuts": {
-      "label": "Kurzbefehle der Website zuerst",
-      "switch": "Diese Website erhält die Tasten von Kurzbefehlen zuerst",
-      "hint": "Für ganz {site}: Die Website darf die Tasten der Kurzbefehle von Magnetite selbst verwenden, und ein Kurzbefehl wird nur ausgeführt, wenn die Website seine Tasten nicht nutzt. Die Ziffern zur Wahl eines Tabs oder Spaces bleiben bei Magnetite."
+      "label": "Vorrang für Website-Kurzbefehle",
+      "switch": "Tasten von Kurzbefehlen gehen zuerst an diese Website",
+      "hint": "Gilt für ganz {site}: Die Website darf die Tasten von Magnetite-Kurzbefehlen selbst belegen. Ein Kurzbefehl greift dann nur, wenn die Website seine Tasten nicht nutzt. Die Ziffern, mit denen du einen Tab oder Space auswählst, bleiben Magnetite vorbehalten."
     },
     "dev_mode": {
       "label": "Entwicklermodus",
-      "hint": "Die Entwicklerleiste, ein Warnrahmen am Tab und die Zahl der Konsolenfehler für diese Website",
+      "hint": "Zeigt für diese Website die Entwicklerleiste, einen Warnrahmen am Tab und die Zahl der Konsolenfehler",
       "always_local": "Immer, auf diesem Computer",
-      "on_for_domain": "An für ihre Domain"
+      "on_for_domain": "Für die Domain an"
     },
     "clear_data": {
       "button": "Cookies und Websitespeicher löschen …",
       "working": "Wird gelöscht …",
-      "confirm": "Entfernt werden die Cookies von <b>{domain}</b> und ihren Subdomains sowie der Websitespeicher von:",
-      "confirm_profile": "Entfernt werden die Cookies von <b>{domain}</b> und ihren Subdomains im Profil <b>{profile}</b> sowie der Websitespeicher von:",
-      "signed_out": "Du wirst abgemeldet. Speicher von Teilen der Website, die du in dieser Sitzung nicht geöffnet hast, kann erhalten bleiben.",
+      "confirm": "Die Cookies von <b>{domain}</b> und ihren Subdomains werden entfernt, ebenso der Websitespeicher von:",
+      "confirm_profile": "Die Cookies von <b>{domain}</b> und ihren Subdomains im Profil <b>{profile}</b> werden entfernt, ebenso der Websitespeicher von:",
+      "signed_out": "Du wirst dabei abgemeldet. Gespeicherte Daten von Bereichen der Website, die du in dieser Sitzung nicht geöffnet hast, bleiben eventuell erhalten.",
       "clear": "Löschen",
       "nothing": "Hier gibt es nichts zu löschen: Das funktioniert nur bei Websites.",
-      "moved": "Nichts wurde entfernt: Die Seite ist nicht mehr auf {domain}.",
+      "moved": "Es wurde nichts entfernt: Die Seite ist nicht mehr auf {domain}.",
       "cookies": "Cookies: {removed} entfernt",
       "cookies_failed": "Cookies konnten nicht entfernt werden",
       "storage_one": "Speicher: {done} von {count} Ursprung",
@@ -127,7 +127,7 @@
     "window_title": "Bildschirmfoto",
     "click_element": "Element anklicken",
     "element_off": "Elementauswahl nicht verfügbar",
-    "element_off_hint": "Die Seite hat sich beim Einfrieren bewegt; die Elementauswahl ist für dieses Bildschirmfoto aus",
+    "element_off_hint": "Die Seite hat sich beim Einfrieren bewegt, daher ist die Elementauswahl für dieses Bildschirmfoto ausgeschaltet",
     "drag_region": "Bereich aufziehen",
     "visible": "Sichtbar",
     "full_page": "Ganze Seite",
@@ -135,7 +135,7 @@
     "padding_off": "Rand aus",
     "context_on": "Kontext an",
     "context_off": "Kontext aus",
-    "context_hint": "Auch Selektor, Markup und Stile des Elements als Text kopieren, mit der Bilddatei: für ein Issue oder einen Coding-Agent"
+    "context_hint": "Neben der Bilddatei auch Selektor, Markup und Stile des Elements als Text kopieren – für ein Issue oder einen Coding-Agenten"
   },
   "capture_toast": {
     "busy": "Wird aufgenommen: {what} …",
@@ -147,14 +147,14 @@
     "save": "Speichern …",
     "share": "Teilen …",
     "retake": "Neu aufnehmen",
-    "context_copied": "Element als Text kopiert, mit der Bilddatei",
+    "context_copied": "Element als Text kopiert, zusammen mit der Bilddatei",
     "copy_failed": "Kopieren fehlgeschlagen",
-    "saved_as": "Gespeichert als {name}",
+    "saved_as": "Als {name} gespeichert",
     "recording_saved": "Aufnahme in Downloads gespeichert",
     "copy_file": "Datei kopieren"
   },
   "empty": {
-    "hint": "{keys} öffnet einen Tab",
+    "hint": "Drücke {keys}, um einen Tab zu öffnen",
     "close_panel": "Panel schließen",
     "panel_width": "Breite des Web-Panels",
     "panel_resize_hint": "Ziehen ändert die Breite · Doppelklick setzt sie zurück"
@@ -163,10 +163,10 @@
     "title": "Geteilter Ordner",
     "add": "Zur Seitenleiste hinzufügen",
     "added": "Hinzugefügt",
-    "summary_one": "{count} Tab. Nichts wird geöffnet, bis du es öffnest.",
-    "summary_other": "{count} Tabs. Nichts wird geöffnet, bis du es öffnest.",
+    "summary_one": "{count} Tab. Geöffnet wird nur, was du selbst öffnest.",
+    "summary_other": "{count} Tabs. Geöffnet wird nur, was du selbst öffnest.",
     "unreadable": "Dieser Link konnte nicht gelesen werden",
-    "unreadable_hint": "Vielleicht wurde er unterwegs abgeschnitten. Am besten noch einmal danach fragen."
+    "unreadable_hint": "Möglicherweise wurde er unterwegs abgeschnitten. Lass ihn dir am besten noch einmal schicken."
   },
   "licenses": {
     "title": "Lizenzen",

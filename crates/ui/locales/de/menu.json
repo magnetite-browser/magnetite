@@ -66,7 +66,7 @@
     "next_tab": "Nächster Tab",
     "previous_tab": "Vorheriger Tab",
     "toggle_pin": "Tab anheften oder lösen",
-    "site_controls": "Website-Steuerung …"
+    "site_controls": "Website-Einstellungen …"
   },
   "spaces": {
     "title": "Spaces",
@@ -77,7 +77,7 @@
   "extensions": {
     "title": "Erweiterungen",
     "none": "Keine Erweiterungen installiert",
-    "show_in_sidebar": "In der Seitenleiste zeigen",
+    "show_in_sidebar": "In der Seitenleiste anzeigen",
     "manage": "Erweiterungen verwalten …",
     "store": "Chrome Web Store …"
   },

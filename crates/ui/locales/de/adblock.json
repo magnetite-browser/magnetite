@@ -1,12 +1,12 @@
 {
   "enabled": {
     "label": "Werbung und Tracker blockieren",
-    "hint": "Anfragen von Webseiten an Werbe- und Tracking-Server werden gestoppt, bevor sie laden. Nur mit den Listen, die du unten auswählst."
+    "hint": "Magnetite blockiert Werbung und Tracker, bevor sie geladen werden. Dafür nutzt es die Listen, die du unten auswählst."
   },
   "lists": {
     "title": "Filterlisten",
-    "hint": "Freiwillige pflegen diese Listen. Jede ausgewählte wird von ihrem Herausgeber heruntergeladen, der deine IP-Adresse sieht wie jede Website, und danach alle vier Tage erneut. Was du aufrufst, wird nie gesendet.",
-    "none_chosen": "Wähle mindestens eine Liste: Ohne Liste wird nichts blockiert.",
+    "hint": "Diese Listen werden von Freiwilligen gepflegt. Magnetite lädt jede ausgewählte Liste direkt beim Herausgeber und aktualisiert sie alle vier Tage. Der Herausgeber sieht dabei wie jede Website deine IP-Adresse, aber nie, welche Seiten du besuchst.",
+    "none_chosen": "Wähle mindestens eine Liste aus, sonst wird nichts blockiert.",
     "from": "Von {host}.",
     "downloading": "Wird heruntergeladen …",
     "not_downloaded": "Noch nicht heruntergeladen",
@@ -14,7 +14,7 @@
   },
   "allowed": {
     "title": "Websites, auf denen Werbung nicht blockiert wird",
-    "hint": "Im Website-Panel (die Taste links neben der Adresse) für eine Website ausgeschaltet, die mit Blockieren nicht funktioniert.",
+    "hint": "Wenn eine Website mit dem Blockieren nicht funktioniert, kannst du es im Website-Panel für sie ausschalten. Das Panel öffnest du mit der Taste links neben der Adresse.",
     "none": "Keine.",
     "block_again": "Wieder blockieren"
   }

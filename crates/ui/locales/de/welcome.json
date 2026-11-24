@@ -10,7 +10,7 @@
     "done": "Bereit",
     "position": "Schritt {step} von {total}"
   },
-  "rail_note": "Kein Konto, keine Telemetrie. Alles, was hier gefragt wird, gibt es auch in den Einstellungen.",
+  "rail_note": "Kein Konto, keine Telemetrie. Alles, was hier gefragt wird, findest du auch in den Einstellungen.",
   "count": {
     "spaces_one": "{count} Space",
     "spaces_other": "{count} Spaces",
@@ -21,15 +21,15 @@
   },
   "start": {
     "title": "Willkommen bei Magnetite",
-    "intro": "Ein Browser rund um eine Seitenleiste: Spaces für alles, was du tust, Tabs, die sich selbst aufräumen, und nirgends werden Daten über dich gesammelt.",
-    "again": "Die Fragen vom ersten Start, noch einmal. Nichts, was du eingestellt hast, ändert sich, bevor du etwas auswählst.",
+    "intro": "Ein Browser, der um eine Seitenleiste herum gebaut ist: Spaces für alles, was du tust, Tabs, die sich selbst aufräumen – und nirgendwo werden Daten über dich gesammelt.",
+    "again": "Hier sind die Fragen vom ersten Start noch einmal. Deine Einstellungen bleiben, wie sie sind, bis du etwas auswählst.",
     "new": {
       "title": "Ich bin neu hier",
       "hint": "Bring deine Tabs aus einem anderen Browser mit und beantworte ein paar kurze Fragen."
     },
     "join": {
       "title": "Ich nutze Magnetite schon",
-      "hint": "Gib den Sync-Code eines anderen Geräts ein: Deine Spaces und Tabs kommen von dort."
+      "hint": "Gib den Sync-Code eines anderen Geräts ein, dann kommen deine Spaces und Tabs von dort."
     }
   },
   "sketch": {
@@ -39,21 +39,21 @@
     "spaces": "Spaces"
   },
   "sync": {
-    "syncing_title": "Dieses Gerät synchronisiert",
+    "syncing_title": "Dieses Gerät wird synchronisiert",
     "join": {
       "title": "Mit deinen anderen Geräten verbinden",
-      "intro": "Gib die 24 Wörter ein, die Einstellungen → Sync auf einem Gerät zeigt, das schon synchronisiert. Dieses Gerät übernimmt dann die Seitenleiste der anderen, durchgehend verschlüsselt; der Server sieht nie, was darin ist.",
-      "syncing": "Deine Spaces, angehefteten Tabs und Favoriten kommen aus der Sync-Kette, und mit ihnen deine Tastaturkurzbefehle und wann Tabs aufgeräumt werden und wo Links sich öffnen. Es gibt nichts zu importieren."
+      "intro": "Gib die 24 Wörter ein, die ein bereits synchronisiertes Gerät unter Einstellungen → Sync anzeigt. Dieses Gerät übernimmt dann die Seitenleiste der anderen, durchgehend verschlüsselt: Der Server sieht nie, was darin steht.",
+      "syncing": "Deine Spaces, angehefteten Tabs und Favoriten kommen aus der Sync-Kette – und mit ihnen deine Tastaturkurzbefehle und die Einstellungen dazu, wann Tabs aufgeräumt werden und wo sich Links öffnen. Du musst nichts importieren."
     },
     "create": {
       "title": "Mit deinen anderen Geräten synchronisieren",
-      "intro": "Optional. Mit Sync sind deine Spaces, angehefteten Tabs und Favoriten auf all deinen Computern gleich, verschlüsselt, bevor sie diesen verlassen. Kein Konto. Das kann auch warten: Unter Einstellungen → Sync gibt es dasselbe.",
-      "syncing": "Gib die 24 Wörter unten auf deinen anderen Geräten ein, unter Einstellungen → Sync oder auf ihrer Willkommensseite. Sie übernehmen die Seitenleiste von diesem Gerät."
+      "intro": "Optional. Mit Sync sind deine Spaces, angehefteten Tabs und Favoriten auf all deinen Computern auf demselben Stand. Sie werden verschlüsselt, bevor sie diesen Computer verlassen, und du brauchst kein Konto. Das kann auch warten: Unter Einstellungen → Sync findest du dasselbe.",
+      "syncing": "Gib die 24 Wörter unten auf deinen anderen Geräten ein, unter Einstellungen → Sync oder auf der Willkommensseite. Sie übernehmen dann die Seitenleiste dieses Geräts."
     }
   },
   "import": {
     "title": "Bring deine Tabs mit",
-    "intro": "Wähle einen Browser, um zu sehen, was er hat. Magnetite liest seine offenen und angehefteten Tabs, Tabgruppen und Lesezeichen, nie Passwörter, Cookies oder den Verlauf, und nichts verlässt diesen Computer. Übernommen wird alles, sobald du loslegst.",
+    "intro": "Wähle einen Browser, um zu sehen, was er enthält. Magnetite liest seine offenen und angehefteten Tabs, Tabgruppen und Lesezeichen, aber nie Passwörter, Cookies oder den Verlauf. Nichts davon verlässt diesen Computer. Übernommen wird alles, sobald du loslegst.",
     "none_found": "Auf diesem Computer wurde kein anderer Browser gefunden.",
     "browser": {
       "reading": "Wird gelesen …",
@@ -62,20 +62,20 @@
       "not_coming": "Kommt nicht mit",
       "coming": "Kommt mit",
       "all_off": "Alle Spaces ausgeschaltet",
-      "unread": "Zeigen, was er hat",
+      "unread": "Inhalt anzeigen",
       "error": "{browser}: {error}"
     },
     "sidebar": {
-      "title": "Deine Seitenleiste, wie sie startet",
-      "hint": "Jede Zeile ist ein Space: eine eigene Seitenleiste für einen Teil deines Tages, etwa Arbeit oder Privates, mit eigenen Tabs. Zwischen Spaces wechselst du in der Seitenleiste. Ändere hier einen Namen oder ein Symbol oder schalte einen Space aus, den du nicht willst."
+      "title": "So startet deine Seitenleiste",
+      "hint": "Jede Zeile ist ein Space: eine eigene Seitenleiste mit eigenen Tabs für einen Teil deines Tages, etwa Arbeit oder Privates. Zwischen den Spaces wechselst du in der Seitenleiste. Hier kannst du Namen und Symbole ändern oder Spaces ausschalten, die du nicht möchtest."
     },
     "from": {
       "spaces": "Aus {browser}",
       "spaces_favorites_one": "Aus {browser}, mit {count} Favorit",
       "spaces_favorites_other": "Aus {browser}, mit {count} Favoriten",
-      "plain": "Aus {browser}: Er hat keine Spaces, also kommt alles in einen. Gib dem Space den Namen, den du möchtest.",
-      "plain_favorites_one": "Aus {browser}: Er hat keine Spaces, also kommt alles in einen. Gib dem Space den Namen, den du möchtest. {count} Favorit kommt auch mit.",
-      "plain_favorites_other": "Aus {browser}: Er hat keine Spaces, also kommt alles in einen. Gib dem Space den Namen, den du möchtest. {count} Favoriten kommen auch mit."
+      "plain": "Aus {browser}: Dort gibt es keine Spaces, deshalb kommt alles in einen Space. Gib ihm den Namen, den du möchtest.",
+      "plain_favorites_one": "Aus {browser}: Dort gibt es keine Spaces, deshalb kommt alles in einen Space. Gib ihm den Namen, den du möchtest. {count} Favorit kommt auch mit.",
+      "plain_favorites_other": "Aus {browser}: Dort gibt es keine Spaces, deshalb kommt alles in einen Space. Gib ihm den Namen, den du möchtest. {count} Favoriten kommen auch mit."
     },
     "space": {
       "choose_icon": "Symbol auswählen",
@@ -84,58 +84,58 @@
       "bring_along": "{name} mitbringen",
       "stays_behind": "Bleibt zurück",
       "contents": "{tabs}, {bookmarks}",
-      "same_name": "Ein anderer Space, der mitkommt, heißt auch „{name}“: Dieser bleibt ein eigener Space, als „{final}“."
+      "same_name": "Ein anderer Space, der mitkommt, heißt ebenfalls „{name}“. Dieser bleibt trotzdem ein eigener Space und heißt „{final}“."
     },
-    "passwords": "<b>Passwörter und Erweiterungen</b> werden nicht gelesen. Magnetite bietet an, ein Passwort zu sichern, wenn du dich das nächste Mal irgendwo anmeldest, und Chrome-Erweiterungen, auch ein Passwortmanager, lassen sich aus dem Chrome Web Store installieren (Einstellungen → Erweiterungen).",
-    "safari": "<b>Du kommst von Safari?</b> macOS gibt seine Tabs nicht an andere Apps heraus. Exportiere dort die Lesezeichen (Ablage → Exportieren → Lesezeichen …) und importiere die Datei später unter Einstellungen → Lesezeichen."
+    "passwords": "<b>Passwörter und Erweiterungen</b> werden nicht gelesen. Wenn du dich das nächste Mal irgendwo anmeldest, bietet Magnetite an, das Passwort zu speichern. Chrome-Erweiterungen, etwa einen Passwortmanager, installierst du aus dem Chrome Web Store (Einstellungen → Erweiterungen).",
+    "safari": "<b>Du kommst von Safari?</b> macOS gibt die Tabs von Safari nicht an andere Apps heraus. Exportiere dort deine Lesezeichen (Ablage → Exportieren → Lesezeichen …) und importiere die Datei später unter Einstellungen → Lesezeichen."
   },
   "privacy": {
     "title": "Suche und Werbung",
-    "intro": "Zwei Entscheidungen darüber, was diesen Computer verlässt. Magnetite selbst sendet nirgendwohin etwas.",
+    "intro": "Zwei Entscheidungen darüber, was diesen Computer verlässt. Magnetite selbst sendet keinerlei Daten.",
     "search": {
       "label": "Suchen mit",
-      "hint": "Wird verwendet, wenn deine Eingabe in der Befehlsleiste keine Webadresse ist. Bis du suchst, geht nichts dorthin; weitere gibt es unter Einstellungen → Suche."
+      "hint": "Für Eingaben in der Befehlsleiste, die keine Webadresse sind. Die Suchmaschine erhält erst etwas, wenn du suchst. Weitere findest du unter Einstellungen → Suche."
     },
     "ads": {
       "label": "Werbung und Tracker",
-      "hint": "Websites laden Werbung und Tracker von bekannten Adressen. Eine Filterliste nennt diese Adressen, und Magnetite stoppt, was darauf steht, bevor es lädt. Jede Liste wird von ihrem Herausgeber geladen, der dabei wie jede Website deine IP-Adresse sieht; was du aufrufst, wird nie gesendet.",
+      "hint": "Websites laden Werbung und Tracker von bekannten Adressen. Eine Filterliste führt diese Adressen auf, und Magnetite blockiert alles, was darauf steht, bevor es geladen wird. Magnetite lädt jede Liste direkt beim Herausgeber. Der sieht dabei wie jede Website deine IP-Adresse, aber nie, welche Seiten du besuchst.",
       "list_from": "Von {host}.",
       "recommended": {
         "title": "Mit den empfohlenen Listen blockieren",
-        "hint_one": "{count} Liste gegen Werbung, Tracker und „Schalte deinen Werbeblocker aus“-Sperren.",
-        "hint_other": "{count} Listen gegen Werbung, Tracker und „Schalte deinen Werbeblocker aus“-Sperren."
+        "hint_one": "{count} Liste gegen Werbung, Tracker und Sperren wie „Schalte deinen Werbeblocker aus“.",
+        "hint_other": "{count} Listen gegen Werbung, Tracker und Sperren wie „Schalte deinen Werbeblocker aus“."
       },
       "own": {
         "title": "Listen selbst auswählen",
-        "hint_one": "{count} Liste zum Einschalten.",
-        "hint_other": "Alle {count} Listen, einzeln einzuschalten.",
-        "none": "Wähle mindestens eine Liste: Ohne Liste wird nichts blockiert."
+        "hint_one": "{count} Liste, die du einschalten kannst.",
+        "hint_other": "Alle {count} Listen, die du einzeln einschalten kannst.",
+        "none": "Wähle mindestens eine Liste aus, sonst wird nichts blockiert."
       },
       "off": {
         "title": "Nicht blockieren",
-        "hint": "Es wird nichts geladen. Einschalten kannst du es später unter Einstellungen → Inhaltsblocker."
+        "hint": "Es wird nichts heruntergeladen. Du kannst das Blockieren später unter Einstellungen → Inhaltsblocker einschalten."
       },
-      "fetched_first_site_one": "Noch wird nichts geladen: Die Liste wird geholt, sobald du deine erste Website öffnest.",
-      "fetched_first_site_other": "Noch wird nichts geladen: Die Listen werden geholt, sobald du deine erste Website öffnest.",
-      "fetched_on_continue_one": "Noch wird nichts geladen: Die Liste wird geholt, sobald du fortfährst.",
-      "fetched_on_continue_other": "Noch wird nichts geladen: Die Listen werden geholt, sobald du fortfährst.",
+      "fetched_first_site_one": "Noch wird nichts heruntergeladen. Magnetite lädt die Liste, sobald du deine erste Website öffnest.",
+      "fetched_first_site_other": "Noch wird nichts heruntergeladen. Magnetite lädt die Listen, sobald du deine erste Website öffnest.",
+      "fetched_on_continue_one": "Noch wird nichts heruntergeladen. Magnetite lädt die Liste, sobald du fortfährst.",
+      "fetched_on_continue_other": "Noch wird nichts heruntergeladen. Magnetite lädt die Listen, sobald du fortfährst.",
       "lists_on": "Diese Listen sind eingeschaltet.",
-      "failed": "Der Werbeblocker konnte nicht eingestellt werden: {error}"
+      "failed": "Der Werbeblocker konnte nicht eingerichtet werden: {error}"
     }
   },
   "look": {
-    "title": "Wie es aussieht",
-    "intro": "Die Seitenleiste und die eigenen Seiten von Magnetite; Webseiten behalten ihr eigenes Design. Diese Seite folgt deiner Auswahl. Jeder Space kann später eine eigene Farbe und einen eigenen Hintergrund bekommen, unter Einstellungen → Erscheinungsbild.",
+    "title": "So sieht Magnetite aus",
+    "intro": "Das gilt für die Seitenleiste und die Seiten von Magnetite selbst; Webseiten behalten ihr eigenes Design. Diese Seite passt sich deiner Auswahl an. Unter Einstellungen → Erscheinungsbild kannst du später jedem Space eine eigene Farbe und einen eigenen Hintergrund geben.",
     "layout": {
-      "label": "Zurück, Vorwärts und die Adresse",
-      "hint": "Oben in der Seitenleiste, die so der Seite die ganze Fensterhöhe lässt, oder in einer Leiste quer über das Fenster, wo die meisten Browser sie haben. Mit der Leiste kann die Seitenleiste auch rechts sitzen.",
+      "label": "Zurück, Vorwärts und Adresse",
+      "hint": "Oben in der Seitenleiste, sodass der Seite die volle Fensterhöhe bleibt, oder wie in den meisten Browsern in einer Leiste quer über dem Fenster. Mit der oberen Leiste lässt sich die Seitenleiste auch rechts anordnen.",
       "sidebar": "In der Seitenleiste",
       "top_bar": "In einer Leiste oben",
       "top_bar_right": "Oben, Seitenleiste rechts"
     },
     "text_size": {
       "label": "Textgröße",
-      "hint": "Für die Seitenleiste, die Befehlsleiste und Seiten wie diese. Webseiten zoomen eigenständig.",
+      "hint": "Gilt für die Seitenleiste, die Befehlsleiste und Seiten wie diese. Webseiten haben ihren eigenen Zoom.",
       "small": "Klein",
       "normal": "Normal",
       "large": "Groß",
@@ -151,31 +151,31 @@
   },
   "habits": {
     "title": "Tabs und Links",
-    "intro": "Magnetite räumt hinter dir auf: Seiten, die du nicht ansiehst, belegen keinen Speicher mehr, und vergessene Tabs verlassen die Seitenleiste. So ist es anfangs eingestellt, und die meisten lassen es dabei.",
+    "intro": "Magnetite räumt für dich auf: Seiten, die du gerade nicht ansiehst, geben ihren Speicher frei, und vergessene Tabs verschwinden aus der Seitenleiste. So ist es voreingestellt, und die meisten lassen es dabei.",
     "unload": {
       "title": "Nicht sichtbare Seite entladen nach",
-      "hint": "Eine entladene Seite belegt keinen Speicher. Ihr Tab bleibt, und die Seite lädt neu, wenn du sie öffnest. Favoriten bleiben geladen."
+      "hint": "Eine entladene Seite belegt keinen Speicher. Ihr Tab bleibt erhalten, und die Seite wird neu geladen, sobald du sie öffnest. Favoriten bleiben geladen."
     },
     "archive": {
       "title": "Unbenutzten Heute-Tab archivieren nach",
-      "hint": "Heute-Tabs sind die, die du nebenbei öffnest. Bleibt ein Tab so lange unbenutzt, wandert er aus der Seitenleiste ins Archiv, wo du ihn wiederfindest. Angeheftete Tabs und Favoriten bleiben."
+      "hint": "Heute-Tabs sind die Tabs, die du zwischendurch öffnest. Bleibt einer so lange unbenutzt, wandert er aus der Seitenleiste ins Archiv, wo du ihn wiederfindest. Angeheftete Tabs und Favoriten bleiben, wo sie sind."
     },
     "links": {
       "title": "Links aus anderen Apps öffnen in",
-      "hint": "Links aus Mail, Slack und anderen Apps, wenn Magnetite dein Standardbrowser ist. Ein Mini-Fenster ist ein eigenes kleines Fenster; ein Klick verschiebt seine Seite in einen Space."
+      "hint": "Gilt für Links aus Mail, Slack und anderen Apps, wenn Magnetite dein Standardbrowser ist. Ein Mini-Fenster ist ein kleines, eigenes Fenster; mit einem Klick verschiebst du seine Seite in einen Space."
     },
     "something_else": "Etwas anderes"
   },
   "done": {
-    "title": "Bereit, wenn du es bist",
-    "intro": "Das hast du ausgewählt; alles lässt sich in den Einstellungen ändern.",
-    "intro_importing": "Deine Tabs kommen, sobald du loslegst. Das hast du ausgewählt; alles lässt sich in den Einstellungen ändern.",
+    "title": "Alles bereit, wenn du so weit bist",
+    "intro": "Das hast du ausgewählt. Du kannst alles in den Einstellungen ändern.",
+    "intro_importing": "Deine Tabs werden übernommen, sobald du loslegst. Das hast du ausgewählt. Du kannst alles in den Einstellungen ändern.",
     "tabs": {
       "label": "Tabs",
       "from": "Aus {browsers}",
       "browser": "{browser} ({spaces}, {tabs})",
       "and": "{rest} und {last}",
-      "fresh": "Ein frischer Start, nichts importiert"
+      "fresh": "Neuanfang, nichts importiert"
     },
     "search": {
       "label": "Suche",
@@ -197,13 +197,13 @@
       "label": "Aussehen",
       "summary": "{layout}, {text}",
       "sidebar": "Alles in der Seitenleiste",
-      "top_bar": "Eine Leiste oben",
-      "top_bar_right": "Eine Leiste oben, die Seitenleiste rechts",
+      "top_bar": "Leiste oben",
+      "top_bar_right": "Leiste oben, Seitenleiste rechts",
       "small": "kleine Schrift",
       "normal": "normale Schrift",
       "large": "große Schrift",
       "largest": "sehr große Schrift",
-      "percent": "Schrift {percent} %"
+      "percent": "Schriftgröße {percent} %"
     },
     "sync": {
       "label": "Sync",
@@ -213,10 +213,10 @@
     "more_keys": "Mehr unter Einstellungen → Tastaturkurzbefehle.",
     "default_browser": {
       "label": "Magnetite als Standardbrowser verwenden",
-      "hint": "Links aus Mail, Slack und anderen Apps öffnen sich dann hier. macOS bittet um eine Bestätigung, sobald du loslegst."
+      "hint": "Links aus Mail, Slack und anderen Apps öffnen sich dann hier. macOS bittet dich gleich nach dem Loslegen, das zu bestätigen."
     },
-    "import_failed_one": "{failures} Es wurde nichts importiert. Starte erneut, um ohne ihn weiterzumachen.",
-    "import_failed_other": "{failures} Es wurde nichts importiert. Starte erneut, um ohne sie weiterzumachen."
+    "import_failed_one": "{failures} Es wurde nichts importiert. Klicke noch einmal auf „Loslegen“, um ohne diesen Browser weiterzumachen.",
+    "import_failed_other": "{failures} Es wurde nichts importiert. Klicke noch einmal auf „Loslegen“, um ohne diese Browser weiterzumachen."
   },
   "actions": {
     "skip": "Fragen überspringen",

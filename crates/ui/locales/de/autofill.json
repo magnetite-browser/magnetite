@@ -1,25 +1,25 @@
 {
   "profile": {
     "label": "Profil",
-    "hint": "Jedes Profil hat eigene Passwörter, Adressen und Karten. Die Tasten unten öffnen die des hier gewählten Profils; die Schalter gelten für alle."
+    "hint": "Jedes Profil hat eigene Passwörter, Adressen und Karten. Die Tasten unten öffnen die Daten des hier gewählten Profils, die Schalter gelten für alle Profile."
   },
   "passwords": {
     "title": "Passwörter",
     "offer": "Speichern von Passwörtern anbieten",
-    "offer_hint": "Nach der Anmeldung fragt Magnetite, ob das Passwort behalten werden soll, und füllt es beim nächsten Mal aus. Gespeicherte Passwörter bleiben auf diesem Computer, außerhalb von Sync.",
+    "offer_hint": "Nach einer Anmeldung fragt Magnetite, ob das Passwort gespeichert werden soll, und füllt es beim nächsten Mal automatisch aus. Gespeicherte Passwörter bleiben auf diesem Computer und werden nicht synchronisiert.",
     "manage": "Gespeicherte Passwörter …",
-    "test_key": "Diese Sitzung nutzt den Testschlüssel von Chromium (--mock-keychain): Was sie speichert, ist nicht durch deinen Schlüsselbund geschützt.",
+    "test_key": "Diese Sitzung nutzt den Testschlüssel von Chromium (--mock-keychain). Was dabei gespeichert wird, ist nicht durch deinen Schlüsselbund geschützt.",
     "breach": "Vor Passwörtern aus Datenlecks warnen",
-    "breach_hint": "Ist dies an, fragt Chromium bei jeder Anmeldung einen Google-Dienst, ob das Passwort in einem bekannten Datenleck vorkam. Gesendet wird ein verschlüsseltes Fragment, nicht das Passwort."
+    "breach_hint": "Wenn diese Option aktiv ist, fragt Chromium bei jeder Anmeldung bei einem Google-Dienst nach, ob das Passwort in einem bekannten Datenleck aufgetaucht ist. Dabei wird ein verschlüsseltes Fragment gesendet, nicht das Passwort selbst."
   },
   "forms": {
     "title": "Formulare",
     "addresses": "Adressen speichern und automatisch ausfüllen",
-    "addresses_hint": "Namen, Adressen, Telefonnummern und E-Mail-Adressen für Formulare. Magnetite fragt, bevor es eine speichert.",
+    "addresses_hint": "Namen, Adressen, Telefonnummern und E-Mail-Adressen für Formulare. Magnetite fragt vor dem Speichern nach.",
     "addresses_manage": "Gespeicherte Adressen …",
     "cards": "Zahlungskarten speichern und automatisch ausfüllen",
-    "cards_hint": "Kartendaten für Bezahlformulare, auf diesem Computer aufbewahrt. Magnetite fragt, bevor es eine speichert.",
+    "cards_hint": "Kartendaten für Bezahlformulare, gespeichert auf diesem Computer. Magnetite fragt vor dem Speichern nach.",
     "cards_manage": "Gespeicherte Karten …"
   },
-  "footer": "Die Listen sind eigene Seiten von Chromium; sie öffnen sich über dieser. Die Erweiterung eines Passwortmanagers wie Bitwarden funktioniert daneben oder an ihrer Stelle."
+  "footer": "Die Listen sind Seiten von Chromium und öffnen sich über dieser Seite. Die Erweiterung eines Passwortmanagers wie Bitwarden funktioniert zusätzlich oder stattdessen."
 }

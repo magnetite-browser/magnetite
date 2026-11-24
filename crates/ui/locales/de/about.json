@@ -9,11 +9,11 @@
   },
   "project": {
     "label": "Projekt",
-    "unpublished": "Das Quellcode-Repository ist noch nicht veröffentlicht; seine Links folgen, sobald es so weit ist."
+    "unpublished": "Das Quellcode-Repository ist noch nicht veröffentlicht. Die Links dazu folgen, sobald es so weit ist."
   },
   "licence": {
     "label": "Lizenz",
-    "hint": "Magnetite ist freie Software unter der Open-Source-Lizenz für die Europäische Union 1.2 (EUPL-1.2): Du darfst sie nutzen, untersuchen, weitergeben und verändern; veränderte Versionen, die du weitergibst, bleiben unter derselben Lizenz. Magnetite baut auf Open-Source-Software auf, deren Lizenzen mit ihr weitergegeben werden. Diese Software nutzt Code von FFmpeg unter der LGPLv2.1; wie du an dessen Quellcode kommst, steht in den Open-Source-Lizenzen.",
+    "hint": "Magnetite ist freie Software unter der Open-Source-Lizenz für die Europäische Union 1.2 (EUPL-1.2). Du darfst sie nutzen, untersuchen, weitergeben und verändern; veränderte Versionen, die du weitergibst, stehen weiterhin unter derselben Lizenz. Magnetite baut auf Open-Source-Software auf, deren Lizenzen mitgeliefert werden. Diese Software nutzt Code von FFmpeg, lizenziert unter der LGPLv2.1. Wie du dessen Quellcode erhältst, steht in den Open-Source-Lizenzen.",
     "eupl": "EUPL-1.2-Lizenz",
     "open_source": "Open-Source-Lizenzen",
     "chromium": "Chromium-Lizenzen"
@@ -22,28 +22,28 @@
   "updates": {
     "label": "Updates",
     "idle": "Noch nicht geprüft.",
-    "unavailable": "Dieser Build aktualisiert sich nicht selbst: Er hat keinen Release-Schlüssel. Updates kommen mit dem nächsten Release von der Projektseite.",
-    "system": "Die Updates deines Systems bringen neue Versionen von Magnetite (dnf, apt oder das Software-Center). Magnetite bietet einen Neustart an, sobald eine installiert ist.",
+    "unavailable": "Dieser Build aktualisiert sich nicht selbst, weil er keinen Release-Schlüssel hat. Updates gibt es mit dem nächsten Release auf der Projektseite.",
+    "system": "Neue Versionen von Magnetite kommen über die Updates deines Systems (dnf, apt oder das Software-Center). Sobald eine installiert ist, bietet Magnetite einen Neustart an.",
     "checking": "Wird geprüft …",
     "up_to_date": "Magnetite ist auf dem neuesten Stand. Zuletzt geprüft: {when}.",
     "available": "Magnetite {version} ist verfügbar.",
-    "system_update": "Magnetite {version} ist verfügbar. Die Updates deines Systems installieren es.",
-    "installing": "Magnetite {version} wird installiert … Magnetite startet neu, wenn es so weit ist.",
+    "system_update": "Magnetite {version} ist verfügbar und wird mit den Updates deines Systems installiert.",
+    "installing": "Magnetite {version} wird installiert … Magnetite startet neu, sobald es bereit ist.",
     "check_failed": "Die letzte Prüfung ist fehlgeschlagen: {error}",
-    "install_failed": "Das Update wurde nicht installiert: {error}",
-    "whats_new": "Neuigkeiten",
+    "install_failed": "Das Update konnte nicht installiert werden: {error}",
+    "whats_new": "Neuerungen",
     "restart": "Zum Aktualisieren neu starten",
     "download": "Herunterladen",
-    "how_to": "So aktualisierst du",
+    "how_to": "Update-Anleitung",
     "check_now": "Jetzt prüfen",
     "auto": "Automatisch nach Updates suchen",
-    "auto_hint": "Beim Start und einmal am Tag fragt Magnetite die Release-Seite des Projekts auf GitHub nach einer neuen Version: keine Kennungen, keine Nutzungsdaten. Bevor es ein Update installiert, prüft Magnetite es gegen das Release-Manifest, das mit dem Schlüssel des Projekts signiert ist."
+    "auto_hint": "Beim Start und einmal täglich fragt Magnetite auf der Release-Seite des Projekts bei GitHub nach einer neuen Version – ohne Kennungen und ohne Nutzungsdaten. Bevor Magnetite ein Update installiert, prüft es dieses anhand des Release-Manifests, das mit dem Schlüssel des Projekts signiert ist."
   },
   "system_dialog": {
     "title": "Magnetite {version} ist verfügbar",
     "centre": "{centre} installiert es mit den anderen Updates deines Systems.",
     "no_centre": "Dein System installiert es mit seinen anderen Updates.",
-    "again": "Falls es noch nicht aufgeführt ist, lass erneut nach Updates suchen.",
+    "again": "Falls es noch nicht angezeigt wird, lass erneut nach Updates suchen.",
     "open": "{centre} öffnen",
     "or_terminal": "Oder im Terminal:",
     "terminal": "Im Terminal:",

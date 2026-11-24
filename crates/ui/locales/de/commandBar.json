@@ -3,7 +3,7 @@
   "input": {
     "label": "Befehlsleiste",
     "default": "Suchen oder URL eingeben",
-    "quick": "Suchen oder URL eingeben – öffnet in einem Mini-Fenster",
+    "quick": "Suchen oder URL eingeben – öffnet sich im Mini-Fenster",
     "name_space": "Name für den neuen Space",
     "name_profile": "Name für das neue Profil",
     "split_left": "Links neben diesem Tab öffnen …",
@@ -13,10 +13,10 @@
   },
   "site_search": {
     "search": "{site} durchsuchen",
-    "chip_title": "Durchsucht {site} – zurück mit der Rückschritttaste",
+    "chip_title": "Durchsucht {site}. Mit der Rückschritttaste geht es zurück.",
     "result": "{site} nach „{query}“ durchsuchen",
     "idle": "Suchbegriff für {site} eingeben",
-    "example": "{keyword} und ein Leerzeichen durchsucht {site}"
+    "example": "Mit {keyword} und Leertaste {site} durchsuchen"
   },
   "results": {
     "open_address": "{address} öffnen",
@@ -36,7 +36,7 @@
     "archive": "Archiv",
     "local_servers": "Lokale Server"
   },
-  "local_servers_keywords": "localhost, server, ports",
+  "local_servers_keywords": "localhost, server, ports, lokal",
   "hints": {
     "idle": "Findet Tabs, Lesezeichen, besuchte Seiten und Befehle",
     "idle_quick": "Findet Lesezeichen und besuchte Seiten",
@@ -174,7 +174,7 @@
       "keywords": "anwendung, application, speicher, storage, cookies, service, worker, devtools"
     },
     "dev_reset": {
-      "title": "Seite zurücksetzen (am Cache vorbei neu laden)",
+      "title": "Seite zurücksetzen (ohne Cache neu laden)",
       "keywords": "zurücksetzen, hart, neu laden, cache, leeren, speicher"
     },
     "emu_dark": {
@@ -210,7 +210,7 @@
       "keywords": "cache, deaktivieren, ausschalten, emulieren"
     },
     "dev_responsive": {
-      "title": "Responsiver Split (die Seite als Smartphone neben sich selbst)",
+      "title": "Responsiver Split (die Seite daneben als Smartphone)",
       "keywords": "responsiv, responsive, smartphone, handy, mobil, split, daneben, viewport, breakpoint"
     },
     "dev_capture_set": {
@@ -276,7 +276,7 @@
       "keywords": "privat, inkognito, ausblenden, space"
     },
     "split_as": {
-      "title": "Daneben als {profile} öffnen",
+      "title": "Daneben im Profil {profile} öffnen",
       "keywords": "split, daneben, benutzer, profil, zweites, login, konto"
     },
     "duplicate": {
@@ -309,7 +309,7 @@
       "keywords": "aktiv, halten, wach"
     },
     "move": {
-      "title": "Tab zu {space} bewegen",
+      "title": "Tab in {space} verschieben",
       "keywords": "bewegen, verschieben, space"
     },
     "close_others": {
