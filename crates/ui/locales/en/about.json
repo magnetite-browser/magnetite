@@ -18,7 +18,7 @@
     "open_source": "Open-source licenses",
     "chromium": "Chromium licenses"
   },
-  "copyright": "© the Magnetite contributors. Magnetite is an independent project, not affiliated with The Browser Company.",
+  "copyright": "© the Magnetite contributors.",
   "updates": {
     "label": "Updates",
     "idle": "Not checked yet.",
