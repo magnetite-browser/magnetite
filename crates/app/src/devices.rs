@@ -14,6 +14,14 @@
 //! A tab with `later` asks for that ("send to desktop"): it is taken without
 //! a click, by one device only. The round puts it into `taken`, and it opens
 //! once that write went through; a device that reads after sees the claim.
+//!
+//! A phone never writes the sidebar; it lists changes to it in `edits`
+//! (magnetite-mobile-core's `edits` module). The round claims those no
+//! device has made by putting their ids into this device's `applied`; they
+//! are made once that write went through, and the sidebar syncs as after
+//! any change. The phone sees its edit there and stops listing it; this
+//! device then drops the id. An edit that adds something carries the new
+//! item's id, so making it twice changes nothing.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -58,8 +66,56 @@ struct Entry {
     /// Ids of other devices' tabs this device took over.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     taken: Vec<String>,
+    /// A phone's changes to the sidebar (`Edit`). Read one by one: a kind
+    /// this version does not know is left alone, not an error.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    edits: Vec<Value>,
+    /// Ids of other devices' edits this device made.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    applied: Vec<String>,
     #[serde(flatten)]
     other: Map<String, Value>,
+}
+
+/// A change a phone asks for (magnetite-mobile-core's `edits::Edit`).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub struct Edit {
+    /// The edit's own id; `item` in the change names what it is about.
+    pub id: String,
+    #[serde(flatten)]
+    pub change: Change,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(tag = "op", rename_all = "snake_case")]
+pub enum Change {
+    /// A new pinned tab `item`, last in the space's pinned tree.
+    Pin {
+        space: String,
+        item: String,
+        url: String,
+        #[serde(default)]
+        title: String,
+    },
+    /// A new favorite `item`, last among those of the space's profile.
+    Favorite {
+        space: String,
+        item: String,
+        url: String,
+        #[serde(default)]
+        title: String,
+    },
+    /// A new space `item`, after the others.
+    NewSpace {
+        item: String,
+        title: String,
+        #[serde(default)]
+        icon: Option<String>,
+    },
+    /// A new name for a pinned tab, folder, favorite or space.
+    Rename { item: String, title: String },
+    /// A pinned tab or a favorite goes to the archive.
+    Remove { item: String },
 }
 
 /// The collection as it is stored.
@@ -71,13 +127,15 @@ pub struct Devices {
     other: Map<String, Value>,
 }
 
-/// This device, and the tabs it took over that their devices may still list.
+/// This device, and the tabs it took over and edits it made that their
+/// devices may still list.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Me {
     /// Made up once per install (`SyncSettings::device_id`).
     pub id: String,
     pub name: String,
     pub taken: Vec<String>,
+    pub applied: Vec<String>,
 }
 
 /// A tab open on another device, as the sidebar shows it.
@@ -102,6 +160,11 @@ pub struct Round {
     pub sent: Vec<RemoteTab>,
     /// `Me::taken` without the tabs no device lists any more, with `sent`.
     pub taken: Vec<String>,
+    /// The edits of other devices this round claims: they are in `applied`,
+    /// and are made once `all` is written (or needs no write).
+    pub edits: Vec<Edit>,
+    /// `Me::applied` without the edits no device lists any more, with `edits`.
+    pub applied: Vec<String>,
     /// This device's entry differs from the stored one: write `all`.
     pub write: bool,
 }
@@ -142,26 +205,50 @@ pub fn round(all: &mut Devices, me: &Me, now: UnixSeconds) -> Round {
             }
         }
     }
-    let stored = all
-        .devices
-        .iter()
-        .find(|d| d.id == me.id)
-        .map(|d| d.taken.clone())
-        .unwrap_or_default();
-    let write = stored != taken;
+    let stored = all.devices.iter().find(|d| d.id == me.id);
+    let lists = |id: &String| {
+        others().any(|d| (d.edits.iter()).any(|e| e.get("id").and_then(Value::as_str) == Some(id)))
+    };
+    // Those the stored entry claimed count too, should this device not have
+    // heard of its own claim yet: made twice, an edit changes nothing, but
+    // claimed again it would be made again later.
+    let mut applied: Vec<String> = Vec::new();
+    for id in (me.applied.iter()).chain(stored.into_iter().flat_map(|d| &d.applied)) {
+        if lists(id) && !applied.contains(id) {
+            applied.push(id.clone());
+        }
+    }
+    let mut edits = Vec::new();
+    for d in others() {
+        for e in &d.edits {
+            let Ok(edit) = serde_json::from_value::<Edit>(e.clone()) else {
+                continue;
+            };
+            let elsewhere = others().any(|o| o.applied.contains(&edit.id));
+            if elsewhere || applied.contains(&edit.id) {
+                continue;
+            }
+            applied.push(edit.id.clone());
+            edits.push(edit);
+        }
+    }
+    let stored = stored.map(|d| (d.taken.clone(), d.applied.clone()));
+    let write = stored.unwrap_or_default() != (taken.clone(), applied.clone());
     if write {
         let mine = all.devices.iter().position(|d| d.id == me.id);
         let other = mine
             .map(|i| all.devices.remove(i).other)
             .unwrap_or_default();
         all.devices.retain(|d| now - d.updated_at < GONE_AFTER);
-        if !taken.is_empty() {
+        if !taken.is_empty() || !applied.is_empty() {
             all.devices.push(Entry {
                 id: me.id.clone(),
                 name: me.name.clone(),
                 updated_at: now,
                 tabs: Vec::new(),
                 taken: taken.clone(),
+                edits: Vec::new(),
+                applied: applied.clone(),
                 other,
             });
         }
@@ -170,6 +257,8 @@ pub fn round(all: &mut Devices, me: &Me, now: UnixSeconds) -> Round {
         tabs,
         sent,
         taken,
+        edits,
+        applied,
         write,
     }
 }
@@ -209,6 +298,7 @@ mod tests {
             id: "mac".into(),
             name: "Mac".into(),
             taken: taken.iter().map(ToString::to_string).collect(),
+            applied: Vec::new(),
         }
     }
 
@@ -290,6 +380,67 @@ mod tests {
         let round = round(&mut all, &me(&["gone"]), NOW);
         assert!(round.taken.is_empty() && round.write);
         assert_eq!(all, phone(""), "a device that took nothing has no entry");
+    }
+
+    /// A phone that asks for a pinned tab (edit "e1") and for a change of a
+    /// kind this version does not know, and `more` entries after it.
+    fn phone_editing(more: &str) -> Devices {
+        stored(&format!(
+            r#"{{"devices":[
+                {{"id":"phone","name":"iPhone","updated_at":{NOW},"tabs":[],"edits":[
+                    {{"id":"e1","made_at":1,"op":"pin","space":"s1","item":"t9","url":"https://p.example/","title":"P"}},
+                    {{"id":"e2","op":"paint_it_blue","item":"s1"}}]}}
+                {more}]}}"#
+        ))
+    }
+
+    #[test]
+    fn a_phones_edit_is_claimed_once_and_its_unknown_kinds_are_left_alone() {
+        let mut all = phone_editing("");
+        let first = round(&mut all, &me(&[]), NOW);
+        assert_eq!(first.edits.len(), 1);
+        assert!(matches!(&first.edits[0].change, Change::Pin { item, .. } if item == "t9"));
+        assert!(first.write && first.applied == ["e1"]);
+        let json = serde_json::to_value(&all).unwrap();
+        assert_eq!(json["devices"][1]["applied"], serde_json::json!(["e1"]));
+        // The phone's entry, the edit of the unknown kind with it, is as it was.
+        assert_eq!(json["devices"][0]["edits"][1]["op"], "paint_it_blue");
+
+        // Made and noted: the next round leaves it alone, and so does one
+        // that runs before this device noted it.
+        let noted = Me {
+            applied: vec!["e1".into()],
+            ..me(&[])
+        };
+        let next = round(&mut all, &noted, NOW);
+        assert!(next.edits.is_empty() && !next.write);
+        let early = round(&mut all, &me(&[]), NOW);
+        assert!(early.edits.is_empty() && !early.write);
+    }
+
+    #[test]
+    fn an_edit_another_device_made_is_left_to_it() {
+        let other = format!(
+            r#",{{"id":"pc","name":"Linux PC","updated_at":{NOW},"tabs":[],"applied":["e1"]}}"#
+        );
+        let mut all = phone_editing(&other);
+        let round = round(&mut all, &me(&[]), NOW);
+        assert!(round.edits.is_empty() && !round.write);
+    }
+
+    #[test]
+    fn once_the_phone_stopped_listing_an_edit_it_is_forgotten() {
+        let mine = format!(
+            r#",{{"id":"mac","name":"Mac","updated_at":{NOW},"tabs":[],"applied":["done"]}}"#
+        );
+        let mut all = phone(&mine);
+        let noted = Me {
+            applied: vec!["done".into()],
+            ..me(&[])
+        };
+        let round = round(&mut all, &noted, NOW);
+        assert!(round.applied.is_empty() && round.write);
+        assert_eq!(all, phone(""), "a device that made nothing has no entry");
     }
 
     #[test]

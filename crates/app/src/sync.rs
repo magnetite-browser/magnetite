@@ -29,7 +29,7 @@ use magnetite_sync_proto::{
 use magnetite_ui::t;
 use serde::{Deserialize, Serialize};
 
-use crate::devices::{self, DEVICES, Devices, Me, RemoteTab};
+use crate::devices::{self, DEVICES, Devices, Edit, Me, RemoteTab};
 use crate::lock;
 use crate::state::{Settings, SyncSettings};
 
@@ -243,11 +243,16 @@ pub enum Outcome {
     /// The tabs open on the chain's other devices, those sent here that
     /// this device took with this round (`sent`: to open now), and which of
     /// the tabs it took over no device lists any more (`forgotten`): their
-    /// handover is done. `version`: the `devices` collection's, to remember.
+    /// handover is done. The same for phones' changes to the sidebar: those
+    /// this round claimed (`edits`: to make now), and those made here that
+    /// no device lists any more (`unlisted`). `version`: the `devices`
+    /// collection's, to remember.
     Devices {
         tabs: Vec<RemoteTab>,
         sent: Vec<RemoteTab>,
         forgotten: Vec<String>,
+        edits: Vec<Edit>,
+        unlisted: Vec<String>,
         version: u64,
     },
     Error(String),
@@ -926,6 +931,13 @@ impl Worker {
                         .filter(|id| !round.taken.contains(id))
                         .cloned()
                         .collect(),
+                    edits: round.edits,
+                    unlisted: me
+                        .applied
+                        .iter()
+                        .filter(|id| !round.applied.contains(id))
+                        .cloned()
+                        .collect(),
                     version,
                 }]
             };
@@ -1197,6 +1209,7 @@ mod tests {
             id: "mac".into(),
             name: "Mac".into(),
             taken: Vec::new(),
+            applied: Vec::new(),
         }
     }
 

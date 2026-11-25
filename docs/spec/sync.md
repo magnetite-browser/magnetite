@@ -80,7 +80,7 @@ the web for the words.
 |---|---|
 | `sidebar` | profiles, favorites, spaces (name, glyph or own icon, colour) with their pinned trees (folders, smart folder definitions), Today tabs and bookmarks |
 | `settings` | when Today tabs are archived, when inactive tabs are suspended, where links from other apps open (a tab, a peek or a mini window; a version that does not know a choice uses a new tab), the shortcuts with other keys or none, who gets their keys first, and the sites that get them all first (`shortcuts.md`) |
-| `devices` | per device: the tabs open on it that it lists for the others (phones do), and which tabs of other devices it took over |
+| `devices` | per device: the tabs open on it that it lists for the others (phones do), which tabs of other devices it took over, a phone's changes to the sidebar, and which of those a desktop made |
 
 The server never sees these names, only ids derived from the sync code.
 
@@ -117,6 +117,30 @@ first, it reads again. Devices cannot overwrite each other there.
 - A tab with an address Magnetite does not open from stored data (a local
   file, for example) is not shown and not taken: it stays open on its
   device.
+
+### Changes from phones
+
+A phone cannot write the sidebar either, so what it changes there travels
+in `devices` too: it lists its changes in its entry, and a desktop makes
+them. The phone shows them at once, marked as waiting, until the sidebar it
+reads has them.
+
+- A phone can pin a page in a space (last in its pinned tree), make a page
+  a favorite of a space's profile (last in its list), add a space (after
+  the others, with the default profile and colour, as "+" → New Space
+  does), rename a space, folder, pinned tab or favorite, and remove a
+  pinned tab or favorite (it goes to the archive, as when closed here).
+- A desktop makes each change once, at its next sync: it notes the
+  change's id in its entry, makes the change only after that note is
+  stored, and syncs the sidebar after. With several desktops in the chain
+  one makes it; the others see the note. The phone sees it too and stops
+  listing the change; the desktop then forgets the id.
+- A change that adds something carries the id of what it adds, so it is
+  never added twice.
+- Not made: an address Magnetite does not open from stored data, a
+  change to the private space or for a space deleted meanwhile, removing a
+  Today tab or a folder, and a kind of change this version does not know
+  (it stays listed, for a desktop that does).
 
 Not synced: the archive, downloads, cookies and logins, which pages are
 open, split views, the search engine (a device holding the words could
@@ -222,6 +246,8 @@ builds it from a checkout next to this one.
 
 - Syncing the archive.
 
-Code: `crates/app/src/sync.rs` (client), `crates/app/src/state/adopt.rs`
+Code: `crates/app/src/sync.rs` (client), `crates/app/src/devices.rs` (tabs
+of other devices, phones' changes), `crates/app/src/state/phone_edits.rs`
+(making those changes), `crates/app/src/state/adopt.rs`
 (`adopt_pull`, `lasting_sidebar`), `crates/app/src/app/syncing.rs` (`sync_now`,
 `on_sync_outcome`), `crates/ui/web/src/settings/SyncSection.tsx`.

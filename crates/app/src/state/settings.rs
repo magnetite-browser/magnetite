@@ -776,6 +776,9 @@ pub struct SyncSettings {
     /// Tabs of other devices taken over here that their devices may still
     /// list (`devices` module).
     pub taken: Vec<String>,
+    /// Phones' changes to the sidebar made here that their phones may still
+    /// list (`devices` module).
+    pub applied: Vec<String>,
 }
 
 impl Settings {

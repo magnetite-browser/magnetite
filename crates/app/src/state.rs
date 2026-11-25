@@ -17,6 +17,7 @@ mod history;
 pub mod import;
 mod panels;
 mod persist;
+mod phone_edits;
 mod private;
 mod profiles;
 mod search;
