@@ -19,6 +19,9 @@
     "split": "In Split View öffnen",
     "open_link": "Link in Vorschau öffnen"
   },
+  "page_menu": {
+    "search_for": "Mit {engine} nach „{text}“ suchen"
+  },
   "panel": {
     "close": "Panel schließen"
   },

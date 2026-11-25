@@ -79,6 +79,7 @@ mod strings;
 mod system;
 mod tabshare;
 mod trash;
+mod web_search;
 #[cfg(target_os = "windows")]
 mod win;
 
@@ -118,6 +119,7 @@ pub use sitedata::{
     registrable_domain,
 };
 pub use trash::move_to_trash;
+pub use web_search::{WebSearch, set_web_search};
 #[cfg(target_os = "windows")]
 pub use win::installer_ready;
 

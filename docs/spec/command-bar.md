@@ -82,6 +82,9 @@ Paste, Select All).
 - Anything else is searched with the engine from Settings → Search:
   DuckDuckGo (default), Startpage, Ecosia, Brave Search, Kagi, Google, or a
   custom `https://` address with `%s` for the query.
+- Selected text on a page is searched with the same engine: the page's
+  menu names it ("Search Brave Search for “…”", a custom address by its
+  host) and opens the search in a new tab.
 - Web addresses, `about:blank`, `file://`, `view-source:`, `chrome://`,
   extension pages and Magnetite's own pages open. Other schemes, such as
   `javascript:` and `data:`, are refused (`docs/design/security.md`).

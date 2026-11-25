@@ -4,6 +4,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use magnetite_core::search::urlencode;
 use magnetite_core::sidebar::Section;
 use magnetite_core::smart::{Service, SmartFolder, SmartSource};
 use magnetite_core::split::Side;
@@ -19,7 +20,6 @@ use crate::state::{AppState, ArcImport, ChosenProfile, SidebarEffect, icon_image
 use crate::sync::{self, Job};
 use crate::{capture, downloads, lock, url_policy};
 
-use super::addresses::urlencode;
 use super::tabs::{Destination, move_tabs};
 use super::{
     LATE_DROP, LinkVariant, MagnetiteApp, PROMPT_SETTLE, PaletteMode, WELCOME_URL, for_ui, global,
@@ -2254,6 +2254,7 @@ impl MagnetiteApp {
                 // reads the level when it starts, before Magnetite could set it.
                 engine.set_default_zoom(settings.page_zoom);
                 engine.set_languages(&settings.languages);
+                self.apply_web_search();
                 if settings.device_order != devices_before {
                     engine.set_device_order(&settings.device_order);
                 }

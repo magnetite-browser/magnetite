@@ -1,12 +1,12 @@
 //! Keys and menu bar items, and the command palette they open.
 
+use magnetite_core::search::urlencode;
 use magnetite_core::split::Side;
 use magnetite_engine::{
     Action, Combo, ContentId, Engine, First, KeysError, Overrides, Priorities, Shortcut,
 };
 use serde_json::{Value, json};
 
-use super::addresses::urlencode;
 use super::{LinkVariant, MagnetiteApp, PaletteMode};
 use crate::state::typed_site;
 

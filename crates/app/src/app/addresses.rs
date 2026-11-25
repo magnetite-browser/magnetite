@@ -1,5 +1,8 @@
 //! From typed input to an address or a search.
 
+use magnetite_core::search::search_address;
+use magnetite_engine::WebSearch;
+
 use crate::state::SiteSearch;
 
 use super::MagnetiteApp;
@@ -19,7 +22,7 @@ pub(super) fn normalise_url_with(input: &str, template: &str, sites: &[SiteSearc
         return s.to_string();
     }
     if let Some((site, query)) = site_search(s, sites) {
-        return site.url.replace("%s", &urlencode(query));
+        return search_address(&site.url, query);
     }
     if !s.contains(' ') && is_loopback(s) {
         // Servers on this computer speak plain http.
@@ -29,7 +32,7 @@ pub(super) fn normalise_url_with(input: &str, template: &str, sites: &[SiteSearc
     if looks_like_host {
         return format!("https://{s}");
     }
-    template.replace("%s", &urlencode(s))
+    search_address(template, s)
 }
 
 /// The site search `input` asks for: its first word is a keyword (any
@@ -61,21 +64,25 @@ pub(super) fn is_loopback(input: &str) -> bool {
             .is_ok_and(|ip| ip.is_loopback())
 }
 
-pub(super) fn urlencode(s: &str) -> String {
-    use std::fmt::Write as _;
-    let mut out = String::new();
-    for b in s.bytes() {
-        match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                out.push(b as char);
-            }
-            b' ' => out.push('+'),
-            _ => {
-                let _ = write!(out, "%{b:02X}");
-            }
-        }
-    }
-    out
+/// The search engines Settings → Search offers (`searchEngines.ts`), by
+/// the host of their search address.
+const ENGINE_NAMES: &[(&str, &str)] = &[
+    ("duckduckgo.com", "DuckDuckGo"),
+    ("startpage.com", "Startpage"),
+    ("ecosia.org", "Ecosia"),
+    ("search.brave.com", "Brave Search"),
+    ("kagi.com", "Kagi"),
+    ("google.com", "Google"),
+];
+
+/// The name of the search engine `template` searches with, as a page's
+/// menu shows it: one Settings offers by its name, any other by its host.
+fn search_name(template: &str) -> String {
+    let host = magnetite_engine::host_of(template).unwrap_or_default();
+    ENGINE_NAMES
+        .iter()
+        .find(|(known, _)| *known == host)
+        .map_or(host, |(_, name)| (*name).to_string())
 }
 
 impl MagnetiteApp {
@@ -87,6 +94,16 @@ impl MagnetiteApp {
                 &s.settings.site_searches,
             )
         })
+    }
+
+    /// Give the engine the search engine of Settings → Search: the search
+    /// item of a page's menu names it and searches with it.
+    pub(super) fn apply_web_search(&self) {
+        let template = self.with_state(|s| s.settings.search_template.clone());
+        magnetite_engine::set_web_search(WebSearch {
+            name: search_name(&template),
+            template,
+        });
     }
 }
 
@@ -114,6 +131,26 @@ mod tests {
             "https://search.example/?q=localhost+is+down"
         );
         assert_eq!(open("rust traits"), "https://search.example/?q=rust+traits");
+    }
+
+    #[test]
+    fn a_search_engine_is_named_as_settings_offers_it_or_by_its_host() {
+        assert_eq!(
+            search_name("https://search.brave.com/search?q=%s"),
+            "Brave Search"
+        );
+        assert_eq!(
+            search_name("https://www.startpage.com/do/search?q=%s"),
+            "Startpage"
+        );
+        assert_eq!(
+            search_name("https://duckduckgo.com/?q=%s&kp=-2"),
+            "DuckDuckGo"
+        );
+        assert_eq!(
+            search_name("https://www.search.example/?q=%s"),
+            "search.example"
+        );
     }
 
     #[test]

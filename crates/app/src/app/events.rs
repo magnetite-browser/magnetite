@@ -40,6 +40,7 @@ impl EngineDelegate for MagnetiteApp {
                 engine.set_default_zoom(self.with_state(|s| s.settings.page_zoom));
                 engine.set_languages(&self.with_state(|s| s.settings.languages.clone()));
                 engine.set_device_order(&self.with_state(|s| s.settings.device_order.clone()));
+                self.apply_web_search();
                 // Before the first page: its address decides its engine.
                 engine.set_system_engine_sites(self.system_engine_sites());
                 engine.set_sidebar_width(width);

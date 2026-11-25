@@ -19,6 +19,9 @@
     "split": "Open in split view",
     "open_link": "Open Link in Peek"
   },
+  "page_menu": {
+    "search_for": "Search {engine} for “{text}”"
+  },
   "panel": {
     "close": "Close the panel"
   },

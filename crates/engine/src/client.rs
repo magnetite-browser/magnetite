@@ -958,6 +958,28 @@ fn add_open_link_in_peek(m: &MenuModel, browser: Option<&Browser>) {
     );
 }
 
+/// The selected text `params` were made for.
+fn selection_of(params: Option<&ContextMenuParams>) -> String {
+    params
+        .map(|p| CefString::from(&p.selection_text()).to_string())
+        .unwrap_or_default()
+}
+
+/// Name the search engine of Settings → Search in Chromium's "Search Google
+/// for “…”" of the menu `m`; `on_context_menu_command` then searches with
+/// it (`web_search.rs`).
+fn name_search_engine(m: &MenuModel, params: Option<&ContextMenuParams>) {
+    let Some(search) = keys::command_id_for("IDC_CONTENT_CONTEXT_SEARCHWEBFOR") else {
+        return;
+    };
+    if m.index_of(search) < 0 {
+        return;
+    }
+    if let Some(label) = crate::web_search::menu_label(&selection_of(params)) {
+        m.set_label(search, Some(&CefString::from(label.as_str())));
+    }
+}
+
 wrap_context_menu_handler! {
     struct MagnetiteContextMenuHandler {
         kind: Kind,
@@ -966,12 +988,13 @@ wrap_context_menu_handler! {
         /// Our UI pages draw their own menus; CEF's menu there keeps only its
         /// text editing items (`keep_text_editing`). Pages lose "Open Link in
         /// Incognito Window", which opens nothing here (`on_open_urlfrom_tab`),
-        /// and gain "Open Link in Peek".
+        /// and gain "Open Link in Peek". Their search item, and that of a
+        /// page's popup window, names the search engine of Settings.
         fn on_before_context_menu(
             &self,
             browser: Option<&mut Browser>,
             _frame: Option<&mut Frame>,
-            _params: Option<&mut ContextMenuParams>,
+            params: Option<&mut ContextMenuParams>,
             model: Option<&mut MenuModel>,
         ) {
             let Some(m) = model else { return };
@@ -983,12 +1006,17 @@ wrap_context_menu_handler! {
                 }
                 add_open_link_in_peek(m, browser.as_deref());
             }
+            if matches!(self.kind, Kind::Content | Kind::Stray) {
+                name_search_engine(m, params.as_deref());
+            }
         }
         /// "Inspect" in a page's menu opens `DevTools` through us, at the
         /// clicked element, so they dock and get our menu items. "Open Link
         /// in New Window" opens a mini window through us: Chromium would ask
         /// for it just as for a Shift+click (`on_open_urlfrom_tab`). "Open
-        /// Link in Peek" asks for what a Shift+click asks for.
+        /// Link in Peek" asks for what a Shift+click asks for. "Search … for"
+        /// asks for a new tab that searches with the engine of Settings,
+        /// where Chromium would search Google.
         fn on_context_menu_command(
             &self,
             browser: Option<&mut Browser>,
@@ -1000,6 +1028,13 @@ wrap_context_menu_handler! {
             if self.kind == Kind::Content && command_id == OPEN_LINK_IN_PEEK {
                 let Some(url) = params.map(|p| CefString::from(&p.link_url()).to_string()) else { return 0 };
                 Engine::global().request_open(browser.as_deref(), url, UrlSource::Page, false, true, false);
+                return 1;
+            }
+            if matches!(self.kind, Kind::Content | Kind::Stray)
+                && Some(command_id) == keys::command_id_for("IDC_CONTENT_CONTEXT_SEARCHWEBFOR")
+            {
+                let Some(url) = crate::web_search::menu_address(&selection_of(params.as_deref())) else { return 0 };
+                Engine::global().request_open(browser.as_deref(), url, url_source(self.kind), false, false, false);
                 return 1;
             }
             // A page's popup window (`Kind::Stray`) has the item too.

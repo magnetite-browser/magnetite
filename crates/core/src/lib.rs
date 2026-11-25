@@ -6,6 +6,7 @@
 
 pub mod links;
 pub mod model;
+pub mod search;
 pub mod sidebar;
 pub mod smart;
 pub mod split;

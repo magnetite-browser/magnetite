@@ -1,4 +1,7 @@
-/** The search engines Settings and the welcome page offer (`search_template`). */
+/**
+ * The search engines Settings and the welcome page offer (`search_template`).
+ * A page's menu names them too: `ENGINE_NAMES` in `crates/app/src/app/addresses.rs`.
+ */
 export const SEARCH_ENGINES = [
   { label: "DuckDuckGo", template: "https://duckduckgo.com/?q=%s" },
   { label: "Startpage", template: "https://www.startpage.com/do/search?q=%s" },
