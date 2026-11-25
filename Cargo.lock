@@ -1432,7 +1432,7 @@ checksum = "f56455fff36934a9500d69062aec1c77037179b6f0669e4d5d6b72b84722d6a3"
 
 [[package]]
 name = "magnetite"
-version = "0.0.18"
+version = "0.0.19"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
@@ -1460,7 +1460,7 @@ dependencies = [
 
 [[package]]
 name = "magnetite-core"
-version = "0.0.18"
+version = "0.0.19"
 dependencies = [
  "serde",
  "serde_json",
@@ -1468,7 +1468,7 @@ dependencies = [
 
 [[package]]
 name = "magnetite-engine"
-version = "0.0.18"
+version = "0.0.19"
 dependencies = [
  "adblock",
  "arboard",
@@ -1494,7 +1494,7 @@ dependencies = [
 
 [[package]]
 name = "magnetite-importer"
-version = "0.0.18"
+version = "0.0.19"
 dependencies = [
  "anyhow",
  "clap",
@@ -1541,14 +1541,14 @@ dependencies = [
 
 [[package]]
 name = "magnetite-ui"
-version = "0.0.18"
+version = "0.0.19"
 dependencies = [
  "serde_json",
 ]
 
 [[package]]
 name = "magnetite-windows"
-version = "0.0.18"
+version = "0.0.19"
 dependencies = [
  "magnetite",
 ]
