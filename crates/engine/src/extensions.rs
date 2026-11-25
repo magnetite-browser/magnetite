@@ -105,12 +105,15 @@ pub(crate) fn new_tab_pages(ctx: &RequestContext) -> Vec<String> {
         .collect()
 }
 
-/// Whether extension `id` is installed and switched on in `ctx` as it is
-/// now: Chromium writes its settings to disk some seconds after a change,
-/// so the file still lists what was just removed or turned off. `None`
-/// when the context does not tell.
-fn live_on(ctx: &RequestContext, id: &str) -> Option<bool> {
-    let settings = (ctx.preference(Some(&CefString::from("extensions.settings")))?).dictionary()?;
+/// Chromium's preference with the settings of every extension of a
+/// context, keyed by extension id.
+const SETTINGS: &str = "extensions.settings";
+
+/// Whether extension `id` is installed and switched on in `settings`, the
+/// context's `SETTINGS` as they are now: Chromium writes them to disk some
+/// seconds after a change, so the file still lists what was just removed
+/// or turned off. `None` when its entry does not tell.
+fn live_on(settings: &DictionaryValue, id: &str) -> Option<bool> {
     let key = CefString::from(id);
     if settings.has_key(Some(&key)) == 0 {
         return Some(false);
@@ -371,9 +374,15 @@ impl Engine {
             "" => request_context_get_global_context(),
             id => self.lock().contexts.get(id).cloned(),
         };
-        // What was removed or turned off since the file was written.
-        if let Some(ctx) = context.as_ref() {
-            list.retain(|e| live_on(ctx, &e.id) != Some(false));
+        // What was removed or turned off since the file was written. Read
+        // once: CEF copies the settings of every extension on each read,
+        // and this runs with every state the sidebar gets.
+        if let Some(value) = context
+            .as_ref()
+            .and_then(|ctx| ctx.preference(Some(&CefString::from(SETTINGS))))
+            && let Some(settings) = value.dictionary()
+        {
+            list.retain(|e| live_on(&settings, &e.id) != Some(false));
         }
         if let Some(pins) = context.as_ref().and_then(live_pins) {
             for e in &mut list {
