@@ -16,12 +16,16 @@
 //! once that write went through; a device that reads after sees the claim.
 //!
 //! A phone never writes the sidebar; it lists changes to it in `edits`
-//! (magnetite-mobile-core's `edits` module). The round claims those no
-//! device has made by putting their ids into this device's `applied`; they
-//! are made once that write went through, and the sidebar syncs as after
-//! any change. The phone sees its edit there and stops listing it; this
-//! device then drops the id. An edit that adds something carries the new
-//! item's id, so making it twice changes nothing.
+//! (magnetite-mobile-core's `edits` module). The round hands over those no
+//! device has made; this device makes them, the sidebar syncs as after any
+//! change, and the next round puts their ids into this device's `applied`.
+//! The phone sees its edit there and stops listing it; this device then
+//! drops the id. Unlike a sent tab, an edit is noted only once made: the
+//! phone forgets a noted edit, so a note stored for one not made yet (a
+//! write whose answer got lost) would lose it. Two devices that sync at the
+//! same moment may then both make one, which changes nothing: an edit that
+//! adds something carries the new item's id, and the others set a name or
+//! remove.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -78,7 +82,7 @@ struct Entry {
 }
 
 /// A change a phone asks for (magnetite-mobile-core's `edits::Edit`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 pub struct Edit {
     /// The edit's own id; `item` in the change names what it is about.
     pub id: String,
@@ -86,7 +90,7 @@ pub struct Edit {
     pub change: Change,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum Change {
     /// A new pinned tab `item`, last in the space's pinned tree.
@@ -136,9 +140,6 @@ pub struct Me {
     pub name: String,
     pub taken: Vec<String>,
     pub applied: Vec<String>,
-    /// Edits claimed in a write whose answer never came, so not made yet
-    /// (`SyncSettings::claimed`).
-    pub claimed: Vec<Edit>,
 }
 
 /// A tab open on another device, as the sidebar shows it.
@@ -163,18 +164,18 @@ pub struct Round {
     pub sent: Vec<RemoteTab>,
     /// `Me::taken` without the tabs no device lists any more, with `sent`.
     pub taken: Vec<String>,
-    /// The edits of other devices this round claims: they are in `applied`,
-    /// and are made once `all` is written (or needs no write).
+    /// The edits of other devices no device has made yet: to make now. A
+    /// later round notes them in `applied`, from `Me::applied`.
     pub edits: Vec<Edit>,
-    /// `Me::applied` without the edits no device lists any more, with `edits`.
+    /// `Me::applied` without the edits no device lists any more.
     pub applied: Vec<String>,
     /// This device's entry differs from the stored one: write `all`.
     pub write: bool,
 }
 
 /// Read the other devices' tabs out of `all` and bring this device's entry
-/// up to date in it. The entry holds what this device took; a device that
-/// took nothing has none.
+/// up to date in it. The entry holds what this device took and the edits it
+/// made; a device with neither has none.
 pub fn round(all: &mut Devices, me: &Me, now: UnixSeconds) -> Round {
     let others = || all.devices.iter().filter(|d| d.id != me.id);
     let mut taken: Vec<String> = me
@@ -212,34 +213,24 @@ pub fn round(all: &mut Devices, me: &Me, now: UnixSeconds) -> Round {
     let lists = |id: &String| {
         others().any(|d| (d.edits.iter()).any(|e| e.get("id").and_then(Value::as_str) == Some(id)))
     };
-    // Those the stored entry claimed count too, should this device not have
-    // heard of its own claim yet: made twice, an edit changes nothing, but
-    // claimed again it would be made again later.
+    // Those the stored entry notes count too: a round can run with what this
+    // device knew before it made them, and must not take the note back.
     let mut applied: Vec<String> = Vec::new();
     for id in (me.applied.iter()).chain(stored.into_iter().flat_map(|d| &d.applied)) {
         if lists(id) && !applied.contains(id) {
             applied.push(id.clone());
         }
     }
-    // Claimed in a write whose answer never came: the stored entry holds the
-    // claim, so they are this device's to make, whether or not their phone
-    // still lists them.
-    let stored_claims = stored.map(|d| d.applied.as_slice()).unwrap_or_default();
-    let mut edits: Vec<Edit> = (me.claimed.iter())
-        .filter(|e| stored_claims.contains(&e.id) && !me.applied.contains(&e.id))
-        .cloned()
-        .collect();
+    let mut edits = Vec::new();
     for d in others() {
         for e in &d.edits {
             let Ok(edit) = serde_json::from_value::<Edit>(e.clone()) else {
                 continue;
             };
             let elsewhere = others().any(|o| o.applied.contains(&edit.id));
-            if elsewhere || applied.contains(&edit.id) {
-                continue;
+            if !elsewhere && !applied.contains(&edit.id) {
+                edits.push(edit);
             }
-            applied.push(edit.id.clone());
-            edits.push(edit);
         }
     }
     let stored = stored.map(|d| (d.taken.clone(), d.applied.clone()));
@@ -309,7 +300,6 @@ mod tests {
             name: "Mac".into(),
             taken: taken.iter().map(ToString::to_string).collect(),
             applied: Vec::new(),
-            claimed: Vec::new(),
         }
     }
 
@@ -406,50 +396,30 @@ mod tests {
     }
 
     #[test]
-    fn a_phones_edit_is_claimed_once_and_its_unknown_kinds_are_left_alone() {
+    fn a_phones_edit_is_noted_once_made_and_its_unknown_kinds_are_left_alone() {
         let mut all = phone_editing("");
+        // Handed over, not noted: should this device never make it, the
+        // phone still lists it.
         let first = round(&mut all, &me(&[]), NOW);
         assert_eq!(first.edits.len(), 1);
         assert!(matches!(&first.edits[0].change, Change::Pin { item, .. } if item == "t9"));
-        assert!(first.write && first.applied == ["e1"]);
+        assert!(!first.write && first.applied.is_empty());
+
+        // Made: the next round notes it and hands it over no more.
+        let made = Me {
+            applied: vec!["e1".into()],
+            ..me(&[])
+        };
+        let next = round(&mut all, &made, NOW);
+        assert!(next.edits.is_empty() && next.write && next.applied == ["e1"]);
         let json = serde_json::to_value(&all).unwrap();
         assert_eq!(json["devices"][1]["applied"], serde_json::json!(["e1"]));
         // The phone's entry, the edit of the unknown kind with it, is as it was.
         assert_eq!(json["devices"][0]["edits"][1]["op"], "paint_it_blue");
 
-        // Made and noted: the next round leaves it alone, and so does one
-        // that runs before this device noted it.
-        let noted = Me {
-            applied: vec!["e1".into()],
-            ..me(&[])
-        };
-        let next = round(&mut all, &noted, NOW);
-        assert!(next.edits.is_empty() && !next.write);
+        // A round with what this device knew before it made it keeps the note.
         let early = round(&mut all, &me(&[]), NOW);
         assert!(early.edits.is_empty() && !early.write);
-    }
-
-    #[test]
-    fn an_edit_claimed_without_an_answer_is_made_by_the_next_round() {
-        let mut all = phone_editing("");
-        let first = round(&mut all, &me(&[]), NOW);
-        // The claim was stored, its answer lost: nothing was made here, and
-        // the phone, seeing the claim, no longer lists the edit.
-        let lost = Me {
-            claimed: first.edits.clone(),
-            ..me(&[])
-        };
-        if let Some(phone) = all.devices.iter_mut().find(|d| d.id == "phone") {
-            phone.edits.clear();
-        }
-        let next = round(&mut all, &lost, NOW);
-        assert_eq!(next.edits, first.edits);
-        // Made once: noted as made, it is not made again.
-        let made = Me {
-            applied: vec!["e1".into()],
-            ..lost
-        };
-        assert_eq!(round(&mut all, &made, NOW).edits, []);
     }
 
     #[test]

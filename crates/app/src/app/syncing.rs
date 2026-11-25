@@ -77,7 +77,6 @@ impl MagnetiteApp {
                 .into(),
                 taken: s.settings.sync.taken.clone(),
                 applied: s.settings.sync.applied.clone(),
-                claimed: s.settings.sync.claimed.clone(),
             };
             Some(Job::Sync {
                 me,
@@ -150,40 +149,40 @@ impl MagnetiteApp {
                 unlisted,
                 version,
             } => {
-                let (sent, closed, edited) = self.with_state(|s| {
+                let (sent, closed, edited, noted) = self.with_state(|s| {
                     let sync = &mut s.settings.sync;
                     // A stored version never goes down (rollback protection).
                     let known = sync.versions.entry(DEVICES.into()).or_insert(0);
                     *known = (*known).max(version);
                     sync.taken.retain(|id| !forgotten.contains(id));
                     sync.applied.retain(|id| !unlisted.contains(id));
-                    // This round settled them: made now (in `edits`), or
-                    // another device's, or never claimed and claimed anew.
-                    sync.claimed.clear();
                     // Not those taken while this round was under way: with a
                     // click, or opened after an earlier round's answer.
                     let new = |t: &RemoteTab| !sync.taken.contains(&t.id);
                     let sent: Vec<_> = sent.into_iter().filter(new).collect();
                     s.device_tabs = tabs.into_iter().filter(new).collect();
-                    // Phones' changes, each once (an earlier round may have
-                    // claimed one this round claimed again).
-                    let (mut closed, mut edited) = (Vec::new(), false);
+                    // Phones' changes, each once (a round that ran before
+                    // this device made one hands it over again).
+                    let (mut closed, mut edited, mut noted) = (Vec::new(), false, false);
                     for edit in edits {
                         if s.settings.sync.applied.contains(&edit.id) {
                             continue;
                         }
                         s.settings.sync.applied.push(edit.id);
+                        noted = true;
                         let made = s.apply_phone_edit(&edit.change);
                         edited |= made.changed;
                         closed.extend(made.closed);
                     }
-                    (sent, closed, edited)
+                    (sent, closed, edited, noted)
                 });
                 for c in closed {
                     engine.close_content(c);
                 }
-                // Tabs sent here open by themselves, in the background.
-                let any = !sent.is_empty() || edited;
+                // Tabs sent here open by themselves, in the background. The
+                // edits made go out as notes with the next round, the
+                // changed sidebar with them.
+                let any = !sent.is_empty() || noted;
                 for tab in sent {
                     self.take_device_tab(engine, &tab, true);
                 }
@@ -196,14 +195,6 @@ impl MagnetiteApp {
                     self.sync_now();
                 }
             }
-            Outcome::Claimed(edits) => self.with_state(|s| {
-                let claimed = &mut s.settings.sync.claimed;
-                for edit in edits {
-                    if !claimed.iter().any(|c| c.id == edit.id) {
-                        claimed.push(edit);
-                    }
-                }
-            }),
             Outcome::Error(msg) | Outcome::ConnectFailed(msg) => {
                 self.with_state(|s| s.settings.sync.last_error = Some(msg));
                 self.push_state(engine);

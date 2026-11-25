@@ -130,14 +130,14 @@ reads has them.
   the others, with the default profile and colour, as "+" → New Space
   does), rename a space, folder, pinned tab or favorite, and remove a
   pinned tab or favorite (it goes to the archive, as when closed here).
-- A desktop makes each change once, at its next sync: it notes the
-  change's id in its entry, makes the change only after that note is
-  stored, and syncs the sidebar after. With several desktops in the chain
-  one makes it; the others see the note. The phone sees it too and stops
-  listing the change; the desktop then forgets the id. When the server's
-  answer to that note never comes, the desktop keeps the changes it noted
-  and makes them at its next sync if the note was stored, even if the
-  phone no longer lists them.
+- A desktop makes each change once, at its next sync, and then notes the
+  change's id in its entry and syncs the sidebar. The phone sees the note
+  and stops listing the change; the desktop then forgets the id. The note
+  comes only after the change is made, so a change is never lost when the
+  server's answer to a sync does not arrive.
+- With several desktops in the chain, the others see the note and leave
+  the change alone. Two that sync at the same moment may both make it,
+  which changes nothing.
 - A change that adds something carries the id of what it adds, so it is
   never added twice.
 - Not made: an address Magnetite does not open from stored data; a

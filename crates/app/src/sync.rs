@@ -244,9 +244,9 @@ pub enum Outcome {
     /// this device took with this round (`sent`: to open now), and which of
     /// the tabs it took over no device lists any more (`forgotten`): their
     /// handover is done. The same for phones' changes to the sidebar: those
-    /// this round claimed (`edits`: to make now), and those made here that
-    /// no device lists any more (`unlisted`). `version`: the `devices`
-    /// collection's, to remember.
+    /// no device has made yet (`edits`: to make now, and to note in
+    /// `applied`), and those made here that no device lists any more
+    /// (`unlisted`). `version`: the `devices` collection's, to remember.
     Devices {
         tabs: Vec<RemoteTab>,
         sent: Vec<RemoteTab>,
@@ -255,11 +255,6 @@ pub enum Outcome {
         unlisted: Vec<String>,
         version: u64,
     },
-    /// Phones' edits this round claimed in a write whose answer never came.
-    /// Whether the claim was stored, a later round finds out; until then
-    /// they are kept (`SyncSettings::claimed`), as the phone may stop
-    /// listing them once it sees the claim.
-    Claimed(Vec<Edit>),
     Error(String),
     Disconnected,
 }
@@ -926,7 +921,6 @@ impl Worker {
             };
             self.known.insert(DEVICES.to_string(), version);
             let round = devices::round(&mut all, me, crate::state::now());
-            let claimed = round.edits.clone();
             let done = |version| {
                 vec![Outcome::Devices {
                     tabs: round.tabs,
@@ -958,10 +952,7 @@ impl Worker {
                 }
                 // Another device wrote first: read again.
                 Err(Unwritten::Behind) => {}
-                Err(Unwritten::Failed(e)) if claimed.is_empty() => return vec![Outcome::Error(e)],
-                Err(Unwritten::Failed(e)) => {
-                    return vec![Outcome::Claimed(claimed), Outcome::Error(e)];
-                }
+                Err(Unwritten::Failed(e)) => return vec![Outcome::Error(e)],
             }
         }
         vec![Outcome::Error(t!("app.sync.devices_busy").into())]
@@ -1074,7 +1065,6 @@ mod tests {
             Outcome::Pulled { .. } => "Pulled".into(),
             Outcome::Pushed { .. } => "Pushed".into(),
             Outcome::Devices { .. } => "Devices".into(),
-            Outcome::Claimed(_) => "Claimed".into(),
             Outcome::Error(e) => format!("Error({e})"),
             Outcome::Disconnected => "Disconnected".into(),
         }
@@ -1220,7 +1210,6 @@ mod tests {
             name: "Mac".into(),
             taken: Vec::new(),
             applied: Vec::new(),
-            claimed: Vec::new(),
         }
     }
 
