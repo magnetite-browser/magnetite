@@ -43,15 +43,39 @@ never takes a click. It works the same with no window open.
 `Cmd+Q` is one of the keys that cannot be given to a shortcut
 (`shortcuts.md`).
 
+## Starting again
+
+Each window opens where it was when Magnetite quit: the same size and
+place, and maximized if it was. The windows besides the first open again
+only while several windows are on (`spaces.md`).
+
+- A window that would not be on a screen now (a screen that is gone, a
+  smaller one) moves onto the screen it overlaps most, or the nearest one,
+  and gets smaller where it does not fit.
+- Full screen and minimized do not carry over: the window opens as it was
+  before.
+- On Wayland the system places windows itself: the size and whether the
+  window is maximized carry over, the place does not.
+- A window opened while Magnetite runs (`Cmd+N`) opens centred, as does
+  the first window of a new installation.
+
 ## Data
 
-Nothing is stored for this: whether the last window is closed, and the time
-of the first `Cmd+Q`, live in memory only.
+Each window's place is stored in `state.json`, on this device only
+(`placement` for the first window, and in each entry of `windows`): its
+size and place while not maximized, and whether it is maximized. It is read
+0.3 seconds after the window last moved or changed size, so the frames of
+an animation never count.
+
+Whether the last window is closed, and the time of the first `Cmd+Q`, live
+in memory only.
 
 Code: `crates/engine/src/frame.rs` (`can_close`, `hide_frame`,
-`show_frame`), `mac/mod.rs` (`terminate:`, the Dock's reopen),
+`show_frame`, `create_frame`, `place_frame`), `placement.rs`,
+`mac/mod.rs` (`terminate:`, the Dock's reopen),
 `mac/quit.rs` (the second press and its hint), `menubar.rs` (`runCommand:`),
-`crates/app/src/app/events.rs` (`FrameHidden`).
+`crates/app/src/app/events.rs` (`FrameHidden`, `FramePlaced`),
+`crates/app/src/state/windows.rs`.
 
 ## Not built yet
 

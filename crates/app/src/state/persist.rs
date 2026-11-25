@@ -35,6 +35,9 @@ pub(super) struct Persisted {
     deleted_profiles: Vec<Id>,
     #[serde(default)]
     unsynced_spaces: BTreeSet<Id>,
+    /// Where the window was that `active_space` and `active_tab` are of.
+    #[serde(default)]
+    placement: Option<magnetite_engine::WindowPlacement>,
     /// The windows besides the one `active_space` and `active_tab` are of.
     #[serde(default)]
     windows: Vec<super::windows::SavedWindow>,
@@ -119,6 +122,7 @@ impl AppState {
             .as_ref()
             .map(|p| p.windows.clone())
             .unwrap_or_default();
+        let placement = persisted.as_ref().and_then(|p| p.placement);
         // `--import-arc`: Arc's sidebar takes the place of the saved one. The
         // archive, settings and downloads stay, and without a sidebar file
         // of Arc nothing changes.
@@ -210,6 +214,7 @@ impl AppState {
             phones: Vec::new(),
             settings,
             sidebar_visible: true,
+            placement,
             window: 1,
             views: HashMap::new(),
             reopen: windows,
@@ -355,6 +360,7 @@ impl AppState {
             sidebar,
             active_space: first.active_space,
             active_tab: first.active_tab,
+            placement: first.placement,
             archive: self.archive.clone(),
             favicons,
             splits: self.splits.clone(),
@@ -495,6 +501,7 @@ mod tests {
     use super::*;
     use crate::state::testing::state;
     use crate::state::windows::SavedWindow;
+    use magnetite_engine::WindowPlacement;
 
     #[test]
     fn a_saved_sidebar_without_spaces_starts_fresh() {
@@ -631,22 +638,33 @@ mod tests {
     }
 
     #[test]
-    fn other_windows_open_again_after_a_restart_showing_what_they_showed() {
+    fn windows_open_again_after_a_restart_where_they_were_showing_what_they_showed() {
+        let placed = |x, maximized| WindowPlacement {
+            x,
+            y: 40,
+            width: 1100,
+            height: 750,
+            maximized,
+        };
         let mut s = state();
         let space = s.active_space.clone();
+        s.placement = Some(placed(10, true));
         s.open_window(2);
         s.active_tab.insert(space, "a".into());
+        s.placement = Some(placed(300, false));
         // Back in the first window, which is the one the next start begins with.
         s.enter(1);
         s.persist();
         let dir = s.data_dir().to_path_buf();
         let mut loaded = AppState::load_or_default(&dir, ArcImport::Never);
         assert_eq!(loaded.active_tab_id(), Some("b"));
+        assert_eq!(loaded.placement, Some(placed(10, true)));
         let saved = std::mem::take(&mut loaded.reopen);
         assert_eq!(saved.len(), 1);
         loaded.reopen_window(2, saved[0].clone());
         assert_eq!(loaded.window, 2);
         assert_eq!(loaded.active_tab_id(), Some("a"));
+        assert_eq!(loaded.placement, Some(placed(300, false)));
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -657,6 +675,7 @@ mod tests {
         s.reopen.push(SavedWindow {
             active_space: "gone".into(),
             active_tab: HashMap::from([(space.clone(), "gone".into()), ("x".into(), "a".into())]),
+            placement: None,
         });
         s.persist();
         let dir = s.data_dir().to_path_buf();
@@ -666,6 +685,7 @@ mod tests {
             vec![SavedWindow {
                 active_space: space,
                 active_tab: HashMap::from([("x".into(), "a".into())]),
+                placement: None,
             }]
         );
         let _ = std::fs::remove_dir_all(&dir);
@@ -678,6 +698,7 @@ mod tests {
         let waiting = SavedWindow {
             active_space: space.clone(),
             active_tab: HashMap::from([(space.clone(), "c".into())]),
+            placement: None,
         };
         s.reopen.push(waiting.clone());
         s.open_window(2);
@@ -687,6 +708,7 @@ mod tests {
         let open = SavedWindow {
             active_space: space.clone(),
             active_tab: HashMap::from([(space, "b".into())]),
+            placement: None,
         };
         // The first window, open but not current, and the one still waiting.
         assert_eq!(loaded.reopen, vec![open, waiting]);

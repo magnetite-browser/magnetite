@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 
 use magnetite_core::split::SplitNode;
 use magnetite_core::{Id, SidebarSnapshot, Space, TabItem, UnixSeconds};
-use magnetite_engine::{ContentId, WindowId};
+use magnetite_engine::{ContentId, WindowId, WindowPlacement};
 use serde::{Deserialize, Serialize};
 
 mod adopt;
@@ -227,8 +227,9 @@ pub enum ArcImport {
 
 pub struct AppState {
     pub sidebar: SidebarSnapshot,
-    /// The window `active_space`, `active_tab`, `peek`, `web_panel` and
-    /// `sidebar_visible` are of: the current one (`windows.rs`).
+    /// The window `active_space`, `active_tab`, `peek`, `web_panel`,
+    /// `sidebar_visible` and `placement` are of: the current one
+    /// (`windows.rs`).
     pub window: WindowId,
     /// What the other windows show.
     pub views: HashMap<WindowId, windows::View>,
@@ -267,6 +268,9 @@ pub struct AppState {
     /// it (`set_folder_open`). `Ctrl+Tab` skips their tabs. In memory only.
     pub closed_folders: HashSet<Id>,
     pub sidebar_visible: bool,
+    /// Where the window is (`EngineEvent::FramePlaced`), or was at the last
+    /// run until it reports: it opens there at the next start.
+    pub placement: Option<WindowPlacement>,
     /// Smart folder accounts of this device (tokens on disk, owner-only).
     pub accounts: crate::smart::Accounts,
     pub smart_status: HashMap<Id, SmartStatus>,

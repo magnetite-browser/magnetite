@@ -57,6 +57,7 @@ pub(crate) fn state() -> AppState {
         device_tabs: Vec::new(),
         settings: Settings::default(),
         sidebar_visible: true,
+        placement: None,
         window: 1,
         views: HashMap::new(),
         reopen: Vec::new(),

@@ -1184,9 +1184,9 @@ impl MagnetiteApp {
 
 impl MagnetiteApp {
     /// Another window on the same sidebar: the same space in front, no tab
-    /// yet. It is the current window from here on.
+    /// yet, centred. It is the current window from here on.
     pub(super) fn new_window(&self, engine: &Engine) {
-        let win = engine.create_frame();
+        let win = engine.create_frame(None);
         self.with_state(|s| {
             s.open_window(win);
             s.persist_later();
@@ -1194,8 +1194,8 @@ impl MagnetiteApp {
     }
 
     /// At start: the windows of the last run besides the first one open
-    /// again, each showing what it showed, if several windows are on
-    /// (Settings); else they are forgotten.
+    /// again where they were, each showing what it showed, if several
+    /// windows are on (Settings); else they are forgotten.
     pub(super) fn reopen_windows(&self, engine: &Engine) {
         let (reopen, on) =
             self.with_state(|s| (std::mem::take(&mut s.reopen), s.settings.several_windows));
@@ -1203,7 +1203,7 @@ impl MagnetiteApp {
             return;
         }
         for saved in reopen {
-            let win = engine.create_frame();
+            let win = engine.create_frame(saved.placement);
             self.with_state(|s| s.reopen_window(win, saved));
         }
     }
