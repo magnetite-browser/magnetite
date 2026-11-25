@@ -649,9 +649,9 @@ impl Engine {
         self.lock().win.split = Some(tree.clone());
         self.layout_split(tree);
         self.update_dividers(Some(tree));
-        // The peek's buttons follow the page they sit over.
+        // The peek's dim and buttons follow the pages they are over.
         #[cfg(target_os = "linux")]
-        self.sync_peek_buttons();
+        self.sync_peek_backdrop();
         // The outline follows the resized page.
         let focus = self.lock().win.focused_pane;
         self.update_focus_ring(focus);
@@ -687,8 +687,8 @@ impl Engine {
         view.request_focus();
     }
 
-    /// Dim the pages behind the open peek (macOS, Windows) and show its
-    /// buttons (macOS, Linux).
+    /// Dim the pages behind the open peek and, on macOS and Linux, show its
+    /// buttons beside it.
     pub(crate) fn update_peek_backdrop(&self) {
         // Two statements: a guard taken inside a statement lives to its end,
         // and `frame_window` locks again.
@@ -716,7 +716,7 @@ impl Engine {
             &display_convert_screen_rect_to_pixels(Some(&window.bounds())),
         );
         #[cfg(target_os = "linux")]
-        self.sync_peek_buttons();
+        self.sync_peek_backdrop();
         #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let _ = (frame, window);
     }
@@ -752,7 +752,7 @@ impl Engine {
         }
         #[cfg(target_os = "linux")]
         if ended {
-            self.sync_peek_buttons();
+            self.sync_peek_backdrop();
             // The web panel's close button, over the page again.
             self.sync_panel_close();
             self.raise_web_panel_after_map();
@@ -1225,7 +1225,6 @@ impl Engine {
                 }
                 // Its window took the close button over it along.
                 w.panel_close.take_if(|(host, _)| *host == id);
-                w.peek_buttons.take_if(|(host, _)| *host == id);
                 if w.focused_pane == Some(id) {
                     w.focused_pane = None;
                 }
@@ -1794,14 +1793,18 @@ wrap_window_delegate! {
         // size, in a split and as a web panel too. A frameless child window
         // has no resize handles anyway.
         fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { (self.mini.is_some() || cfg!(target_os = "linux")).into() }
-        // A web panel's strip stays along the window's far edge, also when
-        // the window manager chose the size. Posted: this runs inside the
-        // call that sized the window.
+        // A web panel's strip stays along the window's far edge, and a peek's
+        // dim covers the window, also when the window manager chose the
+        // size. Posted: this runs inside the call that sized the window.
         fn on_window_bounds_changed(&self, _window: Option<&mut Window>, _new_bounds: Option<&Rect>) {
             #[cfg(target_os = "linux")]
             {
                 let id = self.id;
-                Engine::post(Box::new(move || Engine::global().fit_panel_strip(id)));
+                Engine::post(Box::new(move || {
+                    let engine = Engine::global();
+                    engine.fit_panel_strip(id);
+                    engine.sync_peek_backdrop();
+                }));
             }
         }
         fn can_minimize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { self.mini.is_some().into() }

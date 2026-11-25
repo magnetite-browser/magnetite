@@ -967,9 +967,9 @@ impl Engine {
         if let Some(tree) = split.filter(|t| t.pane_count() > 1) {
             self.layout_split(&tree);
             self.update_dividers(Some(&tree));
-            // The page the peek's buttons sit over may have moved.
+            // The pages the peek's dim and buttons are over may have moved.
             #[cfg(target_os = "linux")]
-            self.sync_peek_buttons();
+            self.sync_peek_backdrop();
             self.update_grab_strip();
             self.place_notifications();
             return;
@@ -987,9 +987,9 @@ impl Engine {
                 self.place(id, &rect);
             }
         }
-        // The page the peek's buttons sit over may have moved.
+        // The pages the peek's dim and buttons are over may have moved.
         #[cfg(target_os = "linux")]
-        self.sync_peek_buttons();
+        self.sync_peek_backdrop();
         if panel.is_some() && !crate::content::WEB_PANEL_DOCKED {
             // The panel moved or changed its width: its grip and button
             // follow.

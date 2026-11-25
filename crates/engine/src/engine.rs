@@ -54,9 +54,10 @@ pub(crate) struct WindowState {
     /// The close button of a docked web panel, and the page whose window
     /// it is an overlay of (`panel_close.rs`).
     pub panel_close: Option<(ContentId, OverlayController)>,
-    /// The peek's buttons on Linux, and the page whose window they are
-    /// overlays of (`peek_buttons.rs`).
-    pub peek_buttons: Option<(ContentId, Vec<OverlayController>)>,
+    /// The dim behind the open peek and its buttons on Linux, overlays of
+    /// the windows behind it (`peek_backdrop.rs`).
+    #[cfg(target_os = "linux")]
+    pub peek_backdrop: Option<crate::peek_backdrop::Backdrop>,
     /// The strip beyond a floating web panel's far edge on Linux, to resize
     /// it, and the panel whose window it is an overlay of, on the side away
     /// from the sidebar's (none while no panel is open): one per window,
@@ -105,7 +106,8 @@ impl WindowState {
             web_panel: None,
             web_panel_width: None,
             panel_close: None,
-            peek_buttons: None,
+            #[cfg(target_os = "linux")]
+            peek_backdrop: None,
             #[cfg(target_os = "linux")]
             panel_strip: None,
             #[cfg(target_os = "linux")]

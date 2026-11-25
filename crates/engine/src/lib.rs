@@ -60,7 +60,7 @@ mod panel_close;
 #[cfg(target_os = "linux")]
 mod panel_stack;
 #[cfg(target_os = "linux")]
-mod peek_buttons;
+mod peek_backdrop;
 #[cfg(target_os = "macos")]
 mod pip;
 mod privacy;

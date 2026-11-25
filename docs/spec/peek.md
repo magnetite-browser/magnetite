@@ -34,9 +34,8 @@ it as a tab, or put it beside the current tab in split view.
 ## Behaviour
 
 - The peek sits centred over the page area at 86 % of its width (less in a
-  narrow window, to leave room for the buttons) and 90 % of its height. On
-  macOS and Windows the pages behind it are dimmed; a click on them closes
-  the peek.
+  narrow window, to leave room for the buttons) and 90 % of its height. The
+  pages behind it are dimmed; a click on them closes the peek.
 - A peek belongs to the tab it was opened over, and each tab has at most
   one: a new one replaces it. Switching to another tab, or opening one in
   front, hides the peek; it is back when its tab is in front again, as it
@@ -107,5 +106,5 @@ Code: `crates/app/src/app/peek.rs` (`open_peek`, `keep_peek`),
 `push_state` in `app.rs`) and
 `events.rs` (the `OpenUrlRequested` handler), `crates/engine/src/client.rs` (site lock,
 popups), `content.rs` (`show_peek`, `peek_rect`), `keys.rs`
-(`peek_shortcut`), `mac/chrome.rs` (backdrop and buttons),
-`crates/ui/web/src/App.tsx` (the sidebar's peek row).
+(`peek_shortcut`), `mac/chrome.rs` (backdrop and buttons; on Linux
+`peek_backdrop.rs`), `crates/ui/web/src/App.tsx` (the sidebar's peek row).
