@@ -346,7 +346,7 @@ export function SettingsPage() {
           </Group>
         </>
       )}
-      {sectionId === "permissions" && <PermissionsSection info={info} update={update} />}
+      {sectionId === "permissions" && <PermissionsSection info={info} reload={reload} />}
       {sectionId === "spaces" && <SpacesSection info={info} update={update} reload={reload} item={place.item} open={openSection} />}
       {sectionId === "profiles" && <ProfilesSection info={info} reload={reload} open={openSection} />}
       {sectionId === "favorites" && <FavoritesSection info={info} reload={reload} />}

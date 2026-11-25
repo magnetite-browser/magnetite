@@ -9,7 +9,7 @@ import { send, type PermissionEntry, type PermissionKind } from "../bridge";
 import { t } from "../i18n";
 import { DeviceOrder } from "./DeviceOrder";
 import { Field, Group } from "./fields";
-import type { Info, SettingsPatch } from "./types";
+import type { Info } from "./types";
 
 const PERMISSION_LABEL: Record<PermissionKind, string> = {
   camera: t("permissions.kind.camera"),
@@ -26,7 +26,7 @@ const siteName = (origin: string) => origin.replace(/^https:\/\//, "");
 /** The choices read for one set of logins: only theirs are shown and changed. */
 type Read = { profile: string | undefined; rows: PermissionEntry[] };
 
-export function PermissionsSection({ info, update }: { info: Info; update: (patch: SettingsPatch) => void }) {
+export function PermissionsSection({ info, reload: reloadInfo }: { info: Info; reload: () => Promise<unknown> }) {
   // Each set of logins has its own choices. Those chosen while they still
   // exist (another window may have deleted them), else those of the space
   // in front, else the main ones.
@@ -85,7 +85,7 @@ export function PermissionsSection({ info, update }: { info: Info; update: (patc
   const sites = [...new Set((rows ?? []).map((r) => r.origin))];
   return (
     <>
-      <DeviceOrder info={info} update={update} />
+      <DeviceOrder info={info} reload={reloadInfo} />
       {logins.length > 1 && (
         <Group>
           <Field side label={t("permissions.profile.label")} hint={t("permissions.profile.hint")}>

@@ -7,7 +7,7 @@
     },
     "microphones": {
       "title": "Microphones",
-      "hint": "A website that does not ask for a particular microphone gets the first one in this list that is connected. A microphone below the system default is only used when a website asks for it.",
+      "hint": "A website that does not ask for a particular microphone gets the first one in this list that is connected. The system default is the microphone your system has chosen: one below it is only used when the system chooses it or a website asks for it.",
       "none": "No microphone is connected."
     },
     "system_default": "System default",

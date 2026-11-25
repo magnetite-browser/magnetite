@@ -1,12 +1,12 @@
 // Settings → Permissions, on top: the order of the cameras and of the
 // microphones. A website that does not ask for a particular device gets the
 // first one of the list that is connected (`device_order.rs` in the engine).
-import type { MediaDevice } from "../bridge";
+import { send, type MediaDevice } from "../bridge";
 import { t } from "../i18n";
 import { Group } from "./fields";
 import { useSorting } from "./sorting";
 import { Grip } from "./SpacesSection";
-import type { Info, SettingsPatch } from "./types";
+import type { Info } from "./types";
 
 type Kind = "cameras" | "microphones";
 
@@ -21,13 +21,12 @@ function rowsOf(order: string[], connected: MediaDevice[]): Row[] {
   ];
 }
 
-function DeviceList({ kind, rows, save }: { kind: Kind; rows: Row[]; save: (ids: string[]) => void }) {
+function DeviceList({ kind, rows, save }: { kind: Kind; rows: Row[]; save: (ids: string[]) => Promise<unknown> }) {
   const ids = rows.map((r) => r.id);
   const move = (id: string, index: number) => {
     const next = ids.filter((other) => other !== id);
     next.splice(index, 0, id);
-    save(next);
-    return Promise.resolve();
+    return save(next);
   };
   /** Where the dragged device ends up when dropped on the row of `target`, or null when it would not move. */
   const landing = (dragged: string, target: string, below: boolean) => {
@@ -65,7 +64,7 @@ function DeviceList({ kind, rows, save }: { kind: Kind; rows: Row[]; save: (ids:
           {!row.connected && (
             <>
               <span className="set-hint" style={{ marginTop: 0 }}>{t("permissions.devices.not_connected")}</span>
-              <button className="btn ghost" title={t("permissions.devices.remove_title")} onClick={() => save(ids.filter((id) => id !== row.id))}>{t("common.remove")}</button>
+              <button className="btn ghost" title={t("permissions.devices.remove_title")} onClick={() => void save(ids.filter((id) => id !== row.id))}>{t("common.remove")}</button>
             </>
           )}
         </div>
@@ -74,9 +73,11 @@ function DeviceList({ kind, rows, save }: { kind: Kind; rows: Row[]; save: (ids:
   );
 }
 
-export function DeviceOrder({ info, update }: { info: Info; update: (patch: SettingsPatch) => void }) {
+export function DeviceOrder({ info, reload }: { info: Info; reload: () => Promise<unknown> }) {
   const order = info.settings.device_order;
-  const save = (kind: Kind) => (ids: string[]) => update({ device_order: { ...order, [kind]: ids } });
+  // Only the list that changed: this page's copy of the other may be older
+  // than one another Settings page saved.
+  const save = (kind: Kind) => (ids: string[]) => send({ cmd: "set_settings", settings: { device_order: { [kind]: ids } } }).then(reload);
   return (
     <>
       <DeviceList kind="cameras" rows={rowsOf(order.cameras, info.media_devices.cameras)} save={save("cameras")} />

@@ -245,7 +245,8 @@ that remembers its choice) gets that one.
   handle. A move keeps every device shown in the order shown.
 - The microphones have the system default as an entry of its own, named
   as Chromium names it ("Default - …"): whichever microphone the system
-  has chosen. A microphone below it is only used when a site asks for it.
+  has chosen. A microphone below it is only used when the system chooses
+  it (through that entry) or a site asks for it.
 - The order counts at once, in every profile. It is this computer's and
   is not synced.
 - Devices go by the name Chromium gives them (a USB device's name ends in

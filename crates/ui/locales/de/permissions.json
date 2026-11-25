@@ -7,7 +7,7 @@
     },
     "microphones": {
       "title": "Mikrofone",
-      "hint": "Eine Website, die nicht nach einem bestimmten Mikrofon fragt, bekommt das erste verbundene aus dieser Liste. Ein Mikrofon unter dem Systemstandard wird nur genutzt, wenn eine Website danach fragt.",
+      "hint": "Eine Website, die nicht nach einem bestimmten Mikrofon fragt, bekommt das erste verbundene aus dieser Liste. Der Systemstandard ist das Mikrofon, das dein System gewählt hat: Eines darunter wird nur genutzt, wenn das System es wählt oder eine Website danach fragt.",
       "none": "Kein Mikrofon verbunden."
     },
     "system_default": "Systemstandard",
