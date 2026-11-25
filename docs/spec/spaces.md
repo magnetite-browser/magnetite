@@ -99,7 +99,9 @@ its look and its pictures.
 - `Cmd+Option+Right` and `Cmd+Option+Left` go to the next and previous
   space; after the last comes the first.
 - A two-finger horizontal swipe on the sidebar does the same, one space per
-  gesture.
+  gesture. The list goes along a little with the fingers, and the new space
+  slides in from the side swiped toward. A gesture that starts vertically
+  scrolls the list and never switches.
 - `Ctrl+1` to `Ctrl+9` go to the first to ninth space, in the order of the
   footer icons. A number without a space does nothing. The keys are taken
   before the page sees them. On Linux they are `Alt+1` to `Alt+9`, since

@@ -976,8 +976,6 @@ declare global {
       record: () => void;
       /** The recording is in the Downloads folder as `name`. */
       recordingReady: (r: { name: string }) => void;
-      /** macOS: a two-finger swipe began somewhere in the app. */
-      swipeBegan: () => void;
       /** The window this page is in has this size now, in window points. */
       windowSize: (width: number, height: number) => void;
       /** The empty page: where the pages over it are now. */
@@ -1151,7 +1149,6 @@ const prompts = cached(() => send({ cmd: "permission_prompts" }).then((r) => r.i
 const updates = cached(() => send({ cmd: "update_status" }).then((u) => (u.status ? u : undefined)));
 const notices = signal<string>();
 const captures = signal<CaptureEvent>();
-const swipes = signal();
 const records = signal();
 const pageCards = cached<PageCards>();
 
@@ -1205,7 +1202,6 @@ window.__magnetite = {
   captureBusy: ({ what }) => captures.emit({ kind: "busy", what }),
   record: records.emit,
   recordingReady: ({ name }) => captures.emit({ kind: "recorded", name }),
-  swipeBegan: swipes.emit,
   windowSize,
   pageCards: pageCards.emit,
 };
@@ -1248,8 +1244,6 @@ export const onOpenHistory = historyOpens.on;
 export const onOpenArchive = archiveOpens.on;
 /** Results of the capture tool, for the sidebar toast. */
 export const onCapture = captures.on;
-/** macOS: each two-finger swipe as it begins, anywhere in the app. */
-export const onSwipeBegan = swipes.on;
 export const onSiteDataCleared = clearReports.on;
 /** Copy results from keyboard shortcuts pressed in a page window. */
 export const onCopied = copies.on;

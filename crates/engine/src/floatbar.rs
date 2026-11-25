@@ -71,28 +71,6 @@ impl Engine {
             .and_then(|f| f.view.browser())
     }
 
-    /// A two-finger swipe began somewhere in the app (macOS). Both sidebars
-    /// hear of it: wheel events do not say where one swipe ends and the next
-    /// begins, and the momentum of a swipe outlasts the fingers
-    /// (`useSpaceSwipe.ts`).
-    #[cfg(target_os = "macos")]
-    pub(crate) fn swipe_began(&self) {
-        let docked = self
-            .lock()
-            .win
-            .frame
-            .as_ref()
-            .and_then(|f| f.sidebar_view.browser());
-        for browser in [docked, self.float_sidebar_browser()].into_iter().flatten() {
-            if let Some(frame) = browser.main_frame() {
-                self.eval_in_ui(
-                    &frame,
-                    "window.__magnetite && window.__magnetite.swipeBegan()",
-                );
-            }
-        }
-    }
-
     /// Focus the floating sidebar (its pop-ups ask for focus).
     pub(crate) fn focus_float_sidebar(&self) {
         let handles = self

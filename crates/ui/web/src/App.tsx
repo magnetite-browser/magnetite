@@ -38,7 +38,7 @@ export function App() {
   const newProfileFor = useCallback((tabId: string) => send({ cmd: "open_palette", mode: "new_profile", tab: tabId }), []);
   // Direction the space list slides in from after a space change.
   const enter = useRef({ id: "", index: 0, x: 0 });
-  const swipe = useSpaceSwipe(useCallback((direction: 1 | -1) => send({ cmd: direction > 0 ? "next_space" : "prev_space" }), []));
+  const swipe = useSpaceSwipe(state?.active_space ?? "", useCallback((direction: 1 | -1) => send({ cmd: direction > 0 ? "next_space" : "prev_space" }), []));
   // A full-height view in place of the sidebar.
   const [panel, setPanel] = useState<LibraryView | null>(null);
   const closePanel = useCallback(() => setPanel(null), []);
@@ -100,7 +100,9 @@ export function App() {
     .filter((f) => f.items.length > 0);
   const spaceIndex = state.sidebar.spaces.indexOf(space);
   if (enter.current.id !== space.id) {
-    enter.current = { id: space.id, index: spaceIndex, x: enter.current.id ? Math.sign(spaceIndex - enter.current.index) * 24 : 0 };
+    // From the side a swipe went to (also from the last space to the first), else by position.
+    const step = swipe.direction ?? Math.sign(spaceIndex - enter.current.index);
+    enter.current = { id: space.id, index: spaceIndex, x: enter.current.id ? step * 24 : 0 };
   }
   // Each split shows as one row, in place of the first of its pages that has a row in this space.
   const splitAt = new Map<string, SplitNode>();
@@ -192,7 +194,7 @@ export function App() {
 
 
   return (
-    <div className="flex flex-col h-full" style={spaceVars} onWheel={swipe.onWheel} data-float={FLOAT || undefined} data-side={side} key={FLOAT ? shownAt : undefined}>
+    <div className="flex flex-col h-full" style={spaceVars} ref={swipe.ref} data-float={FLOAT || undefined} data-side={side} key={FLOAT ? shownAt : undefined}>
       {!FLOAT && <SidebarResizer side={side} />}
       {/* With the top bar on, it holds the band and the address (TopBar.tsx); the floating sidebar keeps its own. */}
       {!topBar && (<>

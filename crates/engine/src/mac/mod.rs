@@ -6,8 +6,8 @@
 //! `cefsimple` example (Apache-2.0 OR MIT). Next to them: tweaks to CEF's
 //! own windows (pinned, rounded corners, the focus ring of a split page,
 //! hidden or shown, shown without taking focus, focused without AppKit's
-//! key view loop), the watch on two-finger
-//! swipes, stale tooltips, pages wrongly marked covered, the cursor of a
+//! key view loop), two-finger swipes on the
+//! floating video, stale tooltips, pages wrongly marked covered, the cursor of a
 //! window without the keyboard, and helpers for the
 //! child modules:
 //!
@@ -677,25 +677,18 @@ fn system_corner(window: &NSWindow) -> f64 {
     }
 }
 
-/// Watches two-finger swipes, once, on the UI (main) thread:
-///
-/// - each one that begins is reported to the sidebars (`Engine::swipe_began`),
-///   which cannot tell a new swipe from the momentum of the last one;
-/// - on the floating video window (picture-in-picture) a swipe flings it to
-///   the screen edge in the swipe's direction; diagonal swipes reach a
-///   corner. Quicker than dragging.
+/// Watches two-finger swipes on the floating video window
+/// (picture-in-picture), once, on the UI (main) thread: a swipe flings it to
+/// the screen edge in the swipe's direction; diagonal swipes reach a corner.
+/// Quicker than dragging.
 pub fn install_swipe_monitor() {
     use block2::RcBlock;
-    use objc2_app_kit::{NSEvent, NSEventMask, NSEventPhase};
+    use objc2_app_kit::{NSEvent, NSEventMask};
     use std::ptr::NonNull;
 
     let handler = RcBlock::new(|event: NonNull<NSEvent>| -> *mut NSEvent {
         // SAFETY: AppKit passes a live event for the duration of the call.
         let ev = unsafe { event.as_ref() };
-        if ev.phase().contains(NSEventPhase::Began) {
-            // Not from inside an AppKit callback.
-            Engine::post(Box::new(|| Engine::global().swipe_began()));
-        }
         if let Some(mtm) = MainThreadMarker::new()
             && let Some(window) = ev.window(mtm)
             && let Some(video) = crate::pip::video_window_for(&window)
