@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /** Horizontal travel (px of wheel delta) that switches a space. */
 const THRESHOLD = 60;
@@ -10,6 +10,8 @@ const AXIS_LOCK = 8;
  * starts the next gesture only 500 ms after the last event.
  */
 const IDLE_MS = 160;
+/** How long a swipe that switched waits for the new space before the list springs back. */
+const SWITCH_WAIT_MS = 1000;
 
 /** One scroll gesture on the sidebar, from where the fingers start. */
 type Gesture = { x: number; y: number; axis?: "x" | "y"; done?: boolean };
@@ -25,9 +27,10 @@ type Gesture = { x: number; y: number; axis?: "x" | "y"; done?: boolean };
  * never switches.
  *
  * `offset`: the list of space `spaceId` goes along a little while swiping.
- * After a switch it stays there until the new space's list replaces it; after
- * a swipe that did not switch it springs back. `direction`: where the swipe
- * that just switched went, so the new space slides in from that side.
+ * After a switch it stays there until the new space's list replaces it (or
+ * springs back if none comes, with a single space); after a swipe that did
+ * not switch it springs back. `direction`: where the swipe that just switched
+ * went, so the new space slides in from that side.
  */
 export function useSpaceSwipe(spaceId: string, onSwipe: (direction: 1 | -1) => void) {
   const gesture = useRef<Gesture>({ x: 0, y: 0 });
@@ -41,7 +44,7 @@ export function useSpaceSwipe(spaceId: string, onSwipe: (direction: 1 | -1) => v
       window.clearTimeout(idle.current);
       idle.current = window.setTimeout(() => {
         gesture.current = { x: 0, y: 0 };
-        setNudge(null);
+        setNudge((n) => (n?.direction ? n : null));
       }, IDLE_MS);
       g.x += e.deltaX;
       g.y += e.deltaY;
@@ -61,6 +64,14 @@ export function useSpaceSwipe(spaceId: string, onSwipe: (direction: 1 | -1) => v
     },
     [spaceId, onSwipe],
   );
+
+  // A swipe that switched: the new space takes over from its list, else it springs back after a while.
+  useEffect(() => setNudge(null), [spaceId]);
+  useEffect(() => {
+    if (!nudge?.direction) return;
+    const timer = window.setTimeout(() => setNudge(null), SWITCH_WAIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [nudge]);
 
   const ref = useCallback(
     (el: HTMLElement | null) => {
