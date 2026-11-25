@@ -91,7 +91,8 @@ pub(crate) struct WindowState {
     pub accent_color: u32,
     /// The page of the split on screen that has the keyboard.
     pub focused_pane: Option<ContentId>,
-    /// Where the window is, as last reported (`EngineEvent::FramePlaced`).
+    /// Where the window is: as it was asked to open (`create_frame`), then
+    /// as last reported (`EngineEvent::FramePlaced`).
     pub placement: Option<crate::WindowPlacement>,
     /// How often its bounds changed: they are read for `placement` once
     /// this stays the same for a moment (`frame_bounds_changed`).

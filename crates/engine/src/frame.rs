@@ -79,10 +79,12 @@ pub(crate) struct FrameState {
 impl Engine {
     /// Create a frame window: the first one after `EngineEvent::Ready`, any
     /// further one as a new window, which is the current one from here on.
-    /// It opens at `placement` (fitted onto a screen) where one is given,
-    /// else centred. `EngineEvent::FrameCreated` follows.
+    /// It opens at `placement` (fitted onto a screen) where one with a size
+    /// is given, else centred. `EngineEvent::FrameCreated` follows, and
+    /// `FramePlaced` first if the window opens elsewhere than `placement`.
     pub fn create_frame(&self, placement: Option<WindowPlacement>) -> WindowId {
-        let placement = placement.map(WindowPlacement::on_screen);
+        let given = placement.filter(|p| p.width > 0 && p.height > 0);
+        let placement = given.map(WindowPlacement::on_screen);
         let win = {
             let mut inner = self.lock();
             // The first window is there from the start, without its frame.
@@ -96,6 +98,11 @@ impl Engine {
             inner.win.placement = placement;
             inner.current
         };
+        // Moved onto a screen: saved so, it opens there again, not back
+        // on the screen that was gone this time.
+        if let Some(placement) = placement.filter(|p| given != Some(*p)) {
+            self.emit(EngineEvent::FramePlaced { win, placement });
+        }
         let mut delegate = FrameWindowDelegate::new(win, placement);
         window_create_top_level(Some(&mut delegate));
         win
@@ -711,15 +718,23 @@ impl Engine {
             return;
         };
         let (bounds, maximized) = (window.bounds(), window.is_maximized() != 0);
-        let placement = {
+        let previous = self.lock().win.placement;
+        let previous = previous.map(|p| {
+            if maximized {
+                p.onto_screen_of(&bounds)
+            } else {
+                p
+            }
+        });
+        let placement = WindowPlacement::after(previous, &bounds, maximized);
+        let win = {
             let mut inner = self.lock();
-            let placement = WindowPlacement::after(inner.win.placement, &bounds, maximized);
             if inner.win.placement.replace(placement) == Some(placement) {
                 return;
             }
-            placement
+            inner.current
         };
-        self.emit(EngineEvent::FramePlaced { placement });
+        self.emit(EngineEvent::FramePlaced { win, placement });
     }
 
     /// Maximize the frame window, or restore it when it is maximized.
@@ -1299,10 +1314,18 @@ wrap_window_delegate! {
             drop(inner);
             // Windows ignores `show` while the window is still being created
             // (the call above): the frame stayed invisible under its pages.
+            // That first call used up the maximized start
+            // (`initial_show_state`), so it is asked for again.
             #[cfg(target_os = "windows")]
             {
                 let window = window.clone();
-                Engine::post(Box::new(move || window.show()));
+                let maximized = self.placement.is_some_and(|p| p.maximized);
+                Engine::post(Box::new(move || {
+                    window.show();
+                    if maximized {
+                        window.maximize();
+                    }
+                }));
             }
             let win = self.win;
             engine.in_window(win, || {

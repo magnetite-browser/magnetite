@@ -49,9 +49,13 @@ Each window opens where it was when Magnetite quit: the same size and
 place, and maximized if it was. The windows besides the first open again
 only while several windows are on (`spaces.md`).
 
-- A window that would not be on a screen now (a screen that is gone, a
-  smaller one) moves onto the screen it overlaps most, or the nearest one,
-  and gets smaller where it does not fit.
+- A window stays where it was while its top edge is on the screens over
+  its whole width, also across two screens or reaching under the Dock or a
+  taskbar. Else (a screen that is gone, a smaller one) it moves onto the
+  screen it overlaps most, or the nearest one, and gets smaller where it
+  does not fit; it opens there again at the following start, too.
+- A maximized window moved to another screen with a key opens maximized
+  there, and goes back to its size on that screen.
 - Full screen and minimized do not carry over: the window opens as it was
   before.
 - On Wayland the system places windows itself: the size and whether the

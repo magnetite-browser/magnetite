@@ -1,9 +1,9 @@
 //! Several windows on one sidebar. Every window shows the same spaces and
 //! tabs; what differs is the space and tab in front (and with it the peek,
-//! `AppState::peek`), the web panel and whether the sidebar is out.
-//! `AppState` holds these for one window at a time, the current one
-//! (`AppState::window`), in its own fields; the other windows' wait in
-//! `AppState::views`. A tab is on screen in one window at most: the
+//! `AppState::peek`), the web panel, whether the sidebar is out, and where
+//! the window is. `AppState` holds these for one window at a time, the
+//! current one (`AppState::window`), in its own fields; the other windows'
+//! wait in `AppState::views`. A tab is on screen in one window at most: the
 //! window that shows it takes it from the others (`claim_panes`).
 
 use std::collections::HashMap;
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{AppState, PeekOver};
 
-/// What a window that is not the current one shows.
+/// What a window that is not the current one shows, and where it is.
 #[derive(Debug)]
 pub struct View {
     pub active_space: Id,
