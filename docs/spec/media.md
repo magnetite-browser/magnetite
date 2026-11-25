@@ -80,11 +80,18 @@ On macOS the floating video has Magnetite's own controls:
   `HTMLMediaElement.play` to learn the page's handlers and media elements,
   and reports `{playing, title, artist, video, pip, live, silent, can_next,
   can_prev}` on change through a native function only its closure can
-  reach. It adds nothing to the page's globals. It also replaces
+  reach. It adds nothing to the page's globals. It holds the elements
+  weakly: one the page let go of (a post a feed took out of the page) can
+  be freed. It also replaces
   `document.visibilityState` and `document.hidden` so that they say
   "visible" while `document.pictureInPictureElement` is set, and sends the
   page a `visibilitychange` event when a hidden tab's video enters or
   leaves picture-in-picture.
+- A report goes on to the sidebar only when the sidebar shows the change:
+  sound starting or stopping (the speaker on the tab's row), or media of a
+  tab that is not on screen in a window (the media row). A muted video
+  starting and stopping in the tab on screen, as a feed's videos do while
+  it scrolls, waits for the next state the sidebar gets.
 - Commands go back to the renderer as a process message. It calls the
   closure's `control` function: the page's own Media Session handler when
   there is one, else the element.
@@ -120,5 +127,6 @@ the mute state. The pop-out setting is `settings.auto_pip` in
 
 Code: `crates/engine/src/media.rs`, `media_hook.js`, `pip.rs`, `cef_app.rs`
 (the feature switch) and `mac/mod.rs` (swipe); `crates/app/src/app/tabs.rs`
-(`follow_pictures`, `in_use`); `crates/ui/web/src/MediaBar.tsx` and
+(`follow_pictures`, `in_use`), `crates/app/src/state/tabs.rs`
+(`set_media`); `crates/ui/web/src/MediaBar.tsx` and
 `Rows.tsx`.

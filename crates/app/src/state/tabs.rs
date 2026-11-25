@@ -5,7 +5,7 @@ use std::collections::HashSet;
 
 use magnetite_core::split::SplitNode;
 use magnetite_core::{Color, Id, SidebarNode, Space, TabItem, UnixSeconds};
-use magnetite_engine::{ContentId, MemoryPressure};
+use magnetite_engine::{ContentId, MediaState, MemoryPressure};
 
 use super::history::page_of;
 use super::settings::{MAX_ARCHIVE_DAYS, NEVER_ARCHIVE};
@@ -160,6 +160,34 @@ impl AppState {
         }
         let tab = self.content_to_tab.get(&id)?.clone();
         Some(self.runtime.entry(tab).or_default())
+    }
+
+    /// Record what page `id` plays now (`EngineEvent::MediaChanged`), and
+    /// tell whether a sidebar shows the change. A sidebar shows a page's
+    /// media in two places: the speaker on its tab's row while it plays
+    /// sound (`Rows.tsx`), and the media bar, which lists the tabs that are
+    /// not on screen in its window (`App.tsx`). A muted video that starts
+    /// and stops in the tab on screen, as a feed's videos do while it
+    /// scrolls, shows in neither: the next state the sidebar gets carries
+    /// it. Neither does the media of a page outside the sidebar (the peek,
+    /// a mini window, a phone).
+    pub fn set_media(&mut self, id: ContentId, media: Option<MediaState>) -> bool {
+        let sound = |m: &Option<MediaState>| m.as_ref().is_some_and(|m| m.playing && !m.silent);
+        let outside = self.page_outside(id).is_some();
+        let Some(rt) = self.page_runtime(id) else {
+            return false;
+        };
+        let before = std::mem::replace(&mut rt.media, media);
+        if outside || before == rt.media {
+            return false;
+        }
+        if sound(&before) != sound(&rt.media) {
+            return true;
+        }
+        // With another window, its media bar lists the tab.
+        let on_screen =
+            (self.content_to_tab.get(&id)).is_some_and(|tab| self.visible_panes().contains(tab));
+        !on_screen || !self.views.is_empty()
     }
 
     /// The tabs a page that shares a tab could share instead, as with
@@ -1003,6 +1031,37 @@ mod tests {
             Some("https://down.example/")
         );
         assert_eq!(s.runtime["a"].favicon, None);
+    }
+
+    #[test]
+    fn media_changes_reach_the_sidebar_only_where_it_shows_them() {
+        let mut s = state();
+        s.content_to_tab.insert(1, "a".into());
+        s.content_to_tab.insert(2, "b".into());
+        let video = |playing: bool, silent: bool| {
+            Some(MediaState {
+                playing,
+                video: true,
+                silent,
+                ..MediaState::default()
+            })
+        };
+        // `b` is on screen: its muted video starting and stopping shows
+        // nowhere, but is kept.
+        assert!(!s.set_media(2, video(true, true)));
+        assert!(!s.set_media(2, None));
+        assert!(!s.set_media(2, video(false, true)));
+        assert_eq!(s.runtime["b"].media, video(false, true));
+        // Sound starting or stopping shows on its row.
+        assert!(s.set_media(2, video(true, false)));
+        assert!(s.set_media(2, video(true, true)));
+        // `a` is not on screen: the media bar lists it.
+        assert!(s.set_media(1, video(true, true)));
+        assert!(!s.set_media(1, video(true, true)));
+        // Another window's media bar lists `b`.
+        s.open_window(2);
+        s.enter(1);
+        assert!(s.set_media(2, video(false, true)));
     }
 
     #[test]

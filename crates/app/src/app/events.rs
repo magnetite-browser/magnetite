@@ -140,12 +140,9 @@ impl EngineDelegate for MagnetiteApp {
                 self.push_state(engine);
             }
             EngineEvent::MediaChanged { id, media } => {
-                self.with_state(|s| {
-                    if let Some(rt) = s.page_runtime(id) {
-                        rt.media = media;
-                    }
-                });
-                self.show_state_paced(engine);
+                if self.with_state(|s| s.set_media(id, media)) {
+                    self.show_state_paced(engine);
+                }
             }
             EngineEvent::ShareChanged {
                 id,
