@@ -127,6 +127,10 @@ the row turns the icon into a back arrow that takes the page back.
   except an item a smart folder got from its source, which the next
   refresh would bring back. "Duplicate tab" opens the tab's
   address as a new Today tab; a favorite has "Duplicate favorite" instead.
+- With one other space, the row names it ("Move to Work"). With more,
+  "Move to another space" shows them as a list in the menu's place, with a
+  row back to the menu at its top. A menu taller than the window starts at
+  the window's top and scrolls.
 
 ## Shared tabs
 

@@ -2,10 +2,10 @@ import { memo, useEffect, useRef, useState } from "react";
 import { Favicon } from "./Favicon";
 import { ChevronDown, Close, FolderIcon, HomeArrow, KeepActiveIcon, Minus, PhoneIcon, ScreenShareIcon, SmartFolderIcon, SnoozeIcon, Speaker, SpeakerOff, WakeIcon, WarningIcon } from "./Icons";
 import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./smart";
-import { Glyph, glyphFor } from "./Glyphs";
+import { Glyph, glyphFor, SpaceIcon } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, movedIds, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
 import { errorCount } from "./DevBar";
-import { findTab, hostOf, IS_MAC, send, splitGroup, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
+import { findTab, hostOf, IS_MAC, send, splitGroup, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snoozed, type Space, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 import { language, t } from "./i18n";
 
@@ -146,14 +146,13 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
       items.push({ label: `${own.length > 0 ? "● " : "○ "}${t("sidebar.tab_menu.show_only_in", { space: here.title })}`, onClick: () => send({ cmd: "set_favorite_spaces", id: tab.id, spaces: [here.id] }) });
     }
   }
-  const targets = inPrivate ? [] : spaces.filter((sp) => sp.id !== ctx.state.private_space);
-  if (targets.length > 1) {
-    items.push(SEPARATOR);
-    for (const sp of targets) {
-      if (sp.id === ctx.spaceId) continue;
-      items.push({ label: t("sidebar.tab_menu.move_to", { space: sp.title }), onClick: () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 }) });
-    }
-  }
+  // One other space is a row of its own; more open as a list, which scrolls
+  // when they do not fit the window.
+  const targets = inPrivate ? [] : spaces.filter((sp) => sp.id !== ctx.state.private_space && sp.id !== ctx.spaceId);
+  const moveTo = (sp: Space) => () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 });
+  const [first, ...others] = targets;
+  if (first && others.length === 0) items.push(SEPARATOR, { label: t("sidebar.tab_menu.move_to", { space: first.title }), onClick: moveTo(first) });
+  else if (first) items.push(SEPARATOR, { label: t("sidebar.tab_menu.move_to_space"), items: targets.map((sp) => ({ label: sp.title, icon: <SpaceIcon space={sp} size={16} />, onClick: moveTo(sp) })) });
   const last: MenuItem[] = [];
   // Closing a favorite or a pinned tab unloads its page and takes it back to
   // its pinned page: without a page, only a favorite away from it has

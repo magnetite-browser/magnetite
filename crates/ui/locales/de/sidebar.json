@@ -73,6 +73,7 @@
     "show_in_every_space": "In jedem Space zeigen",
     "show_only_in": "Nur in {space} zeigen",
     "move_to": "In {space} verschieben",
+    "move_to_space": "In Space verschieben",
     "archive": "Archivieren",
     "remove_from_pinned": "Aus angehefteten Tabs entfernen"
   },
