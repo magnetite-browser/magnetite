@@ -147,11 +147,20 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
     }
   }
   // One other space is a row of its own; more open as a list (see `ContextMenu`).
-  const targets = inPrivate ? [] : spaces.filter((sp) => sp.id !== ctx.state.private_space && sp.id !== ctx.spaceId);
-  const moveTo = (sp: Space) => () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 });
+  // Where the spaces use more than one profile, each names its own: two
+  // spaces may share a name, and a tab moved into another profile loads
+  // again with that profile's logins.
+  const movable = inPrivate ? [] : spaces.filter((sp) => sp.id !== ctx.state.private_space);
+  const targets = movable.filter((sp) => sp.id !== ctx.spaceId);
+  const { profiles } = ctx.state.sidebar;
+  const showProfile = new Set(movable.map((sp) => sp.profile_id)).size > 1;
+  const moveTo = (sp: Space) => ({
+    tag: showProfile ? (profiles.find((p) => p.id === sp.profile_id)?.name ?? t("sidebar.profile.fallback")) : undefined,
+    onClick: () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 }),
+  });
   const [first, ...others] = targets;
-  if (first && others.length === 0) items.push(SEPARATOR, { label: t("sidebar.tab_menu.move_to", { space: first.title }), onClick: moveTo(first) });
-  else if (first) items.push(SEPARATOR, { label: t("sidebar.tab_menu.move_to_space"), items: targets.map((sp) => ({ label: sp.title, icon: <SpaceIcon space={sp} size={16} />, onClick: moveTo(sp) })) });
+  if (first && others.length === 0) items.push(SEPARATOR, { label: t("sidebar.tab_menu.move_to", { space: first.title }), ...moveTo(first) });
+  else if (first) items.push(SEPARATOR, { label: t("sidebar.tab_menu.move_to_space"), items: targets.map((sp) => ({ label: sp.title, icon: <SpaceIcon space={sp} size={16} />, ...moveTo(sp) })) });
   const last: MenuItem[] = [];
   // Closing a favorite or a pinned tab unloads its page and takes it back to
   // its pinned page: without a page, only a favorite away from it has

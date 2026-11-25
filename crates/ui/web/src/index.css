@@ -354,6 +354,9 @@ button.panel-row:disabled { opacity: 0.45; }
 .menu button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; height: 28px; padding: 0 10px; border-radius: 6px; }
 /* One line per entry: the menu's height is counted in 28 px rows (ContextMenu.tsx). */
 .menu button span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The tag gives way first, down to a stub, so the label keeps its words; a hover shows both whole. */
+.menu button span:has(+ .tag) { flex-shrink: 0; max-width: calc(100% - 50px); }
+.menu button .tag { flex: 0 1 auto; min-width: 44px; margin-left: -2px; padding: 0 5px; text-align: center; border-radius: 4px; background: rgba(255,255,255,0.1); color: var(--secondary); font-size: 12px; line-height: 18px; }
 .menu button .hint { margin-left: auto; flex: none; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .menu button:hover { background: rgba(255,255,255,0.1); }
 .menu button[data-danger] { color: var(--danger); }
