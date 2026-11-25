@@ -326,6 +326,11 @@ impl MagnetiteApp {
     /// rather than at once. A loading page reports a dozen changes within
     /// a second, and each save waits for the disk.
     fn push_state(&self, engine: &Engine) {
+        // A tab that closed, was archived or unloaded takes its peek along
+        // (`AppState::drop_stale_peeks`).
+        for c in self.with_state(AppState::drop_stale_peeks) {
+            engine.close_content(c);
+        }
         // A private tab that closed takes its profile along.
         let released = self.with_state(AppState::release_private_profiles);
         if !released.is_empty() {
@@ -515,7 +520,7 @@ impl MagnetiteApp {
                 .filter(|e| e.web_panel_focused())
                 .and_then(Engine::web_panel_content);
             self.with_state(|s| {
-                (s.peek.as_ref().map(|p| p.content)).or(panel).or_else(|| {
+                (s.peek().map(|p| p.content)).or(panel).or_else(|| {
                     s.active_tab_id()
                         .and_then(|t| s.runtime.get(t))
                         .and_then(|r| r.content)

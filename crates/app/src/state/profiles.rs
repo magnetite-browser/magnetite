@@ -278,12 +278,11 @@ impl AppState {
     }
 
     /// Whether something runs in a profile: a space, a favorite, a tab
-    /// opened from a page of that profile (it keeps the profile), the peek
+    /// opened from a page of that profile (it keeps the profile), a peek
     /// or a mini window.
     pub fn profile_in_use(&self, profile_id: &str) -> bool {
         self.sidebar.uses_profile(profile_id)
-            || (self.peek.iter())
-                .chain(self.views.values().filter_map(|v| v.peek.as_ref()))
+            || (self.peeks.values())
                 .chain(self.minis.iter())
                 .any(|p| p.profile == profile_id)
     }

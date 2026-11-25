@@ -210,9 +210,8 @@ impl AppState {
         let mut contents: Vec<ContentId> =
             tabs.iter().filter_map(|t| self.archive_tab(t)).collect();
         let private = |profile: &str| self.private_profiles.contains(profile);
-        let peeks = (self.peek.iter()).chain(self.views.values().filter_map(|v| v.peek.as_ref()));
         contents.extend(
-            peeks
+            (self.peeks.values())
                 .chain(self.minis.iter())
                 .filter(|p| private(&p.profile))
                 .map(|p| p.content),
@@ -484,20 +483,23 @@ mod tests {
         let of_two = s.profile_for_tab(&two).unwrap();
         s.runtime.entry(two.clone()).or_default().content = Some(7);
         s.content_to_tab.insert(7, two);
-        s.peek = Some(Peek {
-            content: 8,
-            url: "https://example.org/peek".into(),
-            title: String::new(),
-            runtime: TabRuntime::default(),
-            profile: of_two,
-        });
+        s.peeks.insert(
+            s.peek_over(),
+            Peek {
+                content: 8,
+                url: "https://example.org/peek".into(),
+                title: String::new(),
+                runtime: TabRuntime::default(),
+                profile: of_two,
+            },
+        );
         let mut closed = s.close_private_space();
         closed.sort_unstable();
         assert_eq!(closed, [7, 8]);
         assert_eq!(s.active_space, first);
         assert!(s.private_space.is_none() && s.archive.is_empty());
         // The engine reports the peek closed; then its profile goes too.
-        s.peek = None;
+        s.peeks.clear();
         assert_eq!(s.release_private_profiles().len(), 2);
         assert_eq!(s.sidebar.profiles.len(), profiles);
         assert!(s.private_profiles.is_empty());
@@ -613,7 +615,7 @@ mod tests {
             s.archive_tab(&t.id);
         }
         s.open_window(2);
-        s.peek = Some(page(9, &of_tab));
+        s.peeks.insert(s.peek_over(), page(9, &of_tab));
         s.enter(1);
         assert!(!s.release_private_profiles().contains(&of_tab));
         assert_eq!(s.close_private_space(), [9]);

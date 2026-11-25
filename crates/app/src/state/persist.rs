@@ -204,7 +204,7 @@ impl AppState {
             archive,
             history: super::History::load(data_dir),
             splits,
-            peek: None,
+            peeks: HashMap::new(),
             web_panel: None,
             minis: Vec::new(),
             phones: Vec::new(),

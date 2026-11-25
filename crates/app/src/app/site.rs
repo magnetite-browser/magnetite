@@ -33,14 +33,9 @@ impl MagnetiteApp {
     /// peeks) for the notification panel, newest first.
     pub(super) fn prompts_json(&self) -> Value {
         let mut on_screen = self.on_screen();
-        on_screen.extend(self.with_state(|s| {
-            let others = s.views.values().filter_map(|v| v.peek.as_ref());
-            s.peek
-                .iter()
-                .chain(others)
-                .map(|p| p.content)
-                .collect::<Vec<_>>()
-        }));
+        on_screen.extend(
+            self.with_state(|s| s.peeks_on_screen().map(|p| p.content).collect::<Vec<_>>()),
+        );
         let items: Vec<Value> = self.with_prompts(|p| {
             p.open
                 .iter()
@@ -144,7 +139,7 @@ impl MagnetiteApp {
         variant: LinkVariant,
     ) -> Value {
         let target = self.with_state(|s| {
-            let from = from.or_else(|| s.peek.as_ref().map(|p| p.content));
+            let from = from.or_else(|| s.peek().map(|p| p.content));
             if let Some(p) = from.and_then(|c| s.page_outside(c)) {
                 return Some((p.url.clone(), p.title.clone(), s.settings.strip_trackers));
             }

@@ -30,7 +30,7 @@ impl MagnetiteApp {
         let recording = !crate::lock(&self.record).for_ui().is_null();
         self.with_state(|s| {
             let dev = (s.active_tab_id())
-                .filter(|_| s.peek.is_none())
+                .filter(|_| s.peek().is_none())
                 .and_then(|tab| s.runtime.get(tab))
                 .map(|rt| &rt.dev);
             dev.is_some_and(|d| {
@@ -94,8 +94,9 @@ impl MagnetiteApp {
                 .phones
                 .iter()
                 .map(|p| (p.page.content, p.page.url.clone()));
-            // A peek and the mini windows count errors like any page.
-            let outside = (s.peek.iter().chain(s.minis.iter())).map(|p| (p.content, p.url.clone()));
+            // The peeks and the mini windows count errors like any page.
+            let outside =
+                (s.peeks.values().chain(s.minis.iter())).map(|p| (p.content, p.url.clone()));
             tabs.chain(phones).chain(outside).collect()
         });
         for (c, url) in pages {

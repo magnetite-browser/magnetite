@@ -253,7 +253,7 @@ impl MagnetiteApp {
             }
             Shortcut::CloseTab => {
                 // A peek is in front: the key closes it, not the tab behind it.
-                if self.with_state(|s| s.peek.is_some()) {
+                if self.with_state(|s| s.peek().is_some()) {
                     self.close_peek(engine);
                 } else if engine.web_panel_focused() {
                     // The keyboard is in the web panel: the key is for it.
@@ -301,7 +301,7 @@ impl MagnetiteApp {
             Shortcut::TogglePin => {
                 let active = self.with_state(|s| {
                     // A peek is in front: the key is not for the tab behind it.
-                    if s.peek.is_some() {
+                    if s.peek().is_some() {
                         return None;
                     }
                     let id = s.active_tab_id()?.to_owned();

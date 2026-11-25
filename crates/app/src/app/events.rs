@@ -79,10 +79,9 @@ impl EngineDelegate for MagnetiteApp {
                 // button) still has its peek, mini window or tab, and the
                 // sidebar must hear that it is gone.
                 let by_itself = self.with_state(|s| {
-                    let was_peek = s.peek.as_ref().is_some_and(|p| p.content == id);
-                    if was_peek {
-                        s.peek = None;
-                    }
+                    let peeks = s.peeks.len();
+                    s.peeks.retain(|_, p| p.content != id);
+                    let was_peek = s.peeks.len() < peeks;
                     s.minis.retain(|m| m.content != id);
                     s.drop_phone(id);
                     let tab = s.content_to_tab.remove(&id);
@@ -267,7 +266,7 @@ impl EngineDelegate for MagnetiteApp {
                     // A web panel counts as the peek does: narrow, and over
                     // the page, it is no place for a second page.
                     let from_peek = from.is_some()
-                        && (from == s.peek.as_ref().map(|p| p.content)
+                        && (from == s.peek().map(|p| p.content)
                             || from == engine.web_panel_content());
                     let ask = Ask {
                         source,

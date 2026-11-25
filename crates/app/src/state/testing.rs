@@ -38,7 +38,7 @@ pub(crate) fn state() -> AppState {
         archive: vec![],
         history: super::History::load(&dir),
         splits: Vec::new(),
-        peek: None,
+        peeks: HashMap::new(),
         web_panel: None,
         minis: Vec::new(),
         phones: Vec::new(),

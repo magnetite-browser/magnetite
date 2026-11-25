@@ -178,7 +178,6 @@ impl MagnetiteApp {
             self.open_web_panel(engine, tab_id);
             return;
         }
-        self.close_peek(engine);
         let space_id = self.with_state(|s| {
             let (space, _) = s.find_tab(tab_id)?;
             Some(space.map_or_else(|| s.active_space.clone(), |sp| sp.id.clone()))
@@ -332,8 +331,9 @@ impl MagnetiteApp {
     }
 
     /// Make the content windows match the state: the current window shows
-    /// its panes, and a window that showed one of them until now (a tab is
-    /// on screen in one window at most) shows what it has left.
+    /// its panes and their peek, and a window that showed one of them until
+    /// now (a tab is on screen in one window at most) shows what it has
+    /// left.
     pub(super) fn present(&self, engine: &Engine) {
         self.dev_drop_stale_phones(engine);
         let before = self.on_screen();
@@ -421,7 +421,8 @@ impl MagnetiteApp {
     }
 
     /// The current window's part of `present`: create windows for its
-    /// panes, lay them out, hide its other pages.
+    /// panes, lay them out, show the peek over them, hide its other pages
+    /// (the peeks of tabs not in front among them).
     fn present_window(&self, engine: &Engine) {
         let win = engine.current_window();
         let panes = self.with_state(|s| s.visible_panes());
@@ -439,12 +440,15 @@ impl MagnetiteApp {
                 .map(|p| p.page.content)
                 .collect()
         });
+        let peek = self.with_state(|s| s.peek().map(|p| p.content));
         let others: Vec<ContentId> = self.with_state(|s| {
             s.runtime
                 .values()
                 .filter_map(|r| r.content)
                 .chain(s.phones.iter().map(|p| p.page.content))
+                .chain(s.peeks.values().map(|p| p.content))
                 .filter(|c| !contents.contains(c) && !phones.contains(c) && Some(*c) != over)
+                .filter(|c| Some(*c) != peek)
                 .filter(|c| engine.content_window(*c) == win)
                 .collect()
         });
@@ -458,6 +462,11 @@ impl MagnetiteApp {
             (_, []) => {}
             (Some((tree, focus)), _) => engine.show_split(&tree, focus),
             (None, [one, ..]) => engine.show_content(*one),
+        }
+        // Showing the panes raised a peek already there; one that was
+        // waiting with its tab comes back.
+        if let Some(c) = peek.filter(|c| engine.peek_content() != Some(*c)) {
+            engine.show_peek(c);
         }
         contents.extend(phones);
         lock(&self.visible).insert(win, contents);
@@ -509,13 +518,12 @@ impl MagnetiteApp {
         match switched {
             Some(Some(tab)) => self.activate_tab(engine, &tab),
             // A space without tabs: every page leaves the screen, the other
-            // pages of a split and a peek included. A round of `Ctrl+Tab`
-            // is over, as when a tab is chosen.
+            // pages of a split and a peek included (it waits with its tab).
+            // A round of `Ctrl+Tab` is over, as when a tab is chosen.
             Some(None) => {
                 if self.with_state(|s| s.switcher.take().is_some()) {
                     engine.close_overlay();
                 }
-                self.close_peek(engine);
                 self.present(engine);
             }
             None => {}

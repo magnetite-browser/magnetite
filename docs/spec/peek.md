@@ -37,14 +37,20 @@ it as a tab, or put it beside the current tab in split view.
   narrow window, to leave room for the buttons) and 90 % of its height. On
   macOS and Windows the pages behind it are dimmed; a click on them closes
   the peek.
-- There is one peek at a time. A new one replaces the open one. Opening a
-  tab in front or switching tabs closes it.
+- A peek belongs to the tab it was opened over, and each tab has at most
+  one: a new one replaces it. Switching to another tab, or opening one in
+  front, hides the peek; it is back when its tab is in front again, as it
+  was. Only the peek of the tab in front shows.
+- A tab's peek closes with the tab: when it is closed, archived or its page
+  is unloaded (`sidebar.md`, "Tab rows"). A peek opened while no tab is in
+  front closes once one is.
 - The peek runs in the profile of the page that opened it. A link from
   another app, or one picked in the command bar, runs in the active
   space's profile.
 - A link inside the peek navigates the peek. A link there that asks for a
-  new tab or window opens as a Today tab, and the peek closes. The menu of
-  a link in the peek or in a web panel has no "Open Link in Peek".
+  new tab or window opens as a Today tab, like one from the tab itself; the
+  peek stays with its tab. The menu of a link in the peek or in a web panel
+  has no "Open Link in Peek".
 - While a peek is open, reload, back and forward (the sidebar's buttons and
   the menu bar's commands), zoom, Copy Link, the capture tool, developer
   tools and extension popups act on the peeked page. `Cmd+W` closes the
@@ -95,7 +101,10 @@ A page's popup window (`window.open` with window features, such as "Sign
 in with Google") therefore does not become a peek: it opens as a small
 window of its own, as in other browsers, so it can talk back to the page.
 
-Code: `crates/app/src/app/peek.rs` (`open_peek`, `keep_peek`) and
+Code: `crates/app/src/app/peek.rs` (`open_peek`, `keep_peek`),
+`tabs.rs` (`present_window` shows the peek of the tab in front),
+`crates/app/src/state/tabs.rs` (`peek`, `drop_stale_peeks`, called from
+`push_state` in `app.rs`) and
 `events.rs` (the `OpenUrlRequested` handler), `crates/engine/src/client.rs` (site lock,
 popups), `content.rs` (`show_peek`, `peek_rect`), `keys.rs`
 (`peek_shortcut`), `mac/chrome.rs` (backdrop and buttons),

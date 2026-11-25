@@ -10,7 +10,8 @@ use super::MagnetiteApp;
 
 impl MagnetiteApp {
     /// Show `url` (from `source`) as a peek over the page, in the opener's
-    /// `context` when there is one, else the active space's profile.
+    /// `context` when there is one, else the active space's profile. It
+    /// replaces the peek on screen and stays with the tab in front.
     pub(super) fn open_peek(
         &self,
         engine: &Engine,
@@ -31,7 +32,8 @@ impl MagnetiteApp {
         });
         let c = engine.create_content(url, engine_profile.as_ref());
         self.with_state(|s| {
-            s.peek = Some(Peek {
+            let over = s.peek_over();
+            let peek = Peek {
                 content: c,
                 url: url.to_string(),
                 title: url.to_string(),
@@ -42,14 +44,16 @@ impl MagnetiteApp {
                     ..TabRuntime::default()
                 },
                 profile,
-            });
+            };
+            s.peeks.insert(over, peek);
         });
         engine.show_peek(c);
         self.push_state(engine);
     }
 
+    /// Close the peek on screen in the current window.
     pub(super) fn close_peek(&self, engine: &Engine) {
-        let c = self.with_state(|s| s.peek.take().map(|p| p.content));
+        let c = self.with_state(|s| s.take_peek().map(|p| p.content));
         if let Some(c) = c {
             engine.close_content(c);
             self.push_state(engine);
