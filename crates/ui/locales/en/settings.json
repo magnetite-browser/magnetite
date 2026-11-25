@@ -58,7 +58,7 @@
     },
     "permissions": {
       "label": "Permissions",
-      "intro": "The websites that may, or may not, use your camera, microphone or location, send notifications, open pop-ups or read the clipboard. A website asks first; this is what you answered."
+      "intro": "Which camera and microphone websites get first, and the websites that may, or may not, use your camera, microphone or location, send notifications, open pop-ups or read the clipboard. A website asks first; this is what you answered."
     },
     "autofill": {
       "label": "Passwords and autofill",

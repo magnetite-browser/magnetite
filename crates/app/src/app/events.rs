@@ -39,6 +39,7 @@ impl EngineDelegate for MagnetiteApp {
                 engine.set_downloads(&self.with_state(|s| s.settings.downloads.clone()));
                 engine.set_default_zoom(self.with_state(|s| s.settings.page_zoom));
                 engine.set_languages(&self.with_state(|s| s.settings.languages.clone()));
+                engine.set_device_order(&self.with_state(|s| s.settings.device_order.clone()));
                 // Before the first page: its address decides its engine.
                 engine.set_system_engine_sites(self.system_engine_sites());
                 engine.set_sidebar_width(width);
@@ -548,6 +549,14 @@ impl EngineDelegate for MagnetiteApp {
         ) && !download_list
         {
             return Err("only the download lists may do that".into());
+        }
+        // The cameras and microphones are the main UI page's to report: the
+        // order in Settings is made of what it says.
+        let main_page = origin
+            .strip_prefix("magnetite://ui/")
+            .is_some_and(|page| page.is_empty() || page.starts_with(['?', '#']));
+        if matches!(cmd, UiCommand::MediaDevices { .. }) && !main_page {
+            return Err("only the main page may do that".into());
         }
         // Pictures are stored from Settings and the space dialog alone: the
         // welcome page has no use for them.

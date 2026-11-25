@@ -157,6 +157,9 @@ pub(crate) struct Inner {
     /// Spell check and the languages websites are asked for
     /// (`languages.rs`), for the profiles made from now on.
     pub languages: crate::LanguagePrefs,
+    /// The order of cameras and microphones (`device_order.rs`), for the
+    /// profiles made from now on.
+    pub device_order: crate::DeviceOrder,
     /// Pages the app muted. Kept here because a page gets its browser a
     /// moment after it is asked for: the mute is applied once it has one.
     pub muted: HashSet<ContentId>,
@@ -312,6 +315,7 @@ impl Engine {
                 downloads: crate::DownloadPrefs::default(),
                 default_zoom: 100,
                 languages: crate::LanguagePrefs::default(),
+                device_order: crate::DeviceOrder::default(),
                 muted: HashSet::new(),
                 shares: crate::tabshare::Shares::default(),
                 mobile: HashSet::new(),
@@ -869,6 +873,12 @@ pub(crate) fn prepare_context(ctx: &RequestContext) -> bool {
     // Also when it is on, as at first: a profile may still hold "off".
     if !crate::languages::apply_spellcheck(ctx, spellcheck) {
         crate::trace("cannot set the language preferences");
+    }
+    // Cameras and microphones in the order the user's settings have them.
+    // Also an empty order: a profile may still hold an earlier one.
+    let devices = Engine::global().lock().device_order.clone();
+    if !devices.apply(ctx) {
+        crate::trace("cannot set the order of cameras and microphones");
     }
     set
 }

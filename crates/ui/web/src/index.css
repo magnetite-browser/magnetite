@@ -849,10 +849,14 @@ button.wel-space-icon:hover:not(:disabled) { background: color-mix(in srgb, var(
 .set-space[data-sortable] { cursor: grab; user-select: none; -webkit-user-select: none; }
 .set-space[data-sortable] input, .set-space[data-sortable] .set-space-private { cursor: auto; }
 .set-space[data-sortable] input { user-select: text; -webkit-user-select: text; }
+/* Settings → Permissions: a camera or microphone in its list, dragged by its row. */
+.set-device { display: flex; align-items: center; gap: 10px; padding-top: 8px; padding-bottom: 8px; min-height: 46px; }
+.set-device[data-sortable] { cursor: grab; user-select: none; -webkit-user-select: none; }
+.set-device [data-off] { color: var(--muted); }
 /* A path to select and copy: it breaks anywhere rather than run out of its card. */
 .set-path { display: block; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; cursor: text; }
 /* The row being dragged follows the pointer, above the others. */
-.set-space[data-dragged], .set-space[data-dragged]:hover, .set-fav[data-dragged] { position: relative; z-index: 2; border-top-color: transparent; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 8px 24px rgba(0,0,0,0.35); }
+.set-space[data-dragged], .set-space[data-dragged]:hover, .set-fav[data-dragged], .set-device[data-dragged] { position: relative; z-index: 2; border-top-color: transparent; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 8px 24px rgba(0,0,0,0.35); }
 /* The other rows glide aside to make room where it would land. */
 html[data-sorting] [data-sort-row]:not([data-dragged]) { transition: transform 140ms ease; }
 /* While a row is dragged, the hand stays closed wherever the pointer is. */
@@ -890,7 +894,7 @@ html[data-sorting], html[data-sorting] * { cursor: grabbing !important; user-sel
 .set-pick-list hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
 .set-grip:active { cursor: grabbing; }
 .set-grip { user-select: none; -webkit-user-select: none; touch-action: none; display: grid; place-items: center; width: 20px; height: 30px; flex: none; margin-left: -6px; border-radius: 6px; color: var(--muted); cursor: grab; }
-.set-grip:hover:not([aria-disabled]), .set-space:hover .set-grip:not([aria-disabled]) { color: var(--fg); }
+.set-grip:hover:not([aria-disabled]), .set-space:hover .set-grip:not([aria-disabled]), .set-device:hover .set-grip:not([aria-disabled]) { color: var(--fg); }
 .set-grip[aria-disabled] { opacity: 0.25; cursor: default; }
 /* A space's name, to change in place; what is known of it beside, which opens its page as the arrow does. */
 .set-space-name { flex: 0 1 220px; min-width: 120px; }

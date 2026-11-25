@@ -231,6 +231,32 @@ site every shortcut's keys first in its site panel.
 | `Cmd+G`, `Cmd+Shift+G` | Next or previous match of the last search; also Enter and Shift+Enter in the find bar | the page keeps it |
 | `Cmd++`, `Cmd+-`, `Cmd+0` | Zoom in, out, 100 % | Chromium's own command |
 
+## The order of cameras and microphones
+
+Settings → Permissions starts with two lists, Cameras and Microphones. A
+site that asks for a camera or a microphone without naming one gets the
+first device of its list that is connected. A site that names one (a call
+that remembers its choice) gets that one.
+
+- A list shows the devices placed in it, connected or not, then the
+  connected ones never placed, in the order the system lists them. One
+  that is not connected says so and has "Remove".
+- A row moves by dragging it, or with the up and down arrow keys on its
+  handle. A move keeps every device shown in the order shown.
+- The microphones have the system default as an entry of its own, named
+  as Chromium names it ("Default - …"): whichever microphone the system
+  has chosen. A microphone below it is only used when a site asks for it.
+- The order counts at once, in every profile. It is this computer's and
+  is not synced.
+- Devices go by the name Chromium gives them (a USB device's name ends in
+  its vendor and product id), so a device keeps its place when it is
+  plugged in again; two devices of the same name share one place.
+
+The order is Chromium's own (`media.video_input.user_preference_ranking`,
+`media.audio_input.user_preference_ranking`), which Magnetite sets in every
+profile. The main UI page reads the connected devices and tells the app
+whenever they change: a Settings tab gets no device names.
+
 ## Every site's permissions
 
 Settings → Permissions lists every site that has a choice of its own for
@@ -287,6 +313,8 @@ has stored something.
 | Data | Where | Until |
 |---|---|---|
 | Permission choices | Chromium's site settings, per profile | changed |
+| Order of cameras and microphones (`settings.device_order`) | `state.json`, and Chromium's preferences of every profile | changed |
+| Cameras and microphones connected | memory | Magnetite quits |
 | Requested permissions | memory | the tab leaves the site or closes |
 | Origins seen | memory | Magnetite quits |
 | Last capture (PNG) | memory | replaced, dismissed, or Magnetite quits |
@@ -308,6 +336,7 @@ has stored something.
 - Environment labels for hosts (such as "PROD"), set up in Settings.
 - Site panel: certificate details and a link to all site settings.
 - Site panel: a hint when macOS itself blocks camera, microphone or location.
+- An order for speakers and headphones: Chromium has none for sound output.
 - Capture: a whole element that is larger than the visible area.
 - Capture: a way to cancel a full-page capture while it runs.
 
@@ -316,4 +345,6 @@ Code: `crates/ui/web/src` (`AddressRow.tsx`, `SitePanel.tsx`,
 `app/screenshots.rs`, `capture.rs`), `crates/engine/src` (`site.rs`, `sitedata.rs`, `capture.rs`,
 `clipboard.rs` (Linux), `devdock.rs`, `device.rs`, `devtools_menu.js`, `devtools.rs`, `keys.rs`,
 `sitecode.rs`), `crates/ui/web/src/settings/SiteCodeSection.tsx`,
-`crates/ui/web/src/DeviceBar.tsx`.
+`crates/ui/web/src/DeviceBar.tsx`. The order of cameras and microphones:
+`crates/engine/src/device_order.rs`, `crates/ui/web/src/mediaDevices.ts`,
+`crates/ui/web/src/settings/DeviceOrder.tsx`.

@@ -1,4 +1,20 @@
 {
+  "devices": {
+    "cameras": {
+      "title": "Kameras",
+      "hint": "Eine Website, die nicht nach einer bestimmten Kamera fragt, bekommt die erste verbundene aus dieser Liste. Zieh eine Kamera, um die Reihenfolge zu ändern.",
+      "none": "Keine Kamera verbunden."
+    },
+    "microphones": {
+      "title": "Mikrofone",
+      "hint": "Eine Website, die nicht nach einem bestimmten Mikrofon fragt, bekommt das erste verbundene aus dieser Liste. Ein Mikrofon unter dem Systemstandard wird nur genutzt, wenn eine Website danach fragt.",
+      "none": "Kein Mikrofon verbunden."
+    },
+    "system_default": "Systemstandard",
+    "not_connected": "Nicht verbunden",
+    "remove_title": "Von der Liste nehmen",
+    "sort": "{name} sortieren: {position} von {total}. Mit den Pfeiltasten nach oben und unten verschieben."
+  },
   "kind": {
     "camera": "Kamera",
     "microphone": "Mikrofon",

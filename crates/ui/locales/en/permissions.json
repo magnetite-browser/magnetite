@@ -1,4 +1,20 @@
 {
+  "devices": {
+    "cameras": {
+      "title": "Cameras",
+      "hint": "A website that does not ask for a particular camera gets the first one in this list that is connected. Drag a camera to change the order.",
+      "none": "No camera is connected."
+    },
+    "microphones": {
+      "title": "Microphones",
+      "hint": "A website that does not ask for a particular microphone gets the first one in this list that is connected. A microphone below the system default is only used when a website asks for it.",
+      "none": "No microphone is connected."
+    },
+    "system_default": "System default",
+    "not_connected": "Not connected",
+    "remove_title": "Take it off the list",
+    "sort": "Sort {name}: {position} of {total}. The up and down arrow keys move it."
+  },
   "kind": {
     "camera": "Camera",
     "microphone": "Microphone",

@@ -1,5 +1,5 @@
 // What the Settings page works with.
-import type { Color, DefaultBrowser, ExtensionInfo, Settings } from "../bridge";
+import type { Color, DefaultBrowser, ExtensionInfo, MediaDevice, Settings } from "../bridge";
 import type { ShortcutAction, ShortcutFirst } from "./shortcutKeys";
 
 /** Everything the Settings page shows (`get_settings`). */
@@ -46,6 +46,8 @@ export interface Info {
   /** Every shortcut whose keys can be changed, with the keys it has and those it began with (null: none). */
   /** `first`: who gets the keys first when a page is in focus, and `default_first` who does until the user says otherwise. */
   shortcuts: { action: ShortcutAction; keys: string | null; default: string | null; first: ShortcutFirst; default_first: ShortcutFirst }[];
+  /** The cameras and microphones connected now, as the main page last read them. */
+  media_devices: { cameras: MediaDevice[]; microphones: MediaDevice[] };
   /** Where Chromium keeps its encryption key: macOS Keychain, or its fixed test key (`--mock-keychain`). */
   keychain: "keychain" | "test";
 }

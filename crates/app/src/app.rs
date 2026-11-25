@@ -101,6 +101,27 @@ pub struct MagnetiteApp {
     private_engines: Mutex<crate::state::SystemEngine>,
     /// The pinned tabs loading at start, a few at a time (`load_pinned`).
     start_loads: Mutex<tabs::StartLoads>,
+    /// The cameras and microphones the main UI page last reported.
+    media_devices: Mutex<MediaDevices>,
+}
+
+/// The cameras and microphones connected now, as Chromium names them, for
+/// Settings → Permissions to put in order (`magnetite_engine::DeviceOrder`).
+/// The main UI page reads them and reports every change (`media_devices`):
+/// a Settings tab gets empty names, it has no camera or microphone access.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct MediaDevices {
+    pub cameras: Vec<MediaDevice>,
+    pub microphones: Vec<MediaDevice>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct MediaDevice {
+    /// How the order names it: its label, `default` for the system's
+    /// default microphone.
+    pub id: String,
+    /// Its name on screen.
+    pub label: String,
 }
 
 /// When the sidebar was last sent the state, and whether another sending
@@ -277,6 +298,7 @@ impl MagnetiteApp {
                 ..Default::default()
             }),
             start_loads: Mutex::default(),
+            media_devices: Mutex::default(),
         }
     }
 

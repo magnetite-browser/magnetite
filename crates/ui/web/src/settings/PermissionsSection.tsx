@@ -1,13 +1,15 @@
-// Settings → Permissions: every site that may, or may not, use the camera,
-// the microphone, the location, notifications, pop-ups or the clipboard,
-// with each choice to change or take back. The site panel decides for the
-// site in front; this is the list of all of them.
+// Settings → Permissions: the order of cameras and microphones, then every
+// site that may, or may not, use the camera, the microphone, the location,
+// notifications, pop-ups or the clipboard, with each choice to change or
+// take back. The site panel decides for the site in front; this is the list
+// of all of them.
 import { ProfilePick } from "./SpacesSection";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { send, type PermissionEntry, type PermissionKind } from "../bridge";
 import { t } from "../i18n";
+import { DeviceOrder } from "./DeviceOrder";
 import { Field, Group } from "./fields";
-import type { Info } from "./types";
+import type { Info, SettingsPatch } from "./types";
 
 const PERMISSION_LABEL: Record<PermissionKind, string> = {
   camera: t("permissions.kind.camera"),
@@ -24,7 +26,7 @@ const siteName = (origin: string) => origin.replace(/^https:\/\//, "");
 /** The choices read for one set of logins: only theirs are shown and changed. */
 type Read = { profile: string | undefined; rows: PermissionEntry[] };
 
-export function PermissionsSection({ info }: { info: Info }) {
+export function PermissionsSection({ info, update }: { info: Info; update: (patch: SettingsPatch) => void }) {
   // Each set of logins has its own choices. Those chosen while they still
   // exist (another window may have deleted them), else those of the space
   // in front, else the main ones.
@@ -83,6 +85,7 @@ export function PermissionsSection({ info }: { info: Info }) {
   const sites = [...new Set((rows ?? []).map((r) => r.origin))];
   return (
     <>
+      <DeviceOrder info={info} update={update} />
       {logins.length > 1 && (
         <Group>
           <Field side label={t("permissions.profile.label")} hint={t("permissions.profile.hint")}>

@@ -33,6 +33,7 @@ mod content;
 mod default_browser;
 mod devdock;
 mod device;
+mod device_order;
 mod devpipe;
 mod devtools;
 mod downloads;
@@ -93,6 +94,7 @@ pub use config::EngineConfig;
 pub use content::SPLIT_GAP;
 pub use default_browser::DefaultBrowser;
 pub use devdock::{DevToolsDock, DevToolsSize};
+pub use device_order::DeviceOrder;
 pub use downloads::{DownloadControl, DownloadPrefs};
 pub use engine::{ContextProfile, Engine, EngineDelegate, WindowId};
 pub use events::{

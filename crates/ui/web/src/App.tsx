@@ -23,6 +23,7 @@ import { useSpaceSwipe } from "./useSpaceSwipe";
 import { keysHint, keysLabel } from "./settings/shortcutKeys";
 import { useSidebarShortcuts } from "./useSidebarShortcuts";
 import { t } from "./i18n";
+import { reportMediaDevices } from "./mediaDevices";
 
 /**
  * `magnetite://ui/?float`: this page is the sidebar floating over the pages while
@@ -71,6 +72,8 @@ export function App() {
     if (FLOAT) send({ cmd: "get_state" }).then((s) => window.__magnetite?.setState(s));
     else send({ cmd: "ready" });
   }, []);
+  // For the order of cameras and microphones in Settings; the floating sidebar is the same window's.
+  useEffect(() => (FLOAT ? undefined : reportMediaDevices()), []);
   useSidebarShortcuts(FLOAT, closePanel);
   // Text size and density of this page, set before it paints.
   const textScale = state?.settings.appearance.text_scale;

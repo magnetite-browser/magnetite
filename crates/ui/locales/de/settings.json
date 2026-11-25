@@ -58,7 +58,7 @@
     },
     "permissions": {
       "label": "Berechtigungen",
-      "intro": "Welche Websites deine Kamera, dein Mikrofon oder deinen Standort nutzen, Mitteilungen senden, Pop-ups öffnen oder die Zwischenablage lesen dürfen – und welche nicht. Websites fragen zuerst; hier siehst du, was du geantwortet hast."
+      "intro": "Welche Kamera und welches Mikrofon Websites zuerst bekommen, und welche Websites deine Kamera, dein Mikrofon oder deinen Standort nutzen, Mitteilungen senden, Pop-ups öffnen oder die Zwischenablage lesen dürfen – und welche nicht. Websites fragen zuerst; hier siehst du, was du geantwortet hast."
     },
     "autofill": {
       "label": "Passwörter und Autofill",

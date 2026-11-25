@@ -549,6 +549,12 @@ pub(super) enum UiCommand {
     },
     /// Settings page (own tab) asks for everything it shows.
     GetSettings,
+    /// The cameras and microphones connected now (`MediaDevices`), from
+    /// the main UI page.
+    MediaDevices {
+        cameras: Vec<super::MediaDevice>,
+        microphones: Vec<super::MediaDevice>,
+    },
     /// Give shortcut `action` the keys `keys` (as `Combo` saves them), or
     /// none. An action that had these keys loses them. Answers
     /// `{"error": …}` for keys a shortcut cannot have.
@@ -2036,6 +2042,7 @@ impl MagnetiteApp {
                 let (chromium, cef) = magnetite_engine::engine_versions();
                 let default_browser = engine.default_browser();
                 let adblock = self.adblock_json();
+                let media_devices = lock(&self.media_devices).clone();
                 return Ok(self.with_state(|s| {
                     // What stays on this device: the spaces marked so, and
                     // the profiles that only they use.
@@ -2068,6 +2075,7 @@ impl MagnetiteApp {
                         // The chosen folder is not there: the page says so.
                         "download_folder_missing": !s.settings.downloads.folder.is_empty() && !std::path::Path::new(&s.settings.downloads.folder).is_dir(),
                         "adblock": adblock,
+                        "media_devices": media_devices,
                         // Whether this system has an engine of its own for
                         // pages, and the services that open there.
                         "system_engine": {
@@ -2085,6 +2093,20 @@ impl MagnetiteApp {
                         })).collect::<Vec<_>>(),
                     })
                 }));
+            }
+            UiCommand::MediaDevices {
+                cameras,
+                microphones,
+            } => {
+                let now = super::MediaDevices {
+                    cameras,
+                    microphones,
+                };
+                let changed =
+                    std::mem::replace(&mut *lock(&self.media_devices), now.clone()) != now;
+                if changed {
+                    self.tell_settings_pages(engine);
+                }
             }
             UiCommand::SetSpaceIconImage { id, data } => {
                 if data.as_deref().is_some_and(|d| !icon_image_ok(d)) {
@@ -2162,6 +2184,7 @@ impl MagnetiteApp {
             UiCommand::SetSettings { settings: patch } => {
                 let before = self.with_state(|s| s.settings.adblock.clone());
                 let downloads_before = self.with_state(|s| s.settings.downloads.clone());
+                let devices_before = self.with_state(|s| s.settings.device_order.clone());
                 let (settings, code_changed) = self.with_state(|s| {
                     let settings = s.settings.patched(patch)?;
                     let code_changed = settings.site_code != s.settings.site_code;
@@ -2188,6 +2211,9 @@ impl MagnetiteApp {
                 // reads the level when it starts, before Magnetite could set it.
                 engine.set_default_zoom(settings.page_zoom);
                 engine.set_languages(&settings.languages);
+                if settings.device_order != devices_before {
+                    engine.set_device_order(&settings.device_order);
+                }
                 self.settle_private_engines();
                 engine.set_system_engine_sites(self.system_engine_sites());
                 engine.set_quick_search_key(settings.quick_search);

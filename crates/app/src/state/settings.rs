@@ -147,6 +147,9 @@ pub struct Settings {
     /// `magnetite_ui::languages`; `None`: the system's (`magnetite_ui::resolve`).
     /// Counts from the next start. This device's own choice, never synced.
     pub language: Option<String>,
+    /// The cameras and microphones sites get first (Settings →
+    /// Permissions). Not synced: the devices are this computer's.
+    pub device_order: magnetite_engine::DeviceOrder,
     /// Smart folders allowed to fetch on this device (`smart_key`): those made
     /// or edited here, or turned on here. A folder another device synced
     /// waits, so the words alone cannot make this device's accounts run a
@@ -848,6 +851,7 @@ impl Settings {
             self.page_zoom = defaults.page_zoom;
         }
         self.languages = self.languages.sanitised();
+        self.device_order = self.device_order.sanitised();
         self.language = self
             .language
             .filter(|tag| magnetite_ui::languages().any(|known| known == tag));
@@ -972,6 +976,7 @@ impl Default for Settings {
             page_zoom: 100,
             languages: magnetite_engine::LanguagePrefs::default(),
             language: None,
+            device_order: magnetite_engine::DeviceOrder::default(),
             smart_allowed: None,
             adblock: AdblockSettings::default(),
             developer: crate::dev::DeveloperSettings::default(),

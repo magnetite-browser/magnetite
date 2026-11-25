@@ -40,9 +40,9 @@ A section's name has no "&": "Tabs and archive".
   opens.
 - **Spaces** lists the spaces and has a page for each space (below).
 - **Profiles**, **Favorites** and **Bookmarks** are below too.
-- **Permissions** lists every site with a choice of its own for the
-  camera, microphone, location, notifications, pop-ups or the clipboard
-  (`site-controls.md`).
+- **Permissions** has the order of cameras and of microphones, and lists
+  every site with a choice of its own for the camera, microphone,
+  location, notifications, pop-ups or the clipboard (`site-controls.md`).
 - **Data and privacy** has the history (how long it is kept, clearing it),
   deleting the cookies, site data and cache of all websites
   (`site-controls.md`),

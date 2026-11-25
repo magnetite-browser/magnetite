@@ -391,6 +391,8 @@ export interface Settings {
   languages: { spellcheck: boolean; languages: string[] };
   /** The language of Magnetite's own texts; null: the system's. Counts from the next start. */
   language: string | null;
+  /** The cameras and microphones websites get first, the preferred first (Settings → Permissions), by `MediaDevice` id; empty for the system's order. This device's own, never synced. */
+  device_order: { cameras: string[]; microphones: string[] };
   /** The ad blocker (Settings → Content blocking); this device's own choice, never synced. */
   /** Developer features (Settings → Developer tools). */
   developer: { enabled: boolean; hosts: string[] };
@@ -655,6 +657,8 @@ export type Command =
   /** Store an own image (WebP as base64) for `slot` of space `space`, or remove it (`null`). Settings page only. */
   | { cmd: "set_appearance_image"; slot: "empty" | "sidebar"; space: Id; data: string | null }
   | { cmd: "get_settings" }
+  /** The cameras and microphones connected now. The main page alone. */
+  | { cmd: "media_devices"; cameras: MediaDevice[]; microphones: MediaDevice[] }
   | { cmd: "sync_create"; server: string; invite?: string }
   | { cmd: "sync_join"; server: string; words: string }
   | { cmd: "sync_now" }
@@ -869,6 +873,12 @@ export interface SplitDropFrame {
   url: string;
   full: boolean;
   panes: SplitDropPane[];
+}
+
+/** A camera or microphone as Chromium names it. `id` is what the order keeps: `default` for the system's default microphone, else `label`. */
+export interface MediaDevice {
+  id: string;
+  label: string;
 }
 
 /**
