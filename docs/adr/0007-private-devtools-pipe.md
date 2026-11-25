@@ -28,8 +28,10 @@ from inside the process.
 
 - Every descriptor is close-on-exec, so programs we start (`open`, …) do not
   inherit them. Chromium starts its helpers with an explicit descriptor list.
-- If fds 3 or 4 are taken at start, the pipe stays off and features that need
-  it do nothing.
+- A descriptor inherited on fd 3 or 4 is moved to a higher number and kept
+  open: AppImage's runtime leaves a pipe on fd 3 that keeps the image
+  mounted until it closes. If our own process opened fd 3 or 4 first, the
+  pipe stays off and features that need it do nothing.
 - On Windows the pipes are two anonymous pipes whose handles Chromium takes
   from `--remote-debugging-io-pipes`. Chromium runs in our process, so the
   handles stay valid without being inheritable, and no child gets them.

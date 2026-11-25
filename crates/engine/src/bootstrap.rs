@@ -32,17 +32,18 @@ fn sandbox_info() -> *mut u8 {
     SANDBOX_INFO.load(std::sync::atomic::Ordering::SeqCst)
 }
 
-/// Run the browser process. Blocks until Magnetite quits.
-/// Returns the process exit code.
 /// Make the private `DevTools` pipe (`devpipe.rs`) now. It needs file
-/// descriptors 3 and 4, which are free when a program starts and which the
-/// next file opened anywhere in the process takes: call this first in the
-/// browser process, before any thread is started. Without it [`run`] tries
-/// later, and fails for the whole run if a thread has a file open then.
+/// descriptors 3 and 4, which the next file opened anywhere in the process
+/// takes (what the starting program left there is moved aside): call this
+/// first in the browser process, before any thread is started. Without it
+/// [`run`] tries later, and fails for the whole run if a thread has a file
+/// open then.
 pub fn reserve_devtools_pipe() {
     crate::devpipe::open();
 }
 
+/// Run the browser process. Blocks until Magnetite quits.
+/// Returns the process exit code.
 pub fn run(config: EngineConfig, delegate: Arc<dyn EngineDelegate>) -> i32 {
     #[cfg(target_os = "macos")]
     let _loader = {

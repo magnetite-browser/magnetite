@@ -100,20 +100,33 @@ pub(crate) fn open() -> bool {
 /// Make the pipe; call in the browser process before CEF starts, and before
 /// any thread that may open a file (`reserve_devtools_pipe`). A second call
 /// finds it made.
-/// Returns false (and the features needing it stay off) when fds 3 and 4
-/// are already in use.
+/// A descriptor inherited on fd 3 or 4 is moved to a higher number and
+/// kept open. Returns false (and the features needing it stay off) when
+/// this process already uses fd 3 or 4 itself, or the system gives no pipe.
 #[cfg(unix)]
 pub(crate) fn open() -> bool {
     if PIPE.get().is_some() {
         return true;
     }
-    // SAFETY: plain POSIX calls on descriptors created here; fds 3 and 4
-    // are checked to be unused before anything is put there.
+    // SAFETY: plain POSIX calls on fds 3 and 4 and on descriptors created
+    // here; an fd this process opened itself is never moved or replaced.
     let fds = unsafe {
-        if libc::fcntl(CHROME_READS, libc::F_GETFD) != -1
-            || libc::fcntl(CHROME_WRITES, libc::F_GETFD) != -1
-        {
-            return false;
+        for fd in [CHROME_READS, CHROME_WRITES] {
+            match libc::fcntl(fd, libc::F_GETFD) {
+                -1 => {}
+                // Close-on-exec: opened by this process, which may use it by
+                // number. An inherited fd cannot have the flag yet.
+                flags if flags & libc::FD_CLOEXEC != 0 => return false,
+                // Inherited, as from AppImage's runtime: its pipe on fd 3
+                // keeps the image mounted until it closes. Keep it open
+                // (flags as they are) on a higher number; `dup2` below then
+                // closes the original.
+                _ => {
+                    if libc::fcntl(fd, libc::F_DUPFD, 10) == -1 {
+                        return false;
+                    }
+                }
+            }
         }
         let (mut to, mut from) = ([0; 2], [0; 2]);
         if libc::pipe(to.as_mut_ptr()) != 0 || libc::pipe(from.as_mut_ptr()) != 0 {
@@ -225,4 +238,74 @@ fn deliver(message: &[u8]) {
         None => Ok(value.get("result").cloned().unwrap_or(Value::Null)),
     };
     Engine::post(Box::new(move || reply(result)));
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use std::os::fd::{AsRawFd, RawFd};
+    use std::os::unix::process::CommandExt;
+    use std::process::Command;
+
+    use super::{CHROME_READS, CHROME_WRITES, open};
+
+    /// Set in the copy of the test binary that plays the started browser.
+    const CHILD: &str = "MAGNETITE_DEVPIPE_TEST_CHILD";
+    /// The copy's exit code once its checks pass: a test name that matches
+    /// nothing would exit with 0.
+    const PASSED: i32 = 7;
+
+    /// Started as AppImage's runtime starts Magnetite, with a pipe on fd 3
+    /// that keeps the image mounted while it is open: the `DevTools` pipe
+    /// takes fds 3 and 4, and the inherited pipe stays open on another fd.
+    #[test]
+    fn moves_an_inherited_fd_aside() {
+        if std::env::var_os(CHILD).is_some() {
+            check_in_child();
+            std::process::exit(PASSED);
+        }
+        let (keepalive, _writer) = std::io::pipe().unwrap();
+        let fd = keepalive.as_raw_fd();
+        let mut child = Command::new(std::env::current_exe().unwrap());
+        child
+            .args(["--exact", "devpipe::tests::moves_an_inherited_fd_aside"])
+            .env(CHILD, "1");
+        // SAFETY: only `dup2` and `fcntl`, both async-signal-safe, run
+        // between fork and exec. The flag is cleared by hand because `dup2`
+        // keeps it when the pipe already is on fd 3.
+        unsafe {
+            child.pre_exec(move || {
+                if libc::dup2(fd, CHROME_READS) == -1
+                    || libc::fcntl(CHROME_READS, libc::F_SETFD, 0) == -1
+                {
+                    return Err(std::io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
+        assert_eq!(child.status().unwrap().code(), Some(PASSED));
+    }
+
+    fn check_in_child() {
+        let inherited = inode(CHROME_READS).expect("fd 3 is inherited");
+        assert!(open());
+        for fd in [CHROME_READS, CHROME_WRITES] {
+            // SAFETY: plain fcntl on a descriptor number.
+            let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
+            assert!(
+                flags != -1 && flags & libc::FD_CLOEXEC != 0,
+                "fd {fd} is not the DevTools pipe"
+            );
+        }
+        assert_ne!(inode(CHROME_READS), Some(inherited));
+        assert!(
+            (10..64).any(|fd| inode(fd) == Some(inherited)),
+            "the inherited pipe was closed"
+        );
+    }
+
+    fn inode(fd: RawFd) -> Option<libc::ino_t> {
+        let mut stat = std::mem::MaybeUninit::<libc::stat>::uninit();
+        // SAFETY: fstat fills `stat` when it returns 0.
+        unsafe { (libc::fstat(fd, stat.as_mut_ptr()) == 0).then(|| stat.assume_init().st_ino) }
+    }
 }

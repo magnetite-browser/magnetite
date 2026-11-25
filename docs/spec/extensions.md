@@ -240,8 +240,10 @@ Tried by hand:
 - A `page_action` is off on a page until its extension shows it there.
   Opening such an extension then shows Chromium's menu for it instead of
   a popup, as Chrome does.
-- Without the DevTools pipe (on Linux and macOS, file descriptors 3 and 4
-  taken at start) the buttons and menu entries open nothing.
+- Without the DevTools pipe the buttons and menu entries open nothing. On
+  Linux and macOS that happens only when Magnetite opened file descriptor 3
+  or 4 itself before making the pipe; one it inherits there, as from
+  AppImage's runtime, is moved aside.
 - On a page WebView2 shows on Windows the buttons open nothing: it has no
   Chromium tab for the extension to act on (`protected-video.md`).
 
