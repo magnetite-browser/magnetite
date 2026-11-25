@@ -10,6 +10,10 @@ bar on top instead: the search field and a menu of the sections. A setting
 whose control has no room beside its name shows it below. Narrower than 320
 points, the page scrolls sideways.
 
+A right-click shows no page menu (Back, Reload, Inspect and the like), as on
+Magnetite's other pages: only in a text field does it show the text menu
+(Undo, Cut, Copy, Paste, Select All), and on selected text Copy.
+
 ## Sections
 
 The list starts with the overall settings, which stand under no name,
