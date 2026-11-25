@@ -227,13 +227,13 @@ What `CREDITS.html` (macOS arm64 distribution) contains, by licence type.
    (MPL-2.0 §3.2). The upstream links plus the offer cover this.
 4. **APSL-2.0**: include the licence (in `CREDITS.html`). We make no changes.
 
-**CEF source.** The corresponding source is Chromium 156.0.8078.111
-(<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.111>)
+**CEF source.** The corresponding source is Chromium 156.0.8078.122
+(<https://chromium.googlesource.com/chromium/src/+/refs/tags/156.0.8078.122>)
 plus CEF commit `e603d97dd5cb8b0e37d8f1daa2bc5c7eab1aa7a5`, which contains
 CEF's Chromium patches. Google's official tarballs are
 `chromium-<version>.tar.xz` (4.4 GB) and `…-lite.tar.xz` (2.0 GB) in
 `commondatastorage.googleapis.com/chromium-browser-official/`, but there is
-none for this version (checked 2026-11-20). For a version without one, we
+none for this version (checked 2026-11-25). For a version without one, we
 pack a full checkout of the tag (`gclient sync`, with all of its DEPS)
 ourselves. GitHub release files must stay under 2 GiB, so the full tarball
 cannot be a release asset.
