@@ -134,13 +134,18 @@ reads has them.
   change's id in its entry, makes the change only after that note is
   stored, and syncs the sidebar after. With several desktops in the chain
   one makes it; the others see the note. The phone sees it too and stops
-  listing the change; the desktop then forgets the id.
+  listing the change; the desktop then forgets the id. When the server's
+  answer to that note never comes, the desktop keeps the changes it noted
+  and makes them at its next sync if the note was stored, even if the
+  phone no longer lists them.
 - A change that adds something carries the id of what it adds, so it is
   never added twice.
-- Not made: an address Magnetite does not open from stored data, a
-  change to the private space or for a space deleted meanwhile, removing a
-  Today tab or a folder, and a kind of change this version does not know
-  (it stays listed, for a desktop that does).
+- Not made: an address Magnetite does not open from stored data; a
+  change to what does not sync (the private space, a space kept on this
+  device alone, what is in them, and favorites of a profile only such
+  spaces use); a change for a space deleted meanwhile; renaming or
+  removing a Today tab, and removing a folder; and a kind of change this
+  version does not know (it stays listed, for a desktop that does).
 
 Not synced: the archive, downloads, cookies and logins, which pages are
 open, split views, the search engine (a device holding the words could

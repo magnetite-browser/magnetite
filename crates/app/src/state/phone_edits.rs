@@ -2,6 +2,10 @@
 //! shows it already; this device makes it as the user would here, and the
 //! sidebar syncs after. Each change is made once: one that adds something
 //! carries the new item's id, and an item with that id is not added again.
+//!
+//! A phone sees only what syncs, so it changes only that: never the private
+//! space, a space kept on this device alone or what is in them, and of tabs
+//! only pinned ones and favorites.
 
 use magnetite_core::{FavoriteSet, SidebarNode, TabItem};
 use magnetite_engine::ContentId;
@@ -21,8 +25,8 @@ pub struct Made {
 
 impl AppState {
     /// Make `change` in the sidebar, as far as it can be made: an address
-    /// this device would not open, a space gone meanwhile or the private
-    /// space as its target leave it undone.
+    /// this device would not open, a space gone meanwhile, or a target that
+    /// does not sync (`phone_may_change`) leave it undone.
     pub fn apply_phone_edit(&mut self, change: &Change) -> Made {
         let changed = |changed| Made {
             changed,
@@ -82,7 +86,7 @@ impl AppState {
             }
             Change::Rename { item, title } => {
                 let title = title.trim();
-                if title.is_empty() || self.is_private_space(item) {
+                if title.is_empty() || !self.phone_may_change(item) {
                     return Made::default();
                 }
                 if let Some(space) = self.space_mut(item) {
@@ -98,6 +102,9 @@ impl AppState {
                 changed(true)
             }
             Change::Remove { item } => {
+                if !self.phone_may_change(item) {
+                    return Made::default();
+                }
                 let favorite = self
                     .find_tab(item)
                     .is_some_and(|(space, _)| space.is_none());
@@ -117,11 +124,40 @@ impl AppState {
     }
 
     /// Whether a phone may add `url` to `space`: an address this device
-    /// opens, in a space that is there and not the private one.
+    /// opens, in a space that is there and syncs.
     fn phone_may_add(&self, space: &str, url: &str) -> bool {
         url_policy::allowed(url, url_policy::Source::Stored)
             && self.space(space).is_some()
-            && !self.is_private_space(space)
+            && self.syncs_space(space)
+    }
+
+    /// Whether a phone may rename or remove `item`: a space that syncs, a
+    /// folder or pinned tab in one, or a favorite of a profile that syncs.
+    /// Not a Today tab.
+    fn phone_may_change(&self, item: &str) -> bool {
+        fn holds(nodes: &[SidebarNode], id: &str) -> bool {
+            nodes.iter().any(|n| match n {
+                SidebarNode::Tab(t) => t.id == id,
+                SidebarNode::Folder(f) => f.id == id || holds(&f.children, id),
+            })
+        }
+        if let Some(space) =
+            (self.sidebar.spaces.iter()).find(|s| s.id == item || holds(&s.pinned, item))
+        {
+            return self.syncs_space(&space.id);
+        }
+        let favorites = self.sidebar.favorites.iter();
+        favorites
+            .filter(|f| f.items.iter().any(|t| t.id == item))
+            .any(|f| {
+                !self.private_profiles.contains(&f.profile_id)
+                    && !self.unsynced_profiles().contains(&f.profile_id)
+            })
+    }
+
+    /// Neither the private space nor one kept on this device alone.
+    fn syncs_space(&self, id: &str) -> bool {
+        !self.is_private_space(id) && !self.unsynced_spaces.contains(id)
     }
 }
 
@@ -244,5 +280,47 @@ mod tests {
                 .changed
         );
         assert!(s.find_tab("a").is_some());
+    }
+
+    #[test]
+    fn what_does_not_sync_is_not_the_phones_to_change() {
+        let mut s = state();
+        let rename = |item: &str| Change::Rename {
+            item: item.into(),
+            title: "Phone's".into(),
+        };
+        // A Today tab.
+        assert!(!s.apply_phone_edit(&rename("a")).changed);
+        // The private space and its pinned tabs.
+        let private = s.open_private_space(false);
+        let pinned = Change::Pin {
+            space: private.clone(),
+            item: "t9".into(),
+            url: "https://p.example/".into(),
+            title: "P".into(),
+        };
+        assert!(!s.apply_phone_edit(&pinned).changed);
+        s.space_mut(&private)
+            .unwrap()
+            .pinned
+            .push(SidebarNode::Tab(phone_tab("pp", "https://p.example/", "P")));
+        assert!(!s.apply_phone_edit(&rename("pp")).changed);
+        assert!(
+            !s.apply_phone_edit(&Change::Remove { item: "pp".into() })
+                .changed
+        );
+        assert!(s.is_pinned_tab("pp"));
+        // A space kept on this device alone, and its pinned tab.
+        let here = s.active_space.clone();
+        s.set_space_synced(&here, false);
+        assert!(!s.apply_phone_edit(&here_pin(&s, "t10")).changed);
+        assert!(!s.apply_phone_edit(&rename("p")).changed);
+        assert!(!s.apply_phone_edit(&rename(&here)).changed);
+        s.set_space_synced(&here, true);
+        assert!(s.apply_phone_edit(&rename("p")).changed);
+    }
+
+    fn here_pin(s: &AppState, item: &str) -> Change {
+        here(s, pin(item, "https://h.example/"))
     }
 }

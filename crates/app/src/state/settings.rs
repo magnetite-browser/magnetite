@@ -779,6 +779,10 @@ pub struct SyncSettings {
     /// Phones' changes to the sidebar made here that their phones may still
     /// list (`devices` module).
     pub applied: Vec<String>,
+    /// Phones' changes claimed here in a write whose answer never came
+    /// (`sync::Outcome::Claimed`): made by the next round if the claim was
+    /// stored. Kept whole, as their phone may no longer list them.
+    pub claimed: Vec<crate::devices::Edit>,
 }
 
 impl Settings {

@@ -78,7 +78,7 @@ struct Entry {
 }
 
 /// A change a phone asks for (magnetite-mobile-core's `edits::Edit`).
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Edit {
     /// The edit's own id; `item` in the change names what it is about.
     pub id: String,
@@ -86,7 +86,7 @@ pub struct Edit {
     pub change: Change,
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum Change {
     /// A new pinned tab `item`, last in the space's pinned tree.
@@ -136,6 +136,9 @@ pub struct Me {
     pub name: String,
     pub taken: Vec<String>,
     pub applied: Vec<String>,
+    /// Edits claimed in a write whose answer never came, so not made yet
+    /// (`SyncSettings::claimed`).
+    pub claimed: Vec<Edit>,
 }
 
 /// A tab open on another device, as the sidebar shows it.
@@ -218,7 +221,14 @@ pub fn round(all: &mut Devices, me: &Me, now: UnixSeconds) -> Round {
             applied.push(id.clone());
         }
     }
-    let mut edits = Vec::new();
+    // Claimed in a write whose answer never came: the stored entry holds the
+    // claim, so they are this device's to make, whether or not their phone
+    // still lists them.
+    let stored_claims = stored.map(|d| d.applied.as_slice()).unwrap_or_default();
+    let mut edits: Vec<Edit> = (me.claimed.iter())
+        .filter(|e| stored_claims.contains(&e.id) && !me.applied.contains(&e.id))
+        .cloned()
+        .collect();
     for d in others() {
         for e in &d.edits {
             let Ok(edit) = serde_json::from_value::<Edit>(e.clone()) else {
@@ -299,6 +309,7 @@ mod tests {
             name: "Mac".into(),
             taken: taken.iter().map(ToString::to_string).collect(),
             applied: Vec::new(),
+            claimed: Vec::new(),
         }
     }
 
@@ -416,6 +427,29 @@ mod tests {
         assert!(next.edits.is_empty() && !next.write);
         let early = round(&mut all, &me(&[]), NOW);
         assert!(early.edits.is_empty() && !early.write);
+    }
+
+    #[test]
+    fn an_edit_claimed_without_an_answer_is_made_by_the_next_round() {
+        let mut all = phone_editing("");
+        let first = round(&mut all, &me(&[]), NOW);
+        // The claim was stored, its answer lost: nothing was made here, and
+        // the phone, seeing the claim, no longer lists the edit.
+        let lost = Me {
+            claimed: first.edits.clone(),
+            ..me(&[])
+        };
+        if let Some(phone) = all.devices.iter_mut().find(|d| d.id == "phone") {
+            phone.edits.clear();
+        }
+        let next = round(&mut all, &lost, NOW);
+        assert_eq!(next.edits, first.edits);
+        // Made once: noted as made, it is not made again.
+        let made = Me {
+            applied: vec!["e1".into()],
+            ..lost
+        };
+        assert_eq!(round(&mut all, &made, NOW).edits, []);
     }
 
     #[test]

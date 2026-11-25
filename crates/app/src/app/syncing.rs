@@ -77,6 +77,7 @@ impl MagnetiteApp {
                 .into(),
                 taken: s.settings.sync.taken.clone(),
                 applied: s.settings.sync.applied.clone(),
+                claimed: s.settings.sync.claimed.clone(),
             };
             Some(Job::Sync {
                 me,
@@ -156,6 +157,9 @@ impl MagnetiteApp {
                     *known = (*known).max(version);
                     sync.taken.retain(|id| !forgotten.contains(id));
                     sync.applied.retain(|id| !unlisted.contains(id));
+                    // This round settled them: made now (in `edits`), or
+                    // another device's, or never claimed and claimed anew.
+                    sync.claimed.clear();
                     // Not those taken while this round was under way: with a
                     // click, or opened after an earlier round's answer.
                     let new = |t: &RemoteTab| !sync.taken.contains(&t.id);
@@ -192,6 +196,14 @@ impl MagnetiteApp {
                     self.sync_now();
                 }
             }
+            Outcome::Claimed(edits) => self.with_state(|s| {
+                let claimed = &mut s.settings.sync.claimed;
+                for edit in edits {
+                    if !claimed.iter().any(|c| c.id == edit.id) {
+                        claimed.push(edit);
+                    }
+                }
+            }),
             Outcome::Error(msg) | Outcome::ConnectFailed(msg) => {
                 self.with_state(|s| s.settings.sync.last_error = Some(msg));
                 self.push_state(engine);

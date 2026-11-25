@@ -255,6 +255,11 @@ pub enum Outcome {
         unlisted: Vec<String>,
         version: u64,
     },
+    /// Phones' edits this round claimed in a write whose answer never came.
+    /// Whether the claim was stored, a later round finds out; until then
+    /// they are kept (`SyncSettings::claimed`), as the phone may stop
+    /// listing them once it sees the claim.
+    Claimed(Vec<Edit>),
     Error(String),
     Disconnected,
 }
@@ -921,6 +926,7 @@ impl Worker {
             };
             self.known.insert(DEVICES.to_string(), version);
             let round = devices::round(&mut all, me, crate::state::now());
+            let claimed = round.edits.clone();
             let done = |version| {
                 vec![Outcome::Devices {
                     tabs: round.tabs,
@@ -952,7 +958,10 @@ impl Worker {
                 }
                 // Another device wrote first: read again.
                 Err(Unwritten::Behind) => {}
-                Err(Unwritten::Failed(e)) => return vec![Outcome::Error(e)],
+                Err(Unwritten::Failed(e)) if claimed.is_empty() => return vec![Outcome::Error(e)],
+                Err(Unwritten::Failed(e)) => {
+                    return vec![Outcome::Claimed(claimed), Outcome::Error(e)];
+                }
             }
         }
         vec![Outcome::Error(t!("app.sync.devices_busy").into())]
@@ -1065,6 +1074,7 @@ mod tests {
             Outcome::Pulled { .. } => "Pulled".into(),
             Outcome::Pushed { .. } => "Pushed".into(),
             Outcome::Devices { .. } => "Devices".into(),
+            Outcome::Claimed(_) => "Claimed".into(),
             Outcome::Error(e) => format!("Error({e})"),
             Outcome::Disconnected => "Disconnected".into(),
         }
@@ -1210,6 +1220,7 @@ mod tests {
             name: "Mac".into(),
             taken: Vec::new(),
             applied: Vec::new(),
+            claimed: Vec::new(),
         }
     }
 
