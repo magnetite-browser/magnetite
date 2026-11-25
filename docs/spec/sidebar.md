@@ -206,7 +206,9 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
   another page on screen, else the space's first tab). With none left, no
   tab is in front; a closed pinned tab does not load again by itself.
 - "Remove from favorites" and "Move to …" put the tab at the top of Today,
-  in the current space or the chosen one.
+  in the current space or the chosen one. Where the spaces use more than
+  one profile, each "Move to …" entry shows its space's profile in a small
+  box after the name, so two spaces of the same name can be told apart.
 - Moving does not reload the page, unless the tab lands in another
   profile: then it loads again there. A tab that enters Pinned or the favorites
   takes its current address as home page if it has none; a tab that enters

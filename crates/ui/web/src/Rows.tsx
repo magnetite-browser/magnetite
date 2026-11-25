@@ -148,10 +148,19 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   }
   const targets = inPrivate ? [] : spaces.filter((sp) => sp.id !== ctx.state.private_space);
   if (targets.length > 1) {
+    // Where the spaces use more than one profile, each names its own: two
+    // spaces may share a name, and a tab moved into another profile loads
+    // again with that profile's logins.
+    const { profiles } = ctx.state.sidebar;
+    const showProfile = new Set(targets.map((sp) => sp.profile_id)).size > 1;
     items.push(SEPARATOR);
     for (const sp of targets) {
       if (sp.id === ctx.spaceId) continue;
-      items.push({ label: t("sidebar.tab_menu.move_to", { space: sp.title }), onClick: () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 }) });
+      items.push({
+        label: t("sidebar.tab_menu.move_to", { space: sp.title }),
+        tag: showProfile ? (profiles.find((p) => p.id === sp.profile_id)?.name ?? t("sidebar.profile.fallback")) : undefined,
+        onClick: () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 }),
+      });
     }
   }
   const last: MenuItem[] = [];

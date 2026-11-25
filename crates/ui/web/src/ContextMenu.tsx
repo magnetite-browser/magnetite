@@ -13,6 +13,8 @@ export type MenuItem =
       title?: string;
       /** A short note at the right edge, such as a time. */
       hint?: string;
+      /** A name in a box right after the label, such as the profile a space uses. */
+      tag?: string;
       onClick: () => void;
       danger?: boolean;
       /** Ask first: the first click shows this label in place, the second runs `onClick`. */
@@ -60,7 +62,7 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
         ) : (
           <button
             key={i}
-            title={it.title ?? it.label}
+            title={it.title ?? (it.tag ? `${it.label} · ${it.tag}` : it.label)}
             data-danger={it.danger || undefined}
             onClick={() => {
               if (it.confirm && armed !== i) {
@@ -73,6 +75,7 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
           >
             {it.icon}
             <span>{armed === i ? it.confirm : it.label}</span>
+            {it.tag && <span className="tag">{it.tag}</span>}
             {it.hint && <span className="hint">{it.hint}</span>}
           </button>
         ),
