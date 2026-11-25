@@ -1,6 +1,7 @@
 // Settings → Permissions, on top: the order of the cameras and of the
 // microphones. A website that does not ask for a particular device gets the
 // first one of the list that is connected (`device_order.rs` in the engine).
+import { useState } from "react";
 import { send, type MediaDevice } from "../bridge";
 import { t } from "../i18n";
 import { Group } from "./fields";
@@ -21,12 +22,20 @@ function rowsOf(order: string[], connected: MediaDevice[]): Row[] {
   ];
 }
 
-function DeviceList({ kind, rows, save }: { kind: Kind; rows: Row[]; save: (ids: string[]) => Promise<unknown> }) {
+function DeviceList({ kind, rows: saved, save }: { kind: Kind; rows: Row[]; save: (ids: string[]) => Promise<unknown> }) {
+  // The order on its way to the app, shown until the settings are read
+  // again: a change made meanwhile starts from it, not from the one before.
+  const [pending, setPending] = useState<string[] | null>(null);
+  const rows = pending ? pending.flatMap((id) => saved.find((r) => r.id === id) ?? []) : saved;
   const ids = rows.map((r) => r.id);
+  const commit = (next: string[]) => {
+    setPending(next);
+    return save(next).finally(() => setPending((now) => (now === next ? null : now)));
+  };
   const move = (id: string, index: number) => {
     const next = ids.filter((other) => other !== id);
     next.splice(index, 0, id);
-    return save(next);
+    return commit(next);
   };
   /** Where the dragged device ends up when dropped on the row of `target`, or null when it would not move. */
   const landing = (dragged: string, target: string, below: boolean) => {
@@ -64,7 +73,7 @@ function DeviceList({ kind, rows, save }: { kind: Kind; rows: Row[]; save: (ids:
           {!row.connected && (
             <>
               <span className="set-hint" style={{ marginTop: 0 }}>{t("permissions.devices.not_connected")}</span>
-              <button className="btn ghost" title={t("permissions.devices.remove_title")} onClick={() => void save(ids.filter((id) => id !== row.id))}>{t("common.remove")}</button>
+              <button className="btn ghost" title={t("permissions.devices.remove_title")} onClick={() => void commit(ids.filter((id) => id !== row.id))}>{t("common.remove")}</button>
             </>
           )}
         </div>
