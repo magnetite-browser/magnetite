@@ -81,19 +81,22 @@ the row turns the icon into a back arrow that takes the page back.
   (`"inactive"`, `"load"` or `"switch"`) in `state.json`; it is not
   synced. A tab of the hidden private space stays behind in every case.
 - **Where such a tab goes.** At the top of Today, as every new tab. With
-  Settings → Links → "Where the new tab goes" set to "below the tab it
-  came from", a tab that a tab's page opens (a link in a new tab,
-  `window.open`, a middle click on back, forward or reload) goes directly
-  below that tab when it is in Today; the tabs the same page opened before
-  stay between them, so several links read in the order they were opened.
-  Below a split means below its row. The tab of a pinned tab, a favorite,
-  a peek, a mini window, a web panel or an extension, and one that goes to
-  another space, is at the top; so are a link from another app (no tab
-  opened it, and a rule may send it to another space), the command bar's new tab, kept
-  peeks and mini windows and restored tabs. Which tab opened which is not
-  saved: after a restart the next tab of a page goes directly below it.
-  This device's own, `settings.new_tab_place` (`"top"` or `"below"`); it
-  is not synced.
+  Settings → Links → "Where the new tab goes" set to "below the tab it came
+  from", a tab that a tab's page opens (a link in a new tab, `window.open`,
+  a middle click on back, forward or reload) goes directly below that tab
+  when it is in Today; the tabs the same page opened before, and the tabs
+  those opened, stay between them, so several links read in the order they
+  were opened. Below a split means below its row, which shows at its first
+  page that has a row (its other pages show none); a split whose row is with
+  the pinned tabs leaves the tab at the top. The tabs a split's pages opened
+  count as its row's. The tab of a pinned tab, a favorite, a peek, a mini
+  window, a web panel or an extension, and one that goes to another space,
+  is at the top; so are a link from another app (no tab opened it, and a
+  rule may send it to another space), the command bar's new tab, kept peeks
+  and mini windows and restored tabs. Which tab opened which is not saved:
+  after a restart the next tab of a page goes directly below it. This
+  device's own, `settings.new_tab_place` (`"top"` or `"below"`); it is not
+  synced.
 - **Load pinned tabs at start** (Settings → Tabs and archive, off by
   default): the favorites and pinned tabs of every space load their pages
   in the background when Magnetite starts, three at a time, so none waits

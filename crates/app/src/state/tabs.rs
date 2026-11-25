@@ -3,12 +3,20 @@
 
 use std::collections::HashSet;
 
+use magnetite_core::split::SplitNode;
 use magnetite_core::{Color, Id, SidebarNode, Space, TabItem, UnixSeconds};
 use magnetite_engine::{ContentId, MemoryPressure};
 
 use super::history::page_of;
 use super::settings::{MAX_ARCHIVE_DAYS, NEVER_ARCHIVE};
 use super::{AppState, ArchivedTab, ChosenProfile, NewTabPlace, Peek, TabRuntime, new_id, now};
+
+/// The page of `split` whose row shows the split in space `sp`: the first
+/// of its pages, in reading order, with a row there, as the sidebar draws
+/// it (`App.tsx`). None when no page of it is in the space.
+fn split_row(sp: &Space, split: &SplitNode<Id>) -> Option<Id> {
+    split.ids().into_iter().find(|p| sp.find_tab(p).is_some())
+}
 
 pub(super) fn find_in_tree_mut<'a>(
     nodes: &'a mut [SidebarNode],
@@ -230,42 +238,50 @@ impl AppState {
     }
 
     /// Tab `id`, just opened at the top of Today by the page of tab
-    /// `opener`, goes below that tab if Settings → Links says so and both
-    /// are in the Today list of one space (a pinned tab's or a favorite's
-    /// new tab stays at the top, as does one that went to another space).
-    /// Tabs the same page opened before stay between them, so several
-    /// links opened one after the other read from the top down, and a
-    /// split the opener is in stays whole: the tab goes below its row.
+    /// `opener`, goes below that tab's row if Settings → Links says so and
+    /// both are in the Today list of one space (a pinned tab's or a
+    /// favorite's new tab stays at the top, as does one that went to
+    /// another space). A split the opener is in is one row, at its first
+    /// page with a row in the space (`split_row`): the tab goes below it,
+    /// or stays at the top when that row is a pinned one. The tabs the
+    /// row's pages opened before, and the tabs those opened, stay between,
+    /// so links opened one after the other read from the top down.
     pub fn place_below_opener(&mut self, id: &str, opener: &str) {
         if self.settings.new_tab_place != NewTabPlace::Below || id == opener {
             return;
         }
-        let split = self
-            .splits
-            .iter()
-            .find(|sp| sp.contains(&opener.to_string()));
-        let opened_before: HashSet<&Id> = (self.runtime.iter())
-            .filter(|(_, rt)| rt.opener.as_deref() == Some(opener))
-            .map(|(tab, _)| tab)
-            .collect();
         let has = |sp: &Space, tab: &str| sp.today.iter().any(|t| t.id == tab);
         let Some(space) =
             (self.sidebar.spaces.iter()).position(|sp| has(sp, id) && has(sp, opener))
         else {
             return;
         };
-        let today = &self.sidebar.spaces[space].today;
-        let at = |tab: &str| today.iter().position(|t| t.id == tab);
-        // Below the opener, or the last page of its split's row.
-        let mut to = (today.iter().enumerate())
-            .filter(|(_, t)| t.id == opener || split.is_some_and(|sp| sp.contains(&t.id)))
-            .map(|(i, _)| i + 1)
-            .max()
-            .unwrap_or(0);
-        while today.get(to).is_some_and(|t| opened_before.contains(&t.id)) {
+        let sp = &self.sidebar.spaces[space];
+        let split = (self.splits.iter()).find(|t| t.contains(&opener.to_string()));
+        let pages = split.map_or_else(|| vec![opener.to_string()], SplitNode::ids);
+        let row = split.map_or_else(|| Some(opener.to_string()), |t| split_row(sp, t));
+        let Some(at) = row.and_then(|r| sp.today.iter().position(|t| t.id == r)) else {
+            return;
+        };
+        // Opened by one of the row's pages, or by a tab opened so. Bounded,
+        // should the chain ever loop.
+        let opened_from_row = |tab: &str| {
+            let opener_of = |t: &str| self.runtime.get(t).and_then(|rt| rt.opener.as_deref());
+            std::iter::successors(opener_of(tab), |o| opener_of(o))
+                .take(self.runtime.len())
+                .any(|o| pages.iter().any(|p| p == o))
+        };
+        // A split's other pages show no row, so they end nothing.
+        let no_row = |tab: &Id| {
+            (self.splits.iter()).any(|t| t.contains(tab) && split_row(sp, t).as_ref() != Some(tab))
+        };
+        let mut to = at + 1;
+        while (sp.today.get(to)).is_some_and(|t| opened_from_row(&t.id) || no_row(&t.id)) {
             to += 1;
         }
-        let Some(from) = at(id) else { return };
+        let Some(from) = sp.today.iter().position(|t| t.id == id) else {
+            return;
+        };
         let today = &mut self.sidebar.spaces[space].today;
         let tab = today.remove(from);
         today.insert(if from < to { to - 1 } else { to }, tab);
@@ -904,16 +920,19 @@ mod tests {
         let one = open(&mut s, "b1", "b");
         open(&mut s, "b2", "b");
         assert_eq!(today(&s), ["top", "a", "b", "b1", "b2", "c"]);
-        // A tab opened from one of those is below that one.
+        // A tab opened from one of those is below that one, and the page's
+        // next tab after both.
         open(&mut s, "b1x", &one);
         assert_eq!(today(&s), ["top", "a", "b", "b1", "b1x", "b2", "c"]);
+        open(&mut s, "b3", "b");
+        assert_eq!(today(&s), ["top", "a", "b", "b1", "b1x", "b2", "b3", "c"]);
         // The last tab's goes to the end, the first one's stays second.
         open(&mut s, "c1", "c");
         let first = s.active_space().today[0].id.clone();
         open(&mut s, "top1", &first);
         assert_eq!(
             today(&s),
-            ["top", "top1", "a", "b", "b1", "b1x", "b2", "c", "c1"]
+            ["top", "top1", "a", "b", "b1", "b1x", "b2", "b3", "c", "c1"]
         );
         // A pinned tab is not in Today: its new tab is at the top.
         open(&mut s, "p1", "p");
@@ -929,18 +948,47 @@ mod tests {
         let elsewhere = s.new_today_tab("two", "https://example.org/", "far");
         s.place_below_opener(&elsewhere, "c");
         assert_eq!(s.space("two").unwrap().today[0].id, elsewhere);
-        // A split stays one row: the tab goes below its last page.
-        let mut split = magnetite_core::split::SplitNode::pane("a".to_string());
-        split.insert(
-            &"a".to_string(),
-            "b".to_string(),
-            magnetite_core::split::Side::Right,
-        );
-        s.splits.push(split);
+    }
+
+    #[test]
+    fn a_pages_new_tab_goes_below_its_splits_row() {
+        let mut s = state();
+        let space = s.active_space.clone();
+        s.settings.new_tab_place = crate::state::NewTabPlace::Below;
+        let today = |s: &AppState| -> Vec<String> {
+            let tabs = s.active_space().today.iter();
+            tabs.map(|t| t.title.clone()).collect()
+        };
+        let open = |s: &mut AppState, title: &str, opener: &str| {
+            let id = s.new_today_tab(&space, "https://example.org/", title);
+            s.place_below_opener(&id, opener);
+        };
+        let split = |first: &str, second: &str| {
+            let mut t = SplitNode::pane(first.to_string());
+            t.insert(
+                &first.to_string(),
+                second.to_string(),
+                magnetite_core::split::Side::Right,
+            );
+            t
+        };
+        // Split a | c with b between them: the sidebar shows the split in
+        // a's place, and the tab goes right below that row, from either page.
+        s.splits = vec![split("a", "c")];
         open(&mut s, "a1", "a");
-        let now = today(&s);
-        let at = |title: &str| now.iter().position(|t| t == title).unwrap();
-        assert_eq!(at("a1"), at("b") + 1, "below the row of a and b");
+        open(&mut s, "c1", "c");
+        assert_eq!(today(&s), ["a", "a1", "c1", "b", "c"]);
+        // Split b | c, its pages next to each other: c shows no row, so it
+        // does not end what the row opened before.
+        s.splits = vec![split("b", "c")];
+        open(&mut s, "b1", "b");
+        open(&mut s, "c2", "c");
+        assert_eq!(today(&s), ["a", "a1", "c1", "b", "c", "b1", "c2"]);
+        // A split shown with the pinned tabs: its Today page's tab is at
+        // the top.
+        s.splits = vec![split("p", "b")];
+        open(&mut s, "b2", "b");
+        assert_eq!(today(&s)[0], "b2");
     }
 
     #[test]

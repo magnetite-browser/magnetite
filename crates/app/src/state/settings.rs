@@ -564,7 +564,7 @@ pub enum NewTabLinks {
 #[serde(rename_all = "lowercase")]
 pub enum NewTabPlace {
     /// Below the tab whose page opened it, after the tabs that page opened
-    /// before (`AppState::place_below_opener`).
+    /// before and the tabs those opened (`AppState::place_below_opener`).
     Below,
     /// At the top of Today, as every new tab. Last: `serde(other)` has to be.
     #[default]
