@@ -146,8 +146,7 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
       items.push({ label: `${own.length > 0 ? "● " : "○ "}${t("sidebar.tab_menu.show_only_in", { space: here.title })}`, onClick: () => send({ cmd: "set_favorite_spaces", id: tab.id, spaces: [here.id] }) });
     }
   }
-  // One other space is a row of its own; more open as a list, which scrolls
-  // when they do not fit the window.
+  // One other space is a row of its own; more open as a list (see `ContextMenu`).
   const targets = inPrivate ? [] : spaces.filter((sp) => sp.id !== ctx.state.private_space && sp.id !== ctx.spaceId);
   const moveTo = (sp: Space) => () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 });
   const [first, ...others] = targets;
