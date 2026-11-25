@@ -63,10 +63,11 @@ objc2-web-kit = { version = "0.3", default-features = false, features = [
 
 # The system's own web engine on Windows: WebView2, Edge's engine, which
 # ships with the system (`system.rs`, `win/webview2.rs`). COM, through the
-# bindings Microsoft's `windows` crate makes of its SDK.
+# bindings Microsoft's `windows` crate makes of its SDK. Its core types come
+# through `windows::core`, so they always match the `windows` version;
+# `webview2-com` must be built on that same version.
 [target.'cfg(target_os = "windows")'.dependencies]
 webview2-com = "0.39"
-windows-core = "0.62"
 windows = { version = "0.62", features = [
     "Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Graphics_Imaging", "Win32_Networking_WinHttp", "Win32_Security",
     "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_LibraryLoader", "Win32_System_Pipes", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell",

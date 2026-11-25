@@ -64,7 +64,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     SWP_SHOWWINDOW, SetWindowPos, WINDOW_EX_STYLE, WINDOWPOS, WM_MOVE, WM_SIZE,
     WM_WINDOWPOSCHANGED, WNDCLASSW, WS_CHILD, WS_CLIPCHILDREN, WS_POPUP, WS_VISIBLE,
 };
-use windows_core::{BOOL, HRESULT, HSTRING, Interface, PCWSTR, PWSTR, w};
+use windows::core::{BOOL, HRESULT, HSTRING, Interface, PCWSTR, PWSTR, w};
 
 use crate::engine::Engine;
 use crate::events::ContentId;
@@ -126,7 +126,7 @@ fn owned(text: PWSTR) -> Option<String> {
 }
 
 /// A string getter of WebView2's, called and its answer copied.
-fn get(call: impl FnOnce(*mut PWSTR) -> windows_core::Result<()>) -> Option<String> {
+fn get(call: impl FnOnce(*mut PWSTR) -> windows::core::Result<()>) -> Option<String> {
     let mut text = PWSTR::null();
     call(&raw mut text).ok()?;
     owned(text)
@@ -483,7 +483,7 @@ fn clear_with(view: &ICoreWebView2, domain: Option<String>, done: Cleared) {
 fn clear_everything(
     view: &ICoreWebView2,
     finish: impl Fn(Result<Option<usize>, String>) + 'static,
-) -> windows_core::Result<()> {
+) -> windows::core::Result<()> {
     // SAFETY: a live view; WebView2 keeps the handler until it reports.
     unsafe {
         let profile = view
@@ -505,7 +505,7 @@ fn clear_site(
     view: &ICoreWebView2,
     domain: String,
     finish: impl Fn(Result<Option<usize>, String>) + Clone + 'static,
-) -> windows_core::Result<()> {
+) -> windows::core::Result<()> {
     // SAFETY: a live view; WebView2 keeps the handler until it reports.
     unsafe {
         let manager = view.cast::<ICoreWebView2_2>()?.CookieManager()?;

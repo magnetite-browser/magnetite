@@ -24,7 +24,7 @@ use windows::Win32::System::Com::{
     STATFLAG_NONAME, STATSTG, STREAM_SEEK_SET,
 };
 use windows::Win32::UI::Shell::SHCreateMemStream;
-use windows_core::{HSTRING, PCWSTR, w};
+use windows::core::{HSTRING, PCWSTR, w};
 
 /// The largest icon a site may hand over: more is not an icon.
 const ICON_LIMIT: usize = 1 << 20;
