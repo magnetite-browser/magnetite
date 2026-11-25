@@ -21,6 +21,8 @@
   const later = setTimeout.bind(window);
   const cancel = clearTimeout.bind(window);
   const every = setInterval.bind(window);
+  const Ref = WeakRef;
+  const deref = Function.prototype.call.bind(WeakRef.prototype.deref);
 
   // Media Session handlers the page registers (Spotify, YouTube Music, …).
   const handlers = new Map();
@@ -39,8 +41,12 @@
     }.setActionHandler;
   }
 
-  // Every media element that ever played, also detached `new Audio()` ones.
+  // Every media element that ever played, also detached `new Audio()` ones,
+  // held weakly: one the page let go of goes too. A feed takes the posts
+  // scrolled past out of the page, their videos paused but loaded, and
+  // holding them would keep each one alive.
   const elements = new Set();
+  const watched = new WeakSet();
   // Elements that really played their current source. A source loaded but
   // never started (YouTube queues the next video or an ad; background tabs
   // hold new playback back) is not worth a paused player row.
@@ -53,8 +59,9 @@
     schedule();
   };
   const watch = (el) => {
-    if (elements.has(el)) return;
-    elements.add(el);
+    if (watched.has(el)) return;
+    watched.add(el);
+    elements.add(new Ref(el));
     for (const type of ["play", "playing", "pause", "ended", "emptied", "loadstart", "volumechange", "loadedmetadata"]) el.addEventListener(type, onEvent);
   };
   const play = HTMLMediaElement.prototype.play;
@@ -115,9 +122,17 @@
     let paused = null;
     let silent = null;
     const floating = document.pictureInPictureElement;
-    for (const el of elements) {
+    for (const ref of elements) {
+      const el = deref(ref);
+      if (!el) {
+        elements.delete(ref);
+        continue;
+      }
       if (el.ended || (el.paused && el.readyState === 0)) {
-        if (!el.isConnected) elements.delete(el);
+        if (!el.isConnected) {
+          elements.delete(ref);
+          watched.delete(el);
+        }
         continue;
       }
       if (!played.has(el)) continue;
