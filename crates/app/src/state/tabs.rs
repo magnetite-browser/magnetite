@@ -313,6 +313,16 @@ impl AppState {
         Some(id)
     }
 
+    /// The tab whose row shows tab `tab` in space `sp`: the tab itself, or
+    /// for a page of a split, the split's row there (`split_row`).
+    pub fn row_of(&self, sp: &Space, tab: &str) -> Option<Id> {
+        let tab = tab.to_string();
+        match self.splits.iter().find(|t| t.contains(&tab)) {
+            Some(split) => split_row(sp, split),
+            None => Some(tab),
+        }
+    }
+
     /// Tab `id`, just opened at the top of Today by the page of tab
     /// `opener`, goes below that tab's row if Settings → Links says so and
     /// both are in the Today list of one space (a pinned tab's or a

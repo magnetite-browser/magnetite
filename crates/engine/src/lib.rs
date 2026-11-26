@@ -62,6 +62,7 @@ mod panel_stack;
 #[cfg(target_os = "linux")]
 mod peek_backdrop;
 #[cfg(target_os = "macos")]
+mod pinning;
 mod pip;
 mod placement;
 mod privacy;
@@ -101,7 +102,7 @@ pub use downloads::{DownloadControl, DownloadPrefs};
 pub use engine::{ContextProfile, Engine, EngineDelegate, WindowId};
 pub use events::{
     ContentId, DevPanel, DevToolsAction, DividerAction, DownloadReport, DownloadState, EngineEvent,
-    ExtensionMenuAction, MemoryPressure, Shortcut, UrlSource,
+    ExtensionMenuAction, ExtensionTabPlace, MemoryPressure, OpenedBy, Shortcut, Side, UrlSource,
 };
 pub use extensions::{ExtensionInfo, is_extension_id};
 pub use frame::{PageFrame, SidebarSide};

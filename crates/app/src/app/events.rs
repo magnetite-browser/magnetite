@@ -324,9 +324,12 @@ impl EngineDelegate for MagnetiteApp {
                 id,
                 url,
                 background,
-                from,
+                by,
                 context,
-            } => self.keep_extension_tab(engine, id, &url, background, from, &context),
+            } => self.keep_extension_tab(engine, id, &url, background, by, &context),
+            EngineEvent::ExtensionPinnedTab { id, pinned } => {
+                self.extension_pinned_tab(engine, id, pinned);
+            }
             // Keys and menu bar items from a mini window act on its page.
             EngineEvent::Shortcut {
                 from: Some(id),

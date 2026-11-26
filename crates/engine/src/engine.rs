@@ -173,6 +173,9 @@ pub(crate) struct Inner {
     /// Pages the app muted. Kept here because a page gets its browser a
     /// moment after it is asked for: the mute is applied once it has one.
     pub muted: HashSet<ContentId>,
+    /// Pages whose tab is pinned in Chromium, as told to it or heard from
+    /// it (`pinning.rs`). Kept for a page that has no browser yet, too.
+    pub pinned: HashSet<ContentId>,
     /// Which tabs pages capture (`tabshare.rs`).
     pub shares: crate::tabshare::Shares,
     /// Pages shown as on a phone (`set_mobile_view`). Kept here for the
@@ -327,6 +330,7 @@ impl Engine {
                 languages: crate::LanguagePrefs::default(),
                 device_order: crate::DeviceOrder::default(),
                 muted: HashSet::new(),
+                pinned: HashSet::new(),
                 shares: crate::tabshare::Shares::default(),
                 mobile: HashSet::new(),
                 ui_reloads: HashMap::new(),

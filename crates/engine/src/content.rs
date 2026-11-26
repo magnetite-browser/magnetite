@@ -12,7 +12,7 @@ use crate::client::{Kind, MagnetiteClient};
 use crate::engine::Engine;
 #[cfg(target_os = "macos")]
 use crate::events::DividerAction;
-use crate::events::{ContentId, EngineEvent, Shortcut};
+use crate::events::{ContentId, EngineEvent, ExtensionTabPlace, OpenedBy, Shortcut};
 
 pub(crate) struct ContentState {
     /// The window the page lives in: its frame is the page window's parent.
@@ -80,9 +80,30 @@ pub(crate) struct QueuedContent {
 }
 
 /// The `popup_id` Magnetite's CEF (`extension-tab.patch`) asks with in
-/// `on_before_popup` for a tab an extension opens with `chrome.tabs.create`.
+/// `on_before_popup` for a tab an extension opens with `chrome.tabs.create`,
+/// and for each tab of a normal window it opens with
+/// `chrome.windows.create`.
 /// No popup of a page has it.
 pub(crate) const EXTENSION_TAB_POPUP: i32 = -1;
+
+/// What Magnetite's CEF adds to the question's `extra_info` for an
+/// extension's tab: the index asked for in the window it names (-1: none)
+/// and whether the tab is to be pinned. A CEF from before has neither.
+pub(crate) fn extension_tab_wishes(
+    extra_info: Option<&mut Option<DictionaryValue>>,
+) -> (i32, bool) {
+    let Some(Some(info)) = extra_info.map(|i| &*i) else {
+        return (-1, false);
+    };
+    let index = CefString::from("magnetite_tab_index");
+    let index = if info.has_key(Some(&index)) == 0 {
+        -1
+    } else {
+        info.int(Some(&index))
+    };
+    let pinned = info.bool(Some(&CefString::from("magnetite_tab_pinned"))) != 0;
+    (index, pinned)
+}
 
 /// A tab an extension or a page asked for, between CEF's question
 /// (`on_before_popup`) and the view of its page
@@ -91,8 +112,7 @@ pub(crate) const EXTENSION_TAB_POPUP: i32 = -1;
 pub(crate) struct PendingTab {
     pub url: String,
     pub background: bool,
-    /// The page that asked; none: an extension did.
-    pub page: Option<ContentId>,
+    pub by: OpenedBy,
 }
 
 /// Space between split pages (and around docked `DevTools`).
@@ -317,23 +337,27 @@ impl Engine {
 
     /// CEF asks whether the tab an extension opens for `url`, from the page
     /// in `opener`, may come to us as a view. True for a page of ours (or
-    /// a system page's shadow) and an address to show; the view follows at once (`adopt_extension_tab`).
+    /// a system page's shadow) and an address to show; the view follows at
+    /// once (`adopt_extension_tab`). `index` (-1: none) and `pinned` are
+    /// what the extension asked for in `opener`'s window
+    /// (`extension_tab_wishes`).
     pub(crate) fn expect_extension_tab(
         &self,
         opener: Option<&Browser>,
         url: String,
         background: bool,
+        (index, pinned): (i32, bool),
     ) -> bool {
         let ours = self
             .content_id_for(opener)
             .or_else(|| self.shadow_owner(opener));
-        if crate::stray::opens_nothing(opener, &url) || ours.is_none() {
+        let Some(ours) = ours.filter(|_| !crate::stray::opens_nothing(opener, &url)) else {
             return false;
-        }
+        };
         self.lock().pending_tab = Some(PendingTab {
             url,
             background,
-            page: None,
+            by: OpenedBy::Extension(ExtensionTabPlace::new(ours, index, pinned)),
         });
         true
     }
@@ -359,7 +383,7 @@ impl Engine {
         self.lock().pending_tab = Some(PendingTab {
             url: url.to_string(),
             background: false,
-            page: Some(id),
+            by: OpenedBy::Page(id),
         });
         true
     }
@@ -397,6 +421,10 @@ impl Engine {
             return false;
         };
         crate::trace(&format!("adopted tab: content #{id}"));
+        // Magnetite's CEF pins the tab in Chromium as the extension asked.
+        if matches!(tab.by, OpenedBy::Extension(place) if place.pinned) {
+            self.lock().pinned.insert(id);
+        }
         let serial = self.next_serial();
         self.lock().contents.insert(
             id,
@@ -423,7 +451,7 @@ impl Engine {
             id,
             url: tab.url,
             background: tab.background,
-            from: tab.page,
+            by: tab.by,
             context: profile,
         });
         true
@@ -1216,6 +1244,7 @@ impl Engine {
             inner.permission_requests.remove(&id);
             inner.locks.remove(&id);
             inner.muted.remove(&id);
+            inner.pinned.remove(&id);
             inner.mobile.remove(&id);
             let home = inner.home_of(id);
             if let Some(w) = inner.window_mut(home) {
@@ -1556,6 +1585,9 @@ impl Engine {
                 // Asked to be shown as on a phone before it had a browser.
                 if let Some(id) = matched.filter(|id| self.lock().mobile.contains(id)) {
                     self.apply_mobile_view(id, true);
+                }
+                if let Some(id) = matched {
+                    self.tell_pinned_on_create(id, &browser);
                 }
                 match matched {
                     Some(id) => self.emit(EngineEvent::ContentCreated { id }),

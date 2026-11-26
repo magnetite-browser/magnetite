@@ -22,6 +22,17 @@ impl AppState {
         matches!(self.home_of(id), Some(Home::Pinned(_)))
     }
 
+    /// Whether extensions see tab `id` as pinned: a pinned tab or a
+    /// favorite (`MagnetiteApp::tell_pinned`).
+    pub fn reads_pinned(&self, id: &str) -> bool {
+        matches!(self.home_of(id), Some(Home::Pinned(_) | Home::Favorites(_)))
+    }
+
+    /// Whether tab `id` is a favorite.
+    pub fn is_favorite(&self, id: &str) -> bool {
+        matches!(self.home_of(id), Some(Home::Favorites(_)))
+    }
+
     fn home_of(&self, id: &str) -> Option<Home<'_>> {
         let favorites = &self.sidebar.favorites;
         if let Some(list) = (favorites.iter()).find(|f| f.items.iter().any(|t| t.id == id)) {
@@ -196,6 +207,16 @@ impl AppState {
 mod tests {
     use super::*;
     use crate::state::testing::{state, tab};
+
+    #[test]
+    fn extensions_see_pinned_tabs_and_favorites_as_pinned() {
+        let mut s = state();
+        s.sidebar.favorites[0].items = vec![tab("f")];
+        assert!(s.reads_pinned("p"), "a pinned tab");
+        assert!(s.reads_pinned("f"), "a favorite");
+        assert!(!s.reads_pinned("a"), "a Today tab");
+        assert!(s.is_favorite("f") && !s.is_favorite("p"));
+    }
 
     #[test]
     fn only_a_full_split_counts_as_full() {

@@ -1,8 +1,9 @@
 //! Windows Chromium opens by itself: an extension's pop-up window, an
 //! options page, a welcome page. Chromium gives them a plain Chrome window
 //! outside our layout; we hide it at once and open its address as one of
-//! our tabs instead. A tab from `chrome.tabs.create` comes this way only
-//! from a CEF without `extension-tab.patch`; one with it hands us the
+//! our tabs instead. A tab from `chrome.tabs.create`, and a normal window
+//! from `chrome.windows.create` with addresses to show, come this way only
+//! from a CEF without `extension-tab.patch`; one with it hands us each
 //! tab's page instead (`adopt_extension_tab`). A pop-up window
 //! (`chrome.windows.create({type: "popup"})`) stays a window, as in other
 //! browsers: the extension keeps watching it, and closing it would end

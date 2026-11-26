@@ -109,13 +109,28 @@ Settings.
   the page in front, where the extension is installed.
 - Pages an extension opens itself (a welcome page, `chrome.tabs.create`, a
   normal window) open as Magnetite tabs in the profile they came from (on
-  Linux, a normal window showing the extension's own page stays a window,
-  see Limits). A
-  tab from `chrome.tabs.create` is the tab the extension got back: its id
+  Linux, an options page meant to open in a tab stays a window, see
+  Limits). A pop-up window (Bitwarden's passkey window) opens as a small
+  window of its own, as in other browsers.
+- A tab from `chrome.tabs.create` is the tab the extension got back: its id
   stays good for `chrome.tabs.get`, `update` and `remove`, and
-  `active: false` opens it in the background, marked unread. A
-  pop-up window (Bitwarden's passkey window) opens as a small window of its
-  own, as in other browsers.
+  `active: false` opens it in the background, marked unread. To Chromium
+  every page is a window holding one tab, so `index` counts in the window
+  of one page (the one named with `windowId`, else the page in front): 0
+  opens the tab right above that page, 1 or more right below it, in the
+  same list. `pinned: true` opens it among the space's pinned tabs, beside
+  that page when it is pinned too (`index`), else at the top, as a tab
+  pinned by hand.
+- A normal window from `chrome.windows.create` opens its addresses as tabs
+  in the same way: the first where a new tab goes, each further one right
+  below the one before. The window the extension got back is the first
+  tab's, and its id stays good: `chrome.windows.get` finds it, with that
+  tab in it. `focused: false` opens the tabs in the background.
+- To extensions, pinned tabs and favorites are pinned (`tab.pinned`,
+  `chrome.tabs.query({pinned: true})`), and other tabs are not.
+  `chrome.tabs.update` with `pinned` pins a tab at the top of its space's
+  pinned tabs or moves it back to Today, as by hand; a favorite stays a
+  favorite, and the private space keeps only Today tabs.
 
 ## Checked extensions
 
@@ -195,8 +210,12 @@ Tried by hand:
   the main window is (`extension-last-active.patch`), and calls a page's
   window a normal one, not a pop-up window (`extension-window-type.patch`),
   so an extension that asks for the tab in front gets it. A tab from
-  `chrome.tabs.create` keeps its id (`extension-tab.patch`), and Manifest
-  V2 stays on (`extension-manifest-v2.patch`). A build from source with the
+  `chrome.tabs.create` and the tabs of a normal window from
+  `chrome.windows.create` keep their ids, and Magnetite is told the index
+  and pinning asked for and when an extension pins or unpins a tab
+  (`extension-tab.patch`). Chromium's tab of each page is pinned as the
+  page's tab is in Magnetite (`tab-strip-pinned.patch`, `pinning.rs`).
+  Manifest V2 stays on (`extension-manifest-v2.patch`). A build from source with the
   official CEF has none of this.
 
 ## Data
@@ -220,22 +239,14 @@ Tried by hand:
   see `docs/development/upstream.md`). A second click during the wait would
   cancel the popup, so a sidebar button ignores clicks until the popup has
   the keyboard, for at most five seconds.
-- A normal window an extension opens with `chrome.windows.create` becomes
-  a new Magnetite tab that loads the address again. The id Chromium
-  returned to the extension belongs to the closed window. On Linux a normal
-  window showing the extension's own page (`chrome-extension://`) stays a
-  window, and its id stays good.
 - With no page open, `chrome.tabs.create` fails ("No current window") and
   opens nothing.
-- `chrome.tabs.create` ignores `index` and `pinned`: the tab goes where
-  Magnetite puts new tabs.
 - A tab an extension closes with `chrome.tabs.remove` stays in the sidebar
   without its page, as a tab does whose page closed itself; it loads again
   when chosen.
 - An extension's pop-up window is a plain Chromium window outside
-  Magnetite's layout. On Linux an extension's own page in a normal window
-  stays a window too: an options page meant to open in a tab,
-  `chrome.windows.create({type: "normal"})`.
+  Magnetite's layout. On Linux an options page meant to open in a tab
+  stays a window too.
 - Manifest V2 extensions were tried on macOS on Apple silicon only.
 - A `page_action` is off on a page until its extension shows it there.
   Opening such an extension then shows Chromium's menu for it instead of
@@ -253,7 +264,8 @@ Tried by hand:
 - An extension bar below the top bar.
 
 Code: `crates/engine/src/extensions.rs`, `devpipe.rs`, `stray.rs`,
-`content.rs` (`attach_toolbar`) and `menubar.rs`;
-`crates/app/src/app/extensions.rs` and `crates/app/src/state.rs`
-(`follow_chromium_pins`); `crates/ui/web/src/PinnedExtensions.tsx` and
-`SettingsPage.tsx`.
+`pinning.rs`, `content.rs` (`attach_toolbar`) and `menubar.rs`;
+`crates/app/src/app/extensions.rs`, `crates/app/src/app/tabs.rs`
+(`keep_extension_tab`, `extension_pinned_tab`) and
+`crates/app/src/state.rs` (`follow_chromium_pins`);
+`crates/ui/web/src/PinnedExtensions.tsx` and `SettingsPage.tsx`.

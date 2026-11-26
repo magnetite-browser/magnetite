@@ -124,6 +124,16 @@ wrap_client! {
                 Engine::global().on_protected_report(browser.as_deref(), frame, &reported);
                 return 1;
             }
+            // Magnetite's CEF: an extension pinned or unpinned the page's tab.
+            if self.kind == Kind::Content
+                && source_process == ProcessId::BROWSER
+                && let Some(msg) = message.as_ref()
+                && CefString::from(&msg.name()).to_string() == crate::pinning::PINNED_MESSAGE
+            {
+                let pinned = msg.argument_list().is_some_and(|a| a.bool(0) != 0);
+                Engine::global().on_extension_pinned(browser.as_deref(), pinned);
+                return 1;
+            }
             let router = Engine::global().lock().router.clone();
             match router {
                 Some(r) => r.on_process_message_received(browser.cloned(), frame.cloned(), source_process, message.cloned()).into(),
@@ -299,7 +309,7 @@ wrap_life_span_handler! {
             _window_info: Option<&mut WindowInfo>,
             _client: Option<&mut Option<Client>>,
             _settings: Option<&mut BrowserSettings>,
-            _extra_info: Option<&mut Option<DictionaryValue>>,
+            extra_info: Option<&mut Option<DictionaryValue>>,
             _no_javascript_access: Option<&mut ::std::os::raw::c_int>,
         ) -> ::std::os::raw::c_int {
             crate::trace(&format!("popup asked: disposition {}", target_disposition.get_raw()));
@@ -309,8 +319,9 @@ wrap_life_span_handler! {
             if popup_id == crate::content::EXTENSION_TAB_POPUP {
                 let url = target_url.map(CefString::to_string).unwrap_or_default();
                 let background = target_disposition == WindowOpenDisposition::NEW_BACKGROUND_TAB;
+                let wishes = crate::content::extension_tab_wishes(extra_info);
                 let taken = self.kind == Kind::Content
-                    && Engine::global().expect_extension_tab(browser.as_deref(), url, background);
+                    && Engine::global().expect_extension_tab(browser.as_deref(), url, background, wishes);
                 return i32::from(!taken);
             }
             // What was expected of an earlier popup that never came.

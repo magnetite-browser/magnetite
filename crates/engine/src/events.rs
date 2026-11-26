@@ -203,6 +203,49 @@ pub enum DividerAction {
     Equalize,
 }
 
+/// Which side of a page a new tab goes on (`ExtensionTabPlace`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Side {
+    Before,
+    After,
+}
+
+/// Where an extension asked for the tab it opens (`chrome.tabs.create`'s
+/// `index` and `pinned`; `EngineEvent::ExtensionTabOpened`). To Chromium
+/// every page is a window holding one tab, so an index in a page's window
+/// puts the tab before that page (0) or after it (1 and up).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ExtensionTabPlace {
+    /// The page the tab goes beside; none: no index asked for.
+    pub next_to: Option<(ContentId, Side)>,
+    pub pinned: bool,
+}
+
+impl ExtensionTabPlace {
+    /// `index` as Chromium hands it over for the window of `page` (-1:
+    /// none asked for).
+    pub(crate) fn new(page: ContentId, index: i32, pinned: bool) -> Self {
+        let side = match index {
+            ..0 => None,
+            0 => Some(Side::Before),
+            _ => Some(Side::After),
+        };
+        Self {
+            next_to: side.map(|side| (page, side)),
+            pinned,
+        }
+    }
+}
+
+/// Who opened a tab whose page exists already (`EngineEvent::ExtensionTabOpened`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OpenedBy {
+    /// The page itself (`window.open`, a link with a target).
+    Page(ContentId),
+    /// An extension, which asked for this place.
+    Extension(ExtensionTabPlace),
+}
+
 /// How short of memory the system says it is (`EngineEvent::MemoryPressure`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MemoryPressure {
@@ -380,18 +423,26 @@ pub enum EngineEvent {
         source: UrlSource,
         context: Option<String>,
     },
-    /// An extension opened a tab (`chrome.tabs.create`), or the page `from`
-    /// did (`window.open`, a link with a target), and its page exists
-    /// already: content `id`, loading `url` in the profile `context` (`""`:
-    /// the default context) of the page the tab was opened from. The
-    /// delegate makes a tab for it, or closes the content.
+    /// An extension opened a tab (`chrome.tabs.create`, or a normal window
+    /// with `chrome.windows.create`), or a page did (`window.open`, a link
+    /// with a target), and its page exists already: content `id`, loading
+    /// `url` in the profile `context` (`""`: the default context) of the
+    /// page the tab was opened from. The delegate makes a tab for it, or
+    /// closes the content.
     ExtensionTabOpened {
         id: ContentId,
         url: String,
         background: bool,
-        /// The page that opened the tab itself; none: an extension did.
-        from: Option<ContentId>,
+        by: OpenedBy,
         context: String,
+    },
+    /// An extension pinned or unpinned the tab of page `id`
+    /// (`chrome.tabs.update`). Chromium has it so now; the delegate pins or
+    /// unpins the page's tab to match, or says otherwise
+    /// (`Engine::set_content_pinned`).
+    ExtensionPinnedTab {
+        id: ContentId,
+        pinned: bool,
     },
     Shortcut {
         from: Option<ContentId>,
@@ -468,6 +519,7 @@ impl EngineEvent {
             Self::LoadingChanged { .. } => "LoadingChanged",
             Self::OpenUrlRequested { .. } => "OpenUrlRequested",
             Self::ExtensionTabOpened { .. } => "ExtensionTabOpened",
+            Self::ExtensionPinnedTab { .. } => "ExtensionPinnedTab",
             Self::Shortcut { .. } => "Shortcut",
             Self::Relaunched { .. } => "Relaunched",
             Self::QuitRequested => "QuitRequested",
@@ -477,5 +529,19 @@ impl EngineEvent {
             Self::MiniToTab { .. } => "MiniToTab",
             Self::MiniNavigate { .. } => "MiniNavigate",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ExtensionTabPlace, Side};
+
+    #[test]
+    fn an_index_in_a_pages_window_says_which_side_of_the_page() {
+        let place = |index| ExtensionTabPlace::new(7, index, false).next_to;
+        assert_eq!(place(-1), None);
+        assert_eq!(place(0), Some((7, Side::Before)));
+        assert_eq!(place(1), Some((7, Side::After)));
+        assert_eq!(place(5), Some((7, Side::After)));
     }
 }

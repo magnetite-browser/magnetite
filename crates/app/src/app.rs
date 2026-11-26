@@ -337,7 +337,21 @@ impl MagnetiteApp {
             engine.forget_contexts(&released);
         }
         self.save_soon();
+        self.tell_pinned(engine);
         self.show_state_paced(engine);
+    }
+
+    /// Tell the engine which pages extensions see as pinned: those of pinned
+    /// tabs and favorites. It passes on only what changed.
+    fn tell_pinned(&self, engine: &Engine) {
+        let pages: Vec<(ContentId, bool)> = self.with_state(|s| {
+            (s.content_to_tab.iter())
+                .map(|(page, tab)| (*page, s.reads_pinned(tab)))
+                .collect()
+        });
+        for (page, pinned) in pages {
+            engine.set_content_pinned(page, pinned);
+        }
     }
 
     /// Something an open Settings page shows changed outside of it (a

@@ -2,7 +2,8 @@
 //! that unloads and archives.
 
 use magnetite_core::sidebar::Section;
-use magnetite_engine::{ContentId, Engine, MemoryPressure, host_of};
+use magnetite_core::{Id, SidebarNode};
+use magnetite_engine::{ContentId, Engine, MemoryPressure, OpenedBy, Side, host_of};
 
 use crate::state::{AppState, NewTabLinks, ShowIn, TabOrder, folder_in_tree_mut, now};
 use crate::{lock, trace, url_policy};
@@ -65,6 +66,106 @@ pub(super) fn move_tabs(s: &mut AppState, ids: &[String], to: &Destination) {
         let index = to.index.saturating_add(i);
         move_tab(s, id, &Destination { index, ..*to });
     }
+}
+
+/// A `Destination` that owns its names, worked out before the state is
+/// changed.
+struct Spot {
+    space: Id,
+    section: Section,
+    index: usize,
+    folder: Option<Id>,
+}
+
+impl Spot {
+    fn destination(&self) -> Destination<'_> {
+        Destination {
+            space: &self.space,
+            section: self.section,
+            index: self.index,
+            folder: self.folder.as_deref(),
+            profile: None,
+        }
+    }
+}
+
+/// Where tab `id`, which an extension just opened at the top of Today,
+/// goes as the extension asked (`chrome.tabs.create`'s `index` and
+/// `pinned`): right before or after the row of tab `next_to`, when that row
+/// is in the list the tab is to be in, of the same space: Today, or the
+/// pinned tabs (in any folder but a smart one). Else a pinned tab goes to
+/// the top of the pinned tabs, as a tab pinned by hand does, and one not
+/// pinned stays where it is (None). The private space has only Today tabs.
+fn extension_tab_spot(
+    s: &AppState,
+    id: &str,
+    next_to: Option<(&str, Side)>,
+    pinned: bool,
+) -> Option<Spot> {
+    let (Some(sp), _) = s.find_tab(id)? else {
+        return None;
+    };
+    let pinned = pinned && !s.is_private_space(&sp.id);
+    let beside = next_to
+        .and_then(|(tab, side)| Some((s.row_of(sp, tab)?, side)))
+        .filter(|(row, _)| row != id);
+    let after = |side: Side| usize::from(side == Side::After);
+    if pinned {
+        let (folder, index) = beside
+            .and_then(|(row, side)| {
+                let (folder, at) = pinned_position(&sp.pinned, &row, None)?;
+                Some((folder, at + after(side)))
+            })
+            .unwrap_or((None, 0));
+        return Some(Spot {
+            space: sp.id.clone(),
+            section: Section::Pinned,
+            index,
+            folder,
+        });
+    }
+    let (row, side) = beside?;
+    let today: Vec<&str> = (sp.today.iter())
+        .map(|t| t.id.as_str())
+        .filter(|t| *t != id)
+        .collect();
+    let mut index = today.iter().position(|t| *t == row)? + after(side);
+    // A split's other pages, which show no row, stay with its row.
+    if side == Side::After
+        && let Some(split) = s.splits.iter().find(|t| t.contains(&row))
+    {
+        while today
+            .get(index)
+            .is_some_and(|t| split.contains(&(*t).to_string()))
+        {
+            index += 1;
+        }
+    }
+    Some(Spot {
+        space: sp.id.clone(),
+        section: Section::Today,
+        index,
+        folder: None,
+    })
+}
+
+/// The folder holding tab `tab` itself in a pinned tree (`folder`, none at
+/// the top level) and its place in that list. A smart folder's tabs are
+/// not looked at: it fills itself.
+fn pinned_position(
+    nodes: &[SidebarNode],
+    tab: &str,
+    folder: Option<&str>,
+) -> Option<(Option<Id>, usize)> {
+    if let Some(at) = (nodes.iter()).position(|n| matches!(n, SidebarNode::Tab(t) if t.id == tab)) {
+        return Some((folder.map(str::to_owned), at));
+    }
+    nodes.iter().find_map(|n| match n {
+        SidebarNode::Folder(f) if f.smart.is_none() => {
+            pinned_position(&f.children, tab, Some(&f.id))
+        }
+        SidebarNode::Folder(_) | SidebarNode::Tab(_) => None,
+    })
 }
 
 pub(super) fn move_tab(s: &mut AppState, id: &str, to: &Destination) {
@@ -737,34 +838,46 @@ impl MagnetiteApp {
         Some(id)
     }
 
-    /// An extension opened a tab (`chrome.tabs.create`), or the page `from`
-    /// did, and the engine has its page already, `page`, loading `url` in
-    /// the profile of context `context`: a Today tab for that page, placed
-    /// as `open_url_below` places a page's new tab, and nothing loads a
-    /// second time. An
-    /// address the policy refuses, or a tab with no place (its private
-    /// space closed), closes the page.
+    /// An extension opened a tab (`chrome.tabs.create`, a normal window),
+    /// or a page did, and the engine has its page already, `page`, loading
+    /// `url` in the profile of context `context`: a Today tab for that page,
+    /// and nothing loads a second time. A page's tab is placed as
+    /// `open_url_below` places it, an extension's where it asked
+    /// (`extension_tab_spot`). An address the policy refuses, or a tab with
+    /// no place (its private space closed), closes the page.
     pub(super) fn keep_extension_tab(
         &self,
         engine: &Engine,
         page: ContentId,
         url: &str,
         mut background: bool,
-        from: Option<ContentId>,
+        by: OpenedBy,
         context: &str,
     ) {
-        let source = match from {
-            Some(_) => url_policy::Source::Page,
-            None => url_policy::Source::Chromium,
+        let source = match by {
+            OpenedBy::Page(_) => url_policy::Source::Page,
+            OpenedBy::Extension(_) => url_policy::Source::Chromium,
         };
         let tab = url_policy::allowed(url, source)
             .then(|| {
                 self.with_state(|s| {
                     let opener = s.profile_for_context(context);
                     let id = s.open_tab_from(opener.as_deref(), url, url)?;
-                    let below = from.and_then(|c| s.content_to_tab.get(&c).cloned());
-                    if let Some(below) = below {
-                        s.place_below_opener(&id, &below);
+                    match by {
+                        OpenedBy::Page(c) => {
+                            if let Some(below) = s.content_to_tab.get(&c).cloned() {
+                                s.place_below_opener(&id, &below);
+                            }
+                        }
+                        OpenedBy::Extension(place) => {
+                            let next_to = (place.next_to).and_then(|(c, side)| {
+                                Some((s.content_to_tab.get(&c)?.clone(), side))
+                            });
+                            let next_to = next_to.as_ref().map(|(tab, side)| (tab.as_str(), *side));
+                            if let Some(spot) = extension_tab_spot(s, &id, next_to, place.pinned) {
+                                move_tab(s, &id, &spot.destination());
+                            }
+                        }
                     }
                     let (space, _) = s.find_tab(&id)?;
                     background |= space.is_some_and(|sp| s.is_hidden_space(&sp.id));
@@ -784,6 +897,9 @@ impl MagnetiteApp {
             engine.close_content(page);
             return;
         };
+        if matches!(by, OpenedBy::Extension(place) if place.pinned) {
+            self.apply_lock(engine, &tab);
+        }
         if background {
             self.push_state(engine);
         } else {
@@ -1051,6 +1167,19 @@ impl MagnetiteApp {
         }
     }
 
+    /// An extension pinned or unpinned the tab of page `page`
+    /// (`chrome.tabs.update`): its tab is pinned or goes back to Today, as by
+    /// hand (`set_pinned`). A favorite stays one, and Chromium is told so
+    /// again (`tell_pinned`), as for a tab of the private space.
+    pub(super) fn extension_pinned_tab(&self, engine: &Engine, page: ContentId, pinned: bool) {
+        let tab = self
+            .with_state(|s| (s.content_to_tab.get(&page).cloned()).filter(|t| !s.is_favorite(t)));
+        match tab {
+            Some(tab) => self.set_pinned(engine, &tab, pinned),
+            None => self.push_state(engine),
+        }
+    }
+
     /// Pin tab `id` at the top of its space's pinned tabs, or move it back
     /// to Today; the pages of its split that stand with it go along
     /// (`split_group`). Favorites belong to no space and stay as they are.
@@ -1266,6 +1395,49 @@ mod tests {
         };
         move_tabs(&mut s, &["a".into(), "c".into()], &to);
         assert_eq!(ids(&s.sidebar.spaces[0].today), ["b", "a", "c", "d"]);
+    }
+
+    /// Tab `n`, opened by an extension at the top of Today, where it asked
+    /// to be: the Today and pinned tabs afterwards.
+    fn open_extension_tab(
+        next_to: Option<(&str, magnetite_engine::Side)>,
+        pinned: bool,
+    ) -> (Vec<String>, Vec<String>) {
+        let mut s = state();
+        s.sidebar.spaces[0].today.insert(0, tab("n"));
+        if let Some(spot) = extension_tab_spot(&s, "n", next_to, pinned) {
+            move_tab(&mut s, "n", &spot.destination());
+        }
+        let sp = &s.sidebar.spaces[0];
+        let today = sp.today.iter().map(|t| t.id.clone()).collect();
+        let pinned = (sp.pinned.iter().flat_map(SidebarNode::tabs))
+            .map(|t| t.id.clone())
+            .collect();
+        (today, pinned)
+    }
+
+    #[test]
+    fn an_extensions_tab_goes_before_or_after_the_page_whose_window_it_named() {
+        use magnetite_engine::Side::{After, Before};
+        assert_eq!(
+            open_extension_tab(Some(("b", After)), false).0,
+            ["a", "b", "n", "c"]
+        );
+        assert_eq!(
+            open_extension_tab(Some(("b", Before)), false).0,
+            ["a", "n", "b", "c"]
+        );
+        assert_eq!(open_extension_tab(None, false).0, ["n", "a", "b", "c"]);
+    }
+
+    #[test]
+    fn an_extensions_pinned_tab_goes_beside_a_pinned_page_else_to_the_top() {
+        use magnetite_engine::Side::After;
+        assert_eq!(open_extension_tab(Some(("p", After)), true).1, ["p", "n"]);
+        assert_eq!(open_extension_tab(Some(("b", After)), true).1, ["n", "p"]);
+        // Not pinned, beside a pinned page: it stays in Today.
+        let (today, pinned) = open_extension_tab(Some(("p", After)), false);
+        assert_eq!((today[0].as_str(), pinned), ("n", vec!["p".to_string()]));
     }
 
     #[test]

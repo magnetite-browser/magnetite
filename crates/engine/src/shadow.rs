@@ -160,7 +160,7 @@ wrap_life_span_handler! {
             _window_info: Option<&mut WindowInfo>,
             _client: Option<&mut Option<Client>>,
             _settings: Option<&mut BrowserSettings>,
-            _extra_info: Option<&mut Option<DictionaryValue>>,
+            extra_info: Option<&mut Option<DictionaryValue>>,
             _no_javascript_access: Option<&mut ::std::os::raw::c_int>,
         ) -> ::std::os::raw::c_int {
             let engine = Engine::global();
@@ -169,7 +169,8 @@ wrap_life_span_handler! {
             // A tab an extension opens from its popup: a page of ours, as
             // from any other page (`MagnetiteLifeSpanHandler`).
             if popup_id == crate::content::EXTENSION_TAB_POPUP {
-                return i32::from(!engine.expect_extension_tab(browser.as_deref(), url, background));
+                let wishes = crate::content::extension_tab_wishes(extra_info);
+                return i32::from(!engine.expect_extension_tab(browser.as_deref(), url, background, wishes));
             }
             // Anything else asked for from the empty document opens as the
             // system page's own link would.

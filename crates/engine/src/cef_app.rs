@@ -158,6 +158,18 @@ pub fn can_share_tab_instead() -> bool {
     })
 }
 
+/// The patch to CEF that lets the client pin or unpin a page's tab in
+/// Chromium (magnetite-cef, `patches/`).
+const PINNED_PATCH: &str = "tab-strip-pinned.patch";
+
+/// Whether the CEF in use takes the client's word on which tabs are pinned
+/// (`PINNED_PATCH`, `pinning.rs`).
+pub(crate) fn can_pin_tabs() -> bool {
+    static PATCHED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *PATCHED
+        .get_or_init(|| cef_patches().is_some_and(|patches| lists_patch(&patches, PINNED_PATCH)))
+}
+
 /// The platform Chromium runs on when the command line names none: Wayland
 /// in a Wayland session if the CEF in use can do child windows there, else
 /// X11 wherever an X server is (in a Wayland session: `XWayland`). `None`
