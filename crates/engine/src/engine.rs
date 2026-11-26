@@ -88,6 +88,10 @@ pub(crate) struct WindowState {
     pub chrome_color: u32,
     /// The sidebar floating over the pages while the docked one is hidden.
     pub float_bar: Option<crate::floatbar::FloatBar>,
+    /// The window over the hidden sidebar's hover zone, under Wayland
+    /// (`edge.rs`).
+    #[cfg(target_os = "linux")]
+    pub edge: Option<crate::edge::EdgeWindow>,
     /// Space colour (ARGB): the outline of the focused page in a split.
     pub accent_color: u32,
     /// The page of the split on screen that has the keyboard.
@@ -127,6 +131,8 @@ impl WindowState {
             split_dividers: Vec::new(),
             focused_pane: None,
             float_bar: None,
+            #[cfg(target_os = "linux")]
+            edge: None,
             accent_color: 0xFF78_82FF,
             chrome_color: 0xFF1B_1B1E,
             placement: None,

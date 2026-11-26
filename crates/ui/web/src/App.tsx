@@ -368,7 +368,12 @@ function useFloatLifecycle(): number {
       enter();
       timer = window.setTimeout(() => send({ cmd: "float_sidebar", show: false }), 280);
     };
-    const visible = () => document.visibilityState === "visible" && setShownAt(Date.now());
+    // Shown again within half a second is no new appearance: under Wayland it is hidden and shown to stay above a page just shown.
+    let hiddenAt = 0;
+    const visible = () => {
+      if (document.visibilityState === "hidden") hiddenAt = Date.now();
+      else if (Date.now() - hiddenAt > 500) setShownAt(Date.now());
+    };
     root.addEventListener("mouseleave", leave);
     root.addEventListener("mouseenter", enter);
     document.addEventListener("visibilitychange", visible);

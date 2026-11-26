@@ -566,7 +566,10 @@ impl Engine {
         // On Linux before the keyboard goes to the page: under Wayland the
         // panel takes it when it is shown again.
         #[cfg(target_os = "linux")]
-        self.raise_web_panel(reshown);
+        {
+            self.raise_web_panel(reshown);
+            self.raise_hidden_sidebar(reshown);
+        }
         view.request_focus();
         #[cfg(not(target_os = "linux"))]
         self.raise_web_panel(reshown);
@@ -607,7 +610,10 @@ impl Engine {
         #[cfg(target_os = "macos")]
         crate::mac::hide_status_pill();
         #[cfg(target_os = "linux")]
-        self.raise_web_panel(reshown);
+        {
+            self.raise_web_panel(reshown);
+            self.raise_hidden_sidebar(reshown);
+        }
         if let Some((_, view)) = focus.and_then(|f| self.content_handles(f)) {
             view.request_focus();
         }
@@ -892,12 +898,12 @@ impl Engine {
     /// split, the pane with the keyboard, which is the one a window manager
     /// raises (the first pane, under the panel, until one has it).
     #[cfg(target_os = "linux")]
-    fn top_page(&self) -> Option<Window> {
+    pub(crate) fn top_page(&self) -> Option<Window> {
         self.page_window(self.top_page_id()?)
     }
 
     #[cfg(target_os = "linux")]
-    fn top_page_id(&self) -> Option<ContentId> {
+    pub(crate) fn top_page_id(&self) -> Option<ContentId> {
         let inner = self.lock();
         match inner.win.split.as_ref().filter(|t| t.pane_count() > 1) {
             Some(tree) => {

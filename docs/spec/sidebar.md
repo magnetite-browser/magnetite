@@ -304,13 +304,15 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
 window and the keyboard. `Cmd+S` shows it again. (On Windows the
 window's buttons are in a row above the pages at the top right, with or
 without the sidebar, unless the top bar is on, which has them.) While it is
-hidden on macOS or Windows,
-moving the pointer to the window's edge on the sidebar's side slides the
-sidebar out over the pages, along the window's whole height, without taking
-the keyboard from the page. Where a page reaches that edge (no frame around
-the page) the strip that reacts is 3 points wide instead of 8, so the
-page's own edge, its scrollbar on the right, stays in reach. It leaves when the pointer does, or on Esc; its sidebar button or
-`Cmd+S` docks it again. The sidebar is docked at every start.
+hidden, moving the pointer to the window's edge on the sidebar's side slides
+the sidebar out over the pages, along the window's whole height, without
+taking the keyboard from the page. Where a page reaches that edge (no frame
+around the page) the strip that reacts is 3 points wide instead of 8, so the
+page's own edge, its scrollbar on the right, stays in reach. It leaves when
+the pointer does, or on Esc; its sidebar button or `Cmd+S` docks it again.
+On Linux under Wayland a finger on that edge slides it out too, with the
+keyboard, and it leaves when a page takes the keyboard back: a tap on the
+page, or a tab picked in it. The sidebar is docked at every start.
 
 The pages cover the window's close, minimize and full screen buttons while
 the sidebar is hidden, so the sidebar that slides out has them, in its title

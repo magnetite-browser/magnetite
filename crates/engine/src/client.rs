@@ -401,6 +401,11 @@ wrap_focus_handler! {
                 engine.update_focus_ring(Some(id));
                 #[cfg(target_os = "linux")]
                 engine.keep_web_panel_above(id);
+                // Not from inside the focus change: a window hides.
+                Engine::post(Box::new(move || {
+                    let engine = Engine::global();
+                    engine.in_window(home, || engine.page_took_keyboard());
+                }));
                 engine.emit(EngineEvent::ContentFocused { id });
             }
         }

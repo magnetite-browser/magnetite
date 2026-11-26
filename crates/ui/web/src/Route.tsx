@@ -5,6 +5,7 @@ import { CommandPalette } from "./CommandPalette";
 import { DevBar } from "./DevBar";
 import { DeviceBar } from "./DeviceBar";
 import { DownloadsPage } from "./DownloadsPage";
+import { Edge } from "./Edge";
 import { Empty } from "./Empty";
 import { Licenses } from "./Licenses";
 import { Notifications } from "./Notifications";
@@ -19,7 +20,7 @@ import { TopBar } from "./TopBar";
 import { TopBarPopup } from "./TopBarPopup";
 import { Welcome } from "./Welcome";
 
-/** Each magnetite://ui page: the sidebar, the top bar, settings, a shared folder, all downloads, the welcome page, the page behind the tabs, and the small windows over the page area. */
+/** Each magnetite://ui page: the sidebar, the top bar, settings, a shared folder, all downloads, the welcome page, the page behind the tabs, and the small windows over the page area and its edge. */
 export function Route() {
   const path = location.pathname;
   if (path.startsWith("/settings")) return <SettingsPage />;
@@ -31,6 +32,7 @@ export function Route() {
   if (path.startsWith("/command")) return <CommandPalette />;
   if (path.startsWith("/notifications")) return <Notifications />;
   if (path.startsWith("/panel-grip")) return <PanelGrip />;
+  if (path.startsWith("/edge")) return <Edge />;
   if (path.startsWith("/splitdrop")) return <SplitDrop />;
   if (path.startsWith("/switcher")) return <Switcher />;
   if (path.startsWith("/devbar")) return <DevBar />;

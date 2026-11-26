@@ -904,6 +904,9 @@ pub(super) enum UiCommand {
     /// Slide the floating sidebar out or hide it (its page leaves on pointer-out).
     FloatSidebar {
         show: bool,
+        /// A finger brought it out (`Engine::touch_float_sidebar`).
+        #[serde(default)]
+        touch: bool,
     },
     /// The welcome page is done. The browsers chosen there (`import`, keys
     /// of `ImportSources`) are read again now, so what comes in is as new
@@ -2350,9 +2353,13 @@ impl MagnetiteApp {
                 engine.open_bar_popup(dev_bar, &url, (x, y), (width, height));
             }
             UiCommand::FocusSidebar => engine.focus_sidebar(),
-            UiCommand::FloatSidebar { show } => {
+            UiCommand::FloatSidebar { show, touch } => {
                 let had_focus = engine.float_sidebar_shown() && !show;
-                engine.show_float_sidebar(show);
+                if show && touch {
+                    engine.touch_float_sidebar();
+                } else {
+                    engine.show_float_sidebar(show);
+                }
                 // Keys go back to the page the floating sidebar took them from.
                 if had_focus {
                     self.on_active_content(engine, Engine::focus_content);

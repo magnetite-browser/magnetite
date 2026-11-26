@@ -1,6 +1,6 @@
 //! The sidebar as a floating panel. While the docked sidebar is hidden, the
 //! pointer reaching the window's edge on the sidebar's side
-//! (`mac::set_edge_zone`, `win::set_edge_zone`) slides a
+//! (`mac::set_edge_zone`, `win::set_edge_zone`, `edge.rs` on Linux) slides a
 //! second sidebar page (`magnetite://ui/?float`) over the pages; it hides again
 //! when the pointer leaves it. Created on first use, then kept hidden.
 
@@ -20,11 +20,23 @@ const EDGE: i32 = 8;
 /// strip, so the page's own edge, its scrollbar on the right, stays in reach.
 const EDGE_OVER_PAGE: i32 = 3;
 
+/// How long after the floating sidebar slid out the keyboard it gets for
+/// being shown goes back to the page (Linux): the window manager hands it
+/// over a moment later, after it mapped the window.
+#[cfg(target_os = "linux")]
+const QUIET: std::time::Duration = std::time::Duration::from_millis(500);
+
 /// The floating sidebar's window and page.
 pub(crate) struct FloatBar {
     pub window: Option<Window>,
     pub view: BrowserView,
     pub shown: bool,
+    /// A finger brought it out (`touch_float_sidebar`).
+    pub touched: bool,
+    /// Until when it gives the keyboard back to the page (Linux,
+    /// `float_sidebar_activated`).
+    #[cfg(target_os = "linux")]
+    pub quiet_until: Option<std::time::Instant>,
 }
 
 impl Engine {
@@ -42,7 +54,14 @@ impl Engine {
             Some(Some(window)) => {
                 if show {
                     window.set_bounds(Some(&bounds));
+                    // Also called while it is out: it follows the window.
+                    #[cfg(target_os = "linux")]
+                    if window.is_visible() == 0 {
+                        self.quiet_float_sidebar();
+                    }
                     show_quietly(&window);
+                    #[cfg(target_os = "linux")]
+                    crate::panel_stack::keep_above(&window, self.top_page().as_ref(), false);
                 } else {
                     window.hide();
                 }
@@ -54,6 +73,32 @@ impl Engine {
         }
         if let Some(f) = self.lock().win.float_bar.as_mut() {
             f.shown = show;
+            f.touched &= show;
+        }
+    }
+
+    /// A finger brought the floating sidebar out (the hover zone's page
+    /// under Wayland). It takes the keyboard, and goes again when a page
+    /// takes it back (`page_took_keyboard`): a finger leaves no pointer
+    /// behind that could move out of it.
+    pub fn touch_float_sidebar(&self) {
+        self.show_float_sidebar(true);
+        if let Some(f) = self.lock().win.float_bar.as_mut() {
+            f.touched = f.shown;
+            #[cfg(target_os = "linux")]
+            {
+                f.quiet_until = None;
+            }
+        }
+        self.focus_float_sidebar();
+    }
+
+    /// A page of the current window got the keyboard: a floating sidebar a
+    /// finger brought out goes.
+    pub(crate) fn page_took_keyboard(&self) {
+        let touched = (self.lock().win.float_bar.as_ref()).is_some_and(|f| f.shown && f.touched);
+        if touched {
+            self.show_float_sidebar(false);
         }
     }
 
@@ -81,6 +126,43 @@ impl Engine {
             .and_then(|f| Some((f.window.clone()?, f.view.clone())));
         if let Some((window, view)) = handles {
             window.activate();
+            view.request_focus();
+        }
+    }
+
+    /// The floating sidebar is about to slide out on Linux: the keyboard it
+    /// gets for being shown goes back to the page or panel that had it
+    /// (`float_sidebar_activated`). Chromium under Wayland and the window
+    /// manager under X11 give a window that is shown the keyboard; hovering
+    /// is not choosing (`show_quietly`).
+    #[cfg(target_os = "linux")]
+    pub(crate) fn quiet_float_sidebar(&self) {
+        if let Some(f) = self.lock().win.float_bar.as_mut() {
+            f.quiet_until = Some(std::time::Instant::now() + QUIET);
+        }
+    }
+
+    /// The floating sidebar's window got the keyboard: back to the page if
+    /// that came from sliding out (`quiet_float_sidebar`), not from a click.
+    /// To the page or panel that had it if it is on screen, else to the page
+    /// in front.
+    #[cfg(target_os = "linux")]
+    fn float_sidebar_activated(&self) {
+        let quiet = (self.lock().win.float_bar.as_mut())
+            .and_then(|f| f.quiet_until.take())
+            .is_some_and(|until| std::time::Instant::now() < until);
+        if !quiet {
+            return;
+        }
+        let had = self.lock().win.last_focused;
+        let page = [had, self.top_page_id()]
+            .into_iter()
+            .flatten()
+            .find_map(|id| {
+                self.content_handles(id)
+                    .filter(|(w, _)| w.is_visible() != 0)
+            });
+        if let Some((_, view)) = page {
             view.request_focus();
         }
     }
@@ -116,8 +198,8 @@ impl Engine {
             let at = hidden.then_some((width, top, side));
             crate::win::set_edge_zone(frame.window_handle(), at);
         }
-        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-        let _ = (zone, hidden, side);
+        #[cfg(target_os = "linux")]
+        self.set_edge_zone(&frame, hidden.then_some(&zone));
     }
 
     /// Along the edge of the sidebar's side, the window's height (below the
@@ -162,6 +244,9 @@ impl Engine {
             window: None,
             view: view.clone(),
             shown: true,
+            touched: false,
+            #[cfg(target_os = "linux")]
+            quiet_until: Some(std::time::Instant::now() + QUIET),
         });
         let mut wd = FloatWindowDelegate::new(view, bounds);
         window_create_top_level(Some(&mut wd));
@@ -213,6 +298,8 @@ wrap_window_delegate! {
             crate::mac::round_window_corners(window.window_handle(), 10.0, true);
             #[cfg(target_os = "windows")]
             crate::win::round_window_corners(window.window_handle(), true);
+            #[cfg(target_os = "linux")]
+            crate::cef_app::set_corner_radius(window, 10);
             #[cfg(target_os = "macos")]
             {
                 crate::mac::mark_as_part(window.window_handle());
@@ -229,10 +316,21 @@ wrap_window_delegate! {
             };
             if show == Some(true) {
                 show_quietly(window);
+                #[cfg(target_os = "linux")]
+                crate::panel_stack::keep_above(window, engine.top_page().as_ref(), false);
             }
         }
         fn on_window_destroyed(&self, _window: Option<&mut Window>) {
             Engine::global().lock().win.float_bar = None;
+        }
+        fn on_window_activation_changed(&self, _window: Option<&mut Window>, active: ::std::os::raw::c_int) {
+            // Not from inside the activation: the keyboard moves again.
+            #[cfg(target_os = "linux")]
+            if active != 0 {
+                Engine::post(Box::new(|| Engine::global().float_sidebar_activated()));
+            }
+            #[cfg(not(target_os = "linux"))]
+            let _ = active;
         }
         fn parent_window(
             &self,
@@ -243,6 +341,9 @@ wrap_window_delegate! {
             Engine::global().frame_window()
         }
         fn initial_bounds(&self, _window: Option<&mut Window>) -> Rect { self.bounds.clone() }
+        // On Linux a window that cannot resize keeps its first size (see the
+        // page windows' `can_resize`); the panel follows the frame's height.
+        fn can_resize(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { cfg!(target_os = "linux").into() }
         fn is_frameless(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }
         fn with_standard_window_buttons(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 0 }
         fn can_close(&self, _window: Option<&mut Window>) -> ::std::os::raw::c_int { 1 }

@@ -152,8 +152,8 @@ impl Engine {
         Some(result)
     }
 
-    /// The window whose sidebar, top bar, floating sidebar, empty page or
-    /// web panel strip is browser `id`, or whose page it is.
+    /// The window whose sidebar, top bar, floating sidebar, empty page, web
+    /// panel strip or hover zone is browser `id`, or whose page it is.
     pub(crate) fn window_of_browser(&self, id: i32) -> Option<WindowId> {
         self.find_browser(id).map(|(win, _)| win)
     }
@@ -181,12 +181,17 @@ impl Engine {
             let strip = w.panel_strip.as_ref().and_then(|(view, _)| view.browser());
             #[cfg(not(target_os = "linux"))]
             let strip = None;
+            #[cfg(target_os = "linux")]
+            let edge = w.edge.as_ref().and_then(|e| e.view.browser());
+            #[cfg(not(target_os = "linux"))]
+            let edge = None;
             let browser = is(frame.and_then(|f| f.sidebar_browser.as_ref()))
                 .or_else(|| is(empty.as_ref()))
                 .or_else(|| is(frame.and_then(|f| f.top_bar_browser.as_ref())))
                 .or_else(|| is(frame.and_then(|f| f.dev_bar_browser.as_ref())))
                 .or_else(|| is(float.as_ref()))
-                .or_else(|| is(strip.as_ref()))?;
+                .or_else(|| is(strip.as_ref()))
+                .or_else(|| is(edge.as_ref()))?;
             Some((win, browser))
         })
     }

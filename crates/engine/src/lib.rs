@@ -37,6 +37,8 @@ mod device_order;
 mod devpipe;
 mod devtools;
 mod downloads;
+#[cfg(target_os = "linux")]
+mod edge;
 mod empty;
 mod engine;
 mod events;
@@ -83,6 +85,8 @@ mod trash;
 mod web_search;
 #[cfg(target_os = "windows")]
 mod win;
+#[cfg(target_os = "linux")]
+mod x11;
 
 pub use autofill::AutofillPrefs;
 pub use blocker::{Filters, List as FilterList, set_allowed_sites, set_filters};
