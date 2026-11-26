@@ -177,7 +177,8 @@
   },
   "device_tab": {
     "hint": "Auf {device} geöffnet. Klicken, um hier weiterzumachen.",
-    "label": "Auf {device} geöffnet"
+    "label": "Auf {device} geöffnet",
+    "open_here": "Hier öffnen"
   },
   "extensions": {
     "title": "Erweiterungen",

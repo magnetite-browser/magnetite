@@ -6,6 +6,9 @@ use std::collections::{BTreeSet, HashSet};
 use magnetite_core::{Id, SidebarNode, SidebarSnapshot, TabItem, UnixSeconds};
 use magnetite_engine::ContentId;
 
+use crate::devices::RemoteTab;
+use crate::url_policy;
+
 use super::{AppState, now};
 
 /// Remove tabs whose addresses Magnetite would not open from data that came
@@ -431,6 +434,37 @@ impl AppState {
             .or_else(synced)
             .unwrap_or(&front)
             .clone()
+    }
+
+    /// Open `tab` of another device as a Today tab of the space
+    /// `device_tab_space` picks, and note it as taken, so its device closes
+    /// it. A clicked one goes to the end of Today, where its row was (other
+    /// devices' rows come after this device's tabs); one sent here (`sent`)
+    /// goes to the top like any new tab, unread. Its space and id; None for
+    /// an address not opened from stored data.
+    pub fn take_device_tab(&mut self, tab: &RemoteTab, sent: bool) -> Option<(Id, Id)> {
+        // The round lists none this device does not open (`devices`);
+        // checked again here, where the address is opened.
+        if !url_policy::allowed(&tab.url, url_policy::Source::Stored) {
+            return None;
+        }
+        self.settings.sync.taken.push(tab.id.clone());
+        let space = self.device_tab_space(tab.space.as_ref());
+        let title = if tab.title.is_empty() {
+            &tab.url
+        } else {
+            &tab.title
+        };
+        let id = self.new_today_tab(&space, &tab.url, title);
+        let today = &mut self.space_mut(&space)?.today;
+        let at = today.iter().position(|t| t.id == id)?;
+        if sent {
+            today[at].unread = true;
+        } else {
+            let taken = today.remove(at);
+            today.push(taken);
+        }
+        Some((space, id))
     }
 
     /// The profiles that stay on this device with the spaces kept here
@@ -964,6 +998,44 @@ mod tests {
         s.set_space_synced(&first, false);
         s.active_space.clone_from(&local);
         assert_eq!(s.device_tab_space(Some(&first)), local);
+    }
+
+    #[test]
+    fn a_clicked_tab_of_another_device_stays_where_its_row_was() {
+        let mut s = state();
+        let space = s.active_space.clone();
+        let remote = |id: &str| RemoteTab {
+            device: "iPhone".into(),
+            id: id.into(),
+            url: format!("https://example.org/{id}"),
+            title: id.into(),
+            space: Some(space.clone()),
+        };
+        let today = |s: &AppState| -> Vec<String> {
+            s.space(&space)
+                .unwrap()
+                .today
+                .iter()
+                .map(|t| t.title.clone())
+                .collect()
+        };
+
+        // Clicked: below this device's tabs, where the phone's rows are.
+        let (_, clicked) = s.take_device_tab(&remote("clicked"), false).unwrap();
+        assert_eq!(today(&s), ["a", "b", "c", "clicked"]);
+        assert!(!s.find_tab(&clicked).unwrap().1.unread);
+        // Sent: at the top like any new tab, unread.
+        let (_, sent) = s.take_device_tab(&remote("sent"), true).unwrap();
+        assert_eq!(today(&s), ["sent", "a", "b", "c", "clicked"]);
+        assert!(s.find_tab(&sent).unwrap().1.unread);
+        assert_eq!(s.settings.sync.taken, ["clicked", "sent"]);
+        // An address not opened from stored data is neither opened nor noted.
+        let unsafe_tab = RemoteTab {
+            url: "javascript:alert(1)".into(),
+            ..remote("x")
+        };
+        assert_eq!(s.take_device_tab(&unsafe_tab, false), None);
+        assert_eq!(s.settings.sync.taken.len(), 2);
     }
 
     #[test]

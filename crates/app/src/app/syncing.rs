@@ -6,7 +6,6 @@ use magnetite_engine::Engine;
 use crate::devices::{DEVICES, Me, RemoteTab};
 use crate::state::{SyncSettings, now};
 use crate::sync::{self, Job, Outcome, SyncClient};
-use crate::url_policy;
 
 use super::{MagnetiteApp, global};
 
@@ -224,31 +223,13 @@ impl MagnetiteApp {
         }
     }
 
-    /// Open `tab` of another device as a Today tab of its space (the space
-    /// in front if this device does not have that one) and note it as taken,
-    /// so its device closes it. `background`: unread, behind the tab in front.
-    fn take_device_tab(&self, engine: &Engine, tab: &RemoteTab, background: bool) {
-        let opened = self.with_state(|s| {
-            // The round lists none this device does not open (`devices`);
-            // checked again here, where the address is opened.
-            if !url_policy::allowed(&tab.url, url_policy::Source::Stored) {
-                return None;
-            }
-            s.settings.sync.taken.push(tab.id.clone());
-            let space = s.device_tab_space(tab.space.as_ref());
-            let title = if tab.title.is_empty() {
-                &tab.url
-            } else {
-                &tab.title
-            };
-            let id = s.new_today_tab(&space, &tab.url, title);
-            if background && let Some(t) = s.find_tab_mut(&id) {
-                t.unread = true;
-            }
-            Some((space, id))
-        });
+    /// Take `tab` of another device over (`AppState::take_device_tab`). A
+    /// clicked one comes to the front; one `sent` here stays behind the tab
+    /// in front.
+    fn take_device_tab(&self, engine: &Engine, tab: &RemoteTab, sent: bool) {
+        let opened = self.with_state(|s| s.take_device_tab(tab, sent));
         if let Some((space, id)) = opened
-            && !background
+            && !sent
         {
             if self.with_state(|s| s.active_space != space) {
                 self.activate_space(engine, &space);

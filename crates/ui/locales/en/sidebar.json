@@ -177,7 +177,8 @@
   },
   "device_tab": {
     "hint": "Open on {device}. Click to continue here.",
-    "label": "Open on {device}"
+    "label": "Open on {device}",
+    "open_here": "Open here"
   },
   "extensions": {
     "title": "Extensions",

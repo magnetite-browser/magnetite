@@ -94,11 +94,13 @@ first, it reads again. Devices cannot overwrite each other there.
 
 - A tab open on another device shows in the Today list of the space it is
   open in there (in the space in front if this device does not have that
-  one), below this device's tabs, with the device's icon on the right. It is
-  not a tab here: it has no page and is not in the sidebar that syncs.
-- A click takes it over: it opens here as a Today tab in front, and this
-  device notes its id as taken. The other device sees that at its next sync,
-  closes the tab and stops listing it; this device then forgets the id.
+  one), below this device's tabs, with the device's icon on the right, which
+  gives way to "Open here" on hover. It is not a tab here: it has no page and
+  is not in the sidebar that syncs.
+- A click takes it over: it opens here in front, as the last Today tab, where
+  its row was, and this device notes its id as taken. The other device sees
+  that at its next sync, closes the tab and stops listing it; this device
+  then forgets the id.
 - A tab another device took is no longer shown here.
 - A tab the other device sent here ("Send to Desktop") is taken without a
   click: it opens in the background, marked unread. With several desktops

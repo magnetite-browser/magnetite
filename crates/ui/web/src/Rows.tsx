@@ -1135,8 +1135,9 @@ function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
 }
 
 /** A tab open on another device of the sync chain, marked by the device's
- *  icon on the right. A click takes it over: it opens here, and its device
- *  closes it at its next sync. */
+ *  icon on the right, which gives way to "Open here" on hover. A click takes
+ *  it over: it opens here at the end of Today, where its row was, and its
+ *  device closes it at its next sync. */
 export function DeviceTabRow({ tab }: { tab: DeviceTab }) {
   const hint = t("sidebar.device_tab.hint", { device: tab.device });
   return (
@@ -1146,6 +1147,7 @@ export function DeviceTabRow({ tab }: { tab: DeviceTab }) {
       <span className="from-device" aria-label={t("sidebar.device_tab.label", { device: tab.device })}>
         <PhoneIcon width={13} height={13} />
       </span>
+      <span className="open-here" aria-hidden>{t("sidebar.device_tab.open_here")}</span>
     </button>
   );
 }

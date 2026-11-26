@@ -100,8 +100,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
    capture dot. It stays on hover: one has to find the shared tab at any time. */
 :is(.row, .split-cell) .shared { width: 18px; height: 20px; flex: none; display: grid; place-items: center; color: #f05d5d; }
 .fav[data-shared]::before { content: ""; position: absolute; right: 4px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: #f05d5d; }
-/* The device a tab of another device is open on; it stays on hover: the row has no other button. */
+/* The device a tab of another device is open on. On hover it gives way to
+   "Open here", in the row's flow so the title ends before it in any
+   language: a click opens the tab on this device. */
 .row .from-device { width: 16px; height: 20px; flex: none; display: grid; place-items: center; color: var(--muted); }
+.row .open-here { display: none; flex: none; height: 20px; padding: 0 7px; margin-right: -2px; border-radius: 6px; align-items: center; font-size: 11.5px; font-weight: 500; white-space: nowrap; color: var(--secondary); background: rgba(255,255,255,0.08); }
+.row.device-tab:is(:hover, :focus-visible) .open-here { display: flex; }
+.row.device-tab:is(:hover, :focus-visible) .from-device { display: none; }
+.row.device-tab:is(:hover, :focus-visible) .title { -webkit-mask-image: none; }
 .row:hover .slot.ghost, .row:focus-within .slot.ghost { opacity: 1; }
 .row .slot:hover { background: rgba(255,255,255,0.1); color: var(--fg); }
 /* A toggle that is on (a smart folder showing its snoozed items). */
