@@ -125,7 +125,9 @@ Settings.
   in the same way: the first where a new tab goes, each further one right
   below the one before. The window the extension got back is the first
   tab's, and its id stays good: `chrome.windows.get` finds it, with that
-  tab in it. `focused: false` opens the tabs in the background.
+  tab in it. `focused: false` and `state: "minimized"` open the tabs in
+  the background; the window's size, place and other states do not apply
+  to tabs.
 - To extensions, pinned tabs and favorites are pinned (`tab.pinned`,
   `chrome.tabs.query({pinned: true})`), and other tabs are not.
   `chrome.tabs.update` with `pinned` pins a tab at the top of its space's
