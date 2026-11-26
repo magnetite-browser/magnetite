@@ -696,11 +696,13 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
    the panel's window: see-through where the CEF can do it, else the gap's
    colour, with the line of the macOS dividers (`MagnetiteDividerView`)
    while hovered or dragged. */
-.edge-zone { position: fixed; inset: 0; }
 .panel-grip { position: fixed; inset: 0; display: grid; place-items: center; cursor: col-resize; background: var(--bg); }
 .panel-grip::after { content: ""; width: 2px; height: 32px; border-radius: 1px; background: rgba(255,255,255,0.35); visibility: hidden; }
 .panel-grip:hover::after { visibility: visible; }
 .panel-grip[data-dragging]::after { visibility: visible; height: 56px; background: var(--accent); }
+/* The window's edge that slides the hidden sidebar out under Wayland
+   (Edge.tsx): nothing to see, the whole page reacts. */
+.edge-zone { position: fixed; inset: 0; }
 .sidebar-resizer:hover, .sidebar-resizer:active { background: linear-gradient(to left, var(--space-soft, rgba(255,255,255,0.08)) 2px, transparent 2px); }
 .sidebar-resizer[data-side="right"]:hover, .sidebar-resizer[data-side="right"]:active { background: linear-gradient(to right, var(--space-soft, rgba(255,255,255,0.08)) 2px, transparent 2px); }
 

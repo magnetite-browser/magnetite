@@ -1331,6 +1331,9 @@ export const IS_MAC = navigator.userAgent.includes("Mac");
 /** The app runs on Windows (Explorer, the Recycle Bin). */
 export const IS_WINDOWS = navigator.userAgent.includes("Windows");
 
+/** The app runs on Linux. */
+export const IS_LINUX = !IS_MAC && !IS_WINDOWS && navigator.userAgent.includes("Linux");
+
 /**
  * A shortcut as this system writes it. On macOS `mac` as it is ("⇧⌘T");
  * elsewhere `other` when the keys differ there, or else `mac` with its

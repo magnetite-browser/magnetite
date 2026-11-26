@@ -11,10 +11,7 @@
 
 use cef::*;
 
-/// Make X11 window `window` transient for `parent`.
-fn set_transient(window: &Window, parent: &Window) {
-    crate::x11::set_transient(window.window_handle(), parent.window_handle());
-}
+use crate::x11::set_transient;
 
 /// Put `window` above the pages, the last of which, `top`, was shown last.
 /// `reshown`: a page was newly shown, so that under Wayland it lies above
@@ -22,7 +19,7 @@ fn set_transient(window: &Window, parent: &Window) {
 pub(crate) fn keep_above(window: &Window, top: Option<&Window>, reshown: bool) {
     if crate::cef_app::runs_on_x11() {
         if let Some(top) = top {
-            set_transient(window, top);
+            set_transient(window.window_handle(), top.window_handle());
         }
         window.bring_to_top();
     } else if reshown {
@@ -36,7 +33,7 @@ pub(crate) fn keep_above(window: &Window, top: Option<&Window>, reshown: bool) {
 /// hint, and turns down its raise; a raise of the parent brings it along.
 pub(crate) fn settle_above(window: &Window, top: Option<&Window>) {
     if let Some(top) = top {
-        set_transient(window, top);
+        set_transient(window.window_handle(), top.window_handle());
         top.bring_to_top();
     }
     window.bring_to_top();
@@ -45,6 +42,6 @@ pub(crate) fn settle_above(window: &Window, top: Option<&Window>) {
 /// `window` is a plain page again: transient for the frame, as CEF made it.
 pub(crate) fn release(window: &Window, frame: &Window) {
     if crate::cef_app::runs_on_x11() {
-        set_transient(window, frame);
+        set_transient(window.window_handle(), frame.window_handle());
     }
 }

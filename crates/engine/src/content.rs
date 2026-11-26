@@ -862,6 +862,9 @@ impl Engine {
                 250,
             );
             crate::panel_stack::keep_above(&window, self.top_page().as_ref(), false);
+            // Without the frame the panel reaches the window's edge, over
+            // the hidden sidebar's zone.
+            self.raise_hidden_sidebar(true);
         }
         hide_before();
         view.request_focus();
