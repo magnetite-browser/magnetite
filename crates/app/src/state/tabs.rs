@@ -1,9 +1,11 @@
 //! Tabs in the state: finding them, taking them out, the archive and its
 //! retention, and deleting a space.
 
+use std::borrow::Cow;
 use std::collections::HashSet;
 
 use magnetite_core::split::SplitNode;
+use magnetite_core::unread::unread_count;
 use magnetite_core::{Color, Id, SidebarNode, Space, TabItem, UnixSeconds};
 use magnetite_engine::{ContentId, MediaState, MemoryPressure};
 
@@ -208,6 +210,33 @@ impl AppState {
         }
         let tab = self.content_to_tab.get(&id)?.clone();
         Some(self.runtime.entry(tab).or_default())
+    }
+
+    /// Record page `id`'s new title (`EngineEvent::TitleChanged`). An
+    /// unread count in it (`(3) WhatsApp`) goes to the tab's runtime, for
+    /// the bubble on its row or tile, and stays out of the tab's title and
+    /// the history: those are saved and synced, and a count there would be
+    /// stale. A renamed tab keeps its name and still gets the count. The
+    /// peek and the mini windows show their page's title as it is.
+    pub fn set_page_title(&mut self, id: ContentId, title: &str) {
+        if let Some(p) = self.page_outside_mut(id) {
+            title.clone_into(&mut p.title);
+        }
+        let (count, title) = match unread_count(title) {
+            Some((count, rest)) => (Some(count), Cow::Owned(rest)),
+            None => (None, Cow::Borrowed(title)),
+        };
+        self.record_title(id, &title);
+        let Some(tab) = self.content_to_tab.get(&id).cloned() else {
+            return;
+        };
+        self.runtime.entry(tab.clone()).or_default().unread_count = count;
+        if let Some(t) = self.find_tab_mut(&tab)
+            && !t.custom_title
+            && !title.is_empty()
+        {
+            t.title = title.into_owned();
+        }
     }
 
     /// Record what page `id` plays now (`EngineEvent::MediaChanged`), and
@@ -1089,6 +1118,27 @@ mod tests {
             Some("https://down.example/")
         );
         assert_eq!(s.runtime["a"].favicon, None);
+    }
+
+    #[test]
+    fn an_unread_count_goes_from_the_title_to_the_runtime() {
+        let mut s = state();
+        s.content_to_tab.insert(1, "a".into());
+        s.content_to_tab.insert(2, "p".into());
+        s.find_tab_mut("p").unwrap().custom_title = true;
+        s.set_page_title(1, "(3) Chat");
+        s.set_page_title(2, "Inbox (12) - Mail");
+        assert_eq!(s.find_tab("a").unwrap().1.title, "Chat");
+        assert_eq!(s.runtime["a"].unread_count, Some(3));
+        // A renamed tab keeps its name.
+        assert_eq!(s.find_tab("p").unwrap().1.title, "p");
+        assert_eq!(s.runtime["p"].unread_count, Some(12));
+        // Read: the bubble goes.
+        s.set_page_title(1, "Chat");
+        assert_eq!(s.runtime["a"].unread_count, None);
+        // A page that goes takes its count along.
+        s.runtime.get_mut("p").unwrap().unload();
+        assert_eq!(s.runtime["p"].unread_count, None);
     }
 
     #[test]

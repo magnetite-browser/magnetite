@@ -178,6 +178,9 @@ pub struct TabRuntime {
     /// what it is shown as (`dev.rs`).
     #[serde(default)]
     pub dev: crate::dev::DevState,
+    /// The unread count the page shows in its title (`(3) WhatsApp`), for
+    /// the bubble on its tab (`magnetite_core::unread`). Never saved.
+    pub unread_count: Option<u32>,
     /// The tab whose page opened this one and under which it was placed
     /// (`AppState::place_below_opener`). In memory only.
     #[serde(skip)]
@@ -187,8 +190,8 @@ pub struct TabRuntime {
 impl TabRuntime {
     /// Forget the tab's page window (made again when the tab is shown): the
     /// tab is no longer loaded, loading or playing, nor muted, and nothing
-    /// is known about its connection or its use of camera and microphone,
-    /// and it is no longer shared or sharing.
+    /// is known about its connection, its use of camera and microphone or
+    /// its unread count, and it is no longer shared or sharing.
     /// Returns the window for the caller to close.
     pub fn unload(&mut self) -> Option<ContentId> {
         self.loaded = false;
@@ -201,6 +204,7 @@ impl TabRuntime {
         self.shared = false;
         self.sharing = false;
         self.dev = crate::dev::DevState::default();
+        self.unread_count = None;
         self.content.take()
     }
 }

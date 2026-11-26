@@ -10,5 +10,6 @@ pub mod search;
 pub mod sidebar;
 pub mod smart;
 pub mod split;
+pub mod unread;
 
 pub use model::*;

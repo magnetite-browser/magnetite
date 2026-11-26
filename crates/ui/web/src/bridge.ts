@@ -156,6 +156,8 @@ export interface TabRuntime {
   /** This tab's page shares a tab right now (another one, or its own). */
   sharing: boolean;
   dev: DevState;
+  /** The unread count the page shows in its title ("(3) WhatsApp"); its tab's title comes without it. */
+  unread_count: number | null;
 }
 
 /** What a page is shown as instead of this computer's own settings (`dev.rs`). */

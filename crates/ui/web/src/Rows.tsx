@@ -4,7 +4,7 @@ import { Close, FolderIcon, HomeArrow, KeepActiveIcon, Minus, PhoneIcon, ScreenS
 import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./smart";
 import { Glyph, glyphFor } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, movedIds, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
-import { errorCount } from "./DevBar";
+import { countLabel } from "./DevBar";
 import { accentCss, findTab, hostOf, send, splitGroup, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snapshot, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
 import { MAX_PANES, menuOf, tabMenu } from "./menus";
@@ -345,7 +345,8 @@ function Favorites({ ctx, list, tiles, flow, before, joining, profile, color }: 
     {tiles.map((tile) => {
       const page = (fav: TabItem) => {
         const rt = state.runtime[fav.id];
-        const notes = [fav.panel && t("sidebar.favorites.panel"), rt?.shared && t("sidebar.favorites.shared")].filter((note): note is string => !!note);
+        const unread = rt?.unread_count;
+        const notes = [fav.panel && t("sidebar.favorites.panel"), rt?.shared && t("sidebar.favorites.shared"), unread && t("sidebar.tab_row.unread", { count: unread })].filter((note): note is string => !!note);
         return {
           "data-active": state.active_tab === fav.id || state.web_panel === fav.id || undefined,
           "data-unloaded": !rt?.loaded || undefined,
@@ -356,7 +357,7 @@ function Favorites({ ctx, list, tiles, flow, before, joining, profile, color }: 
           onMouseEnter: (e: React.MouseEvent<HTMLElement>) => flow.tip(fav, e.currentTarget, profile, color, notes),
           onMouseLeave: flow.noTip,
           "aria-label": [fav.title || hostOf(fav.url), profile, ...notes].filter(Boolean).join(" · "),
-          children: <><Favicon url={fav.url} src={rt?.favicon} loading={rt?.loading} /></>,
+          children: <><Favicon url={fav.url} src={rt?.favicon} loading={rt?.loading} />{!!unread && <span className="fav-unread" aria-hidden>{countLabel(unread)}</span>}</>,
         };
       };
       const [lead] = tile;
@@ -614,7 +615,7 @@ const TabRowInner = memo(
             </span>
           )}
           {!!rt?.dev?.errors && !active && (
-            <span className="dev-errors" title={t("sidebar.tab_row.console_errors", { count: rt.dev.errors })} aria-label={t("sidebar.tab_row.console_errors_label", { count: rt.dev.errors })}>{errorCount(rt.dev.errors)}</span>
+            <span className="dev-errors" title={t("sidebar.tab_row.console_errors", { count: rt.dev.errors })} aria-label={t("sidebar.tab_row.console_errors_label", { count: rt.dev.errors })}>{countLabel(rt.dev.errors)}</span>
           )}
           {tab.panel && section === "pinned" && (
             <span className="panel-mark" data-open={active || undefined} title={t("sidebar.tab_row.web_panel")} aria-label={t("sidebar.tab_row.web_panel")} />
@@ -623,6 +624,10 @@ const TabRowInner = memo(
             <span className="kept" title={t("sidebar.tab_row.kept_active")} aria-label={t("sidebar.tab_row.kept_active_label")}>
               <KeepActiveIcon width={12} height={12} />
             </span>
+          )}
+          {!!rt?.unread_count && (
+            // The site's unread count, from its title; the close button takes its place on hover.
+            <span className="unread-count" role="img" aria-label={t("sidebar.tab_row.unread", { count: rt.unread_count })}>{countLabel(rt.unread_count)}</span>
           )}
           {shareTarget && (
             // Beside close, as Chromium's "Share this tab instead".

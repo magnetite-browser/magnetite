@@ -102,19 +102,7 @@ impl EngineDelegate for MagnetiteApp {
                 }
             }
             EngineEvent::TitleChanged { id, title } => {
-                self.with_state(|s| {
-                    if let Some(p) = s.page_outside_mut(id) {
-                        p.title.clone_from(&title);
-                    }
-                    s.record_title(id, &title);
-                    if let Some(tab) = s.content_to_tab.get(&id).cloned()
-                        && let Some(t) = s.find_tab_mut(&tab)
-                        && !t.custom_title
-                        && !title.is_empty()
-                    {
-                        t.title = title;
-                    }
-                });
+                self.with_state(|s| s.set_page_title(id, &title));
                 self.push_state(engine);
             }
             EngineEvent::UrlChanged { id, url } => {

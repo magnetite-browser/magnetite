@@ -104,6 +104,8 @@
     "console_errors_other": "{count} Fehler in der Konsole",
     "console_errors_label_one": "{count} Konsolenfehler",
     "console_errors_label_other": "{count} Konsolenfehler",
+    "unread_one": "{count} ungelesen",
+    "unread_other": "{count} ungelesen",
     "web_panel": "Öffnet sich als Web-Panel",
     "kept_active": "Aktiv gehalten: Dieser Tab wird nicht entladen",
     "kept_active_label": "Aktiv gehalten",

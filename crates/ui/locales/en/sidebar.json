@@ -104,6 +104,8 @@
     "console_errors_other": "{count} errors in the console",
     "console_errors_label_one": "{count} console error",
     "console_errors_label_other": "{count} console errors",
+    "unread_one": "{count} unread",
+    "unread_other": "{count} unread",
     "web_panel": "Opens as a web panel",
     "kept_active": "Kept active: this tab is not unloaded",
     "kept_active_label": "Kept active",

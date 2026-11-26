@@ -62,8 +62,8 @@ export function showsDevTools(state: UiState, dev: DevState | undefined): dev is
   return (dev.local && state.settings.developer.enabled) || emulationLabels(dev.emulation).length > 0 || dev.responsive || state.recording !== null;
 }
 
-/** The error count as a badge shows it. */
-export function errorCount(n: number): string {
+/** A count as a badge shows it (console errors, a site's unread count). */
+export function countLabel(n: number): string {
   return n > 99 ? "99+" : String(n);
 }
 
@@ -174,7 +174,7 @@ function DevTools({ state, dev, clears, onPanel }: { state: UiState; dev: DevSta
         onClick={() => send({ cmd: "dev_panel", panel: "console" })}
       >
         <ConsoleIcon width={14} height={14} />
-        {dev.errors > 0 && <span className="dev-count">{errorCount(dev.errors)}</span>}
+        {dev.errors > 0 && <span className="dev-count">{countLabel(dev.errors)}</span>}
       </button>
       <button className="dev-btn no-drag" title={`${t("developer.bar.network")}${keysHint(state.keys, "dev_network")}`} aria-label={t("developer.bar.network")} onClick={() => send({ cmd: "dev_panel", panel: "network" })}>
         <RequestsIcon width={14} height={14} />

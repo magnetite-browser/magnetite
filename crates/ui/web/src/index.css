@@ -778,6 +778,11 @@ textarea.field.code { display: block; width: 100%; height: auto; min-height: 96p
 @keyframes dev-pulse { 50% { opacity: 0.25; } }
 @media (prefers-reduced-motion: reduce) { .dev-pulse { animation: none; } }
 .row .dev-errors { flex: none; min-width: 16px; height: 16px; padding: 0 4px 1px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; border-radius: 8px; background: rgba(240,93,93,0.18); color: #f08c8c; font-size: 10.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* A site's unread count, read from its page title: a red bubble at the end of its row, on the corner of a favorite's icon. */
+.row .unread-count, .fav-unread { min-width: 14px; height: 14px; padding: 0 3.5px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; border-radius: 7px; background: #e5484d; color: #fff; font-size: 9.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.row .unread-count { flex: none; }
+.row:hover .unread-count, .row:focus-within .unread-count { visibility: hidden; }
+.fav-unread { position: absolute; left: calc(50% + 3px); top: calc(50% - 14px); box-shadow: 0 1px 2px rgba(0,0,0,0.3); pointer-events: none; }
 
 /* a shared folder's page (Shared.tsx) */
 .shared-list { list-style: none; margin: 0; padding: 0; }
