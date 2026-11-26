@@ -48,6 +48,24 @@ body:
     attributes:
       label: OS version
       placeholder: macOS 15.3, Ubuntu 24.04, Windows 11 24H2
+  - type: dropdown
+    id: installed-via
+    attributes:
+      label: Installed via
+      description: How Magnetite got onto this computer. It decides how it updates and where its files are.
+      options:
+        - Disk image (.dmg)
+        - Zip
+        - Homebrew
+        - Installer (setup.exe)
+        - deb package (apt)
+        - rpm package (dnf)
+        - AppImage
+        - Tarball (.tar.gz)
+        - Built from source
+        - Other (say which under "What happened")
+    validations:
+      required: true
   - type: textarea
     id: logs
     attributes:
