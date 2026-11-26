@@ -20,8 +20,8 @@ screen, in any space. There are at most two rows, playing ones first.
 
 - The title is the page's Media Session title, else the tab's title. The
   tooltip adds the artist.
-- A tab row shows a speaker button while the tab plays or is muted; it
-  mutes and unmutes the tab. The mute is forgotten when the tab is
+- A tab row shows a speaker button while the tab plays media (see "What
+  counts as media") or is muted; it mutes and unmutes the tab. The mute is forgotten when the tab is
   unloaded.
 
 ## What counts as media
@@ -31,8 +31,15 @@ screen, in any space. There are at most two rows, playing ones first.
 - A muted video too, while it plays or is in the floating window, so that
   it can pop out (Instagram starts its videos muted). Its tab row gets no
   speaker button.
-- Not a clip shorter than 5 seconds, such as a chat's message sound: it
-  gets no row and no speaker button, unless it is in the floating window.
+- Not a sound effect, such as a chat's message sound: a clip shorter than
+  5 seconds gets no row and no speaker button. It does count when it
+  loops (a ringtone), when it is in the floating window, and once it has
+  played on for 5 seconds: short clips that follow each other within a
+  second count as one (a reader playing a text sentence by sentence), and
+  so does a stream of unknown or endless length (a live stream), after its
+  first 5 seconds. Media that counted keeps counting when resumed.
+- Of several paused elements, the one that last played as media keeps the
+  row; a sound effect playing in between does not take it away.
 - Paused media keeps its row, so it can be resumed. Media that was loaded
   but never started (a queued next video, an ad in a background tab) gets
   none. Ended media loses its row.

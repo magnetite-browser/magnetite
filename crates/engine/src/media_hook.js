@@ -23,6 +23,8 @@
   const every = setInterval.bind(window);
   const Ref = WeakRef;
   const deref = Function.prototype.call.bind(WeakRef.prototype.deref);
+  const clock = Date.now;
+  const rootOf = Function.prototype.call.bind(Node.prototype.getRootNode);
 
   // Media Session handlers the page registers (Spotify, YouTube Music, …).
   const handlers = new Map();
@@ -51,18 +53,37 @@
   // never started (YouTube queues the next video or an ad; background tabs
   // hold new playback back) is not worth a paused player row.
   const played = new WeakSet();
-  let lastPlayed = null;
+  // Each element's current run of playback: when it began, and when it
+  // stopped (0 while it plays). A source that starts within RUN_GAP_MS of
+  // the last one stopping goes on with its run (a reader that plays a text
+  // sentence by sentence), and so does media resumed after a run that
+  // already counted (`isMedia`).
+  const runs = new WeakMap();
+  const RUN_GAP_MS = 1000;
+  const SHORT_SECONDS = 5;
   const onEvent = (e) => {
-    if (e.type === "play") lastPlayed = e.target;
-    if (e.type === "playing") played.add(e.target);
-    if (e.type === "loadstart" || e.type === "emptied") played.delete(e.target);
+    const el = e.target;
+    if (e.type === "playing") {
+      played.add(el);
+      const run = runs.get(el);
+      if (!run || (run.stopped && clock() - run.stopped > RUN_GAP_MS && run.stopped - run.start < SHORT_SECONDS * 1000)) {
+        runs.set(el, { start: clock(), stopped: 0 });
+      } else {
+        run.stopped = 0;
+      }
+    }
+    if (e.type === "pause" || e.type === "ended") {
+      const run = runs.get(el);
+      if (run && !run.stopped) run.stopped = clock();
+    }
+    if (e.type === "loadstart" || e.type === "emptied") played.delete(el);
     schedule();
   };
   const watch = (el) => {
     if (watched.has(el)) return;
     watched.add(el);
     elements.add(new Ref(el));
-    for (const type of ["play", "playing", "pause", "ended", "emptied", "loadstart", "volumechange", "loadedmetadata"]) el.addEventListener(type, onEvent);
+    for (const type of ["play", "playing", "pause", "ended", "emptied", "loadstart", "volumechange", "loadedmetadata", "durationchange"]) el.addEventListener(type, onEvent);
   };
   const play = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = {
@@ -74,7 +95,6 @@
   window.addEventListener("play", (e) => {
     if (e.target instanceof HTMLMediaElement) {
       watch(e.target);
-      lastPlayed = e.target;
       schedule();
     }
   }, true);
@@ -114,18 +134,33 @@
   window.addEventListener("enterpictureinpicture", onPicture, true);
   window.addEventListener("leavepictureinpicture", onPicture, true);
 
-  // The element that matters: an audible one that really plays, else a
-  // muted video that plays or is in the floating window (Instagram starts
-  // its videos muted; such a video can still pop out), else the last
-  // audible one that played and is paused now. Clips shorter than
-  // SHORT_SECONDS (a chat's message sound) are sound effects, not media: a
-  // background tab's would flash a media row for the second it plays. Its
-  // duration is known by the time it plays (`NaN` before, `Infinity` live).
-  const SHORT_SECONDS = 5;
+  // Whether element `el` is in the floating window. A player that keeps its
+  // video in a shadow root (Reddit) is found there: the document only names
+  // the shadow's host.
+  const inFloatingWindow = (el) => rootOf(el).pictureInPictureElement === el;
+
+  // Whether element `el` is media and not a sound effect such as a chat's
+  // message sound, which in a background tab would flash a media row for
+  // the second it plays: a clip of SHORT_SECONDS or more, a loop (a
+  // ringtone), the video in the floating window, or whatever has played on
+  // for SHORT_SECONDS in one run (`runs`): short sources one after another,
+  // or a source of unknown or endless length (a live stream, a recording).
+  const isMedia = (el) => {
+    if ((el.duration >= SHORT_SECONDS && el.duration !== Infinity) || el.loop || inFloatingWindow(el)) return true;
+    const run = runs.get(el);
+    return !!run && (run.stopped || clock()) - run.start >= SHORT_SECONDS * 1000;
+  };
+
+  // The last audible media `current` found playing: of the paused ones, the
+  // one that keeps its row. A sound effect never takes its place.
+  let lastPlayed = null;
+  // The element that matters (`isMedia`): an audible one that really plays,
+  // else a muted video that plays or is in the floating window (Instagram
+  // starts its videos muted; such a video can still pop out), else the last
+  // audible one that played and is paused now.
   const current = () => {
     let paused = null;
     let silent = null;
-    const floating = document.pictureInPictureElement;
     for (const ref of elements) {
       const el = deref(ref);
       if (!el) {
@@ -139,12 +174,15 @@
         }
         continue;
       }
-      if (!played.has(el) || (el.duration < SHORT_SECONDS && el !== floating)) continue;
+      if (!played.has(el) || !isMedia(el)) continue;
       if (el.muted || el.volume === 0) {
-        if (!silent && el instanceof HTMLVideoElement && (!el.paused || el === floating)) silent = el;
+        if (!silent && el instanceof HTMLVideoElement && (!el.paused || inFloatingWindow(el))) silent = el;
         continue;
       }
-      if (!el.paused) return el;
+      if (!el.paused) {
+        lastPlayed = el;
+        return el;
+      }
       if (el === lastPlayed) paused = el;
     }
     return silent || paused;
