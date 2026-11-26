@@ -974,11 +974,15 @@ fn symbol(button: Button, playing: bool) -> Option<Retained<NSImage>> {
         Some(&label),
     )
     .and_then(|i| i.imageWithSymbolConfiguration(&config))?;
-    if !matches!(button, Button::Back | Button::Forward) {
+    if button == Button::PlayPause {
         return Some(image);
     }
-    // The arrow's head sits above its ring and AppKit centres both
-    // together, which leaves the ring a point low in its circle.
+    // Seek: the arrow's head sits above its ring and AppKit centres both
+    // together, which leaves the ring a point low in its circle. Top row:
+    // AppKit centres the icon in the pill but sets the label higher, so the
+    // icon sat about two points below the label's middle. One point up
+    // lines both up, labelled and icon-only (AppKit rounds the taller
+    // image's place to whole points).
     let raised = raised(image, 1.0);
     raised.setAccessibilityDescription(Some(&label));
     Some(raised)
