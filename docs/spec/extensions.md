@@ -118,7 +118,8 @@ Settings.
   every page is a window holding one tab, so `index` counts in the window
   of one page (the one named with `windowId`, else the page in front): 0
   opens the tab right above that page, 1 or more right below it, in the
-  same list. `pinned: true` opens it among the space's pinned tabs, beside
+  same list; next to a pinned page or a favorite it stays at the top of
+  Today. `pinned: true` opens it among the space's pinned tabs, beside
   that page when it is pinned too (`index`), else at the top, as a tab
   pinned by hand.
 - A normal window from `chrome.windows.create` opens its addresses as tabs
