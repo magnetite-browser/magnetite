@@ -233,7 +233,7 @@ brew install --cask magnetite-browser/magnetite/magnetite
 ```
 
 On macOS the cask installs `Magnetite.app` from the zip. On Linux
-(Homebrew 5.1.12 or later) it installs the AppImage as
+(Homebrew 7.0.12 or later) it installs the AppImage as
 `~/Applications/Magnetite.AppImage` and writes a launcher entry from the
 image's `magnetite.desktop` and icon to `~/.local/share/applications`. The
 AppImage's name carries no version, so Magnetite's own update replaces
