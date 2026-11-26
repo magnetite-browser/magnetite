@@ -31,6 +31,8 @@ screen, in any space. There are at most two rows, playing ones first.
 - A muted video too, while it plays or is in the floating window, so that
   it can pop out (Instagram starts its videos muted). Its tab row gets no
   speaker button.
+- Not a clip shorter than 5 seconds, such as a chat's message sound: it
+  gets no row and no speaker button, unless it is in the floating window.
 - Paused media keeps its row, so it can be resumed. Media that was loaded
   but never started (a queued next video, an ad in a background tab) gets
   none. Ended media loses its row.

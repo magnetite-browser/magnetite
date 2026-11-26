@@ -117,7 +117,11 @@
   // The element that matters: an audible one that really plays, else a
   // muted video that plays or is in the floating window (Instagram starts
   // its videos muted; such a video can still pop out), else the last
-  // audible one that played and is paused now.
+  // audible one that played and is paused now. Clips shorter than
+  // SHORT_SECONDS (a chat's message sound) are sound effects, not media: a
+  // background tab's would flash a media row for the second it plays. Its
+  // duration is known by the time it plays (`NaN` before, `Infinity` live).
+  const SHORT_SECONDS = 5;
   const current = () => {
     let paused = null;
     let silent = null;
@@ -135,7 +139,7 @@
         }
         continue;
       }
-      if (!played.has(el)) continue;
+      if (!played.has(el) || (el.duration < SHORT_SECONDS && el !== floating)) continue;
       if (el.muted || el.volume === 0) {
         if (!silent && el instanceof HTMLVideoElement && (!el.paused || el === floating)) silent = el;
         continue;
