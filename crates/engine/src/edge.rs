@@ -105,6 +105,27 @@ impl Engine {
         }
     }
 
+    /// Whether one of our windows is active: a frame, a floating sidebar, a
+    /// page or panel, `DevTools`. Chromium follows that under any window
+    /// manager, also one that names no active window (`_NET_ACTIVE_WINDOW`).
+    fn ours_active(&self) -> bool {
+        let windows: Vec<Window> = {
+            let mut inner = self.lock();
+            let frames: Vec<Window> = (inner.windows_mut())
+                .flat_map(|(_, w)| {
+                    let frame = w.frame.as_ref().map(|f| f.window.clone());
+                    frame
+                        .into_iter()
+                        .chain(w.float_bar.as_ref().and_then(|f| f.window.clone()))
+                })
+                .collect();
+            let pages = inner.contents.values().filter_map(|c| c.window.clone());
+            let tools = inner.docked.values().filter_map(|d| d.window.clone());
+            frames.into_iter().chain(pages).chain(tools).collect()
+        };
+        windows.iter().any(|w| w.is_active() != 0)
+    }
+
     /// Under Wayland: the zone's window at `zone`, or hidden (`None`).
     fn place_edge_window(&self, zone: Option<&Rect>) {
         let existing = (self.lock().win.edge.as_mut()).map(|edge| {
@@ -183,7 +204,8 @@ fn watch(win: WindowId, frame: &Window, zone: Option<&Rect>) {
 /// One look at the pointer; again in `EVERY_MS` while a zone is watched.
 /// Only the zone of the window the user works in (the current one) counts,
 /// as on the other systems, which have one zone: another window of ours may
-/// lie over this one's edge.
+/// lie over this one's edge. And only while one of our windows is active:
+/// another program's window may lie over it (`ours_active`).
 fn look() {
     let engine = Engine::global();
     let current = engine.current_window();
@@ -195,7 +217,7 @@ fn look() {
         for w in watched.iter_mut() {
             let inside = w.win == current
                 && pointer_in(&w.frame, &w.zone)
-                && *ours.get_or_insert_with(|| crate::x11::active_window_is_ours().unwrap_or(true));
+                && *ours.get_or_insert_with(|| engine.ours_active());
             if inside && !w.inside {
                 arrived.push(w.win);
             }

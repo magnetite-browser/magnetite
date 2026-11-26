@@ -3,15 +3,11 @@
 //! Loaded at run time: under Wayland there may be no libX11 to load, and
 //! the build needs no X11 headers. Used on the UI thread only.
 
-use std::ffi::{CStr, c_char, c_int, c_long, c_uchar, c_uint, c_ulong, c_void};
+use std::ffi::{CStr, c_char, c_int, c_uint, c_ulong, c_void};
 use std::sync::OnceLock;
 
 /// An X11 window or atom: a resource id.
 pub(crate) type Xid = c_ulong;
-
-/// Xlib's names for the property types read here.
-const XA_CARDINAL: Xid = 6;
-const XA_WINDOW: Xid = 33;
 
 type OpenDisplay = unsafe extern "C" fn(*const c_char) -> *mut c_void;
 type SetTransient = unsafe extern "C" fn(*mut c_void, Xid, Xid) -> c_int;
@@ -40,23 +36,6 @@ type GetGeometry = unsafe extern "C" fn(
     *mut c_uint,
     *mut c_uint,
 ) -> c_int;
-type InternAtom = unsafe extern "C" fn(*mut c_void, *const c_char, c_int) -> Xid;
-type GetProperty = unsafe extern "C" fn(
-    *mut c_void,
-    Xid,
-    Xid,
-    c_long,
-    c_long,
-    c_int,
-    Xid,
-    *mut Xid,
-    *mut c_int,
-    *mut c_ulong,
-    *mut c_ulong,
-    *mut *mut c_uchar,
-) -> c_int;
-type Free = unsafe extern "C" fn(*mut c_void) -> c_int;
-type DefaultRoot = unsafe extern "C" fn(*mut c_void) -> Xid;
 
 /// The Xlib calls needed, and our connection.
 struct Xlib {
@@ -67,10 +46,6 @@ struct Xlib {
     sync: SyncDisplay,
     query_pointer: QueryPointer,
     get_geometry: GetGeometry,
-    intern_atom: InternAtom,
-    get_property: GetProperty,
-    free: Free,
-    default_root: DefaultRoot,
 }
 
 fn xlib() -> Option<&'static Xlib> {
@@ -104,10 +79,6 @@ fn xlib() -> Option<&'static Xlib> {
                 sync: load!(c"XSync" as SyncDisplay),
                 query_pointer: load!(c"XQueryPointer" as QueryPointer),
                 get_geometry: load!(c"XGetGeometry" as GetGeometry),
-                intern_atom: load!(c"XInternAtom" as InternAtom),
-                get_property: load!(c"XGetWindowProperty" as GetProperty),
-                free: load!(c"XFree" as Free),
-                default_root: load!(c"XDefaultRootWindow" as DefaultRoot),
             })
         }
     })
@@ -181,68 +152,4 @@ pub(crate) fn pointer_over(window: Xid) -> Option<((i32, i32), u32)> {
         (same_screen != 0 && measured != 0).then_some(((at_x, at_y), width))
     })
     .flatten()
-}
-
-/// Whether the window the window manager has active is one of this
-/// process's (`_NET_ACTIVE_WINDOW`, `_NET_WM_PID`): another program's
-/// window may lie over ours. `None` if it does not say.
-pub(crate) fn active_window_is_ours() -> Option<bool> {
-    with_display(|x, display| {
-        // SAFETY: plain queries on our open display.
-        unsafe {
-            let root = (x.default_root)(display);
-            let active = property(x, display, root, c"_NET_ACTIVE_WINDOW", XA_WINDOW)?;
-            if active == 0 {
-                return Some(false);
-            }
-            // Chromium names its process on every window it makes.
-            let pid = property(x, display, active, c"_NET_WM_PID", XA_CARDINAL);
-            Some(pid == Some(c_ulong::from(std::process::id())))
-        }
-    })
-    .flatten()
-}
-
-/// The first value of 32-bit property `name` of type `kind` on `window`.
-///
-/// # Safety
-///
-/// `display` is `x`'s open display, on this thread.
-unsafe fn property(
-    x: &Xlib,
-    display: *mut c_void,
-    window: Xid,
-    name: &CStr,
-    kind: Xid,
-) -> Option<c_ulong> {
-    // Only an atom that exists: a window manager that set it.
-    let atom = unsafe { (x.intern_atom)(display, name.as_ptr(), 1) };
-    if atom == 0 {
-        return None;
-    }
-    let (mut actual, mut format, mut items, mut after) = (0, 0, 0, 0);
-    let mut data: *mut c_uchar = std::ptr::null_mut();
-    let status = unsafe {
-        (x.get_property)(
-            display,
-            window,
-            atom,
-            0,
-            1,
-            0,
-            kind,
-            &raw mut actual,
-            &raw mut format,
-            &raw mut items,
-            &raw mut after,
-            &raw mut data,
-        )
-    };
-    // Xlib hands 32-bit values as longs.
-    let value = (status == 0 && format == 32 && items > 0 && !data.is_null())
-        .then(|| unsafe { data.cast::<c_ulong>().read_unaligned() });
-    if !data.is_null() {
-        unsafe { (x.free)(data.cast()) };
-    }
-    value
 }
