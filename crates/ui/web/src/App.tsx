@@ -6,16 +6,16 @@ import { HistoryView } from "./HistoryView";
 import { LibraryButton } from "./LibraryButton";
 import { SidebarResizer } from "./SidebarResizer";
 import { ContextMenu, SEPARATOR, type MenuItem } from "./ContextMenu";
-import { Back, Close, Dots, FolderIcon, Forward, Plus, MaskIcon, PrivateIcon, Reload, SidebarIcon, SmartFolderIcon, SpacePlus, SplitIcon, TabPlus } from "./Icons";
+import { Back, ChevronDown, Close, Dots, FolderIcon, Forward, Plus, MaskIcon, PrivateIcon, Reload, SidebarIcon, SmartFolderIcon, SpacePlus, SplitIcon, TabPlus } from "./Icons";
 import { AddressRow } from "./AddressRow";
 import { CaptureToast } from "./CaptureToast";
 import { record } from "./recorder";
 import { MediaBar, type MediaEntry } from "./MediaBar";
 import { NewMenu } from "./NewMenu";
 import { ExtensionBar, PinnedExtensions } from "./PinnedExtensions";
-import { DeviceTabRow, FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, movedUnder, type RowContext } from "./Rows";
+import { DeviceTabRow, FavoriteLists, NodeList, RenameInput, SplitRow, TabRow, countTabs, dropAmongPinned, movedUnder, profileColor, type RowContext } from "./Rows";
 import { windowBackground } from "./backgrounds";
-import { IS_LINUX, IS_MAC, accentCss, applyAppearance, dockedSide, favoriteShows, keyLabel, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, onRecord, send, splitIds, subscribe, type LibraryView, type Space, type SplitNode, type UiState } from "./bridge";
+import { IS_LINUX, IS_MAC, accentCss, applyAppearance, dockedSide, favoriteShows, keyLabel, lookOf, findTab, findTabInSpace, hostOf, onNotice, onOpenArchive, onOpenBookmarks, onOpenDownloads, onOpenHistory, onRecord, send, splitIds, subscribe, type LibraryView, type SidebarNode, type Space, type SplitNode, type TabItem, type UiState } from "./bridge";
 import { IconPicker, SpaceIcon } from "./Glyphs";
 import { SpaceSwitcher } from "./SpaceSwitcher";
 import { dragging, endDrag, indexAfterTaking, movedIds } from "./dnd";
@@ -30,6 +30,15 @@ import { reportMediaDevices } from "./mediaDevices";
  * the docked one is hidden. It leaves when the pointer does (or on Esc).
  */
 const FLOAT = new URLSearchParams(location.search).has("float");
+
+/** Pinned tab `id` among `nodes`, with its place: the list it is in (`among`, of folder `folderId`) and where. */
+function pinnedTab(nodes: SidebarNode[], id: string, folderId?: string): { tab: TabItem; among: SidebarNode[]; index: number; folderId?: string } | null {
+  for (const [index, n] of nodes.entries()) {
+    const found = n.kind === "tab" ? (n.id === id ? { tab: n, among: nodes, index, folderId } : null) : pinnedTab(n.children, id, n.id);
+    if (found) return found;
+  }
+  return null;
+}
 
 export function App() {
   const [state, setState] = useState<UiState | null>(null);
@@ -48,6 +57,8 @@ export function App() {
   const [renamingSpace, setRenamingSpace] = useState<string | null>(null);
   // The glyph picker, for the space icon or a folder's (`onPick(null)`: default icon).
   const [iconPicker, setIconPicker] = useState<{ x: number; y: number; current?: string; onPick: (glyph: string | null) => void; allowDefault?: boolean } | null>(null);
+  // The spaces whose pinned tabs are hidden are kept by the page (`pinned:<space>`), as closed folders are; this redraws after a change.
+  const [, redrawPinned] = useState(0);
   const pickIcon = useCallback<RowContext["pickIcon"]>((at, current, onPick, allowDefault) => setIconPicker({ ...at, current, onPick, allowDefault }), []);
 
   useEffect(() => subscribe(setState), []);
@@ -118,6 +129,19 @@ export function App() {
   const isFavorite = (id: string) => favoriteLists.some((f) => f.items.some((t) => t.id === id));
   const looseSplit = state.split && !splitIds(state.split).some((id) => splitAt.has(id)) && !splitIds(state.split).every(isFavorite) ? state.split : null;
   const ctx: RowContext = { state, spaceId: space.id, openMenu, renaming, setRenaming, newProfileFor, splitAt, inSplit, pickIcon };
+  // The space's profile shows beside its name once there is more than one to tell apart.
+  const spaceProfile = state.sidebar.profiles.filter((p) => !p.ephemeral).length > 1 ? state.sidebar.profiles.find((p) => p.id === space.profile_id) : undefined;
+  // The pinned tabs can be hidden, space by space. The tab in front stays: its row (a split's: the row of the split) is the one left, at its own place for what is dropped on it.
+  const pinnedCount = isPrivate ? 0 : countTabs(space.pinned);
+  const pinnedKey = "pinned:" + space.id;
+  const pinnedOpen = pinnedCount === 0 || localStorage.getItem(pinnedKey) !== "closed";
+  const togglePinned = () => {
+    localStorage.setItem(pinnedKey, pinnedOpen ? "closed" : "open");
+    redrawPinned((n) => n + 1);
+  };
+  const frontPinned = pinnedOpen ? null : [state.active_tab, state.web_panel]
+    .flatMap((id) => (id ? [[...splitAt].find(([, split]) => splitIds(split).includes(id))?.[0] ?? id] : []))
+    .reduce<ReturnType<typeof pinnedTab>>((found, id) => found ?? pinnedTab(space.pinned, id), null);
   const pickSpaceIcon = (x: number, y: number) =>
     pickIcon({ x, y }, space.icon, (g) => g && send({ cmd: "rename_space", id: space.id, icon: g }));
   const activeRt = state.active_tab ? state.runtime[state.active_tab] : undefined;
@@ -246,16 +270,23 @@ export function App() {
           ) : (
             <span className="truncate">{space.title}</span>
           )}
+          {spaceProfile && renamingSpace !== space.id && <span className="space-profile" data-profile={profileColor(state.sidebar.profiles, spaceProfile.id) ? true : undefined} style={{ ["--profile" as string]: profileColor(state.sidebar.profiles, spaceProfile.id) }} title={t("sidebar.space.profile", { name: spaceProfile.name })}>{spaceProfile.name}</span>}
           <button className="ib sm ml-auto opacity-0 group-hover:opacity-100" title={t("sidebar.space.options")} onClick={(e) => spaceMenu(e.clientX, e.clientY)}><Dots width={14} height={14} /></button>
         </div>
         )}
 
         {/* Pinned tabs and folders, then one divider, then Today. No labels: position says it. The private space has only Today. */}
         {!isPrivate && <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: indexAfterTaking(space.pinned, movedIds(d), space.pinned.length), split: d.pair }); else if (d) send({ cmd: "move_folder", id: d.id, index: indexAfterTaking(space.pinned, movedIds(d), space.pinned.length) }); endDrag(); }}>
-          <NodeList ctx={ctx} nodes={space.pinned} depth={0} />
+          {pinnedOpen ? <NodeList ctx={ctx} nodes={space.pinned} depth={0} /> : frontPinned && <TabRow ctx={ctx} tab={frontPinned.tab} section="pinned" index={frontPinned.index} folderId={frontPinned.folderId} onDropAt={(index) => dropAmongPinned(space.id, frontPinned.among, frontPinned.folderId, index)} />}
         </div>}
 
         <div className="divider">
+          {pinnedCount > 0 && (
+            <button className="pinned-toggle" aria-expanded={pinnedOpen} title={pinnedOpen ? t("sidebar.today.hide_pinned_title") : t("sidebar.today.show_pinned_title")} onClick={(e) => !movedUnder(e) && togglePinned()}>
+              <ChevronDown width={12} height={12} className="chevron" />
+              {pinnedOpen ? t("sidebar.today.hide_pinned") : t("sidebar.today.show_pinned", { count: pinnedCount })}
+            </button>
+          )}
           <hr />
           {space.today.length > 0 && <button title={isPrivate ? t("sidebar.today.clear_private_title") : t("sidebar.today.clear_title")} onClick={(e) => !movedUnder(e) && send({ cmd: "archive_today" })}>{t("common.clear")}</button>}
         </div>

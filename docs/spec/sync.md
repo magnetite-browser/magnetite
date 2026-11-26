@@ -78,7 +78,7 @@ the web for the words.
 
 | Collection | Content |
 |---|---|
-| `sidebar` | profiles, favorites, spaces (name, glyph or own icon, colour) with their pinned trees (folders, smart folder definitions), Today tabs and bookmarks |
+| `sidebar` | profiles (name, colour), favorites, spaces (name, glyph or own icon, colour) with their pinned trees (folders, smart folder definitions), Today tabs and bookmarks |
 | `settings` | when Today tabs are archived, when inactive tabs are suspended, where links from other apps open (a tab, a peek or a mini window; a version that does not know a choice uses a new tab), the shortcuts with other keys or none, who gets their keys first, and the sites that get them all first (`shortcuts.md`) |
 | `devices` | per device: the tabs open on it that it lists for the others (phones do), which tabs of other devices it took over, a phone's changes to the sidebar, and which of those a desktop made |
 

@@ -3,7 +3,7 @@
 // icon, look, profile, what stays on this device, keys). Settings →
 // Profiles: the profiles, each with the spaces and the favorites that share
 // its logins. Settings → Favorites: the favorites.
-import { Fragment, useEffect, useLayoutEffect, useState, useRef, type ReactNode } from "react";
+import { Fragment, useEffect, useLayoutEffect, useState, useRef } from "react";
 import { Favicon } from "../Favicon";
 import { iconUrl, storeIcon } from "../backgrounds";
 import { Glyph, GLYPH_NAMES, glyphFor, SpaceIcon } from "../Glyphs";
@@ -11,7 +11,7 @@ import { Forward } from "../Icons";
 import { accentCss, hostOf, send } from "../bridge";
 import { useArmed } from "../dismiss";
 import { t } from "../i18n";
-import { OwnImage, SpaceLookFields } from "./AppearanceSection";
+import { ColourSwatches, OwnImage, SpaceLookFields } from "./AppearanceSection";
 import { PickList, type PickOption } from "./PickList";
 import { Field, Group, Switch } from "./fields";
 import { keysLabel } from "./shortcutKeys";
@@ -337,33 +337,121 @@ function SpaceList({ info, reload, open }: { info: Info; reload: () => Promise<u
 }
 
 /**
- * Settings → Profiles: every lasting profile with the spaces and the
- * favorites that use it, each in a column of its own (a space and a
- * favorite may have the same name), to sort, add, rename and delete. Their
- * order is the order of every list of profiles, and of the lists of
- * favorites in the sidebar.
+ * Settings → Profiles: the lasting profiles as a list like that of the
+ * spaces, to sort, name and add, and a page per profile with all that is
+ * its own (`item` names it; without one, or once it is gone, the list).
  */
-export function ProfilesSection({ info, reload, open }: { info: Info; reload: () => Promise<unknown>; open: (section: string, item?: string) => void }) {
-  const { armed, arm } = useArmed();
-  const kept = info.profiles.filter((p) => !p.ephemeral);
-  const main = kept.find((p) => p.is_default)?.id;
-  const [profile, setProfile] = useState("");
-  // Why a profile could not be deleted (it is in use since the list was drawn).
+export function ProfilesSection({ info, reload, item, open }: { info: Info; reload: () => Promise<unknown>; item?: string; open: (section: string, item?: string) => void }) {
+  const profile = item ? info.profiles.find((p) => p.id === item && !p.ephemeral) : undefined;
+  return profile ? <ProfilePage key={profile.id} info={info} profile={profile} reload={reload} open={open} /> : <ProfileList info={info} reload={reload} open={open} />;
+}
+
+/** The spaces and the favorites that use profile `id`. A favorite without a profile of its own is in the main one. */
+function usesOf(info: Info, id: string) {
+  const main = info.profiles.find((p) => p.is_default)?.id;
+  return { spaces: info.spaces.filter((s) => s.profile_id === id), favorites: info.favorites.filter((f) => (f.profile_id ?? main) === id) };
+}
+
+/** The colour of profile `p` as a dot; the plain one is an empty ring. */
+function ProfileDot({ profile: p }: { profile: Profile }) {
+  return <span className="set-profile-dot" data-plain={!p.color || undefined} style={p.color ? { background: accentCss(p.color) } : undefined} />;
+}
+
+/** Everything about one profile: its name, its colour, what uses it, and its deletion. */
+function ProfilePage({ info, profile: p, reload, open }: { info: Info; profile: Profile; reload: () => Promise<unknown>; open: (section: string, item?: string) => void }) {
+  const { armed, arm } = useArmed(4000);
+  // Why the profile could not be deleted (it is in use since the page was drawn).
   const [undeleted, setUndeleted] = useState<string>();
-  const deleteProfile = (id: string) =>
-    send({ cmd: "delete_profile", id }).then(
-      () => setUndeleted(undefined),
-      (e: unknown) => setUndeleted(e instanceof Error ? e.message : String(e)),
-    ).then(reload);
+  const { spaces, favorites } = usesOf(info, p.id);
+  const used = spaces.length > 0 || favorites.length > 0;
+  const setColour = (color: Profile["color"] | null) => void send({ cmd: "set_profile_color", id: p.id, color: color ?? null }).then(reload);
+  return (
+    <>
+      <Group title={t("spaces.profiles.page.name_colour")}>
+        <Field side label={t("spaces.profiles.page.name")} hint={p.is_default ? t("spaces.profiles.page.name_main_hint") : undefined}>
+          {p.is_default ? (
+            <span className="set-label">{profileName(p)}</span>
+          ) : (
+            <input
+              key={p.name}
+              className="field"
+              style={{ width: 220 }}
+              defaultValue={p.name}
+              aria-label={t("spaces.profiles.name_label")}
+              onBlur={(e) => {
+                const to = e.target.value.trim();
+                if (!to) e.target.value = p.name;
+                else if (to !== p.name) void send({ cmd: "rename_profile", id: p.id, name: to }).then(reload);
+              }}
+              onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+            />
+          )}
+        </Field>
+        <Field label={t("spaces.profiles.page.colour")} hint={p.is_default ? t("spaces.profiles.page.colour_main_hint") : t("spaces.profiles.page.colour_hint")}>
+          <div className="flex min-h-8 items-center" role="group" aria-label={t("spaces.profiles.colour_label", { name: profileName(p) })}>
+            <ColourSwatches value={p.color} onPick={setColour} onNone={p.is_default ? () => setColour(null) : undefined} />
+          </div>
+        </Field>
+      </Group>
+      <Group title={t("spaces.profiles.page.used_by")}>
+        <Field label={t("spaces.profiles.used_by_spaces")}>
+          {spaces.length > 0 ? (
+            <div className="set-profile-uses">
+              {spaces.map((sp) => (
+                <button key={sp.id} className="set-profile-use" title={t("spaces.everything_about", { name: sp.title })} onClick={() => open("spaces", sp.id)}>
+                  <span style={{ color: accentCss(sp.accent ?? undefined) }}><SpaceIcon space={sp} size={14} /></span>
+                  <span className="truncate">{sp.title}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span className="set-hint" style={{ marginTop: 0 }}>{t("common.none")}</span>
+          )}
+        </Field>
+        <Field label={t("spaces.profiles.used_by_favorites")}>
+          {favorites.length > 0 ? (
+            <div className="set-profile-uses">
+              {favorites.map((f) => (
+                <button key={f.id} className="set-profile-use" title={t("spaces.everything_about", { name: favoriteName(f) })} onClick={() => open("favorites", f.id)}>
+                  <Favicon url={f.url} />
+                  <span className="truncate">{favoriteName(f)}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span className="set-hint" style={{ marginTop: 0 }}>{t("common.none")}</span>
+          )}
+        </Field>
+      </Group>
+      {!p.is_default && (
+        <Group>
+          <Field side label={t("spaces.profiles.page.delete")} hint={used ? t("spaces.profiles.page.delete_used") : t("spaces.profiles.delete_title")}>
+            <button
+              className="btn"
+              disabled={used}
+              data-danger={armed === p.id || undefined}
+              onClick={() => arm(p.id, () => void send({ cmd: "delete_profile", id: p.id }).then(() => reload().then(() => open("profiles")), (e: unknown) => setUndeleted(e instanceof Error ? e.message : String(e))))}
+            >
+              {armed === p.id ? t("spaces.profiles.delete_confirm") : t("common.delete")}
+            </button>
+            {undeleted && <p className="set-hint" role="alert" style={{ color: "var(--danger)" }}>{t("spaces.profiles.undeleted", { reason: undeleted })}</p>}
+          </Field>
+        </Group>
+      )}
+    </>
+  );
+}
+
+/** The list of profiles. */
+function ProfileList({ info, reload, open }: { info: Info; reload: () => Promise<unknown>; open: (section: string, item?: string) => void }) {
+  const kept = info.profiles.filter((p) => !p.ephemeral);
+  const [profile, setProfile] = useState("");
   const addProfile = () => {
     const name = profile.trim();
     if (!name) return;
     setProfile("");
     void send({ cmd: "new_profile", name, ephemeral: false }).then(reload);
   };
-  const spacesOf = (id: string) => info.spaces.filter((s) => s.profile_id === id);
-  // A favorite without a profile of its own is in the main one.
-  const favoritesOf = (id: string) => info.favorites.filter((f) => (f.profile_id ?? main) === id).map((f) => f.title || hostOf(f.url));
   const move = (id: string, index: number) => send({ cmd: "move_profile", id, index }).then(reload);
   // Dragging by the handle sorts: the other profiles make room where it would land.
   /** Where the dragged profile ends up when dropped on the row of `target`, or null when it would not move. */
@@ -379,26 +467,26 @@ export function ProfilesSection({ info, reload, open }: { info: Info; reload: ()
   return (
     <>
       <Group title={t("spaces.profiles.title")} hint={t("spaces.profiles.hint")}>
-        <div className="set-row set-profile set-profile-head" aria-hidden="true">
-          <span />
-          <span>{t("spaces.profile_label")}</span>
-          <span>{t("spaces.profiles.used_by_spaces")}</span>
-          <span>{t("spaces.profiles.used_by_favorites")}</span>
-          <span />
-        </div>
         {kept.map((p, i) => {
-          const spaces = spacesOf(p.id);
-          const favorites = favoritesOf(p.id);
+          const { spaces, favorites } = usesOf(info, p.id);
+          const name = profileName(p);
           return (
-            <div key={p.id} className="set-row set-profile" data-search-row {...sorting.row(p.id)}>
+            <div
+              key={p.id}
+              className="set-row set-space"
+              data-search-row
+              data-sortable={kept.length > 1 || undefined}
+              {...sorting.row(p.id)}
+              {...sorting.handle(p.id, kept.length > 1)}
+            >
+              {/* The whole row is dragged by; the handle shows that, and takes the keys. */}
               <span
                 className="set-grip"
                 role="button"
                 tabIndex={kept.length > 1 ? 0 : -1}
                 aria-disabled={kept.length < 2 || undefined}
-                {...sorting.handle(p.id, kept.length > 1)}
                 title={kept.length > 1 ? t("spaces.sort.title") : t("spaces.sort.profile_alone")}
-                aria-label={t("spaces.sort.profile", { name: profileName(p), position: i + 1, total: kept.length })}
+                aria-label={t("spaces.sort.profile", { name, position: i + 1, total: kept.length })}
                 onKeyDown={(e) => {
                   const to = e.key === "ArrowUp" ? i - 1 : e.key === "ArrowDown" ? i + 1 : -1;
                   if (to < 0 || to >= kept.length) return;
@@ -408,51 +496,37 @@ export function ProfilesSection({ info, reload, open }: { info: Info; reload: ()
               >
                 <Grip />
               </span>
+              <span className="set-space-icon"><ProfileDot profile={p} /></span>
+              <span className="sr-only" data-search-name>{p.is_default ? name : t("spaces.profiles.search_name", { name: p.name })}</span>
               {p.is_default ? (
-                <span className="set-label set-profile-text" data-search-name>{t("spaces.profile_name.main")}</span>
+                <span className="set-space-name set-label">{name}</span>
               ) : (
-                <span>
-                  <span className="sr-only" data-search-name>{t("spaces.profiles.search_name", { name: p.name })}</span>
-                  <input
-                    key={p.name}
-                    className="field"
-                    defaultValue={p.name}
-                    aria-label={t("spaces.profiles.name_label")}
-                    onBlur={(e) => {
-                      const to = e.target.value.trim();
-                      if (to && to !== p.name) void send({ cmd: "rename_profile", id: p.id, name: to }).then(reload);
-                    }}
-                    onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                  />
-                </span>
+                <input
+                  key={p.name}
+                  className="field set-space-name"
+                  defaultValue={p.name}
+                  aria-label={t("spaces.profiles.name_label")}
+                  onBlur={(e) => {
+                    const to = e.target.value.trim();
+                    if (!to) e.target.value = p.name;
+                    else if (to !== p.name) void send({ cmd: "rename_profile", id: p.id, name: to }).then(reload);
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                />
               )}
-              <Clamped count={spaces.length} of={t("spaces.profiles.all_spaces_of", { count: spaces.length, name: profileName(p) })}>
-                <span className="set-profile-cap">{t("spaces.profiles.used_by_spaces_caption")} </span>
-                {!p.synced && `${t("spaces.list.only_device")} · `}
-                {spaces.length > 0
-                  ? spaces.map((sp, i) => (
-                      <span key={sp.id}>
-                        {i > 0 && ", "}
-                        <button className="set-profile-link" title={t("spaces.everything_about", { name: sp.title })} onClick={() => open("spaces", sp.id)}>{sp.title}</button>
-                      </span>
-                    ))
-                  : t("common.none")}
-              </Clamped>
-              <Clamped count={favorites.length} of={t("spaces.profiles.all_favorites_of", { count: favorites.length, name: profileName(p) })}>
-                <span className="set-profile-cap">{t("spaces.profiles.used_by_favorites_caption")} </span>
-                {favorites.length > 0 ? favorites.join(", ") : t("common.none")}
-              </Clamped>
-              <span>
-                {!p.is_default && spaces.length === 0 && favorites.length === 0 && (
-                  <button className="btn" data-danger={armed === p.id || undefined} title={t("spaces.profiles.delete_title")} onClick={() => arm(p.id, () => void deleteProfile(p.id))}>
-                    {armed === p.id ? t("spaces.profiles.delete_confirm") : t("common.delete")}
-                  </button>
-                )}
-              </span>
+              {/* The rest of the row says what uses the profile and opens its page; the keyboard has the arrow for that. */}
+              <button className="set-space-open" tabIndex={-1} aria-hidden="true" onClick={() => open("profiles", p.id)} title={t("spaces.everything_about", { name })}>
+                <span className="set-hint block truncate" style={{ marginTop: 0 }}>
+                  {t("spaces.profiles.spaces", { count: spaces.length })} · {t("spaces.profiles.favorites", { count: favorites.length })}
+                  {!p.synced && ` · ${t("spaces.list.only_device")}`}
+                </span>
+              </button>
+              <button className="set-space-go" onClick={() => open("profiles", p.id)} title={t("spaces.everything_about", { name })} aria-label={t("spaces.everything_about", { name })}>
+                <Forward width={15} height={15} />
+              </button>
             </div>
           );
         })}
-        {undeleted && <p className="set-row set-hint" role="alert" style={{ marginTop: 0, color: "var(--danger)" }}>{t("spaces.profiles.undeleted", { reason: undeleted })}</p>}
         <Field label={t("spaces.profiles.new.label")} hint={t("spaces.profiles.new.hint")}>
           <div className="flex gap-2">
             <input className="field" style={{ maxWidth: 280 }} placeholder={t("spaces.profiles.new.name")} aria-label={t("spaces.profiles.new.name_label")} value={profile} onChange={(e) => setProfile(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addProfile()} />
@@ -466,38 +540,6 @@ export function ProfilesSection({ info, reload, open }: { info: Info; reload: ()
         </Field>
       </Group>
     </>
-  );
-}
-
-/**
- * The names that use a profile: two lines of them at most, and a button
- * that shows the rest when there are more (`count` names; `of` names the
- * button for those who do not see whose row it is in). A profile with many spaces or favorites
- * stays a row as tall as the others, to read down and to drag.
- */
-function Clamped({ count, of, children }: { count: number; of: string; children: ReactNode }) {
-  const names = useRef<HTMLSpanElement>(null);
-  const [open, setOpen] = useState(false);
-  // More names than two lines hold, at the width the column has now.
-  const [long, setLong] = useState(false);
-  useLayoutEffect(() => {
-    const el = names.current;
-    if (!el || open) return;
-    const measure = () => setLong(el.scrollHeight > el.clientHeight + 1);
-    measure();
-    const resized = new ResizeObserver(measure);
-    resized.observe(el);
-    return () => resized.disconnect();
-  }, [open, count]);
-  return (
-    <span className="set-hint set-profile-text min-w-0" style={{ marginTop: 0 }} data-search-name>
-      <span ref={names} className="set-profile-names" data-open={open || undefined}>{children}</span>
-      {(long || open) && (
-        <button className="set-profile-more" aria-expanded={open} aria-label={open ? undefined : of} onClick={() => setOpen(!open)}>
-          {open ? t("spaces.profiles.less") : t("spaces.profiles.more", { count })}
-        </button>
-      )}
-    </span>
   );
 }
 

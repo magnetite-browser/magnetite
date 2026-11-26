@@ -98,11 +98,9 @@
   },
   "profiles": {
     "title": "Profiles",
-    "hint": "A profile is a set of logins of its own: cookies, site data and extensions. What uses the same profile is signed in to the same accounts; a second profile is how to use a second account of one site. A private profile is not listed: it is forgotten when Magnetite quits. The order here is the order of every list of profiles, and of the lists of favorites in the sidebar.",
+    "hint": "A profile is a set of logins of its own: cookies, site data and extensions. What uses the same profile is signed in to the same accounts; a second profile is how to use a second account of one site. A private profile is not listed: it is forgotten when Magnetite quits. The order here is the order of every list of profiles, and of the favorites in the sidebar.",
     "used_by_spaces": "Used by spaces",
     "used_by_favorites": "Used by favorites",
-    "used_by_spaces_caption": "Used by spaces:",
-    "used_by_favorites_caption": "Used by favorites:",
     "search_name": "{name} profile",
     "name_label": "Name of the profile",
     "delete_title": "Its logins, cookies and site data leave this computer the next time Magnetite starts",
@@ -122,10 +120,22 @@
       "label_hint": "In Favorites, each favorite has a list to choose its profile from.",
       "open": "Open Favorites"
     },
-    "more": "Show all {count}",
-    "all_spaces_of": "Show all {count} spaces that use {name}",
-    "all_favorites_of": "Show all {count} favorites that use {name}",
-    "less": "Show fewer"
+    "colour_label": "Color of the {name} profile",
+    "spaces_one": "{count} space",
+    "spaces_other": "{count} spaces",
+    "favorites_one": "{count} favorite",
+    "favorites_other": "{count} favorites",
+    "page": {
+      "name_colour": "Name and color",
+      "name": "Name",
+      "name_main_hint": "The profile Magnetite starts with keeps its name.",
+      "colour": "Color",
+      "colour_hint": "Its favorites in the sidebar are tinted with it, and so is its name beside a space.",
+      "colour_main_hint": "Its favorites in the sidebar are tinted with it, and so is its name beside a space. Without one they are plain.",
+      "used_by": "What uses it",
+      "delete": "Delete this profile",
+      "delete_used": "Only a profile that nothing uses can be deleted."
+    }
   },
   "favorites": {
     "title": "Favorites",

@@ -184,6 +184,7 @@ impl AppState {
             name: magnetite_ui::t!("app.names.private").into(),
             is_default: false,
             ephemeral: true,
+            color: None,
         });
         self.private_profiles.insert(id.clone());
         id

@@ -94,6 +94,7 @@ pub(crate) fn default_profile_snapshot() -> SidebarSnapshot {
             name: "Default".into(),
             is_default: true,
             ephemeral: false,
+            color: None,
         }],
         favorites: vec![FavoriteSet {
             profile_id: DEFAULT_PROFILE.into(),

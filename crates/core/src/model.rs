@@ -9,7 +9,7 @@ pub type Id = String;
 pub type UnixSeconds = i64;
 
 /// An isolated browsing context: cookies, storage, history, extensions.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
     pub id: Id,
     pub name: String,
@@ -19,7 +19,29 @@ pub struct Profile {
     /// the browser quits.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub ephemeral: bool,
+    /// The colour that tells the profile apart in the sidebar: its
+    /// favorites' tiles are tinted with it, and so is its name beside a
+    /// space. `None`: plain, as the default profile is until it is given
+    /// one; every other lasting profile gets one (`color_profiles`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<Color>,
 }
+
+/// The colours profiles get by themselves, the first one that no profile
+/// has yet: the space colours of Settings (`SPACE_COLOURS` in the web UI)
+/// without the default one, ordered so that neighbours differ.
+pub const PROFILE_COLORS: [Color; 10] = [
+    Color::rgb(77, 148, 255),
+    Color::rgb(245, 150, 70),
+    Color::rgb(95, 196, 120),
+    Color::rgb(235, 110, 170),
+    Color::rgb(235, 195, 70),
+    Color::rgb(170, 120, 240),
+    Color::rgb(45, 190, 170),
+    Color::rgb(240, 95, 95),
+    Color::rgb(170, 205, 80),
+    Color::rgb(150, 150, 165),
+];
 
 /// sRGB colour, 0.0 to 1.0 per channel.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -30,6 +52,17 @@ pub struct Color {
 }
 
 impl Color {
+    /// The colour of `red`, `green` and `blue` from 0 to 255.
+    #[must_use]
+    #[allow(clippy::cast_lossless)] // `f32::from` is no `const fn`.
+    pub const fn rgb(red: u8, green: u8, blue: u8) -> Self {
+        Self {
+            red: red as f32 / 255.0,
+            green: green as f32 / 255.0,
+            blue: blue as f32 / 255.0,
+        }
+    }
+
     /// The colour with every channel between 0 and 1. A channel that is not
     /// a number (it would be saved as `null`, and the file could not be read
     /// again) becomes mid grey.
@@ -203,6 +236,21 @@ impl SidebarSnapshot {
             profiles: Vec::new(),
             favorites: Vec::new(),
             spaces: Vec::new(),
+        }
+    }
+
+    /// Give every lasting profile but the default one a colour, if it has
+    /// none: the first of `PROFILE_COLORS` that no profile has, or once all
+    /// are taken the one fewest profiles have. A profile that has a colour
+    /// keeps it.
+    pub fn color_profiles(&mut self) {
+        for at in 0..self.profiles.len() {
+            let p = &self.profiles[at];
+            if p.is_default || p.ephemeral || p.color.is_some() {
+                continue;
+            }
+            let users = |c: &Color| self.profiles.iter().filter(|p| p.color == Some(*c)).count();
+            self.profiles[at].color = PROFILE_COLORS.iter().min_by_key(|c| users(c)).copied();
         }
     }
 

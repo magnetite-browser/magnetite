@@ -15,18 +15,26 @@ From top to bottom:
    forward opens the page it would go to in a new tab, and on reload the
    page itself; such a tab opens as a page's link opened in a new tab does
    ("Tab rows"), in the page's profile. The top bar's buttons do the same.
-2. **Address row**: site controls, the host of the current page and a
+2. **Address row**: site controls, the host of the current page (one of
+   Magnetite's own pages shows its name, as "Settings") and a
    copy-link button. A click on the host opens the command bar with the
    address (`command-bar.md`). An open peek shows its controls here instead.
    With Settings → Appearance → "Extension bar" on, a row of pinned
    extensions follows, and the title band has none (`extensions.md`).
 3. **Media rows**: up to two, for media in tabs not on screen (`media.md`).
-4. **Favorites**: grids of icons, the same in every space but for the
-   favorites that are for one space only: one list per profile that has
-   favorites to show (below). Hidden while there are none.
+4. **Favorites**: one grid of icons, the same in every space but for the
+   favorites that are for one space only (below). Hidden while there are
+   none.
 5. **Space title**, then the **pinned** tabs and folders of that space
-   (`spaces.md`). Only the current space is rendered.
-6. A divider with **Clear**, which archives all Today tabs of the space.
+   (`spaces.md`). Only the current space is rendered. With more than one
+   profile, the profile the space runs in shows in a small box after its
+   name, in the profile's colour ("Favorites").
+6. A divider. On hover it shows **Hide pinned** at its left, which hides
+   the pinned tabs and folders of the space, and **Clear** at its right,
+   which archives all Today tabs of the space. While the pinned tabs are
+   hidden, the divider shows their number in that place ("5 pinned"), and a
+   click there shows them again. A hidden pinned tab that is in front keeps
+   its row. The sidebar page remembers this per space on the device.
 7. The **New Tab** row, then the **Today** tabs. New tabs appear at the top
    (a page's new tab can go below its tab instead, "Tab rows" below).
 8. **Footer**: the button for bookmarks, the history, downloads and the
@@ -58,7 +66,9 @@ the row turns the icon into a back arrow that takes the page back.
 
 - A row shows the icon, the title, a speaker button while the tab plays or
   is muted, a red screen mark while the tab is being shared (below), and a
-  close button on hover. A bold title marks a tab that
+  button on hover: a × where the row goes away (a Today tab, which is
+  archived), a minus where only the page is unloaded and the row stays (a
+  pinned tab). A bold title marks a tab that
   opened in the background and was not viewed yet.
 - A click shows the tab and loads its page if needed. Tabs without a loaded
   page are dimmed. A page is unloaded once it has been off screen for more
@@ -106,19 +116,19 @@ the row turns the icon into a back arrow that takes the page back.
   pinned page, which it opens at next time. Its title stays the last page's
   until then.
 - A pinned tab without a loaded page, at its pinned page, has nothing to
-  close: on hover its row shows a minus in place of the close button, which
-  removes the tab from the space. (Away from its pinned page, the close
-  button takes it back there first.) It goes to the archive at its pinned
+  unload: on hover its row shows a × in place of the minus, which
+  removes the tab from the space. (Away from its pinned page, the minus
+  takes it back there first.) It goes to the archive at its pinned
   page, under its own title if its page is loaded there, else that page's
   title from the history, never the title of another page it was left on,
   and comes back from there as a Today tab (`archive.md`). One of
   Magnetite's own pages or of a private profile just closes, also from the
-  menu, and is gone for good. A row whose page was just closed with its
-  button or a middle click keeps the close button until the pointer leaves.
+  menu, and is gone for good. A row whose page was just unloaded with its
+  button or a middle click keeps the minus until the pointer leaves.
 - After a click that takes a row away, the rows below move up under the
   pointer. The second click of a double click that lands on another
-  element than the first does nothing on a pinned tab (close, minus,
-  middle click), on "Clear", on a folder row and its buttons, on a snoozed
+  element than the first does nothing on a pinned tab (minus, ×,
+  middle click), on "Clear" and "Hide pinned", on a folder row and its buttons, on a snoozed
   item's "Wake now", on a split row's cell and on a tab of another device.
   So a double click removes one pinned tab and never unloads the next
   one, archives all of Today, opens a folder for renaming, breaks up a
@@ -213,11 +223,13 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
 - Drag a tab to reorder it, or to a favorites list, Pinned, a folder or
   Today. Dropped on the middle of another tab's row or on the page area, it
   opens in split view (`split-view.md`).
-- Over a favorites list the tiles stay where they are. On a tile, the
+- Over the favorites the tiles stay where they are. On a tile, the
   dragged tab or favorite joins it in a split (`split-view.md`). Between two
   tiles, which is their facing edges (10 points each) and the gap, a line
-  marks where it would go. Dropped on the list's title, it is added at the
-  end. A split's tile, and a tab on a tile that takes no further page, go
+  marks where it would go; it joins the profile of the tile it was last
+  over. Off the tiles (the grid's edge, the room after the last tile) the
+  line stays where it was, or is after the last tile when the tab was over
+  none yet. A split's tile, and a tab on a tile that takes no further page, go
   before or after the tile by the half under the pointer.
 - `Cmd+D` pins the active Today tab at the top of Pinned, or moves the active
   pinned tab to the top of Today. It does nothing for a favorite. With a
@@ -239,16 +251,22 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
 ## Favorites
 
 - Every profile has its own list of favorites, and a favorite runs in the
-  profile of its list: its cookies and logins are that profile's. The lists
-  stand one below the other, in the order of the profiles (Settings →
-  Profiles sorts them).
-- With favorites in the default profile only, the list has no title. With
-  more than one list, or when the only one belongs to another profile, each
-  list is titled with its profile's name. A click on a title collapses or
-  expands its list; collapsed, the title shows the number of favorites. The
-  sidebar page remembers this on the device.
+  profile of its list: its cookies and logins are that profile's. The
+  sidebar shows them as one grid, list after list in the order of the
+  profiles (Settings → Profiles sorts them), with no titles and no rows of
+  their own: profiles with one favorite each do not take a row each.
+- A favorite's tile is tinted with the colour of its profile, so two
+  logins of one site differ and the favorites of one profile are seen
+  together. Every lasting profile but the default one has a colour: a new
+  one gets the first of ten that no profile has yet, and Settings →
+  Profiles changes it. The default profile is plain until it is given a
+  colour there. The colour is part of the profile and syncs with it.
+- The pointer on a tile shows a label below it at once: the favorite's
+  name and, with favorites of more than one profile or of another than
+  the default one, the name of its profile in a box of the profile's
+  colour.
 - "Add to favorites" puts a tab into the list of the profile it runs in. A
-  tab dropped on a list, also on a collapsed one's title, joins that list
+  tab dropped among the tiles joins the list of the tile it lands beside,
   and its profile.
 - The context menu's "Profile: …" entries move a favorite to another
   profile's list, and "New profile for this favorite…" makes a profile and

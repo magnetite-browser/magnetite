@@ -616,6 +616,12 @@ pub(super) enum UiCommand {
         id: String,
         name: String,
     },
+    /// The colour that tells profile `id` apart in the sidebar; none: plain.
+    SetProfileColor {
+        id: String,
+        #[serde(default)]
+        color: Option<Color>,
+    },
     /// Reorder the profiles: put `id` at place `index` of the lasting ones,
     /// counted without it (Settings → Profiles).
     MoveProfile {
@@ -1805,6 +1811,18 @@ impl MagnetiteApp {
                         && !name.trim().is_empty()
                     {
                         p.name = name.trim().into();
+                    }
+                });
+                self.push_state(engine);
+            }
+            UiCommand::SetProfileColor { id, color } => {
+                self.with_state(|s| {
+                    // Only the default profile may be plain: another one
+                    // would get the next free colour at once.
+                    if let Some(p) = s.sidebar.profiles.iter_mut().find(|p| p.id == id)
+                        && (color.is_some() || p.is_default)
+                    {
+                        p.color = color.map(Color::sanitised);
                     }
                 });
                 self.push_state(engine);

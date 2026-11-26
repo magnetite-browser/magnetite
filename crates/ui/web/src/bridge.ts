@@ -134,7 +134,7 @@ export interface FavoriteList {
 }
 
 export interface Snapshot {
-  profiles: { id: Id; name: string; is_default: boolean; ephemeral?: boolean }[];
+  profiles: { id: Id; name: string; is_default: boolean; ephemeral?: boolean; color?: Color }[];
   /** One list per profile that has favorites; a favorite runs in its list's profile. */
   favorites: FavoriteList[];
   spaces: Space[];
@@ -669,6 +669,7 @@ export type Command =
   | { cmd: "sync_delete_chain" }
   | { cmd: "new_profile"; name: string; ephemeral?: boolean }
   | { cmd: "rename_profile"; id: Id; name: string }
+  | { cmd: "set_profile_color"; id: Id; color: Color | null }
   /** Profile `id` to place `index` of the lasting profiles, counted without it. */
   | { cmd: "move_profile"; id: Id; index: number }
   | { cmd: "delete_profile"; id: Id }

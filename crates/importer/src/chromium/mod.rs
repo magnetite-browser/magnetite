@@ -43,6 +43,7 @@ pub fn import(root: &Path, name: &str) -> Result<SidebarSnapshot, ImportError> {
             name: title,
             is_default: i == 0,
             ephemeral: false,
+            color: None,
         });
         snap.favorites.push(FavoriteSet {
             profile_id,

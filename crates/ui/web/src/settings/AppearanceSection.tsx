@@ -23,12 +23,18 @@ const toHex = (c?: Color | null) => "#" + channels(c ?? DEFAULT_ACCENT).map((v) 
 const fromHex = (h: string) => toColor(parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16));
 const sameColour = (a: Color, b: Color) => channels(a).join() === channels(b).join();
 
-/** The space colours to pick from and the colour picker; `value` is the space's colour (none: the default). */
-export function ColourSwatches({ value, onPick }: { value: Color | null | undefined; onPick: (c: Color) => void }) {
+/**
+ * The colours to pick from and the colour picker; `value` is the colour in
+ * use (none: a space's default). With `onNone` the choice may be no colour
+ * at all, and then no swatch stands for "none" but the one that says so.
+ */
+export function ColourSwatches({ value, onPick, onNone }: { value: Color | null | undefined; onPick: (c: Color) => void; onNone?: () => void }) {
+  const chosen = value ?? (onNone ? null : DEFAULT_ACCENT);
   return (
     <div className="swatches">
+      {onNone && <button type="button" className="swatch none" title={t("settings.appearance.colours.none")} aria-label={t("settings.appearance.colours.none")} aria-pressed={!chosen} data-on={!chosen || undefined} onClick={onNone} />}
       {SPACE_COLOURS.map(([name, c]) => {
-        const on = sameColour(value ?? DEFAULT_ACCENT, c);
+        const on = !!chosen && sameColour(chosen, c);
         return <button key={name} type="button" className="swatch" title={name} aria-label={name} aria-pressed={on} data-on={on || undefined} style={{ background: accentCss(c) }} onClick={() => onPick(c)} />;
       })}
       <label className="swatch custom" title={t("settings.appearance.colours.any")}>

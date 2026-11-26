@@ -535,6 +535,7 @@ mod tests {
             name: "Work".into(),
             is_default: false,
             ephemeral: false,
+            color: None,
         });
         assert_eq!(s.pins("work"), ids(&["ours"]));
         assert!(s.follow_chromium_pins("work", ids(&["vault"])));

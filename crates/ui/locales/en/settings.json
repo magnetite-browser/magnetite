@@ -17,7 +17,9 @@
     "open_section": "Open {section}",
     "no_match": "No setting matches “{query}”.",
     "all_favorites": "All favorites",
-    "favorite_intro": "The settings of this favorite alone: its name and address, where it shows and its profile. “All favorites” leads back to the list."
+    "favorite_intro": "The settings of this favorite alone: its name and address, where it shows and its profile. “All favorites” leads back to the list.",
+    "all_profiles": "All profiles",
+    "profile_intro": "The settings of this profile alone: its name, its color and what uses it. “All profiles” leads back to the list."
   },
   "groups": {
     "browsing": "Browsing",
@@ -450,7 +452,8 @@
       "pink": "Pink",
       "purple": "Purple",
       "graphite": "Graphite",
-      "any": "Any color"
+      "any": "Any color",
+      "none": "No color"
     },
     "effects": {
       "none": "None",

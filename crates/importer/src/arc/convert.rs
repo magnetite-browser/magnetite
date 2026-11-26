@@ -150,6 +150,7 @@ fn profile_for(space: &raw::Space, ids: &mut ProfileIds, snapshot: &mut SidebarS
             name: format!("Profile {n}"),
             is_default: false,
             ephemeral: false,
+            color: None,
         });
     }
     id

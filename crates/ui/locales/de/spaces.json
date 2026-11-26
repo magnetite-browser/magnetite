@@ -98,11 +98,9 @@
   },
   "profiles": {
     "title": "Profile",
-    "hint": "Ein Profil hat eigene Cookies, Websitedaten und Erweiterungen und damit eigene Anmeldungen. Alles, was dasselbe Profil nutzt, ist bei denselben Konten angemeldet. Mit einem zweiten Profil kannst du ein zweites Konto derselben Website nutzen. Private Profile stehen nicht in der Liste, da sie beim Beenden von Magnetite vergessen werden. Die Reihenfolge hier gilt für jede Liste von Profilen und für die Favoritenlisten in der Seitenleiste.",
+    "hint": "Ein Profil hat eigene Cookies, Websitedaten und Erweiterungen und damit eigene Anmeldungen. Alles, was dasselbe Profil nutzt, ist bei denselben Konten angemeldet. Mit einem zweiten Profil kannst du ein zweites Konto derselben Website nutzen. Private Profile stehen nicht in der Liste, da sie beim Beenden von Magnetite vergessen werden. Die Reihenfolge hier gilt für jede Liste von Profilen und für die Favoriten in der Seitenleiste.",
     "used_by_spaces": "Genutzt von Spaces",
     "used_by_favorites": "Genutzt von Favoriten",
-    "used_by_spaces_caption": "Genutzt von Spaces:",
-    "used_by_favorites_caption": "Genutzt von Favoriten:",
     "search_name": "Profil {name}",
     "name_label": "Name des Profils",
     "delete_title": "Seine Anmeldungen, Cookies und Websitedaten werden beim nächsten Start von Magnetite von diesem Computer entfernt",
@@ -122,10 +120,22 @@
       "label_hint": "Unter „Favoriten“ kannst du für jeden Favoriten ein Profil aus einer Liste wählen.",
       "open": "Favoriten öffnen"
     },
-    "more": "Alle {count} anzeigen",
-    "all_spaces_of": "Alle {count} Spaces anzeigen, die {name} nutzen",
-    "all_favorites_of": "Alle {count} Favoriten anzeigen, die {name} nutzen",
-    "less": "Weniger anzeigen"
+    "colour_label": "Farbe des Profils {name}",
+    "spaces_one": "{count} Space",
+    "spaces_other": "{count} Spaces",
+    "favorites_one": "{count} Favorit",
+    "favorites_other": "{count} Favoriten",
+    "page": {
+      "name_colour": "Name und Farbe",
+      "name": "Name",
+      "name_main_hint": "Das Profil, mit dem Magnetite startet, behält seinen Namen.",
+      "colour": "Farbe",
+      "colour_hint": "Seine Favoriten in der Seitenleiste sind damit getönt, ebenso sein Name neben einem Space.",
+      "colour_main_hint": "Seine Favoriten in der Seitenleiste sind damit getönt, ebenso sein Name neben einem Space. Ohne Farbe bleiben sie neutral.",
+      "used_by": "Wird genutzt von",
+      "delete": "Dieses Profil löschen",
+      "delete_used": "Nur ein Profil, das von nichts genutzt wird, kann gelöscht werden."
+    }
   },
   "favorites": {
     "title": "Favoriten",

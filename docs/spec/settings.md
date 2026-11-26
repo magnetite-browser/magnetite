@@ -79,15 +79,19 @@ Four sections of the group Organization:
   one by name, after the others, without leaving Settings, in the profile
   chosen beside the name (the choices of "Choosing a profile" in
   `spaces.md`); the choice stays for the next space.
-- **Profiles**: every lasting profile with what uses it, in two columns:
-  "Used by spaces" and "Used by favorites" (a space and a favorite may
-  have the same name). A space named there opens its page. A profile is
-  renamed there, and deleted once nothing uses it (`spaces.md`); the
-  columns stand in line whether a profile has that button or not. "A new
-  profile" adds an empty one by name, to give to a space or a favorite
-  afterwards. The section says that a profile may be for favorites only,
-  and what that means for logins and for the history. In a narrow page
-  the two columns are two lines, each with its name in front.
+- **Profiles**: every lasting profile as a row like a space's: a handle to
+  sort it, its colour as a dot, its name to change in place (the default
+  profile keeps its name), how many spaces and favorites use it, and an arrow. The row or the arrow
+  opens the profile's own page, with "All profiles" leading back: its
+  name, its colour (the space colours, or any other; the default profile
+  may have none: `sidebar.md`, "Favorites"), the spaces and the favorites
+  that use it, each a button to its own page, and its deletion (`spaces.md`), which is
+  greyed out and says why while something uses it. The list has no
+  "Delete": deleting a profile takes its logins with it and is rare, so
+  it is on the profile's page only, as a space's is. "A new profile" adds
+  an empty one by name, to give to a space or a favorite afterwards. The
+  section says that a profile may be for favorites only, and what that
+  means for logins and for the history.
 - **Favorites**: every favorite, to name, to sort inside the list of its
   profile (drag its handle, or the arrow keys on it), to show in every
   space or in the spaces ticked (below), to give a profile, and to remove (its page

@@ -7,7 +7,7 @@ export interface Info {
   settings: Settings;
   sync_signed_in: boolean;
   /** `synced` false: stays on this device, because only spaces kept here use it. */
-  profiles: { id: string; name: string; is_default: boolean; ephemeral?: boolean; synced: boolean }[];
+  profiles: { id: string; name: string; is_default: boolean; ephemeral?: boolean; color?: Color; synced: boolean }[];
   /** `synced` false: kept on this device alone ("Only on this device"). */
   /** `keys`: the keys that go to the space (Settings → Shortcuts), null without. `shortcut`: the keys saved for it, which may not count here (fixed on this system, or something else has them). */
   spaces: { id: string; title: string; icon?: string; icon_image?: string | null; accent?: Color | null; profile_id: string; bookmarks: number; bookmark_tree: boolean; pinned: number; synced: boolean; keys: string | null; shortcut: string | null }[];

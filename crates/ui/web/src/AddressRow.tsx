@@ -112,7 +112,8 @@ export function AddressRow({ state, item, rt, onEdit, openMenu, popups = false }
         </button>
         <button type="button" className="addr-text no-drag" onClick={onEdit} title={item.url} aria-label={t("page.address.label", { url: item.url, keys: keysHint(state.keys, "focus_address") })}>
           {/* The top bar has room for the whole address. */}
-          <span className="truncate">{popups ? shownAddress(item.url) : hostOf(item.url)}</span>
+          {/* One of Magnetite's own pages goes by its name: its host, `ui`, says nothing. */}
+          <span className="truncate">{(item.url.startsWith("magnetite://") && item.title) || (popups ? shownAddress(item.url) : hostOf(item.url))}</span>
         </button>
         <button
           type="button"

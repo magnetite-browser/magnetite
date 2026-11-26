@@ -129,8 +129,12 @@ impl AppState {
     /// the default profile's list stays while empty. Favorites that still
     /// name a profile of their own (saved by an earlier version, or just
     /// given one) move to that profile's list; lists of profiles that are
-    /// gone join the default profile's.
+    /// gone join the default profile's. Profiles without a colour get one
+    /// (`SidebarSnapshot::color_profiles`).
     pub fn normalise_favorites(&mut self) {
+        // The profiles' own order first: one saved by an earlier version, or
+        // come from a device with one, has no colour yet.
+        self.sidebar.color_profiles();
         let default = self.default_profile_id();
         let profiles: Vec<Id> = self.sidebar.profiles.iter().map(|p| p.id.clone()).collect();
         let mut lists: Vec<magnetite_core::FavoriteSet> = profiles
@@ -229,7 +233,9 @@ impl AppState {
             name: name.into(),
             is_default: false,
             ephemeral,
+            color: None,
         });
+        self.sidebar.color_profiles();
         id
     }
 
@@ -358,6 +364,7 @@ mod tests {
             name: "Work".into(),
             is_default: false,
             ephemeral: false,
+            color: None,
         });
         s.sidebar.favorites[0].items.push(TabItem {
             profile_id: Some("work".into()),
@@ -425,6 +432,7 @@ mod tests {
             name: "Private".into(),
             is_default: false,
             ephemeral: true,
+            color: None,
         });
         s.sidebar.spaces[0].today[0].profile_id = Some("private".into());
         let lasting = s.lasting_sidebar();
@@ -483,6 +491,7 @@ mod tests {
             name: id.into(),
             is_default: false,
             ephemeral: true,
+            color: None,
         };
         s.sidebar.profiles.push(private("used"));
         s.sidebar.profiles.push(private("orphan"));
@@ -517,6 +526,7 @@ mod tests {
             name: "Secret".into(),
             is_default: false,
             ephemeral: true,
+            color: None,
         });
         // A tab opened from a private favorite keeps its profile.
         s.find_tab_mut("a").unwrap().profile_id = Some("secret".into());
@@ -538,6 +548,7 @@ mod tests {
             name: id.into(),
             is_default: false,
             ephemeral,
+            color: None,
         };
         // A private profile dropped after its last use counts as deleted.
         s.sidebar.profiles.push(profile("secret", true));
@@ -557,6 +568,39 @@ mod tests {
     }
 
     #[test]
+    fn a_lasting_profile_gets_a_colour_of_its_own_and_keeps_it() {
+        use magnetite_core::PROFILE_COLORS;
+        let mut s = state();
+        let color = |s: &crate::state::AppState, id: &str| {
+            s.sidebar
+                .profiles
+                .iter()
+                .find(|p| p.id == id)
+                .and_then(|p| p.color)
+        };
+        let (work, play) = (s.add_profile("Work", false), s.add_profile("Play", false));
+        let private = s.add_profile("Private", true);
+        assert_eq!(color(&s, &work), Some(PROFILE_COLORS[0]));
+        assert_eq!(color(&s, &play), Some(PROFILE_COLORS[1]));
+        // The default profile is the plain one, and a private one is on no list.
+        assert_eq!(color(&s, &s.default_profile_id()), None);
+        assert_eq!(color(&s, &private), None);
+        // One saved by an earlier version has none: it gets the first that
+        // is free, and the others keep theirs.
+        s.sidebar.profiles.push(Profile {
+            id: "old".into(),
+            name: "Old".into(),
+            is_default: false,
+            ephemeral: false,
+            color: None,
+        });
+        s.sidebar.profiles.retain(|p| p.id != work);
+        s.normalise_favorites();
+        assert_eq!(color(&s, "old"), Some(PROFILE_COLORS[0]));
+        assert_eq!(color(&s, &play), Some(PROFILE_COLORS[1]));
+    }
+
+    #[test]
     fn favorites_are_one_list_per_profile() {
         let mut s = state();
         let default = s.default_profile_id();
@@ -565,6 +609,7 @@ mod tests {
             name: "Work".into(),
             is_default: false,
             ephemeral: false,
+            color: None,
         });
         // Saved by an earlier version: one list, a favorite naming its own
         // profile, and a second list for a profile that is gone.
@@ -613,6 +658,7 @@ mod tests {
             name: id.into(),
             is_default: false,
             ephemeral,
+            color: None,
         };
         s.sidebar.profiles.push(profile("secret", true));
         s.sidebar.profiles.push(profile("work", false));
@@ -654,6 +700,7 @@ mod tests {
             name: "Work".into(),
             is_default: false,
             ephemeral: false,
+            color: None,
         });
         s.sidebar.spaces[0].profile_id = "work".into();
         s.sidebar.favorites[0].items.push(tab("fav"));

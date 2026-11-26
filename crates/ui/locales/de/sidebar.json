@@ -19,7 +19,8 @@
     "change_icon": "Symbol ändern",
     "options": "Space-Optionen",
     "hide_private": "Privaten Space ausblenden",
-    "close_private": "Privaten Space schließen"
+    "close_private": "Privaten Space schließen",
+    "profile": "Profil dieses Space: {name}"
   },
   "space_menu": {
     "settings": "Space-Einstellungen …",
@@ -37,7 +38,12 @@
     "clear_private_title": "Alle privaten Tabs schließen",
     "new_tab_title": "Neuer Tab",
     "new_private_tab_title": "Neuer privater Tab",
-    "new_private_tab": "Neuer privater Tab"
+    "new_private_tab": "Neuer privater Tab",
+    "hide_pinned": "Angeheftete ausblenden",
+    "show_pinned_one": "{count} angehefteter",
+    "show_pinned_other": "{count} angeheftete",
+    "hide_pinned_title": "Die angehefteten Tabs dieses Space ausblenden",
+    "show_pinned_title": "Die angehefteten Tabs dieses Space einblenden"
   },
   "new_menu": {
     "label": "Neu",
@@ -92,11 +98,10 @@
     "kept_active": "Aktiv gehalten: Dieser Tab wird nicht entladen",
     "kept_active_label": "Aktiv gehalten",
     "share_instead": "Stattdessen diesen Tab teilen",
-    "archive": "Archivieren"
+    "archive": "Archivieren",
+    "unload": "Seite entladen: Der Tab bleibt"
   },
   "favorites": {
-    "collapse": "Einklappen",
-    "expand": "Ausklappen",
     "panel": "Panel",
     "shared": "wird geteilt",
     "rename_label": "Name des Favoriten {name}"

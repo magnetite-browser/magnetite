@@ -1618,6 +1618,7 @@ mod tests {
             name: "Work".into(),
             is_default: false,
             ephemeral: false,
+            color: None,
         });
         s.find_tab_mut("c").unwrap().profile_id = Some("work".into());
         let page = |shared, sharing| TabRuntime {

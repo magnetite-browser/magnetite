@@ -1035,6 +1035,7 @@ mod tests {
             name: "Default".into(),
             is_default: true,
             ephemeral: false,
+            color: None,
         });
         s.spaces.push(Space {
             id: "s1".into(),

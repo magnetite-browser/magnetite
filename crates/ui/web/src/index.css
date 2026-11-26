@@ -153,16 +153,22 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 .ib.lg { width: 32px; height: 32px; border-radius: 8px; }
 
 /* favorites */
-.favs { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; }
+/* All profiles' favorites in one grid. A profile's list is no box of its own: its tiles are the grid's, and the grid takes the drops. */
+.favs-flow { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; }
+.favs-flow > .fav-rename { grid-column: 1 / -1; margin-top: 0; }
+/* A favorite of another profile than the default one: its tile is tinted with the profile's colour, so two logins of one site differ. */
+.fav[data-profile] { background: color-mix(in srgb, var(--profile) 13%, rgba(255,255,255,0.05)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--profile) 18%, transparent); }
+.fav[data-profile]:hover { background: color-mix(in srgb, var(--profile) 19%, rgba(255,255,255,0.07)); }
+.fav[data-profile][data-active] { background: color-mix(in srgb, var(--profile) 27%, rgba(255,255,255,0.1)); }
+/* The favorite under the pointer: its name, and its profile in a box. */
+/* As wide as its text, whatever room is left of it: it is moved to where it fits (FavoriteLists). */
+.fav-tip { position: absolute; left: 6px; z-index: 20; display: flex; align-items: center; gap: 6px; width: max-content; max-width: calc(100% - 12px); height: 26px; padding: 0 4px 0 8px; border-radius: 7px; background: var(--surface-2); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0,0,0,0.4); font-size: 12.5px; line-height: 16px; color: var(--fg); white-space: nowrap; pointer-events: none; animation: fav-tip-in 90ms ease-out; }
+.fav-tip > :last-child:not(.fav-tip-profile) { margin-right: 4px; }
+.fav-tip-profile { flex: none; max-width: 70%; overflow: hidden; text-overflow: ellipsis; padding: 0 6px; border-radius: 4px; background: var(--fg); color: var(--bg); font-size: 12px; line-height: 18px; font-weight: 600; }
+.fav-tip-note { flex: none; color: var(--muted); }
+@keyframes fav-tip-in { from { opacity: 0; } to { opacity: 1; } }
 .fav { height: var(--fav-h); border-radius: 9px; display: grid; place-items: center; background: rgba(255,255,255,0.06); transition: background-color 100ms; position: relative; }
 .fav:hover { background: rgba(255,255,255,0.1); }
-/* Initial of the favorite's own profile, so two logins of one site differ. */
-.favs-title { display: flex; align-items: center; gap: 4px; width: 100%; height: 22px; margin-bottom: 4px; padding: 0 4px; border-radius: 6px; font-size: 12.5px; line-height: 16px; font-weight: 500; color: var(--muted); cursor: pointer; }
-.favs-title:hover { color: var(--secondary); background: rgba(255,255,255,0.05); }
-.favs-title .chevron { flex: none; transition: transform 120ms; }
-.favs-title[aria-expanded="false"] { margin-bottom: 0; }
-.favs-title[aria-expanded="false"] .chevron { transform: rotate(-90deg); }
-.favs-title .count { margin-left: auto; font-variant-numeric: tabular-nums; }
 /* Space list: slides in on a space change, springs back after a short swipe. */
 .space-list { animation: space-in 180ms ease-out; transition: transform 160ms ease-out; }
 @keyframes space-in { from { opacity: 0; transform: translateX(var(--enter-x, 0)); } to { opacity: 1; transform: none; } }
@@ -325,12 +331,23 @@ button.panel-row:disabled { opacity: 0.45; }
 /* space name above the list */
 .space-title { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; margin-top: 12px; border-radius: 8px; font-weight: 600; color: var(--secondary); }
 
-/* the one divider between pinned and Today; "Clear" shows on hover */
+/* The profile the space runs in, in a box after its name. */
+.space-profile[data-profile] { background: color-mix(in srgb, var(--profile) 20%, transparent); color: var(--fg); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--profile) 28%, transparent); }
+.space-profile { flex: 0 1 auto; min-width: 28px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 5px; border-radius: 4px; background: rgba(255,255,255,0.1); color: var(--secondary); font-size: 12px; line-height: 18px; font-weight: 500; }
+.space-title > .truncate:has(+ .space-profile) { flex-shrink: 0; max-width: calc(100% - 96px); }
+
+/* the one divider between pinned and Today; "Hide pinned" and "Clear" show on hover */
 .divider { position: relative; display: flex; align-items: center; height: 20px; margin: 4px 8px; }
 .divider hr { flex: 1; border: 0; border-top: 1px solid var(--line); margin: 0; }
-.divider button { position: absolute; right: 0; padding: 0 6px; font-size: 12px; line-height: 18px; border-radius: 5px; color: var(--muted); background: var(--bg); opacity: 0; transition: opacity 100ms; }
+.divider button { position: absolute; right: 0; display: flex; align-items: center; gap: 3px; padding: 0 6px; font-size: 12px; line-height: 18px; border-radius: 5px; color: var(--muted); background: var(--bg); opacity: 0; transition: opacity 100ms; }
 .divider:hover button { opacity: 1; }
 .divider button:hover { color: var(--fg); background: rgba(255,255,255,0.08); }
+/* Left of the line: hides the pinned tabs. While they are hidden it stays, with their number, and the line starts after it. */
+.divider .pinned-toggle { left: 0; right: auto; padding-left: 3px; }
+.divider .pinned-toggle .chevron { flex: none; transition: transform 120ms; }
+.divider .pinned-toggle[aria-expanded="false"] { position: static; flex: none; margin: 0 6px 0 -3px; opacity: 1; background: none; }
+.divider .pinned-toggle[aria-expanded="false"]:hover { background: rgba(255,255,255,0.08); }
+.divider .pinned-toggle[aria-expanded="false"] .chevron { transform: rotate(-90deg); }
 .row.newtab { color: var(--muted); }
 .row.newtab:hover { color: var(--fg); }
 
@@ -515,6 +532,7 @@ button:disabled, select:disabled, [aria-disabled="true"] { cursor: default; }
 .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
 .swatch { width: 18px; height: 18px; border-radius: 9px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25); position: relative; }
 .swatch[data-on] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--fg); }
+.swatch.none { background: linear-gradient(to top right, transparent calc(50% - 1px), var(--muted) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)), var(--surface-2); }
 .swatch.custom { background: conic-gradient(#f55, #fb5, #5f8, #5cf, #a6f, #f5a, #f55); overflow: hidden; cursor: pointer; }
 .swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 /* A slider drawn by us: the engine's own one changes colour under the pointer.
@@ -865,7 +883,7 @@ button.wel-space-icon:hover:not(:disabled) { background: color-mix(in srgb, var(
 /* A path to select and copy: it breaks anywhere rather than run out of its card. */
 .set-path { display: block; overflow-wrap: anywhere; user-select: text; -webkit-user-select: text; cursor: text; }
 /* The row being dragged follows the pointer, above the others. */
-.set-space[data-dragged], .set-space[data-dragged]:hover, .set-profile[data-dragged], .set-device[data-dragged] { position: relative; z-index: 2; border-top-color: transparent; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 8px 24px rgba(0,0,0,0.35); }
+.set-space[data-dragged], .set-space[data-dragged]:hover, .set-device[data-dragged] { position: relative; z-index: 2; border-top-color: transparent; background: var(--surface); box-shadow: 0 0 0 1px var(--line), 0 8px 24px rgba(0,0,0,0.35); }
 /* The other rows glide aside to make room where it would land. */
 html[data-sorting] [data-sort-row]:not([data-dragged]) { transition: transform 140ms ease; }
 /* While a row is dragged, the hand stays closed wherever the pointer is. */
@@ -914,34 +932,13 @@ html[data-sorting], html[data-sorting] * { cursor: grabbing !important; user-sel
 .set-space-go:hover, .set-space-go:focus-visible { background: rgba(255,255,255,0.1); color: var(--fg); }
 /* The whole row lights up as one: handle and space together. */
 .set-space:hover, .set-space:has(.set-space-go:focus-visible) { background: var(--row-hover); }
-/* Settings → Profiles: a profile, the spaces that use it and the favorites that do, side by side. */
-.set-profile { display: grid; grid-template-columns: 14px 180px minmax(0, 1fr) minmax(0, 1fr) 104px; align-items: start; gap: 8px 14px; padding-top: 10px; padding-bottom: 10px; }
-.set-profile > .set-grip { margin-left: -3px; }
-.set-profile:hover .set-grip:not([aria-disabled]) { color: var(--fg); }
-/* Text beside a field stands on the line of the field's text, however many lines follow. */
-.set-profile-text { padding-top: 6px; }
-/* Two lines of names; the button under them shows the rest. */
-.set-profile-names { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
-.set-profile-names[data-open] { display: block; }
-.set-profile-more { display: block; margin-top: 2px; font-size: 12px; font-weight: 500; color: var(--secondary); }
-.set-profile-more:hover, .set-profile-more:focus-visible { color: var(--fg); text-decoration: underline; }
-.set-profile > :last-child { justify-self: end; }
-.set-profile-head { padding-bottom: 6px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
-.set-profile-head > span { padding-top: 0; }
-.set-profile-head + .set-profile { border-top: 0; padding-top: 4px; }
-.set-profile-cap { display: none; }
-.set-profile-link { color: inherit; text-align: left; }
-.set-profile-link:hover { color: var(--fg); text-decoration: underline; }
-@container (max-width: 720px) {
-  /* No room for columns: each profile says what its two lines are. */
-  .set-profile { grid-template-columns: 14px minmax(0, 1fr); }
-  .set-profile > * { grid-column: 2; }
-  .set-profile > .set-grip { grid-column: 1; grid-row: 1; }
-  .set-profile-text { padding-top: 0; }
-  .set-profile-head { display: none; }
-  .set-profile-head + .set-profile { border-top: 0; padding-top: 10px; }
-  .set-profile-cap { display: inline; font-weight: 600; }
-}
+/* Settings → Profiles: a profile's colour in its row. */
+.set-profile-dot { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25); }
+.set-profile-dot[data-plain] { box-shadow: inset 0 0 0 1.5px var(--muted); }
+/* A profile's page: what uses it, each a button to its own page. */
+.set-profile-uses { display: flex; flex-wrap: wrap; gap: 6px; }
+.set-profile-use { display: flex; align-items: center; gap: 6px; max-width: 220px; height: 28px; padding: 0 9px 0 7px; border-radius: 7px; background: rgba(255,255,255,0.06); font-size: 13px; color: var(--secondary); }
+.set-profile-use:hover, .set-profile-use:focus-visible { background: rgba(255,255,255,0.1); color: var(--fg); }
 .set-space-icon { display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 9px; background: rgba(255,255,255,0.06); }
 /* The icons to choose from for a space. */
 .set-glyphs { display: flex; flex-wrap: wrap; gap: 2px; }

@@ -19,7 +19,8 @@
     "change_icon": "Change icon",
     "options": "Space options",
     "hide_private": "Hide private space",
-    "close_private": "Close private space"
+    "close_private": "Close private space",
+    "profile": "Profile of this space: {name}"
   },
   "space_menu": {
     "settings": "Space settings…",
@@ -37,7 +38,12 @@
     "clear_private_title": "Close all private tabs",
     "new_tab_title": "New tab",
     "new_private_tab_title": "New private tab",
-    "new_private_tab": "New Private Tab"
+    "new_private_tab": "New Private Tab",
+    "hide_pinned": "Hide pinned",
+    "show_pinned_one": "{count} pinned",
+    "show_pinned_other": "{count} pinned",
+    "hide_pinned_title": "Hide the pinned tabs of this space",
+    "show_pinned_title": "Show the pinned tabs of this space"
   },
   "new_menu": {
     "label": "New",
@@ -92,11 +98,10 @@
     "kept_active": "Kept active: this tab is not unloaded",
     "kept_active_label": "Kept active",
     "share_instead": "Share this tab instead",
-    "archive": "Archive"
+    "archive": "Archive",
+    "unload": "Unload page: the tab stays"
   },
   "favorites": {
-    "collapse": "Collapse",
-    "expand": "Expand",
     "panel": "panel",
     "shared": "being shared",
     "rename_label": "Name of the favorite {name}"

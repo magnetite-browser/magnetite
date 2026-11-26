@@ -78,6 +78,7 @@ pub(super) fn default_sidebar() -> SidebarSnapshot {
         name: magnetite_ui::t!("app.names.default_profile").into(),
         is_default: true,
         ephemeral: false,
+        color: None,
     });
     snap.favorites.push(magnetite_core::FavoriteSet {
         profile_id: "default".into(),
@@ -582,6 +583,7 @@ mod tests {
             name: "Secret".into(),
             is_default: false,
             ephemeral: true,
+            color: None,
         });
         s.find_tab_mut("b").unwrap().profile_id = Some("secret".into());
         s.deleted_profiles.push("old".into());

@@ -238,6 +238,7 @@ impl AppState {
                     name: p.name,
                     is_default: false,
                     ephemeral: p.ephemeral,
+                    color: None,
                 });
                 id
             };
@@ -341,6 +342,7 @@ mod tests {
                 name: "Default".into(),
                 is_default: true,
                 ephemeral: false,
+                color: None,
             }];
             snap.spaces = spaces;
             snap
@@ -398,12 +400,14 @@ mod tests {
                 name: "Personal".into(),
                 is_default: true,
                 ephemeral: false,
+                color: None,
             },
             Profile {
                 id: "p1".into(),
                 name: "Work".into(),
                 is_default: false,
                 ephemeral: false,
+                color: None,
             },
         ];
         snap.favorites = vec![magnetite_core::FavoriteSet {
@@ -592,6 +596,7 @@ mod tests {
             name: "Work".into(),
             is_default: false,
             ephemeral: false,
+            color: None,
         });
         snap.favorites.push(magnetite_core::FavoriteSet {
             profile_id: "work".into(),

@@ -163,6 +163,9 @@ pub fn sanitise_snapshot(snap: &mut SidebarSnapshot) {
     let mut profiles = HashSet::new();
     snap.profiles
         .retain(|p| !p.id.is_empty() && profiles.insert(p.id.clone()));
+    for p in &mut snap.profiles {
+        p.color = p.color.map(magnetite_core::Color::sanitised);
+    }
     let mut spaces = HashSet::new();
     snap.spaces.retain(|sp| spaces.insert(sp.id.clone()));
     for space in &mut snap.spaces {
@@ -245,6 +248,9 @@ impl AppState {
                 Some(local) => {
                     r.ephemeral = local.ephemeral;
                     r.is_default = local.is_default;
+                    // A device of an earlier version sends no colours:
+                    // this device's stay.
+                    r.color = r.color.or(local.color);
                 }
                 None => r.is_default = false,
             }
@@ -611,6 +617,7 @@ mod tests {
             name: "Private".into(),
             is_default: false,
             ephemeral: true,
+            color: None,
         });
         if let SidebarNode::Tab(t) = &mut s.sidebar.spaces[0].pinned[0] {
             t.profile_id = Some("private".into());
@@ -641,6 +648,7 @@ mod tests {
             name: "Private".into(),
             is_default: false,
             ephemeral: true,
+            color: None,
         });
         let sid = s.active_space.clone();
         s.sidebar.spaces[0].today.push(TabItem {
@@ -688,6 +696,7 @@ mod tests {
             name: "Private".into(),
             is_default: false,
             ephemeral: true,
+            color: None,
         });
         // Neither in front: a Settings tab and a private Today tab.
         s.sidebar.spaces[0].today.push(TabItem {
@@ -731,6 +740,7 @@ mod tests {
             name: "Private".into(),
             is_default: false,
             ephemeral: true,
+            color: None,
         });
         s.sidebar.spaces[0].profile_id = "secret".into();
         if let SidebarNode::Tab(t) = &mut s.sidebar.spaces[0].pinned[0] {
@@ -761,6 +771,7 @@ mod tests {
             name: "Private".into(),
             is_default: false,
             ephemeral: true,
+            color: None,
         });
         let mut theirs = remote(&["a"]);
         theirs.profiles[0].is_default = false;
@@ -769,6 +780,7 @@ mod tests {
             name: "Private".into(),
             is_default: true,
             ephemeral: false,
+            color: None,
         });
         s.adopt_pull(Some(theirs), None, vec![]);
         // Still a context of its own, in memory: not the default store.
@@ -784,6 +796,7 @@ mod tests {
             name: "Work".into(),
             is_default: false,
             ephemeral: false,
+            color: None,
         });
         let space = s.active_space.clone();
         assert!(s.split_insert(Some("a"), "b", magnetite_core::split::Side::Right));
@@ -819,6 +832,7 @@ mod tests {
             name: "Work".into(),
             is_default: false,
             ephemeral: false,
+            color: None,
         });
         s.sidebar.favorites.push(magnetite_core::FavoriteSet {
             profile_id: "work".into(),
@@ -849,6 +863,7 @@ mod tests {
             name: "Private".into(),
             is_default: false,
             ephemeral,
+            color: None,
         };
         s.sidebar.profiles.push(private(true));
         let sid = s.active_space.clone();
@@ -890,6 +905,7 @@ mod tests {
             name: "Work".into(),
             is_default: false,
             ephemeral: false,
+            color: None,
         });
         for (id, page) in [("a", 1), ("b", 2)] {
             s.runtime.insert(
@@ -1013,12 +1029,14 @@ mod tests {
         assert!(!s.smart_is_allowed("f", &sf(&s)));
     }
 
+    /// A lasting profile, with a colour as every one has (`color_profiles`).
     fn work() -> Profile {
         Profile {
             id: "work".into(),
             name: "Work".into(),
             is_default: false,
             ephemeral: false,
+            color: Some(magnetite_core::PROFILE_COLORS[0]),
         }
     }
 
@@ -1043,6 +1061,31 @@ mod tests {
         assert!(!lists(&a, "work"));
         assert_eq!(a.deleted_profile_data(), ["work"]);
         assert_eq!(a.synced_sidebar, Some(a.sidebar_for_sync()), "no news");
+    }
+
+    #[test]
+    fn a_profiles_colour_syncs_and_a_device_without_colours_takes_none_away() {
+        let color = |s: &AppState| {
+            s.sidebar
+                .profiles
+                .iter()
+                .find(|p| p.id == "work")
+                .and_then(|p| p.color)
+        };
+        let (mut a, mut b) = (state(), state());
+        a.sidebar.profiles.push(work());
+        b.sidebar.profiles.push(work());
+        let red = magnetite_core::Color::rgb(240, 95, 95);
+        a.sidebar.profiles.last_mut().unwrap().color = Some(red);
+        b.adopt_pull(Some(a.sidebar_for_sync()), None, vec![]);
+        assert_eq!(color(&b), Some(red));
+        // An earlier version knows no colours and sends none: ours stays.
+        let mut old = a.sidebar_for_sync();
+        for p in &mut old.profiles {
+            p.color = None;
+        }
+        b.adopt_pull(Some(old), None, vec![]);
+        assert_eq!(color(&b), Some(red));
     }
 
     #[test]
