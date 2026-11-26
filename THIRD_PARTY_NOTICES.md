@@ -98,7 +98,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 - **Our own CEF build.** The CEF library is one we build ourselves from
   those sources, in
   [magnetite-cef](https://github.com/magnetite-browser/magnetite-cef)
-  (release `156.0.31-11`). It differs from CEF's official build in two ways:
+  (release `156.0.31-12`). It differs from CEF's official build in two ways:
   the H.264, AAC and HEVC decoders and the H.264 encoder are on
   (`proprietary_codecs`, `ffmpeg_branding=Chrome`), and CEF carries the
   patches in that repository's `patches/` folder.
