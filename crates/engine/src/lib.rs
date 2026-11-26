@@ -61,8 +61,8 @@ mod panel_close;
 mod panel_stack;
 #[cfg(target_os = "linux")]
 mod peek_backdrop;
-#[cfg(target_os = "macos")]
 mod pinning;
+#[cfg(target_os = "macos")]
 mod pip;
 mod placement;
 mod privacy;
