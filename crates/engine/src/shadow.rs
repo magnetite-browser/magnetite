@@ -14,7 +14,7 @@
 
 use cef::*;
 
-use crate::content::ContentViewDelegate;
+use crate::content::{ContentState, ContentViewDelegate};
 use crate::engine::Engine;
 use crate::events::ContentId;
 
@@ -34,6 +34,14 @@ pub(crate) struct Shadow {
 impl Shadow {
     pub(crate) fn is(&self, view: &mut View) -> bool {
         View::from(&self.view).is_same(Some(view)) != 0
+    }
+}
+
+impl ContentState {
+    /// The browser that stands for the page among Chromium's tabs: its
+    /// own, or a system page's shadow.
+    pub(crate) fn tab_browser(&self) -> Option<Browser> {
+        (self.browser.clone()).or_else(|| self.shadow.as_ref()?.browser.clone())
     }
 }
 
@@ -71,13 +79,17 @@ impl Engine {
             .map(|(id, _)| *id)
     }
 
-    /// The browser that stands for page `id` among Chromium's tabs: its
-    /// own, or a system page's shadow.
+    /// The host of page `id`'s tab among Chromium's tabs
+    /// (`ContentState::tab_browser`).
     pub(crate) fn tab_host(&self, id: ContentId) -> Option<BrowserHost> {
-        let inner = self.lock();
-        let c = inner.contents.get(&id)?;
-        let shadow = || c.shadow.as_ref()?.browser.clone();
-        c.browser.clone().or_else(shadow)?.host()
+        self.lock().contents.get(&id)?.tab_browser()?.host()
+    }
+
+    /// The page whose tab among Chromium's tabs is `browser`: its own, or a
+    /// system page's shadow.
+    pub(crate) fn tab_owner(&self, browser: Option<&Browser>) -> Option<ContentId> {
+        self.content_id_for(browser)
+            .or_else(|| self.shadow_owner(browser))
     }
 
     /// Bring the shadow of system page `id` to the address the page shows.
@@ -107,6 +119,25 @@ wrap_client! {
         }
         fn focus_handler(&self) -> Option<FocusHandler> {
             Some(ShadowFocus::new())
+        }
+        fn on_process_message_received(
+            &self,
+            browser: Option<&mut Browser>,
+            _frame: Option<&mut Frame>,
+            source_process: ProcessId,
+            message: Option<&mut ProcessMessage>,
+        ) -> ::std::os::raw::c_int {
+            // Magnetite's CEF: an extension pinned or unpinned the system
+            // page's tab, as on any other page (`client.rs`).
+            if source_process == ProcessId::BROWSER
+                && let Some(msg) = message.as_ref()
+                && CefString::from(&msg.name()).to_string() == crate::pinning::PINNED_MESSAGE
+            {
+                let pinned = msg.argument_list().is_some_and(|a| a.bool(0) != 0);
+                Engine::global().on_extension_pinned(browser.as_deref(), pinned);
+                return 1;
+            }
+            0
         }
     }
 }
@@ -142,6 +173,7 @@ wrap_life_span_handler! {
             let Some((id, asked)) = found else { return };
             // The page may have moved on while Chromium made the browser.
             engine.sync_shadow(id);
+            engine.tell_pinned_on_create(id, browser);
             if let Some(extension) = asked {
                 engine.open_extension(id, &extension);
             }

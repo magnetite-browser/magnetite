@@ -8,6 +8,7 @@
 
 use cef::*;
 
+use crate::content::ContentState;
 use crate::engine::Engine;
 use crate::events::{ContentId, EngineEvent};
 
@@ -49,7 +50,7 @@ impl Engine {
                 return;
             }
             (inner.contents.get(&id))
-                .and_then(|c| c.browser.clone())
+                .and_then(ContentState::tab_browser)
                 .and_then(|b| b.main_frame())
         };
         if let Some(frame) = frame {
@@ -57,8 +58,8 @@ impl Engine {
         }
     }
 
-    /// Page `id` got its browser, whose tab Chromium makes unpinned: one
-    /// meant to be pinned is told so.
+    /// Page `id` got its browser, or a system page its shadow, whose tab
+    /// Chromium makes unpinned: one meant to be pinned is told so.
     pub(crate) fn tell_pinned_on_create(&self, id: ContentId, browser: &Browser) {
         if self.lock().pinned.contains(&id)
             && let Some(frame) = browser.main_frame()
@@ -68,10 +69,11 @@ impl Engine {
     }
 
     /// Magnetite's CEF says an extension pinned or unpinned the tab of the
-    /// page in `browser` (`PINNED_MESSAGE`): Chromium has it so now, and the
-    /// app pins or unpins the page's tab.
+    /// page in `browser`, or of the system page it is the shadow of
+    /// (`PINNED_MESSAGE`): Chromium has it so now, and the app pins or
+    /// unpins the page's tab.
     pub(crate) fn on_extension_pinned(&self, browser: Option<&Browser>, pinned: bool) {
-        let Some(id) = self.content_id_for(browser) else {
+        let Some(id) = self.tab_owner(browser) else {
             return;
         };
         {

@@ -348,10 +348,10 @@ impl Engine {
         background: bool,
         (index, pinned): (i32, bool),
     ) -> bool {
-        let ours = self
-            .content_id_for(opener)
-            .or_else(|| self.shadow_owner(opener));
-        let Some(ours) = ours.filter(|_| !crate::stray::opens_nothing(opener, &url)) else {
+        let Some(ours) = self
+            .tab_owner(opener)
+            .filter(|_| !crate::stray::opens_nothing(opener, &url))
+        else {
             return false;
         };
         self.lock().pending_tab = Some(PendingTab {
