@@ -1,17 +1,38 @@
 # Homebrew cask for the tap @REPO_OWNER@/homebrew-magnetite (Casks/magnetite.rb).
 # scripts/release/render-cask.sh fills in the @…@ values for each release.
 cask "magnetite" do
+  arch arm: "aarch64", intel: "x86_64"
+
   version "@VERSION@"
+  sha256 arm:          "@SHA256_MACOS_ARM@",
+         intel:        "@SHA256_MACOS_INTEL@",
+         arm64_linux:  "@SHA256_LINUX_ARM@",
+         x86_64_linux: "@SHA256_LINUX_INTEL@"
 
-  on_arm do
-    sha256 "@SHA256_ARM@"
+  on_macos do
+    url "https://github.com/@REPO@/releases/download/v#{version}/Magnetite-#{version}-macos-#{arch}.zip"
 
-    url "https://github.com/@REPO@/releases/download/v#{version}/Magnetite-#{version}-macos-aarch64.zip"
+    depends_on macos: :ventura
+
+    app "Magnetite.app"
+
+    zap trash: [
+      "~/Library/Application Support/Magnetite",
+      "~/Library/Caches/Magnetite",
+      "~/Library/Caches/@BUNDLE_ID@",
+      "~/Library/Preferences/@BUNDLE_ID@.plist",
+      "~/Library/Saved Application State/@BUNDLE_ID@.savedState",
+    ]
   end
-  on_intel do
-    sha256 "@SHA256_INTEL@"
+  on_linux do
+    url "https://github.com/@REPO@/releases/download/v#{version}/magnetite-#{version}-linux-#{arch}.AppImage"
 
-    url "https://github.com/@REPO@/releases/download/v#{version}/Magnetite-#{version}-macos-x86_64.zip"
+    # Goes to ~/Applications with a launcher entry from the image's
+    # magnetite.desktop. No version in the name: Magnetite's own update
+    # replaces the file in place.
+    app_image "magnetite-#{version}-linux-#{arch}.AppImage", target: "Magnetite.AppImage"
+
+    zap trash: "~/.local/share/magnetite"
   end
 
   name "Magnetite"
@@ -25,15 +46,4 @@ cask "magnetite" do
 
   # The app updates itself; brew upgrade leaves it alone.
   auto_updates true
-  depends_on macos: :ventura
-
-  app "Magnetite.app"
-
-  zap trash: [
-    "~/Library/Application Support/Magnetite",
-    "~/Library/Caches/Magnetite",
-    "~/Library/Caches/@BUNDLE_ID@",
-    "~/Library/Preferences/@BUNDLE_ID@.plist",
-    "~/Library/Saved Application State/@BUNDLE_ID@.savedState",
-  ]
 end

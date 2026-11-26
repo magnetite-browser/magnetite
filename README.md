@@ -93,7 +93,7 @@ Not there yet: moving a page between windows on macOS and Windows (to do: writte
 Releases will appear on the GitHub releases page, one package per system:
 
 - **macOS 13 or newer** (Apple silicon, Intel): a disk image or a zip with `Magnetite.app`, also through Homebrew.
-- **Linux** (x86_64, aarch64): an rpm (Fedora, RHEL) and a deb (Debian, Ubuntu), which update with your system's updates, and an AppImage and a tarball for other systems. The AppImage is one file to make executable and start, and it updates itself when it is in a folder you may write to (otherwise it opens the release page); the tarball's `README.md` explains the sandbox setup.
+- **Linux** (x86_64, aarch64): an rpm (Fedora, RHEL) and a deb (Debian, Ubuntu), which update with your system's updates, and an AppImage and a tarball for other systems. The AppImage is one file to make executable and start, also through Homebrew, and it updates itself when it is in a folder you may write to (otherwise it opens the release page); the tarball's `README.md` explains the sandbox setup.
 - **Windows 10 or newer** (x86_64): an installer, or a zip to unpack. Not signed yet, so Windows warns before the installer starts.
 
 Magnetite updates itself from these releases. The update list is signed, and `SHA256SUMS` lists the packages' checksums.

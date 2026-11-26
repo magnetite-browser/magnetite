@@ -225,11 +225,19 @@ checked with a signed build yet:
 ## Homebrew
 
 Magnetite is installed through Homebrew from a tap of our own,
-`magnetite-browser/homebrew-magnetite`:
+`magnetite-browser/homebrew-magnetite`, on macOS and Linux with the same
+command:
 
 ```sh
 brew install --cask magnetite-browser/magnetite/magnetite
 ```
+
+On macOS the cask installs `Magnetite.app` from the zip. On Linux
+(Homebrew 5.1.12 or later) it installs the AppImage as
+`~/Applications/Magnetite.AppImage` and writes a launcher entry from the
+image's `magnetite.desktop` and icon to `~/.local/share/applications`. The
+AppImage's name carries no version, so Magnetite's own update replaces
+that file in place (`update::appimage` in `crates/app/src/update.rs`).
 
 ### Once
 
@@ -243,15 +251,16 @@ brew install --cask magnetite-browser/magnetite/magnetite
 
 The release workflow renders `magnetite.rb` from
 `packaging/homebrew/magnetite.rb.template` with the checksums of the two
-macOS packages and adds it to the draft. After **publishing** the release:
+macOS zips and the two Linux AppImages and adds it to the draft. After **publishing** the release:
 
 1. In `homebrew-magnetite`: Actions → Update cask → Run workflow. Leave the
    version empty for the latest release.
 2. The workflow downloads the release's `magnetite.rb` and `SHA256SUMS`,
-   checks that the cask names this version and these checksums, runs
-   `brew style` and `brew audit`, installs the cask on a Mac, asks
-   Gatekeeper (`spctl`) whether it would open the app, uninstalls it and
-   commits `Casks/magnetite.rb`.
+   checks that the cask names this version and these checksums, then runs
+   `brew style` and `brew audit` and installs the cask on a Mac and on
+   Linux (x86_64). On the Mac it asks Gatekeeper (`spctl`) whether it
+   would open the app; on Linux it checks the AppImage and the launcher
+   entry. It uninstalls it on both and commits `Casks/magnetite.rb`.
 
 It refuses drafts and pre-releases, and a release that is not notarized
 fails at the Gatekeeper step: Homebrew quarantines what it downloads, and

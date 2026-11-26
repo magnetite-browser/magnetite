@@ -64,7 +64,7 @@ if [[ -n $mac ]]; then
   echo "**macOS:** open the disk image and drag Magnetite to Applications, or unpack the zip and move \`Magnetite.app\` there. Signed and notarized by Apple. With Homebrew: \`brew install --cask ${repo%%/*}/magnetite/magnetite\`."
 fi
 if [[ -n $linux ]]; then
-  echo "**Linux:** the rpm (Fedora, RHEL) and the deb (Debian, Ubuntu) update with your system's updates. The AppImage and the tarball are for other systems. The AppImage is one file: make it executable and start it (it needs user namespaces for Chromium's sandbox); it updates itself when it is in a folder you may write to. The tarball: unpack it and follow its \`README.md\` for the sandbox setup."
+  echo "**Linux:** the rpm (Fedora, RHEL) and the deb (Debian, Ubuntu) update with your system's updates. The AppImage and the tarball are for other systems. The AppImage is one file: make it executable and start it (it needs user namespaces for Chromium's sandbox); it updates itself when it is in a folder you may write to. Homebrew installs the AppImage with an entry in your app launcher: \`brew install --cask ${repo%%/*}/magnetite/magnetite\`. The tarball: unpack it and follow its \`README.md\` for the sandbox setup."
 fi
 if [[ -n $windows ]]; then
   echo "**Windows:** run the installer; an installed Magnetite updates itself. It is not signed yet, so Windows warns before it starts: choose \"More info\", then \"Run anyway\". The zip is for a copy without installing: unpack it and start \`magnetite.exe\`."
