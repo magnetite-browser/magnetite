@@ -295,6 +295,30 @@ impl SidebarSnapshot {
         });
         favs.chain(spaces)
     }
+
+    /// Call `f` on every tab item and bookmark in the snapshot.
+    pub fn for_each_tab_mut(&mut self, f: &mut dyn FnMut(&mut TabItem)) {
+        fn nodes(list: &mut [SidebarNode], f: &mut dyn FnMut(&mut TabItem)) {
+            for n in list {
+                match n {
+                    SidebarNode::Tab(t) => f(t),
+                    SidebarNode::Folder(folder) => nodes(&mut folder.children, f),
+                }
+            }
+        }
+        for t in self
+            .favorites
+            .iter_mut()
+            .flat_map(|set| set.items.iter_mut())
+        {
+            f(t);
+        }
+        for space in &mut self.spaces {
+            nodes(&mut space.pinned, f);
+            space.today.iter_mut().for_each(&mut *f);
+            nodes(&mut space.bookmarks, f);
+        }
+    }
 }
 
 impl Default for SidebarSnapshot {

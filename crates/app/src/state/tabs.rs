@@ -1,11 +1,10 @@
 //! Tabs in the state: finding them, taking them out, the archive and its
 //! retention, and deleting a space.
 
-use std::borrow::Cow;
 use std::collections::HashSet;
 
 use magnetite_core::split::SplitNode;
-use magnetite_core::unread::unread_count;
+use magnetite_core::unread::split_unread;
 use magnetite_core::{Color, Id, SidebarNode, Space, TabItem, UnixSeconds};
 use magnetite_engine::{ContentId, MediaState, MemoryPressure};
 
@@ -217,20 +216,20 @@ impl AppState {
     /// the bubble on its row or tile, and stays out of the tab's title and
     /// the history: those are saved and synced, and a count there would be
     /// stale. A renamed tab keeps its name and still gets the count. The
-    /// peek and the mini windows show their page's title as it is.
+    /// peek and the mini windows show their page's title as it is and keep
+    /// the count for when they are kept as a tab (`keep_page`).
     pub fn set_page_title(&mut self, id: ContentId, title: &str) {
         if let Some(p) = self.page_outside_mut(id) {
             title.clone_into(&mut p.title);
         }
-        let (count, title) = match unread_count(title) {
-            Some((count, rest)) => (Some(count), Cow::Owned(rest)),
-            None => (None, Cow::Borrowed(title)),
-        };
+        let (count, title) = split_unread(title);
         self.record_title(id, &title);
+        if let Some(rt) = self.page_runtime(id) {
+            rt.unread_count = count;
+        }
         let Some(tab) = self.content_to_tab.get(&id).cloned() else {
             return;
         };
-        self.runtime.entry(tab.clone()).or_default().unread_count = count;
         if let Some(t) = self.find_tab_mut(&tab)
             && !t.custom_title
             && !title.is_empty()
@@ -406,8 +405,10 @@ impl AppState {
     /// Page `p` becomes a Today tab at the top of space `space`: its window
     /// and what is known about it carry over, and it stays in its profile
     /// (its page already runs there), also when that is not the space's.
+    /// The tab's title comes without the page's unread count, which its
+    /// runtime already holds (`set_page_title`).
     fn keep_page(&mut self, p: Peek, space: &str) -> Id {
-        let id = self.new_today_tab(space, &p.url, &p.title);
+        let id = self.new_today_tab(space, &p.url, &split_unread(&p.title).1);
         let space_profile = self.space(space).map(|sp| sp.profile_id.clone());
         if space_profile.as_deref() != Some(p.profile.as_str())
             && let Some(t) = self.find_tab_mut(&id)
@@ -1139,6 +1140,28 @@ mod tests {
         // A page that goes takes its count along.
         s.runtime.get_mut("p").unwrap().unload();
         assert_eq!(s.runtime["p"].unread_count, None);
+    }
+
+    #[test]
+    fn a_peek_kept_as_a_tab_brings_its_count_but_not_in_the_title() {
+        let mut s = state();
+        let over = s.peek_over();
+        let profile = s.active_space().profile_id.clone();
+        s.peeks.insert(
+            over,
+            crate::state::Peek {
+                content: 5,
+                url: "https://example.org/chat".into(),
+                title: String::new(),
+                runtime: TabRuntime::default(),
+                profile,
+            },
+        );
+        s.set_page_title(5, "(4) Chat");
+        assert_eq!(s.peek().unwrap().title, "(4) Chat");
+        let id = s.keep_peek().unwrap();
+        assert_eq!(s.find_tab(&id).unwrap().1.title, "Chat");
+        assert_eq!(s.runtime[&id].unread_count, Some(4));
     }
 
     #[test]

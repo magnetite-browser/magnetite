@@ -238,6 +238,11 @@ impl AppState {
             saver: Saver::new(path.clone()),
             path,
         };
+        // Titles saved before unread counts were kept apart still carry one.
+        magnetite_core::unread::strip_counts(&mut state.sidebar);
+        for archived in &mut state.archive {
+            magnetite_core::unread::strip_count(&mut archived.tab);
+        }
         // Only a space that exists can be kept on this device.
         let spaces = &state.sidebar.spaces;
         state

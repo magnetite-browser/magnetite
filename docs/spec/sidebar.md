@@ -71,16 +71,21 @@ the row turns the icon into a back arrow that takes the page back.
   pinned tab). A bold title marks a tab that
   opened in the background and was not viewed yet.
 - Unread counts: chat and mail sites put the number of unread messages
-  into their page title, at its start ("(3) WhatsApp") or after its first
-  word ("Inbox (12) - Gmail"; there a plain number of four digits or more
-  reads as a year and does not count). The sidebar shows it in a red
-  bubble, "99+" above 99: at the end of the tab's row (the hover button
-  takes its place) and on the corner of a favorite's icon. The tab's
-  title is shown, saved, synced and kept in the history without the
-  number. The bubble goes when the site takes the number out of its
-  title, for example once the messages are read on another device, and
-  with the page: an unloaded tab has none. A renamed tab keeps its name
-  and still gets the bubble. The count lives in memory only.
+  into their page title, in parentheses at its start ("(3) WhatsApp") or
+  after its first word ("Inbox (12) - Gmail"), followed by a space or the
+  end of the title ("invoice (1).pdf" is a file name). A plain number of
+  four digits or more reads as a year and does not count ("(2024) Annual
+  report"); larger counts need thousands separators ("(1,234)"). The
+  sidebar shows the number in a red bubble, "99+" above 99: at the end of
+  the tab's row (the hover button takes its place), in its cell of a
+  split row, in the tab switcher and on the corner of a favorite's icon.
+  The tab's title is shown, saved, synced and kept in the history without
+  the number, also a count of 0 and the title of a peek kept as a tab;
+  titles saved, synced or imported with a count lose it when read. The
+  bubble goes when the site takes the number out of its title, for
+  example once the messages are read on another device, and with the
+  page: an unloaded tab has none. A renamed tab keeps its name and still
+  gets the bubble. The count lives in memory only.
 - A click shows the tab and loads its page if needed. Tabs without a loaded
   page are dimmed. A page is unloaded once it has been off screen for more
   than 4 hours (Settings → Tabs and archive: 10 minutes, 30 minutes,

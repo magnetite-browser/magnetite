@@ -100,7 +100,8 @@ pub fn icon_image_ok(data: &str) -> bool {
 /// its home page a private pinned tab would be saved where it went.) A
 /// bookmark is an address with a name and nothing else, and a bookmark
 /// folder is never a smart folder. A space's own icon is a small WebP file
-/// (`icon_image_ok`), or it is dropped.
+/// (`icon_image_ok`), or it is dropped. Titles come without a page's unread
+/// count (`magnetite_core::unread::strip_counts`).
 pub fn sanitise_snapshot(snap: &mut SidebarSnapshot) {
     /// `kept`: favorites, which keep a home page; Today tabs have none.
     fn tabs(list: &mut Vec<TabItem>, seen: &mut HashSet<String>, latest: UnixSeconds, kept: bool) {
@@ -158,6 +159,7 @@ pub fn sanitise_snapshot(snap: &mut SidebarSnapshot) {
             }
         });
     }
+    magnetite_core::unread::strip_counts(snap);
     let latest = now() + 24 * 60 * 60;
     let mut seen = HashSet::new();
     for set in &mut snap.favorites {

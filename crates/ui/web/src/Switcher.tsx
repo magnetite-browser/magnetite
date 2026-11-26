@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { Favicon } from "./Favicon";
 import { accentCss, applyAppearance, findTab, hostOf, send, subscribe, type UiState } from "./bridge";
 import { t } from "./i18n";
+import { UnreadCount } from "./UnreadCount";
 
 export function Switcher() {
   const [state, setState] = useState<UiState | null>(null);
@@ -34,6 +35,7 @@ export function Switcher() {
           <div key={id} className="result" role="option" aria-selected={i === round.at} data-selected={i === round.at || undefined}>
             <Favicon url={tab.url} src={rt?.favicon} />
             <span className="min-w-0 flex-1 truncate">{tab.title || hostOf(tab.url)}</span>
+            <UnreadCount count={rt?.unread_count} />
             <span className="meta">{hostOf(tab.url)}</span>
           </div>
         );

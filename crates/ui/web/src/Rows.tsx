@@ -4,6 +4,7 @@ import { Close, FolderIcon, HomeArrow, KeepActiveIcon, Minus, PhoneIcon, ScreenS
 import { ago, findFolder, localInputValue, snoozeChoices, wakeLabel } from "./smart";
 import { Glyph, glyphFor } from "./Glyphs";
 import { dragging, dropIndex, endDrag, indexAfterTaking, movedIds, overRowMiddle, rowZone, sideOf, splittable, startDrag } from "./dnd";
+import { UnreadCount } from "./UnreadCount";
 import { countLabel } from "./DevBar";
 import { accentCss, findTab, hostOf, send, splitGroup, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snapshot, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
@@ -625,10 +626,8 @@ const TabRowInner = memo(
               <KeepActiveIcon width={12} height={12} />
             </span>
           )}
-          {!!rt?.unread_count && (
-            // The site's unread count, from its title; the close button takes its place on hover.
-            <span className="unread-count" role="img" aria-label={t("sidebar.tab_row.unread", { count: rt.unread_count })}>{countLabel(rt.unread_count)}</span>
-          )}
+          {/* The site's unread count; the row's hover button takes its place on hover. */}
+          <UnreadCount count={rt?.unread_count} />
           {shareTarget && (
             // Beside close, as Chromium's "Share this tab instead".
             <button
@@ -1125,6 +1124,7 @@ function SplitCell({ tab, rt, active, ghost, lifted, onRemove, ...events }: {
     <div className="split-cell" data-cell={ghost ? undefined : tab.id} data-ghost={ghost || undefined} data-lifted={lifted || undefined} data-active={active || undefined} data-unloaded={!ghost && !rt?.loaded ? true : undefined} title={tab.url} {...events}>
       <Favicon url={tab.url} src={rt?.favicon} loading={rt?.loading} />
       <span className="title">{tab.title || hostOf(tab.url)}</span>
+      {!ghost && <UnreadCount count={rt?.unread_count} />}
       {!ghost && rt?.shared && (
         <span className="shared" title={t("sidebar.tab_row.shared")} role="img" aria-label={t("sidebar.tab_row.shared_label")}>
           <ScreenShareIcon width={13} height={13} />
