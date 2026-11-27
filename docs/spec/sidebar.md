@@ -177,8 +177,12 @@ the row turns the icon into a back arrow that takes the page back.
   address as a new Today tab; a favorite has "Duplicate favorite" instead.
 - With one other space, the row names it ("Move to Work"). With more,
   "Move to another space" shows them as a list in the menu's place, below a
-  row back to the menu; past ten spaces the list scrolls. A menu taller
-  than the window starts at the window's top and scrolls.
+  row back to the menu and a field that has the keyboard; past ten spaces
+  the list scrolls. Typing part of a name in the field keeps the spaces
+  that have it, those first whose name starts with it, then those where a
+  word does (as the list of all spaces, `spaces.md`); the first is lit, so
+  Enter moves the tab there. A menu taller than the window starts at the
+  window's top and scrolls.
 
 ## Shared tabs
 
@@ -372,6 +376,11 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
   asks first ("Delete space…") wants a second press. On a row with a list, Enter, Space
   or the right arrow opens it and goes to its first row; the left arrow,
   or the row that leads back, returns to the menu, onto that row. Any other key closes the menu.
+  A list with a field keeps the keyboard there: the up and down arrows and
+  Enter do as above, Esc and Tab close the menu, every other key types or
+  edits in the field, and the left arrow returns to the menu once the field
+  is empty.
+  Enter does nothing while no row has what was typed.
   The pointer and the keyboard move the same mark, so one row is lit.
 
 ## Hiding and resizing

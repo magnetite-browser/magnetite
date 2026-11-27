@@ -402,6 +402,11 @@ button.panel-row:disabled { opacity: 0.45; }
 .menu button[aria-disabled] { color: var(--muted); opacity: 0.55; cursor: default; }
 .menu button[data-danger][data-at] { background: rgba(255, 90, 90, 0.14); }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+/* A list's field to narrow it by typing (`FILTER_HEIGHT` in ContextMenu.tsx): it always has the keyboard, so no ring. */
+.menu .menu-filter { display: block; width: 100%; height: 28px; margin-bottom: 4px; padding: 0 10px; border: 0; border-radius: 6px; outline: none; background: rgba(255,255,255,0.06); color: var(--fg); font: inherit; }
+.menu .menu-filter::placeholder { color: var(--muted); }
+/* In place of the rows when none has what was typed. */
+.menu .menu-none { display: flex; align-items: center; height: 28px; padding: 0 10px; color: var(--muted); }
 
 /* backdrop behind sidebar pop-ups: a click on it closes them */
 .cmdbar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.16); z-index: 40; }

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { pageZoom, send } from "./bridge";
+import { byName } from "./byName";
 import { Back, Check, Forward } from "./Icons";
 
 /** What every row shows. */
@@ -37,12 +38,23 @@ type Leaf = { separator: true } | Action;
 export type MenuLeaf = Leaf;
 
 /**
+ * A field above a list's rows that has the keyboard while the list is open:
+ * typing there keeps the rows whose label has the text, best first (see
+ * `byName`), and Enter picks the first of them.
+ */
+interface Filter {
+  placeholder: string;
+  /** Shown in place of the rows when none has the text. */
+  none: string;
+}
+
+/**
  * A line between groups, an action, or a list of its own. A list opens in
  * the menu's place, below a row that leads back: a menu in the sidebar has
  * no room beside it for one that flies out. It opens on a click or by the
- * keyboard, never by itself.
+ * keyboard, never by itself. `filter`: a field to narrow it by typing.
  */
-export type MenuItem = Leaf | (Row & { separator?: false; items: Leaf[] });
+export type MenuItem = Leaf | (Row & { separator?: false; items: Leaf[]; filter?: Filter });
 
 /** The line between groups of a menu. */
 export const SEPARATOR: { separator: true } = { separator: true };
@@ -55,6 +67,9 @@ const LIST_HEIGHT = 10.5 * 28;
 
 /** The widest a menu gets (`.menu` in index.css): it opens that far from the window's right edge at least. */
 const MENU_WIDTH = 224;
+
+/** The height of a list's field with the gap below it (`.menu-filter` in index.css). */
+const FILTER_HEIGHT = 28 + 4;
 
 /** The height of `items`: 28 px a row, 9 a line (see `.menu` in index.css). */
 function rowsHeight(items: MenuItem[]): number {
@@ -74,7 +89,10 @@ const keyOf = (p: Place) => (p.sub === undefined ? `${p.top}` : `${p.top}.${p.su
  * when its page loses the keyboard (a click into a web page, another app).
  * The arrow keys go through its rows (Home and End: the first and the
  * last), Enter or Space picks one, the right arrow opens a list and the
- * left one goes back from it.
+ * left one goes back from it. A list with a field keeps the keyboard in it:
+ * there the arrows up and down, Enter, Esc and Tab are the menu's keys,
+ * every other key is the field's, and the left arrow goes back only once
+ * the field is empty.
  * `takeFocus`: ask for the keyboard on opening, as a right click gives none
  * and without it there is nothing to lose; only for menus in the sidebar, a
  * page or a window of its own has it.
@@ -89,15 +107,28 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
   const [open, setOpen] = useState<number | null>(null);
   // The row the keyboard is on (the pointer moves it too).
   const [at, setAt] = useState<Place | null>(null);
+  // What is typed into the open list's field.
+  const [query, setQuery] = useState("");
   const buttons = useRef(new Map<string, HTMLButtonElement>());
+  const field = useRef<HTMLInputElement>(null);
+  // The rows' ids, so the field can name the one lit up while it keeps the keyboard.
+  const uid = useId();
 
   const list = open === null ? undefined : items[open];
   const opened = list && "items" in list ? list.items : null;
+  const filter = list && "items" in list ? list.filter : undefined;
   /** A row to go to and to pick: no line, and none that is greyed out. */
   const live = (it: MenuItem) => !it.separator && !("disabled" in it && it.disabled);
+  /** The open list's rows that show for `text`, with their place in it: all of them, or with a field those that have it, best first. */
+  const shownFor = (text: string) => {
+    const rows = (opened ?? []).map((it, sub) => ({ it, sub }));
+    // A line has no name, so it goes as soon as something is typed.
+    return filter ? byName(rows, text, ({ it }) => (it.separator ? "" : it.label)) : rows;
+  };
+  const shown = shownFor(query);
   /** The rows the keyboard goes through, top to bottom: the menu's, or the row back and the open list's. */
   const places: Place[] = opened && open !== null
-    ? [{ top: open }, ...opened.flatMap((sub, i) => (live(sub) ? [{ top: open, sub: i }] : []))]
+    ? [{ top: open }, ...shown.flatMap(({ it, sub }) => (live(it) ? [{ top: open, sub }] : []))]
     : items.flatMap((it, top) => (live(it) ? [{ top }] : []));
   const itemAt = (p: Place): MenuItem | undefined => {
     const top = items[p.top];
@@ -106,12 +137,21 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
   const go = (p: Place | undefined) => {
     if (!p) return;
     setAt(p);
-    // After the draw: a list just opened has its rows only then.
-    requestAnimationFrame(() => buttons.current.get(keyOf(p))?.focus());
+    // After the draw: a list just opened has its rows only then. Where a
+    // field has the keyboard, it keeps it, and the row only comes into view.
+    requestAnimationFrame(() => {
+      const button = buttons.current.get(keyOf(p));
+      if (field.current) button?.scrollIntoView({ block: "nearest" });
+      else button?.focus();
+    });
   };
   const toggle = (top: number, on = open !== top) => {
     setArmed(null);
+    setQuery("");
     setOpen(on ? top : null);
+    // A list with a field starts on its first row, opened by a click as by a key: Enter picks it.
+    const it = items[top];
+    if (on && it && "items" in it && it.filter) setAt({ top, sub: firstRow(it) });
   };
   const pick = (p: Place) => {
     const it = itemAt(p);
@@ -124,12 +164,13 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
   };
 
   // The newest of what the keys act on: the listener stays the same one.
-  const keys = useRef({ places, at, open, pick, go, toggle, itemAt, onClose });
-  keys.current = { places, at, open, pick, go, toggle, itemAt, onClose };
+  const filtering = !!filter;
+  const keys = useRef({ places, at, open, filtering, pick, go, toggle, itemAt, onClose });
+  keys.current = { places, at, open, filtering, pick, go, toggle, itemAt, onClose };
   useEffect(() => {
     const close = () => keys.current.onClose();
     const onKey = (e: KeyboardEvent) => {
-      const { places, at, open, pick, go, toggle, itemAt, onClose } = keys.current;
+      const { places, at, open, filtering, pick, go, toggle, itemAt, onClose } = keys.current;
       const i = at ? places.findIndex((p) => same(at, p)) : -1;
       const here = at && i >= 0 ? itemAt(at) : undefined;
       const isList = !!here && !here.separator && "items" in here;
@@ -139,6 +180,14 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
       };
       // A key held for a shortcut alone is no key of the menu's, and none to close it for.
       if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
+      // A key of the list's field, or a word still being composed there: into
+      // the field, back in it first should a click beside the rows have taken
+      // the keyboard.
+      const fieldKey = !["ArrowDown", "ArrowUp", "Enter", "Escape", "Tab"].includes(e.key) && !(e.key === "ArrowLeft" && !field.current?.value);
+      if (filtering && (fieldKey || e.isComposing)) {
+        field.current?.focus();
+        return;
+      }
       if (e.key === "ArrowDown") return handled(), go(places[(i + 1) % places.length]);
       if (e.key === "ArrowUp") return handled(), go(places[i < 0 ? places.length - 1 : (i - 1 + places.length) % places.length]);
       if (e.key === "Home") return handled(), go(places[0]);
@@ -152,6 +201,8 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
         if (isList) go(open === at.top ? { top: at.top } : { top: at.top, sub: firstRow(here) });
         return;
       }
+      // No row has what was typed: nothing to pick.
+      if (filtering && e.key === "Enter") return handled();
       if (at && isList && e.key === "ArrowRight") {
         handled();
         if (open !== at.top) toggle(at.top, true);
@@ -188,8 +239,10 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
   // is where the menu's first row was; only a list taller than the room
   // below moves it up.
   const rest = Math.max(8, Math.min(y / zoom, window.innerHeight / zoom - Math.min(room, closed) - 8));
-  // The padding, then the rows; an opened list has its row back and a line above.
-  const height = Math.min(room, opened ? 8 + 28 + 9 + Math.min(LIST_HEIGHT, rowsHeight(opened)) : closed);
+  // The padding, then the rows; an opened list has its row back and a line
+  // above, and its field. Counted with all of its rows, so the menu stays
+  // where it is while typing narrows them.
+  const height = Math.min(room, opened ? 8 + 28 + 9 + (filter ? FILTER_HEIGHT : 0) + Math.min(LIST_HEIGHT, rowsHeight(opened)) : closed);
   const top = Math.max(8, Math.min(rest, window.innerHeight / zoom - height - 8));
 
   /** Whether rows of `list` keep room for a mark: one of them has one. */
@@ -202,6 +255,7 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
         if (el) buttons.current.set(key, el);
         else buttons.current.delete(key);
       },
+      id: `${uid}-${key}`,
       tabIndex: -1,
       "data-at": (same(at, p) && live(it)) || undefined,
       onMouseMove: () => live(it) && !same(at, p) && setAt(p),
@@ -255,6 +309,7 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
               if (el) buttons.current.set(keyOf(back.place), el);
               else buttons.current.delete(keyOf(back.place));
             }}
+            id={`${uid}-${keyOf(back.place)}`}
             tabIndex={-1}
             role="menuitem"
             className="menu-back"
@@ -267,8 +322,31 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
             <span>{back.label}</span>
           </button>
           <hr />
+          {filter && (
+            <input
+              ref={field}
+              className="menu-filter"
+              // Typing narrows the list right away, opened by a click as by a key.
+              autoFocus
+              value={query}
+              placeholder={filter.placeholder}
+              aria-label={filter.placeholder}
+              aria-activedescendant={at ? `${uid}-${keyOf(at)}` : undefined}
+              spellCheck={false}
+              onChange={(e) => {
+                const text = e.target.value;
+                setQuery(text);
+                setArmed(null);
+                // The best match is the one Enter picks.
+                const best = shownFor(text).find(({ it }) => live(it));
+                if (best) go({ top: back.place.top, sub: best.sub });
+                else setAt(null);
+              }}
+            />
+          )}
           <div className="scroll" style={{ maxHeight: LIST_HEIGHT }}>
-            {opened.map((sub, i) => row(sub, { top: back.place.top, sub: i }, marked(opened)))}
+            {shown.map(({ it, sub }) => row(it, { top: back.place.top, sub }, marked(opened)))}
+            {shown.length === 0 && <div className="menu-none">{filter?.none}</div>}
           </div>
         </>
       ) : (
