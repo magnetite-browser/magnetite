@@ -92,7 +92,12 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
     ? undefined
     : others.length === 0
       ? { label: t("sidebar.tab_menu.move_to", { space: first.title }), ...moveTo(first) }
-      : { label: t("sidebar.tab_menu.move_to_space"), items: targets.map((sp) => ({ label: sp.title, icon: <SpaceIcon space={sp} size={16} />, ...moveTo(sp) })) };
+      : {
+          label: t("sidebar.tab_menu.move_to_space"),
+          items: targets.map((sp) => ({ label: sp.title, icon: <SpaceIcon space={sp} size={16} />, ...moveTo(sp) })),
+          // Typing a part of the name finds a space among many.
+          filter: { placeholder: t("sidebar.tab_menu.find_space"), none: t("sidebar.tab_menu.no_space") },
+        };
 
   // A favorite runs in the profile of its list; choosing another moves it.
   // Each profile has its own cookies and logins: two favorites of the same

@@ -81,6 +81,8 @@
     "show_only_in": "Nur in {space} zeigen",
     "move_to": "In {space} verschieben",
     "move_to_space": "In Space verschieben",
+    "find_space": "Space suchen …",
+    "no_space": "Kein Space mit diesem Namen",
     "archive": "Archivieren",
     "remove_from_pinned": "Aus angehefteten Tabs entfernen",
     "profile": "Profil",

@@ -81,6 +81,8 @@
     "show_only_in": "Show only in {space}",
     "move_to": "Move to {space}",
     "move_to_space": "Move to another space",
+    "find_space": "Find a space…",
+    "no_space": "No space with that name",
     "archive": "Archive",
     "remove_from_pinned": "Remove from pinned tabs",
     "profile": "Profile",

@@ -2,37 +2,13 @@
 // opened with keys of its own, from the Spaces menu or by the command
 // "Show all spaces": type part of a name, Enter goes to the space.
 import { useEffect, useRef, useState } from "react";
+import { byName } from "./byName";
 import { SpaceIcon } from "./Glyphs";
 import { MaskIcon } from "./Icons";
 import { IS_MAC, accentCss, send, type Space, type UiState } from "./bridge";
 import { useDismiss } from "./dismiss";
 import { keysLabel } from "./settings/shortcutKeys";
 import { rich, t } from "./i18n";
-
-/**
- * The spaces whose name contains `query`, those first whose name starts with
- * it, then those where a word does; otherwise in the footer's order.
- */
-function matching(spaces: Space[], query: string): Space[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return spaces;
-  const rank = (s: Space) => {
-    const title = s.title.toLowerCase();
-    if (title.startsWith(q)) return 0;
-    let found = false;
-    // Every place the text is at: one of them may start a word.
-    for (let at = title.indexOf(q); at >= 0; at = title.indexOf(q, at + 1)) {
-      if (/\s/.test(title.charAt(at - 1))) return 1;
-      found = true;
-    }
-    return found ? 2 : null;
-  };
-  return spaces
-    .map((space) => ({ space, rank: rank(space) }))
-    .filter((m): m is { space: Space; rank: number } => m.rank !== null)
-    .sort((a, b) => a.rank - b.rank)
-    .map((m) => m.space);
-}
 
 export function SpacePicker({ state, onClose }: { state: UiState; onClose: () => void }) {
   const { spaces, profiles } = state.sidebar;
@@ -45,7 +21,8 @@ export function SpacePicker({ state, onClose }: { state: UiState; onClose: () =>
   useDismiss(onClose, { takeFocus: false });
   useEffect(() => input.current?.focus(), []);
 
-  const found = matching(spaces, query);
+  // In the footer's order until something is typed.
+  const found = byName(spaces, query, (s) => s.title);
   const start = query.trim() ? 0 : Math.max(0, found.findIndex((s) => s.id === state.active_space));
   const sel = Math.min(selected ?? start, Math.max(0, found.length - 1));
   useEffect(() => {
