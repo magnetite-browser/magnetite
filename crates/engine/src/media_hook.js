@@ -53,30 +53,41 @@
   // never started (YouTube queues the next video or an ad; background tabs
   // hold new playback back) is not worth a paused player row.
   const played = new WeakSet();
-  // Each element's current run of playback: when it began, and when it
-  // stopped (0 while it plays). A source that starts within RUN_GAP_MS of
-  // the last one stopping goes on with its run (a reader that plays a text
-  // sentence by sentence), and so does media resumed after a run that
-  // already counted (`isMedia`).
+  // Each element's current run of playback: when it began, when it stopped
+  // (0 while it plays), and whether a new source was loaded since. A source
+  // that starts within RUN_GAP_MS of the last one stopping goes on with its
+  // run (a reader that plays a text sentence by sentence), and so does the
+  // same source resumed after a run that already counted (`isMedia`).
   const runs = new WeakMap();
   const RUN_GAP_MS = 1000;
   const SHORT_SECONDS = 5;
+  // The last audible media seen playing, by a report (`current`) or at its
+  // pause, which can come before the next report: of the paused ones, the
+  // one that keeps its row. A sound effect never takes its place.
+  let lastPlayed = null;
   const onEvent = (e) => {
     const el = e.target;
+    const run = runs.get(el);
     if (e.type === "playing") {
       played.add(el);
-      const run = runs.get(el);
-      if (!run || (run.stopped && clock() - run.stopped > RUN_GAP_MS && run.stopped - run.start < SHORT_SECONDS * 1000)) {
-        runs.set(el, { start: clock(), stopped: 0 });
+      const gap = run && run.stopped ? clock() - run.stopped : 0;
+      if (!run || (gap > RUN_GAP_MS && (run.reloaded || run.stopped - run.start < SHORT_SECONDS * 1000))) {
+        runs.set(el, { start: clock(), stopped: 0, reloaded: false });
       } else {
         run.stopped = 0;
+        run.reloaded = false;
       }
     }
-    if (e.type === "pause" || e.type === "ended") {
-      const run = runs.get(el);
-      if (run && !run.stopped) run.stopped = clock();
+    if (run && !run.stopped && (e.type === "pause" || e.type === "ended")) run.stopped = clock();
+    if (e.type === "loadstart" || e.type === "emptied") {
+      played.delete(el);
+      // A new source ends the old one's run, also when it did not pause first.
+      if (run) {
+        if (!run.stopped) run.stopped = clock();
+        run.reloaded = true;
+      }
     }
-    if (e.type === "loadstart" || e.type === "emptied") played.delete(el);
+    if (e.type === "pause" && played.has(el) && audible(el) && isMedia(el)) lastPlayed = el;
     schedule();
   };
   const watch = (el) => {
@@ -138,6 +149,7 @@
   // video in a shadow root (Reddit) is found there: the document only names
   // the shadow's host.
   const inFloatingWindow = (el) => rootOf(el).pictureInPictureElement === el;
+  const audible = (el) => !el.muted && el.volume !== 0;
 
   // Whether element `el` is media and not a sound effect such as a chat's
   // message sound, which in a background tab would flash a media row for
@@ -151,9 +163,6 @@
     return !!run && (run.stopped || clock()) - run.start >= SHORT_SECONDS * 1000;
   };
 
-  // The last audible media `current` found playing: of the paused ones, the
-  // one that keeps its row. A sound effect never takes its place.
-  let lastPlayed = null;
   // The element that matters (`isMedia`): an audible one that really plays,
   // else a muted video that plays or is in the floating window (Instagram
   // starts its videos muted; such a video can still pop out), else the last
@@ -175,7 +184,7 @@
         continue;
       }
       if (!played.has(el) || !isMedia(el)) continue;
-      if (el.muted || el.volume === 0) {
+      if (!audible(el)) {
         if (!silent && el instanceof HTMLVideoElement && (!el.paused || inFloatingWindow(el))) silent = el;
         continue;
       }
@@ -206,7 +215,7 @@
       state.video = el instanceof HTMLVideoElement && el.videoWidth > 0;
       state.pip = !!document.pictureInPictureElement;
       state.live = el.duration === Infinity;
-      state.silent = el.muted || el.volume === 0;
+      state.silent = !audible(el);
       state.can_next = handlers.has("nexttrack");
       state.can_prev = handlers.has("previoustrack");
     }
