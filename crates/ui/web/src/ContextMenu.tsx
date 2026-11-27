@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { pageZoom, send } from "./bridge";
 import { Back, Check, Forward } from "./Icons";
 
@@ -53,8 +53,11 @@ export const SEPARATOR: { separator: true } = { separator: true };
  */
 const LIST_HEIGHT = 10.5 * 28;
 
-/** The widest a menu gets (`.menu` in index.css): it opens that far from the window's right edge at least. */
-const MENU_WIDTH = 224;
+/**
+ * The widest a menu gets: it is as wide as its widest row (`.menu` in
+ * index.css), up to this and 8 px inside the window's sides.
+ */
+const MENU_MAX_WIDTH = 320;
 
 /** The height of `items`: 28 px a row, 9 a line (see `.menu` in index.css). */
 function rowsHeight(items: MenuItem[]): number {
@@ -90,6 +93,13 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
   // The row the keyboard is on (the pointer moves it too).
   const [at, setAt] = useState<Place | null>(null);
   const buttons = useRef(new Map<string, HTMLButtonElement>());
+  // The menu's width as drawn, in its own px: its rows decide it. Read
+  // before the paint, so it opens where it fits from the start.
+  const box = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    if (box.current) setWidth(box.current.offsetWidth);
+  });
 
   const list = open === null ? undefined : items[open];
   const opened = list && "items" in list ? list.items : null;
@@ -183,7 +193,8 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
   const zoom = pageZoom();
   const room = window.innerHeight / zoom - 16;
   const closed = 8 + rowsHeight(items);
-  const left = Math.max(0, Math.min(x / zoom, window.innerWidth / zoom - MENU_WIDTH));
+  const wide = Math.min(MENU_MAX_WIDTH, window.innerWidth / zoom - 16);
+  const left = Math.max(8, Math.min(x / zoom, window.innerWidth / zoom - width - 8));
   // Where the menu stands. A list opens at the same place, so the row back
   // is where the menu's first row was; only a list taller than the room
   // below moves it up.
@@ -209,7 +220,7 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
     const lead = (
       <>
         {marks && <span className="mark" aria-hidden />}
-        {it.icon}
+        {it.icon && <span className="icon">{it.icon}</span>}
         {it.dot !== undefined && <span className="dot" style={{ background: it.dot || undefined }} data-plain={!it.dot || undefined} />}
       </>
     );
@@ -236,7 +247,7 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
         onClick={() => pick(p)}
       >
         {marks && <span className="mark" aria-hidden>{it.checked ? <Check width={13} height={13} /> : it.selected ? <span className="chosen" /> : null}</span>}
-        {it.icon}
+        {it.icon && <span className="icon">{it.icon}</span>}
         {it.dot !== undefined && <span className="dot" style={{ background: it.dot || undefined }} data-plain={!it.dot || undefined} />}
         <span>{armed === key ? it.confirm : it.label}</span>
         {it.tag && <span className="tag">{it.tag}</span>}
@@ -247,7 +258,15 @@ export function ContextMenu({ x, y, items, onClose, takeFocus = false }: { x: nu
   const back = list && !list.separator && open !== null ? { label: list.label, place: { top: open } } : null;
   return (
     // Keyed by what it shows, so a menu scrolled in a short window starts at its top again.
-    <div key={open ?? "menu"} className="menu scroll no-drag" role="menu" aria-label={back?.label} style={{ left, top, ["--menu-room" as string]: `${room}px` }} onMouseDown={(e) => e.stopPropagation()}>
+    <div
+      key={open ?? "menu"}
+      ref={box}
+      className="menu scroll no-drag"
+      role="menu"
+      aria-label={back?.label}
+      style={{ left, top, ["--menu-room" as string]: `${room}px`, ["--menu-wide" as string]: `${wide}px` }}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       {back && opened ? (
         <>
           <button

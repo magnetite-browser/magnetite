@@ -342,11 +342,15 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
 - A menu opens at the pointer and stays inside the sidebar. It closes on a
   pick, on a click beside it, on Esc and when the sidebar loses the
   keyboard.
+- A menu is as wide as its longest row, up to 320 px and 8 px inside the
+  sidebar's edges. A row longer than that keeps its icon, its words end
+  in "…", and a hover shows them whole.
 - A row with a list of its own (Move to another space, Profile, Shows in)
   has an arrow at its right edge. A click on it opens the list in the
   menu's place, below a row that names it and leads back: a menu in the
   sidebar has no room beside it for one that flies out. A list never
-  opens by itself. It opens where the menu stands, and a long one scrolls.
+  opens by itself. It opens where the menu stands, moved over only as far
+  as a wider list needs, and a long one scrolls.
 - Every menu is built from the same groups, in this order, with a line
   between two that have rows: the page (reload, share, copy link, a smart
   folder's refresh and settings); where the item is kept (pinned,

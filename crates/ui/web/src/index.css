@@ -238,7 +238,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focu
 /* A top bar pop-up fills its window (TopBarPopup.tsx). */
 html[data-window] body { background: var(--surface); }
 html[data-window] .site-panel { position: static; max-height: none; border: 0; border-radius: 0; box-shadow: none; }
-html[data-window] .menu { position: static; max-width: none; max-height: none; border: 0; border-radius: 0; box-shadow: none; }
+html[data-window] .menu { position: static; width: auto; max-width: none; max-height: none; border: 0; border-radius: 0; box-shadow: none; }
 
 .addr-status .link { margin-left: auto; color: var(--fg); text-decoration: underline; text-underline-offset: 2px; white-space: nowrap; }
 
@@ -373,12 +373,17 @@ button.panel-row:disabled { opacity: 0.45; }
 .sp[data-after]::after { right: -2px; }
 
 /* menus */
-.menu { position: fixed; z-index: 50; min-width: 200px; max-width: 224px; max-height: var(--menu-room, none); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px; box-shadow: 0 12px 32px rgba(0,0,0,0.45); }
+/* As wide as its widest row, from 200 px up to `--menu-wide` (ContextMenu.tsx: 320 px, less in a narrow window). */
+.menu { position: fixed; z-index: 50; width: max-content; min-width: min(200px, var(--menu-wide, 200px)); max-width: var(--menu-wide, 320px); max-height: var(--menu-room, none); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px; box-shadow: 0 12px 32px rgba(0,0,0,0.45); }
 .menu button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; height: 28px; padding: 0 10px; border-radius: 6px; }
 /* One line per entry: the menu's height is counted in 28 px rows (ContextMenu.tsx). */
 .menu button span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* The tag gives way first, down to a stub, so the label keeps its words; a hover shows both whole. */
+/* The tag gives way first, down to a stub, so the label keeps its words; a hover shows both whole.
+   The label leaves room for the stub, and for a picture before it (16 px and the gap). */
 .menu button span:has(+ .tag) { flex-shrink: 0; max-width: calc(100% - 50px); }
+.menu button:has(> .icon) span:has(+ .tag) { max-width: calc(100% - 74px); }
+/* The picture before the label keeps its size; a long label gives way instead. */
+.menu button .icon { flex: none; display: grid; place-items: center; overflow: visible; }
 .menu button .tag { flex: 0 1 auto; min-width: 44px; margin-left: -2px; padding: 0 5px; text-align: center; border-radius: 4px; background: rgba(255,255,255,0.1); color: var(--secondary); font-size: 12px; line-height: 18px; }
 /* `margin-top`: the hint under a setting (`.hint`) has one, which would push this one off the line. */
 .menu button .hint { margin-left: auto; margin-top: 0; flex: none; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
