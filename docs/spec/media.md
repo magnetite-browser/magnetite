@@ -40,8 +40,8 @@ screen, in any space. There are at most two rows, playing ones first.
   first 5 seconds. Media that counted keeps counting when resumed; a new
   source in the same player counts on its own, unless it follows within
   that second.
-- Of several paused elements, the one that last played as media keeps the
-  row; a sound effect playing in between does not take it away.
+- Of several paused elements, the media that stopped playing last keeps
+  the row; a sound effect playing in between does not take it away.
 - Paused media keeps its row, so it can be resumed. Media that was loaded
   but never started (a queued next video, an ad in a background tab) gets
   none. Ended media loses its row.

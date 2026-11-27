@@ -54,17 +54,14 @@
   // hold new playback back) is not worth a paused player row.
   const played = new WeakSet();
   // Each element's current run of playback: when it began, when it stopped
-  // (0 while it plays), and whether a new source was loaded since. A source
+  // (0 while it plays; of the paused media, the one that stopped last keeps
+  // its row), and whether a new source was loaded since. A source
   // that starts within RUN_GAP_MS of the last one stopping goes on with its
   // run (a reader that plays a text sentence by sentence), and so does the
   // same source resumed after a run that already counted (`isMedia`).
   const runs = new WeakMap();
   const RUN_GAP_MS = 1000;
   const SHORT_SECONDS = 5;
-  // The last audible media seen playing, by a report (`current`) or at its
-  // pause, which can come before the next report: of the paused ones, the
-  // one that keeps its row. A sound effect never takes its place.
-  let lastPlayed = null;
   const onEvent = (e) => {
     const el = e.target;
     const run = runs.get(el);
@@ -87,7 +84,6 @@
         run.reloaded = true;
       }
     }
-    if (e.type === "pause" && played.has(el) && audible(el) && isMedia(el)) lastPlayed = el;
     schedule();
   };
   const watch = (el) => {
@@ -165,10 +161,12 @@
 
   // The element that matters (`isMedia`): an audible one that really plays,
   // else a muted video that plays or is in the floating window (Instagram
-  // starts its videos muted; such a video can still pop out), else the last
-  // audible one that played and is paused now.
+  // starts its videos muted; such a video can still pop out), else of the
+  // audible ones paused now the one that stopped last. A sound effect never
+  // counts, so it cannot take that row away.
   const current = () => {
     let paused = null;
+    let pausedAt = -1;
     let silent = null;
     for (const ref of elements) {
       const el = deref(ref);
@@ -188,11 +186,13 @@
         if (!silent && el instanceof HTMLVideoElement && (!el.paused || inFloatingWindow(el))) silent = el;
         continue;
       }
-      if (!el.paused) {
-        lastPlayed = el;
-        return el;
+      if (!el.paused) return el;
+      // `played` elements always have a run: both are set on `playing`.
+      const stopped = runs.get(el).stopped;
+      if (stopped > pausedAt) {
+        paused = el;
+        pausedAt = stopped;
       }
-      if (el === lastPlayed) paused = el;
     }
     return silent || paused;
   };
