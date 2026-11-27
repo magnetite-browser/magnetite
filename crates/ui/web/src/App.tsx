@@ -251,8 +251,8 @@ export function App() {
 
       <FavoriteLists ctx={ctx} lists={favoriteLists} />
 
-      {/* Lists */}
-      <div key={space.id} className="scroll space-list flex-1 min-h-0 px-2 pb-2" style={{ ["--enter-x" as string]: `${enter.current.x}px`, ...(swipe.offset ? { transform: `translateX(${swipe.offset}px)`, transition: "none" } : {}) }} onContextMenu={(e) => { if (e.target === e.currentTarget) { e.preventDefault(); spaceMenu(e.clientX, e.clientY); } }}>
+      {/* The space: its title stays in place (it says which space this is), the lists under it scroll. Both slide with a swipe. */}
+      <div key={space.id} className="space-list flex flex-1 min-h-0 flex-col" style={{ ["--enter-x" as string]: `${enter.current.x}px`, ...(swipe.offset ? { transform: `translateX(${swipe.offset}px)`, transition: "none" } : {}) }}>
         {isPrivate ? (
         <div className="space-title" onContextMenu={(e) => { e.preventDefault(); spaceMenu(e.clientX, e.clientY); }}>
           <span className="grid h-5 w-5 shrink-0 place-items-center" style={{ color: "var(--space)" }}><MaskIcon width={15} height={15} /></span>
@@ -273,36 +273,38 @@ export function App() {
         </div>
         )}
 
-        {/* Pinned tabs and folders, then one divider, then Today. No labels: position says it. The private space has only Today. */}
-        {!isPrivate && <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: indexAfterTaking(space.pinned, movedIds(d), space.pinned.length), split: d.pair }); else if (d) send({ cmd: "move_folder", id: d.id, index: indexAfterTaking(space.pinned, movedIds(d), space.pinned.length) }); endDrag(); }}>
-          {pinnedOpen ? <NodeList ctx={ctx} nodes={space.pinned} depth={0} /> : frontPinned && <TabRow ctx={ctx} tab={frontPinned.tab} section="pinned" index={frontPinned.index} folderId={frontPinned.folderId} onDropAt={(index) => dropAmongPinned(space.id, frontPinned.among, frontPinned.folderId, index)} />}
-        </div>}
+        <div className="scroll flex-1 min-h-0 px-2 pb-2" onContextMenu={(e) => { if (e.target === e.currentTarget) { e.preventDefault(); spaceMenu(e.clientX, e.clientY); } }}>
+          {/* Pinned tabs and folders, then one divider, then Today. No labels: position says it. The private space has only Today. */}
+          {!isPrivate && <div onDragOver={(e) => dragging() && e.preventDefault()} onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); const d = dragging(); if (d?.kind === "tab") send({ cmd: "move_tab", id: d.id, space: space.id, section: "pinned", index: indexAfterTaking(space.pinned, movedIds(d), space.pinned.length), split: d.pair }); else if (d) send({ cmd: "move_folder", id: d.id, index: indexAfterTaking(space.pinned, movedIds(d), space.pinned.length) }); endDrag(); }}>
+            {pinnedOpen ? <NodeList ctx={ctx} nodes={space.pinned} depth={0} /> : frontPinned && <TabRow ctx={ctx} tab={frontPinned.tab} section="pinned" index={frontPinned.index} folderId={frontPinned.folderId} onDropAt={(index) => dropAmongPinned(space.id, frontPinned.among, frontPinned.folderId, index)} />}
+          </div>}
 
-        <div className="divider">
-          {pinnedCount > 0 && (
-            <button className="pinned-toggle" aria-expanded={pinnedOpen} title={pinnedOpen ? t("sidebar.today.hide_pinned_title") : t("sidebar.today.show_pinned_title")} onClick={(e) => !movedUnder(e) && togglePinned()}>
-              <ChevronDown width={12} height={12} className="chevron" />
-              {pinnedOpen ? t("sidebar.today.hide_pinned") : t("sidebar.today.show_pinned", { count: pinnedCount })}
+          <div className="divider">
+            {pinnedCount > 0 && (
+              <button className="pinned-toggle" aria-expanded={pinnedOpen} title={pinnedOpen ? t("sidebar.today.hide_pinned_title") : t("sidebar.today.show_pinned_title")} onClick={(e) => !movedUnder(e) && togglePinned()}>
+                <ChevronDown width={12} height={12} className="chevron" />
+                {pinnedOpen ? t("sidebar.today.hide_pinned") : t("sidebar.today.show_pinned", { count: pinnedCount })}
+              </button>
+            )}
+            <hr />
+            {space.today.length > 0 && <button title={isPrivate ? t("sidebar.today.clear_private_title") : t("sidebar.today.clear_title")} onClick={(e) => !movedUnder(e) && send({ cmd: "archive_today" })}>{t("common.clear")}</button>}
+          </div>
+
+          <div
+            className="min-h-[72px]"
+            onDragOver={(e) => dragging()?.kind === "tab" && e.preventDefault()}
+            onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); dropToday(space.today.length); endDrag(); }}
+          >
+            <button className="row newtab w-full" onClick={() => send({ cmd: "open_palette", mode: "new" })} title={`${isPrivate ? t("sidebar.today.new_private_tab_title") : t("sidebar.today.new_tab_title")}${keysHint(state.keys, "new_tab")}`}>
+              <span className="icon-slot"><Plus width={15} height={15} /></span>
+              <span className="title text-left">{isPrivate ? t("sidebar.today.new_private_tab") : t("common.new_tab")}</span>
             </button>
-          )}
-          <hr />
-          {space.today.length > 0 && <button title={isPrivate ? t("sidebar.today.clear_private_title") : t("sidebar.today.clear_title")} onClick={(e) => !movedUnder(e) && send({ cmd: "archive_today" })}>{t("common.clear")}</button>}
-        </div>
-
-        <div
-          className="min-h-[72px]"
-          onDragOver={(e) => dragging()?.kind === "tab" && e.preventDefault()}
-          onDrop={(e) => { if ((e.target as HTMLElement).closest(".row")) return; e.preventDefault(); dropToday(space.today.length); endDrag(); }}
-        >
-          <button className="row newtab w-full" onClick={() => send({ cmd: "open_palette", mode: "new" })} title={`${isPrivate ? t("sidebar.today.new_private_tab_title") : t("sidebar.today.new_tab_title")}${keysHint(state.keys, "new_tab")}`}>
-            <span className="icon-slot"><Plus width={15} height={15} /></span>
-            <span className="title text-left">{isPrivate ? t("sidebar.today.new_private_tab") : t("common.new_tab")}</span>
-          </button>
-          {looseSplit && <SplitRow ctx={ctx} split={looseSplit} />}
-          {space.today.map((t, i) => (
-            <TabRow key={t.id} ctx={ctx} tab={t} section="today" index={i} onDropAt={dropToday} />
-          ))}
-          {deviceTabs.map((t) => <DeviceTabRow key={t.id} tab={t} />)}
+            {looseSplit && <SplitRow ctx={ctx} split={looseSplit} />}
+            {space.today.map((t, i) => (
+              <TabRow key={t.id} ctx={ctx} tab={t} section="today" index={i} onDropAt={dropToday} />
+            ))}
+            {deviceTabs.map((t) => <DeviceTabRow key={t.id} tab={t} />)}
+          </div>
         </div>
       </div>
 

@@ -334,8 +334,9 @@ button.panel-row:disabled { opacity: 0.45; }
 .row[data-split-preview], .row[data-split-preview]:hover { background: rgba(255,255,255,0.05); }
 .notice { position: absolute; z-index: 30; left: 8px; right: 8px; bottom: 52px; padding: 8px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 12px 32px rgba(0,0,0,0.45); font-size: 13px; color: var(--secondary); }
 
-/* space name above the list */
-.space-title { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; margin-top: 12px; border-radius: 8px; font-weight: 600; color: var(--secondary); }
+/* Space name above the lists. It stays put while they scroll, so it sits beside them, not in them;
+   0.5rem matches their px-2. */
+.space-title { flex: none; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; margin: 12px 0.5rem 0; border-radius: 8px; font-weight: 600; color: var(--secondary); }
 
 /* The profile the space runs in, in a box after its name. */
 .space-profile[data-profile] { background: color-mix(in srgb, var(--profile) 20%, transparent); color: var(--fg); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--profile) 28%, transparent); }

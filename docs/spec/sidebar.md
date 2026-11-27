@@ -28,7 +28,8 @@ From top to bottom:
 5. **Space title**, then the **pinned** tabs and folders of that space
    (`spaces.md`). Only the current space is rendered. With more than one
    profile, the profile the space runs in shows in a small box after its
-   name, in the profile's colour ("Favorites").
+   name, in the profile's colour ("Favorites"). The title stays in place:
+   the lists under it (pinned, divider, Today) scroll on their own.
 6. A divider. On hover it shows **Hide pinned** at its left, which hides
    the pinned tabs and folders of the space, and **Clear** at its right,
    which archives all Today tabs of the space. While the pinned tabs are
