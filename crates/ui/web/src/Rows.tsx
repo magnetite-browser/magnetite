@@ -8,7 +8,7 @@ import { UnreadCount } from "./UnreadCount";
 import { countLabel } from "./DevBar";
 import { accentCss, findTab, hostOf, send, splitGroup, splitIds, type DeviceTab, type FavoriteList, type Folder, type SidebarNode, type Side, type Snapshot, type Snoozed, type SplitNode, type TabItem, type TabRuntime, type UiState } from "./bridge";
 import { SEPARATOR, type MenuItem } from "./ContextMenu";
-import { MAX_PANES, menuOf, tabMenu } from "./menus";
+import { MAX_PANES, menuOf, moveRow, tabMenu } from "./menus";
 import { language, t } from "./i18n";
 
 export type Section = "favorites" | "pinned" | "today";
@@ -829,6 +829,8 @@ export function FolderRow({ ctx, folder, index, depth, parentId, onDropAt }: { c
       smart ? { label: t("sidebar.folder_menu.smart_settings"), onClick: settings } : { label: t("sidebar.folder_menu.make_smart"), onClick: settings },
       { label: t("sidebar.folder_menu.copy_share_link"), onClick: () => send({ cmd: "share_folder", id: folder.id }) },
     ],
+    // To the top of Pinned there.
+    place: [moveRow(ctx, (sp) => send({ cmd: "move_folder", id: folder.id, space: sp.id, index: 0 }))],
     view: [{ label: open ? t("sidebar.folder_menu.collapse") : t("sidebar.folder_menu.expand"), onClick: toggle }],
     edit: [
       { label: t("sidebar.folder_menu.rename"), onClick: () => ctx.setRenaming(folder.id) },

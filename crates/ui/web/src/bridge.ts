@@ -624,7 +624,8 @@ export type Command =
   | { cmd: "add_shared"; url: string }
   | { cmd: "delete_folder"; id: Id }
   | { cmd: "move_tab"; id: Id; space: Id; section: "favorites" | "pinned" | "today"; index: number; folder?: Id; profile?: Id; split?: boolean }
-  | { cmd: "move_folder"; id: Id; index: number; folder?: Id }
+  /** Into `space` (default: the active one), with all it holds. */
+  | { cmd: "move_folder"; id: Id; space?: Id; index: number; folder?: Id }
   | { cmd: "add_split"; id: Id; side?: Side }
   | { cmd: "split_insert"; target?: Id; tab: Id; side: Side }
   | { cmd: "split_reorder"; target: Id; tab: Id; side: Side }

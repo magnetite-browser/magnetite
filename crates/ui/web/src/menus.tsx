@@ -56,6 +56,35 @@ export function profileRow(profiles: Snapshot["profiles"], current: string | und
 }
 
 /**
+ * "Move to …" for an item of the row's space, or nothing without another
+ * space: one other space is a row of its own, more are a list (see
+ * `ContextMenu`). Where the spaces use more than one profile, each names
+ * its own: two spaces may share a name, and a tab moved into another
+ * profile loads again with that profile's logins. Nothing moves into the
+ * private space.
+ */
+export function moveRow(ctx: RowContext, move: (space: Space) => void): MenuItem | undefined {
+  const { spaces, profiles } = ctx.state.sidebar;
+  const movable = spaces.filter((sp) => sp.id !== ctx.state.private_space);
+  const targets = movable.filter((sp) => sp.id !== ctx.spaceId);
+  const showProfile = new Set(movable.map((sp) => sp.profile_id)).size > 1;
+  const moveTo = (sp: Space) => ({
+    tag: showProfile ? (profiles.find((p) => p.id === sp.profile_id)?.name ?? t("sidebar.profile.fallback")) : undefined,
+    onClick: () => move(sp),
+  });
+  const [first, ...others] = targets;
+  if (!first) return undefined;
+  return others.length === 0
+    ? { label: t("sidebar.tab_menu.move_to", { space: first.title }), ...moveTo(first) }
+    : {
+        label: t("sidebar.tab_menu.move_to_space"),
+        items: targets.map((sp) => ({ label: sp.title, icon: <SpaceIcon space={sp} size={16} />, ...moveTo(sp) })),
+        // Typing a part of the name finds a space among many.
+        filter: { placeholder: t("sidebar.tab_menu.find_space"), none: t("sidebar.tab_menu.no_space") },
+      };
+}
+
+/**
  * Right-click menu of a tab; `at` is the click point on the screen (the share
  * menu opens there). `smart`: an item its smart folder got from its source.
  * A row that belongs to this kind of tab but has nothing to do right now is
@@ -75,29 +104,6 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
   const inFront = state.active_tab === tab.id;
   const keys = (label: string) => (inFront && label ? label : undefined);
   const away = !!tab.home_url && tab.home_url !== tab.url;
-
-  // One other space is a row of its own; more are a list (see `ContextMenu`).
-  // Where the spaces use more than one profile, each names its own: two
-  // spaces may share a name, and a tab moved into another profile loads
-  // again with that profile's logins.
-  const movable = inPrivate ? [] : spaces.filter((sp) => sp.id !== state.private_space);
-  const targets = movable.filter((sp) => sp.id !== ctx.spaceId);
-  const showProfile = new Set(movable.map((sp) => sp.profile_id)).size > 1;
-  const moveTo = (sp: Space) => ({
-    tag: showProfile ? (profiles.find((p) => p.id === sp.profile_id)?.name ?? t("sidebar.profile.fallback")) : undefined,
-    onClick: () => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 }),
-  });
-  const [first, ...others] = targets;
-  const move: MenuItem | undefined = !first
-    ? undefined
-    : others.length === 0
-      ? { label: t("sidebar.tab_menu.move_to", { space: first.title }), ...moveTo(first) }
-      : {
-          label: t("sidebar.tab_menu.move_to_space"),
-          items: targets.map((sp) => ({ label: sp.title, icon: <SpaceIcon space={sp} size={16} />, ...moveTo(sp) })),
-          // Typing a part of the name finds a space among many.
-          filter: { placeholder: t("sidebar.tab_menu.find_space"), none: t("sidebar.tab_menu.no_space") },
-        };
 
   // A favorite runs in the profile of its list; choosing another moves it.
   // Each profile has its own cookies and logins: two favorites of the same
@@ -128,7 +134,8 @@ export function tabMenu(ctx: RowContext, tab: TabItem, section: Section, at: { x
       !inPrivate && !favorite && { label: t("sidebar.tab_menu.add_to_favorites"), onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "favorites", index: 999 }) },
       favorite && { label: t("sidebar.tab_menu.remove_from_favorites"), onClick: () => send({ cmd: "move_tab", id: tab.id, space: ctx.spaceId, section: "today", index: 0 }) },
       !inPrivate && { label: t("sidebar.tab_menu.add_to_bookmarks"), onClick: () => send({ cmd: "add_bookmark", id: tab.id }) },
-      move,
+      // To the top of Today there.
+      !inPrivate && moveRow(ctx, (sp) => send({ cmd: "move_tab", id: tab.id, space: sp.id, section: "today", index: 0 })),
     ],
     view: [
       // Beside the page in front: not for that page itself, one on screen already, or a web panel.

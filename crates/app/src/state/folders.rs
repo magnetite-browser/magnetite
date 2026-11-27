@@ -103,6 +103,14 @@ impl AppState {
             .find_map(|s| folder_in_tree_mut(&mut s.pinned, id))
     }
 
+    /// The tabs in folder `id` of any space, those in folders inside it too.
+    pub fn tabs_in_folder(&self, id: &str) -> Vec<Id> {
+        (self.sidebar.spaces.iter())
+            .find_map(|sp| find_folder(&sp.pinned, id))
+            .map(|(f, _)| (f.children.iter().flat_map(SidebarNode::tabs)).map(|t| t.id.clone()))
+            .map_or_else(Vec::new, Iterator::collect)
+    }
+
     /// The folder holding tab `tab` directly, in any space.
     pub fn parent_folder_mut(&mut self, tab: &str) -> Option<&mut Folder> {
         self.sidebar
@@ -143,23 +151,35 @@ impl AppState {
         }
     }
 
-    /// Move folder `id` of the active space to place `index` of folder
-    /// `parent`, else of the top level of Pinned. `index` counts the list
-    /// without the moved folder; one past the end is the end. A folder does
-    /// not go into itself, into a smart folder (that one lists what its
-    /// service has) or deeper than `MAX_DEPTH`. False if nothing moved.
-    pub fn move_folder(&mut self, id: &str, parent: Option<&str>, index: usize) -> bool {
-        let space = self.active_space.clone();
-        let Some(sp) = self.space_mut(&space) else {
-            return false;
-        };
-        let Some(moved @ SidebarNode::Folder(_)) = sp.pinned.iter().find_map(|n| find(n, id))
+    /// Move folder `id`, with all it holds, to place `index` of folder
+    /// `parent`, else of the top level of Pinned, in space `space`: its own
+    /// or another. `index` counts the list without the moved folder; one
+    /// past the end is the end. A folder does not go into itself, into a
+    /// smart folder (that one lists what its service has), deeper than
+    /// `MAX_DEPTH`, or into the private space, which has only Today tabs.
+    /// False if nothing moved.
+    pub fn move_folder(
+        &mut self,
+        id: &str,
+        space: &str,
+        parent: Option<&str>,
+        index: usize,
+    ) -> bool {
+        let spaces = &self.sidebar.spaces;
+        let Some((from, moved @ SidebarNode::Folder(_))) = (spaces.iter().enumerate())
+            .find_map(|(i, sp)| Some((i, sp.pinned.iter().find_map(|n| find(n, id))?)))
         else {
             return false;
         };
+        let Some(to) = spaces.iter().position(|sp| sp.id == space) else {
+            return false;
+        };
+        if self.is_private_space(space) {
+            return false;
+        }
         let depth = match parent {
             Some(p) if find(moved, p).is_some() => return false,
-            Some(p) => match find_folder(&sp.pinned, p) {
+            Some(p) => match find_folder(&spaces[to].pinned, p) {
                 Some((parent, depth)) if parent.smart.is_none() => depth,
                 _ => return false,
             },
@@ -168,13 +188,14 @@ impl AppState {
         if depth + height(moved) > MAX_DEPTH {
             return false;
         }
-        let Some(node) = remove_from_tree(&mut sp.pinned, id) else {
+        let Some(node) = remove_from_tree(&mut self.sidebar.spaces[from].pinned, id) else {
             return false;
         };
         // Checked above: `parent` is there, outside `node`.
-        let list = match parent.and_then(|p| folder_in_tree_mut(&mut sp.pinned, p)) {
+        let pinned = &mut self.sidebar.spaces[to].pinned;
+        let list = match parent.and_then(|p| folder_in_tree_mut(pinned, p)) {
             Some(parent) => &mut parent.children,
-            None => &mut sp.pinned,
+            None => pinned,
         };
         list.insert(index.min(list.len()), node);
         true
@@ -308,41 +329,48 @@ mod tests {
         })
     }
 
-    /// The pinned items of the first space as text: `p, f[x, g[]]`.
+    /// Pinned items as text: `p, f[x, g[]]`.
+    fn nodes(list: &[SidebarNode]) -> String {
+        let parts: Vec<String> = list
+            .iter()
+            .map(|n| match n {
+                SidebarNode::Tab(t) => t.id.clone(),
+                SidebarNode::Folder(f) => format!("{}[{}]", f.id, nodes(&f.children)),
+            })
+            .collect();
+        parts.join(", ")
+    }
+
+    /// The pinned items of the first space as text.
     fn outline(s: &AppState) -> String {
-        fn nodes(list: &[SidebarNode]) -> String {
-            let parts: Vec<String> = list
-                .iter()
-                .map(|n| match n {
-                    SidebarNode::Tab(t) => t.id.clone(),
-                    SidebarNode::Folder(f) => format!("{}[{}]", f.id, nodes(&f.children)),
-                })
-                .collect();
-            parts.join(", ")
-        }
         nodes(&s.sidebar.spaces[0].pinned)
     }
 
     #[test]
     fn a_folder_moves_into_another_and_out_again() {
         let mut s = state();
+        let here = s.active_space.clone();
         let pinned = &mut s.sidebar.spaces[0].pinned;
         pinned.push(folder("f", vec![SidebarNode::Tab(tab("x"))]));
         pinned.push(folder("g", vec![]));
-        assert!(s.move_folder("g", Some("f"), 1));
+        assert!(s.move_folder("g", &here, Some("f"), 1));
         assert_eq!(outline(&s), "p, f[x, g[]]");
-        assert!(s.move_folder("g", None, 0));
+        assert!(s.move_folder("g", &here, None, 0));
         assert_eq!(outline(&s), "g[], p, f[x]");
     }
 
     #[test]
     fn a_folder_does_not_go_into_itself_or_below_itself() {
         let mut s = state();
+        let here = s.active_space.clone();
         (s.sidebar.spaces[0].pinned).push(folder("f", vec![folder("g", vec![])]));
-        assert!(!s.move_folder("f", Some("f"), 0));
-        assert!(!s.move_folder("f", Some("g"), 0));
-        assert!(!s.move_folder("f", Some("gone"), 0));
-        assert!(!s.move_folder("p", Some("f"), 0), "a tab is not a folder");
+        assert!(!s.move_folder("f", &here, Some("f"), 0));
+        assert!(!s.move_folder("f", &here, Some("g"), 0));
+        assert!(!s.move_folder("f", &here, Some("gone"), 0));
+        assert!(
+            !s.move_folder("p", &here, Some("f"), 0),
+            "a tab is not a folder"
+        );
         assert_eq!(outline(&s), "p, f[g[]]");
         // A smart folder lists what its service has.
         use magnetite_core::smart::{SmartFolder, SmartSource};
@@ -351,8 +379,8 @@ mod tests {
             query: String::new(),
         };
         s.folder_mut("f").unwrap().smart = Some(SmartFolder::new(source));
-        assert!(s.move_folder("g", None, 0));
-        assert!(!s.move_folder("g", Some("f"), 0));
+        assert!(s.move_folder("g", &here, None, 0));
+        assert!(!s.move_folder("g", &here, Some("f"), 0));
         s.new_folder("", Some("f"));
         assert_eq!(
             s.sidebar.spaces[0].pinned.len(),
@@ -364,6 +392,7 @@ mod tests {
     #[test]
     fn folders_do_not_nest_deeper_than_an_import_allows() {
         let mut s = state();
+        let here = s.active_space.clone();
         let chain = (0..MAX_DEPTH)
             .rev()
             .fold(vec![], |inner, n| vec![folder(&format!("d{n}"), inner)]);
@@ -371,13 +400,43 @@ mod tests {
         pinned.extend(chain);
         pinned.push(folder("g", vec![]));
         let deepest = format!("d{}", MAX_DEPTH - 1);
-        assert!(!s.move_folder("g", Some(&deepest), 0));
-        assert!(s.move_folder("g", Some(&format!("d{}", MAX_DEPTH - 2)), 0));
+        assert!(!s.move_folder("g", &here, Some(&deepest), 0));
+        assert!(s.move_folder("g", &here, Some(&format!("d{}", MAX_DEPTH - 2)), 0));
         // No room below the deepest folder: the new one goes to the top.
         s.new_folder("", Some(&deepest));
         assert!(
             matches!(&s.sidebar.spaces[0].pinned[0], SidebarNode::Folder(f) if f.title == "Untitled")
         );
+    }
+
+    #[test]
+    fn a_folder_moves_to_another_space_with_what_it_holds() {
+        let mut s = state();
+        let here = s.active_space.clone();
+        let work = s.new_space("Work", None, None).unwrap();
+        let inner = folder("g", vec![SidebarNode::Tab(tab("y"))]);
+        (s.sidebar.spaces[0].pinned).push(folder("f", vec![SidebarNode::Tab(tab("x")), inner]));
+        (s.space_mut(&work).unwrap().pinned).push(SidebarNode::Tab(tab("w")));
+        let pinned_of = |s: &AppState, id: &str| nodes(&s.space(id).unwrap().pinned);
+
+        assert!(s.move_folder("f", &work, None, 0));
+        assert_eq!(outline(&s), "p");
+        assert_eq!(pinned_of(&s, &work), "f[x, g[y]], w");
+        // A folder inside one goes back on its own, into a folder there too.
+        assert!(s.move_folder("g", &here, None, 1));
+        assert_eq!(outline(&s), "p, g[y]");
+        assert!(s.move_folder("g", &work, Some("f"), 9));
+        assert_eq!(pinned_of(&s, &work), "f[x, g[y]], w");
+        // A folder of another space than the one named is no place for it.
+        (s.sidebar.spaces[0].pinned).push(folder("h", vec![]));
+        assert!(!s.move_folder("h", &here, Some("f"), 0));
+
+        // The private space has only Today tabs.
+        let private = s.open_private_space(false);
+        assert!(!s.move_folder("f", &private, None, 0));
+        assert!(!s.move_folder("f", "gone", None, 0));
+        assert_eq!(pinned_of(&s, &work), "f[x, g[y]], w");
+        assert_eq!(outline(&s), "p, h[]");
     }
 
     #[test]

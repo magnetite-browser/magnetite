@@ -16,11 +16,11 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 
 use crate::state::import::{SpaceChoice, choose_spaces, preview};
-use crate::state::{AppState, ArcImport, ChosenProfile, SidebarEffect, icon_image_ok, new_id};
+use crate::state::{ArcImport, ChosenProfile, SidebarEffect, icon_image_ok, new_id};
 use crate::sync::{self, Job};
 use crate::{capture, downloads, lock, url_policy};
 
-use super::tabs::{Destination, move_tabs};
+use super::tabs::{Destination, move_tabs, moving};
 use super::{
     LATE_DROP, LinkVariant, MagnetiteApp, PROMPT_SETTLE, PaletteMode, WELCOME_URL, for_ui, global,
 };
@@ -362,9 +362,12 @@ pub(super) enum UiCommand {
         split: bool,
     },
     /// Put folder `id` at `index` (counted without it) of folder `folder`,
-    /// else of the top level of Pinned.
+    /// else of the top level of Pinned, in space `space` (default: the
+    /// active one).
     MoveFolder {
         id: String,
+        #[serde(default)]
+        space: Option<String>,
         index: usize,
         #[serde(default)]
         folder: Option<String>,
@@ -1454,12 +1457,6 @@ impl MagnetiteApp {
                     } else {
                         vec![id.clone()]
                     };
-                    let contexts = |s: &AppState| -> Vec<_> {
-                        (ids.iter())
-                            .map(|id| s.context(s.profile_for_tab(id).as_deref()).map(|c| c.id))
-                            .collect()
-                    };
-                    let before = contexts(s);
                     let to = Destination {
                         space: &space,
                         section,
@@ -1467,48 +1464,29 @@ impl MagnetiteApp {
                         folder: folder.as_deref(),
                         profile: profile.as_deref(),
                     };
-                    move_tabs(s, &ids, &to);
-                    // In another profile now: its page must load again there,
-                    // not go on with the cookies of the profile it left.
-                    let after = contexts(s);
-                    let stale: Vec<_> = (ids.iter().zip(before.iter().zip(&after)))
-                        .filter(|(_, (before, after))| before != after)
-                        .filter_map(|(id, _)| s.detach_content(id))
-                        .collect();
+                    let ((), stale) = moving(s, &ids, |s| move_tabs(s, &ids, &to));
                     (ids, stale)
                 });
-                // Moved to another space while in front: this space goes on
-                // with a tab of its own.
-                let moved_away = self.with_state(|s| {
-                    let here = s.active_space.clone();
-                    let away = s.active_tab_id().is_some_and(|active| {
-                        ids.iter().any(|id| id == active)
-                            && s.find_tab(active)
-                                .is_some_and(|(sp, _)| sp.is_some_and(|sp| sp.id != here))
-                    });
-                    if away {
-                        s.active_tab.remove(&here);
-                    }
-                    away.then_some(here)
-                });
-                let reload = !stale.is_empty();
-                for c in stale {
-                    engine.close_content(c);
-                }
-                if let Some(space) = moved_away {
-                    self.activate_space(engine, &space);
-                } else if reload {
-                    self.present(engine);
-                } else {
-                    for id in &ids {
-                        self.apply_lock(engine, id);
-                    }
-                    self.push_state(engine);
-                }
+                self.show_moved(engine, &ids, stale);
             }
-            UiCommand::MoveFolder { id, index, folder } => {
-                if self.with_state(|s| s.move_folder(&id, folder.as_deref(), index)) {
-                    self.push_state(engine);
+            UiCommand::MoveFolder {
+                id,
+                space,
+                index,
+                folder,
+            } => {
+                // What the folder holds goes along, into the profile of
+                // another space too.
+                let moved = self.with_state(|s| {
+                    let ids = s.tabs_in_folder(&id);
+                    let space = space.unwrap_or_else(|| s.active_space.clone());
+                    let (moved, stale) = moving(s, &ids, |s| {
+                        s.move_folder(&id, &space, folder.as_deref(), index)
+                    });
+                    moved.then_some((ids, stale))
+                });
+                if let Some((ids, stale)) = moved {
+                    self.show_moved(engine, &ids, stale);
                 }
             }
             UiCommand::AddSplit { id, side } => {

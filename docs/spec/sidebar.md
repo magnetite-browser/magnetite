@@ -335,6 +335,11 @@ Code: `crates/engine/src/tabshare.rs`, `tabshare_hook.js`;
   level. "New folder inside" in a folder's context menu makes one at its
   top. A folder does not go into itself, into a smart folder or more than
   32 folders deep.
+- "Move to …" in the context menu moves the folder, with the tabs and
+  folders inside it, to the top of Pinned in another space; it is one row
+  or a list as on a tab ("Tab rows"). A tab inside loads again only when
+  it lands in another profile. When the tab in front goes along, the
+  current space shows another of its tabs, if it has one.
 - "Delete folder (keep tabs)" in the context menu removes the folder; its
   tabs stay where it was. A smart folder is deleted with the items it
   listed.

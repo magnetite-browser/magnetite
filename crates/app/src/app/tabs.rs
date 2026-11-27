@@ -68,6 +68,30 @@ pub(super) fn move_tabs(s: &mut AppState, ids: &[String], to: &Destination) {
     }
 }
 
+/// Make `change`, which moves the tabs `ids`, and take away the pages of
+/// those it put into another profile: they must load again there, not go
+/// on with the cookies of the profile they left. Returns what `change`
+/// returned and those pages, for `MagnetiteApp::show_moved`.
+pub(super) fn moving<T>(
+    s: &mut AppState,
+    ids: &[Id],
+    change: impl FnOnce(&mut AppState) -> T,
+) -> (T, Vec<ContentId>) {
+    let contexts = |s: &AppState| -> Vec<_> {
+        (ids.iter())
+            .map(|id| s.context(s.profile_for_tab(id).as_deref()).map(|c| c.id))
+            .collect()
+    };
+    let before = contexts(s);
+    let changed = change(s);
+    let after = contexts(s);
+    let stale = (ids.iter().zip(before.iter().zip(&after)))
+        .filter(|(_, (before, after))| before != after)
+        .filter_map(|(id, _)| s.detach_content(id))
+        .collect();
+    (changed, stale)
+}
+
 /// A `Destination` that owns its names, worked out before the state is
 /// changed.
 struct Spot {
@@ -1212,6 +1236,39 @@ impl MagnetiteApp {
             self.apply_lock(engine, id);
         }
         self.push_state(engine);
+    }
+
+    /// After the tabs `ids` moved (`moving`): close the pages `stale` that
+    /// must load again in another profile and show what is on screen now.
+    /// When the tab in front went to another space, this space goes on with
+    /// a tab of its own.
+    pub(super) fn show_moved(&self, engine: &Engine, ids: &[Id], stale: Vec<ContentId>) {
+        let moved_away = self.with_state(|s| {
+            let here = s.active_space.clone();
+            let away = s.active_tab_id().is_some_and(|active| {
+                ids.iter().any(|id| id == active)
+                    && s.find_tab(active)
+                        .is_some_and(|(sp, _)| sp.is_some_and(|sp| sp.id != here))
+            });
+            if away {
+                s.active_tab.remove(&here);
+            }
+            away.then_some(here)
+        });
+        let reload = !stale.is_empty();
+        for c in stale {
+            engine.close_content(c);
+        }
+        if let Some(space) = moved_away {
+            self.activate_space(engine, &space);
+        } else if reload {
+            self.present(engine);
+        } else {
+            for id in ids {
+                self.apply_lock(engine, id);
+            }
+            self.push_state(engine);
+        }
     }
 
     /// Lock the page of `tab_id` to its home site, or free it, as the tab is
